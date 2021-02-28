@@ -6,11 +6,11 @@ nav_order: 3
 
 
 ## Updatable view support
-Box supports updatable views for forms, that could be useful if you need to build a form that doesen't have a direct table representation.
+Box supports updatable views for forms, that could be useful if you need to build a form that doesn't have a direct table representation.
 
 In order to do so an updatable view should be created, to create updatable views in postgres please refer to [https://www.postgresql.org/docs/current/sql-createview.html#SQL-CREATEVIEW-UPDATABLE-VIEWS](https://www.postgresql.org/docs/current/sql-createview.html#SQL-CREATEVIEW-UPDATABLE-VIEWS) 
 
-Since view doesen't have primary keys to be able to update a record the key fields should be defined in the interface builder.
+Since view doesn't have primary keys to be able to update a record the key fields should be defined in the interface builder.
 
 Example:
 

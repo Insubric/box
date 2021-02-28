@@ -11,7 +11,7 @@ To start a new project with box framework simply do:
 sbt new minettiandrea/box.g8
 ```
 
-After inserting the informations required go to the project folder:
+Provide the data required, then go to the project folder:
 ```
 cd <project-name>
 ```

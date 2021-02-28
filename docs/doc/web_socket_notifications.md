@@ -10,7 +10,7 @@ nav_order: 2
 - `box.ui_notification(topic text, users text[], payload json)` send the notification only to the users in the users array
 
 ## Notification in UI
-A notification channel is automatically set up, in order to send messages from the db to the ui use the provided `box.ui_notification` or `box.ui_notification_forall` fucntion in postgres.
+A notification channel is automatically set up, in order to send messages from the db to the ui use the provided `box.ui_notification` or `box.ui_notification_forall` function in postgres.
 
 Example:
 

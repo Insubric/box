@@ -14,7 +14,7 @@ Versions are managed using git tags, to create a new version simply add a new ta
 The format of the version is `x.y.z`, i.e. `1.3.5`.
 
 ## CI, Github actions
-If you created the project using the g8 template github action for publishing your application to github relases and docker hub is already set up, you just need to:
+If you created the project using the g8 template github action for publishing your application to github releases and docker hub is already set up, you just need to:
 1. create a github repository for the project (we advise to do it private since the information and accesses of your DB are exposed)
 2. Add the git hub secrets for docker hub access:
     1. `DOCKERHUB_USERNAME` with your hub.docker.com username
@@ -29,7 +29,7 @@ Generate the application package with
 sbt universal:packageBin
 ```
 
-Standalone package is availabe in
+Standalone package is available in
 `server/target/universal/server-1.0.0.zip`
 
 In the zip you will find a `bin/` directory to start the server use: 
@@ -72,9 +72,9 @@ In order to create a docker image of your setup use:
 sbt docker:publishLocal
 ```
 
-A local image will be created, to run it you need a to have docker installed in your machine (for desktop use https://www.docker.com/products/docker-desktop)
+A local image will be created, to run it you need to have docker installed in your machine (for desktop use https://www.docker.com/products/docker-desktop)
 
-to run Box using docker first create a configuration
+to run Box using docker swarm first create a configuration
 
 ```
 docker config create box-config <path-to>/application.conf
