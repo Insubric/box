@@ -47,6 +47,7 @@ lazy val server: Project  = project
     libraryDependencies ++= Settings.jvmDependencies.value,
     resolvers ++= Seq(Resolver.jcenterRepo, Resolver.bintrayRepo("hseeberger", "maven")),
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
+    resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
     slick := slickCodeGenTask.value , // register manual sbt command
     deleteSlick := deleteSlickTask.value,
     testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "html"),

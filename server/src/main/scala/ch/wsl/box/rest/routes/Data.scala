@@ -73,6 +73,14 @@ trait Data extends Logging {
           complete(pdf.map(p => HttpEntity(MediaTypes.`application/pdf`,p)))
         }
       }
+      case Some(dc) if dc.mode == FunctionKind.Modes.SHP  => {
+
+        val shp:Future[Array[Byte]] = ???
+
+        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.shp"))) {
+          complete(shp.map(p => HttpEntity(MediaTypes.`application/octet-stream`,p)))
+        }
+      }
       case _ => complete(StatusCodes.BadRequest)
     }
   }
