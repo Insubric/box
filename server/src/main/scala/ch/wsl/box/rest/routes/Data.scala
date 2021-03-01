@@ -21,6 +21,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.io.ShapeFileWriter
 import ch.wsl.box.rest.logic.{DataResult, DataResultObject, DataResultTable}
 import ch.wsl.box.rest.metadata.DataMetadataFactory
 import ch.wsl.box.rest.pdf.Pdf
@@ -75,10 +76,10 @@ trait Data extends Logging {
       }
       case Some(dc) if dc.mode == FunctionKind.Modes.SHP  => {
 
-        val shp:Future[Array[Byte]] = ???
+        val shp:Future[Array[Byte]] = Future(ShapeFileWriter.writePoints())
 
-        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.shp"))) {
-          complete(shp.map(p => HttpEntity(MediaTypes.`application/octet-stream`,p)))
+        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.zip"))) {
+          complete(shp.map(p => HttpEntity(MediaTypes.`application/zip`,p)))
         }
       }
       case _ => complete(StatusCodes.BadRequest)

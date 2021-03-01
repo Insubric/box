@@ -40,7 +40,7 @@ object FunctionUIDef {
         params = Some(Json.obj("language" -> "handlebars".asJson, "height" -> 800.asJson)),
       ),
       JSONField(JSONFieldTypes.STRING,"description",true),
-      JSONField(JSONFieldTypes.STRING,"mode",false,lookup = Some(JSONFieldLookup.prefilled(
+      JSONField(JSONFieldTypes.STRING,"mode",false,widget = Some(WidgetsNames.select), lookup = Some(JSONFieldLookup.prefilled(
         FunctionKind.Modes.all.map(x => JSONLookup(x,x))
       ))),
       JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.textarea),label = Some("")),

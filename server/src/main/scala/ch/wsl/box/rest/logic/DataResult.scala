@@ -6,7 +6,7 @@ import org.locationtech.jts.geom.Geometry
 
 sealed trait DataResult
 
-case class DataResultTable(headers:Seq[String],rows:Seq[Seq[String]],geometry: Map[String,Seq[Geometry]]) extends DataResult {
+case class DataResultTable(headers:Seq[String],rows:Seq[Seq[String]],geometry: Map[String,Seq[Geometry]] = Map()) extends DataResult {
 
   lazy val toMap: Seq[Map[String, String]] = rows.map(r => headers.zip(r).toMap)
 

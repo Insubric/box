@@ -131,6 +131,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
     showIf(table) { button(Labels.exports.csv,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
     showIf(html) { button(Labels.exports.html,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
+    showIf(shp) { button(Labels.exports.shp,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
       UdashTable(model.subSeq(_.data))(
         headerFactory = Some(_ => {
           tr(
