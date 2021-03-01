@@ -149,7 +149,7 @@ object Settings {
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
     "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.2.0",
-    "org.geotools" % "gt-shapefile" % "24.2",
+    "org.arakhne.afc.advanced" % "shapefile" % "17.0",
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "org.flywaydb" % "flyway-core" % "6.5.5",
