@@ -14,6 +14,7 @@ import ch.wsl.box.rest.utils.{Auth, BoxConfig, UserProfile}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.parser._
+import io.circe.generic.auto._
 import scribe.Logging
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -415,7 +416,12 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           tooltip = fieldI18n.flatMap(_.tooltip),
           params = field.params,
           linked = linked,
-          lookupLabel = lookupLabel(field,fieldI18n)
+          lookupLabel = lookupLabel(field,fieldI18n),
+          query = for{
+            q <- field.childQuery.orElse(field.lookupQuery)
+            js <- parse(q).toOption
+            query <- js.as[JSONQuery].toOption
+          } yield query
         )
       }
 

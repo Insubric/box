@@ -17,6 +17,8 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logging
 
+import scala.concurrent.Future
+
 object LinkedFormWidget extends ComponentWidgetFactory {
 
 
@@ -27,20 +29,41 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
   case class LinkedFormWidgetImpl(params: WidgetParams) extends Widget with Logging with Link {
 
+    import ch.wsl.box.client.Context._
     import io.udash.css.CssView._
     import scalacss.ScalatagsCss._
 
 
     val field: JSONField = params.field
 
-    def navigate(goTo: Routes => RoutingState) = (e: Event) => field.linked.map(l => Navigate.to(goTo(Routes(EntityKind.FORM.kind, l.name))))
+    val linkedFormName = field.linked.map(_.name).getOrElse("unknown")
+
+    def navigate(goTo: Routes => RoutingState) =  Navigate.to(goTo(Routes(EntityKind.FORM.kind, linkedFormName)))
 
     val label = field.linked.flatMap(_.label).orElse(field.linked.map(_.name)).getOrElse("Open")
 
+    def goto(edit:Boolean):Event => Any = (e: Event) => field.params.map(_.get("open")) match {
+      case None => Future.successful(navigate(_.entity()))
+      case Some("first") => {
+        val query = field.query.getOrElse(JSONQuery.empty)
+        services.rest.ids(EntityKind.FORM.kind,services.clientSession.lang(),linkedFormName,query).map{ ids =>
+          services.clientSession.setIDs(ids)
+          if(edit) {
+            ids.ids.headOption match {
+              case Some(value) => navigate(_.edit(value))
+              case None => navigate(_.add())
+            }
+          } else {
+            navigate(_.show(ids.ids.headOption.getOrElse("")))
+          }
+        }
 
-    override protected def show(): Modifier = linkRenderer(label,field.params,navigate(_.entity()))
+      }
+    }
 
-    override protected def edit(): Modifier = show()
+    override protected def show(): Modifier = linkRenderer(label,field.params,goto(true))
+
+    override protected def edit(): Modifier = linkRenderer(label,field.params,goto(false))
   }
 
 }

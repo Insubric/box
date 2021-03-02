@@ -101,17 +101,19 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
         )
     }
 
-    val widg:ComponentWidgetFactory = isKeyNotEditable match {
-      case true => InputWidgetFactory.InputDisabled
-      case false => field.widget match {
-        case Some(value) => WidgetRegistry.forName(value)
-        case None => WidgetRegistry.forType(field.`type`)
-      }
+    val _field:JSONField = isKeyNotEditable match {
+      case true => field.copy(readOnly = true)
+      case false => field
+    }
+
+    val widg = field.widget match {
+      case Some(value) => WidgetRegistry.forName(value)
+      case None => WidgetRegistry.forType(field.`type`)
     }
 
     logger.debug(s"Selected widget for ${field.name}: ${widg}")
 
-    widg.create(WidgetParams(id,fieldData,field,metadata,data,children))
+    widg.create(WidgetParams(id,fieldData,_field,metadata,data,children))
 
   }
 

@@ -42,13 +42,13 @@ object ViewLabels extends Logging {
        #$joins
        ;
 
-       CREATE OR REPLACE FUNCTION v_labels_update() RETURNS trigger LANGUAGE plpgsql AS $$$$
+       CREATE OR REPLACE FUNCTION box.v_labels_update() RETURNS trigger LANGUAGE plpgsql AS $$$$
        BEGIN
            #$update
            RETURN NEW;
        END $$$$;
 
-       CREATE OR REPLACE FUNCTION v_labels_insert() RETURNS trigger LANGUAGE plpgsql AS $$$$
+       CREATE OR REPLACE FUNCTION box.v_labels_insert() RETURNS trigger LANGUAGE plpgsql AS $$$$
        BEGIN
            INSERT INTO box.labels (lang, key, label) values #$insert
            RETURN NEW;
@@ -56,13 +56,13 @@ object ViewLabels extends Logging {
 
        CREATE TRIGGER v_labels_update
            INSTEAD OF UPDATE ON box.v_labels
-           FOR EACH ROW EXECUTE FUNCTION v_labels_update();
+           FOR EACH ROW EXECUTE PROCEDURE box.v_labels_update();
 
        CREATE TRIGGER v_labels_insert
            INSTEAD OF INSERT ON box.v_labels
-           FOR EACH ROW EXECUTE FUNCTION v_labels_insert();
+           FOR EACH ROW EXECUTE PROCEDURE box.v_labels_insert();
        """
-    //q.statements.map(x => println(x))
+//    q.statements.map(x => println(x))
     q
   }.map{ i =>
     logger.info(s"Added v_labels view $i")

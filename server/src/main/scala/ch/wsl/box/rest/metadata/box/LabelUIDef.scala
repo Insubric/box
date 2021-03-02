@@ -36,7 +36,7 @@ object LabelUIDef {
     query = None,
     exportFields = Seq(),
     view = None,
-    action = FormActionsMetadata.defaultForPages,
+    action = FormActionsMetadata.saveOnly,
     static = true
   )
 

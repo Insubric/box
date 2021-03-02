@@ -47,7 +47,7 @@ object JdbcConnect extends Logging {
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
         val data = getResults(resultSet,metadata)
-        DataResultTable(metadata.map(_.label),data.map(_.map(_.string)))
+        DataResultTable(metadata.map(_.label),data.map(_.map(_.string)),Map())
       }.toOption
       connection.close()
       result
