@@ -62,7 +62,9 @@ case class FormActionsMetadata(
 
 object FormActionsMetadata {
 
-  def defaultForPages = FormActionsMetadata(Seq(
+  def defaultForPages = FormActionsMetadata(Seq(),Seq())
+
+  def saveOnly = FormActionsMetadata(Seq(
     FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
   ),Seq())
 

@@ -243,7 +243,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"childQuery",true,
         widget = Some(WidgetsNames.code),
         params = Some(Json.obj("language" -> "json".asJson, "height" -> 200.asJson)),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.simpleChild.asJson,WidgetsNames.tableChild.asJson,WidgetsNames.editableTable.asJson)))
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.linkedForm.asJson,WidgetsNames.simpleChild.asJson,WidgetsNames.tableChild.asJson,WidgetsNames.editableTable.asJson)))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,

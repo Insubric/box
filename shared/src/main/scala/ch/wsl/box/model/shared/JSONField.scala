@@ -21,7 +21,8 @@ case class JSONField(
                       tooltip: Option[String] = None,
                       params: Option[Json] = None,
                       linked: Option[LinkedForm] = None,
-                      lookupLabel: Option[LookupLabel] = None
+                      lookupLabel: Option[LookupLabel] = None,
+                      query: Option[JSONQuery] = None,
                     ) {
   def title = label.getOrElse(name)
 }
