@@ -108,7 +108,7 @@ object InputWidget extends Logging {
 
   class TextDisabled(field:JSONField, data: Property[Json]) extends Input(field,data) {
 
-    override val modifiers = Seq({if (!ClientConf.manualEditKeyFields) {disabled := true} else {}} , textAlign.right)
+    override val modifiers = Seq(disabled := true, textAlign.right)
   }
 
 
