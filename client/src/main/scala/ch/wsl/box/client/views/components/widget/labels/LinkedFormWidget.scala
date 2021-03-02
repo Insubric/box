@@ -43,7 +43,6 @@ object LinkedFormWidget extends ComponentWidgetFactory {
     val label = field.linked.flatMap(_.label).orElse(field.linked.map(_.name)).getOrElse("Open")
 
     def goto(edit:Boolean):Event => Any = (e: Event) => field.params.map(_.get("open")) match {
-      case None => Future.successful(navigate(_.entity()))
       case Some("first") => {
         val query = field.query.getOrElse(JSONQuery.empty)
         services.rest.ids(EntityKind.FORM.kind,services.clientSession.lang(),linkedFormName,query).map{ ids =>
@@ -59,11 +58,12 @@ object LinkedFormWidget extends ComponentWidgetFactory {
         }
 
       }
+      case _ => Future.successful(navigate(_.entity()))
     }
 
-    override protected def show(): Modifier = linkRenderer(label,field.params,goto(true))
+    override protected def show(): Modifier = linkRenderer(label,field.params,goto(false))
 
-    override protected def edit(): Modifier = linkRenderer(label,field.params,goto(false))
+    override protected def edit(): Modifier = linkRenderer(label,field.params,goto(true))
   }
 
 }
