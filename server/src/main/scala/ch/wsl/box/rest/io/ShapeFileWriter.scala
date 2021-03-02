@@ -1,17 +1,18 @@
 package ch.wsl.box.rest.io
 
+import ch.wsl.box.rest.logic.DataResultTable
+
 import java.io.{ByteArrayOutputStream, File, FileInputStream, InputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, WritableByteChannel}
 import java.util
-
 import org.arakhne.afc.io.dbase.DBaseFileWriter
 import org.arakhne.afc.io.shape.ESRIFileUtil
 import org.arakhne.afc.io.shape.ShapeElementType
 import org.arakhne.afc.vmutil.FileSystem
+
 import java.util
 import java.util.zip.{ZipEntry, ZipOutputStream}
-
 import collection.JavaConverters._
 import org.arakhne.afc.attrs.attr.{Attribute, AttributeImpl, AttributeType, AttributeValue, AttributeValueImpl}
 import org.arakhne.afc.attrs.collection.{AbstractAttributeProvider, AttributeProvider}
@@ -26,7 +27,8 @@ import scala.concurrent.Promise
 object ShapeFileWriter {
 
 
-  def writePoints() = {
+  def writePoints(myData: DataResultTable) = {
+
 
 
     val data = for (i <- 1 to 10) yield {
