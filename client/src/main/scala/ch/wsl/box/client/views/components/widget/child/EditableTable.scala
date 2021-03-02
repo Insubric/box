@@ -102,7 +102,7 @@ object EditableTable extends ChildRendererFactory {
     import ch.wsl.box.client.Context._
 
 
-    val tableStyle = TableStyle(ClientConf.styleConf,metadata.map(_.fields.length + 1).getOrElse(1))
+    val tableStyle = TableStyle(ClientConf.styleConf,metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
     val tableStyleElement = document.createElement("style")
     tableStyleElement.innerText = tableStyle.render(cssStringRenderer,cssEnv)
 
@@ -178,12 +178,14 @@ object EditableTable extends ChildRendererFactory {
         case None => p("child not found")
         case Some(f) => {
 
+          val fields = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
+
           frag(
             tableStyleElement,
             div(tableStyle.tableContainer,
               table(tableStyle.table,
                 thead(
-                  for(field <- f.fields) yield {
+                  for(field <- fields) yield {
                     val name = field.label.getOrElse(field.name)
                     th(name, tableStyle.th)
                   },
@@ -195,7 +197,7 @@ object EditableTable extends ChildRendererFactory {
                     for(row <- ent) yield {
                       val childWidget = childWidgets.find(_.id == row).get
                       tr(tableStyle.tr,
-                        for (field <- f.fields) yield {
+                        for (field <- fields) yield {
                           val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
                           val data:Property[Json] = Property(Json.Null)
                           var listener = childWidget.widget.data.listen(d => data.set(d.js(field.name)),true)
@@ -211,7 +213,9 @@ object EditableTable extends ChildRendererFactory {
                             listener = childWidget.widget.data.listen(d => data.set(d.js(field.name)))
                           }
                           td(widget.showOnTable(), tableStyle.td,
-                            onclick :+= ((e:Event) => selectCell(Cell(e.target.asInstanceOf[HTMLElement],row+field.name,widget,change)))
+                            if(!field.readOnly) {
+                              Seq(onclick :+= ((e: Event) => selectCell(Cell(e.target.asInstanceOf[HTMLElement], row + field.name, widget, change))))
+                            } else Seq[Modifier]()
                           )
                         },
                         td( tableStyle.td,
@@ -220,7 +224,7 @@ object EditableTable extends ChildRendererFactory {
                       )
                     },
                     tr(tableStyle.tr,
-                      td(tableStyle.td,colspan := f.fields.length),
+                      td(tableStyle.td,colspan := fields.length),
                       td(tableStyle.td,
                         if (write) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
                           addItem(child, f)
