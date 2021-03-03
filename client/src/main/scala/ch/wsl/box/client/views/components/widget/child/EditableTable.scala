@@ -83,7 +83,8 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
     backgroundColor(conf.colors.main),
     color(conf.colors.mainText),
     fontSize(14 px),
-    Font.bold
+    Font.bold,
+    whiteSpace.normal
   )
 
 }

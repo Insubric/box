@@ -638,6 +638,16 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     borderWidth.`0`
   )
 
+  val simpleCheckbox = style(
+    height(100.%%).important,
+    float.none.important,
+    borderWidth.`0`,
+    border.`0`,
+    margin.auto,
+    display.flex,
+    alignSelf.center
+  )
+
   val centredContent = style(
     maxWidth(900.px),
     marginTop(20 px),

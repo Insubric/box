@@ -1,4 +1,5 @@
 package ch.wsl.box.client.views.components.widget
+import ch.wsl.box.client.services.ClientConf
 import io.circe._
 import io.circe.syntax._
 import io.udash._
@@ -8,6 +9,7 @@ import scalatags.JsDom.all._
 import io.udash.css.CssView._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.udash.bootstrap.tooltip.UdashTooltip
+import scalacss.ScalatagsCss._
 
 case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget with HasData {
 
@@ -37,6 +39,13 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
     div(
       tooltip(Checkbox(booleanModel)().render), " ", WidgetUtils.toLabel(field)
     )
+  }
+
+  override def editOnTable(): JsDom.all.Modifier = {
+    val booleanModel = Property(false)
+
+    autoRelease(data.sync[Boolean](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
+    Checkbox(booleanModel)(ClientConf.style.simpleCheckbox).render
   }
 
   override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
