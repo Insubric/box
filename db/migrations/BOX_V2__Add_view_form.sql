@@ -1,5 +1,5 @@
 alter table box.form
-	add view_table text;
+	add column if not exists view_table text;
 
 alter table box.form
-	add view_id text;
+	add column if not exists view_id text;
