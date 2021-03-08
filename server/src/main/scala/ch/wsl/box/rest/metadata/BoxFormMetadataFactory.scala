@@ -60,7 +60,7 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     col.jsonType
   })
 
-  val visibleAdmin = Seq(FUNCTION,FORM,NEWS,LABEL)
+  val visibleAdmin = Seq(FUNCTION,FORM,PAGE,NEWS,LABEL)
 
   override def list: DBIO[Seq[String]] = registry.map(_.filter(f => visibleAdmin.contains(f.objId)).map(_.name))
 

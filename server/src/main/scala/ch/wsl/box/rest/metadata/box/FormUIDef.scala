@@ -27,6 +27,10 @@ object FormUIDef {
           tables.map(x => JSONLookup(x,x))
         ))
       ),
+      JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
+        widget = Some(WidgetsNames.checkbox),
+        default = Some("true")
+      ),
       JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.input)),
       JSONField(JSONFieldTypes.STRING,"query",true,
         widget = Some(WidgetsNames.code),
@@ -60,7 +64,7 @@ object FormUIDef {
         LayoutBlock(None,8,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation").map(Left(_)))
             ),
             Left(""),
             Right(
@@ -103,6 +107,10 @@ object FormUIDef {
         widget = Some(WidgetsNames.inputDisabled),
         default = Some(FormMetadataFactory.STATIC_PAGE)
       ),
+      JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
+        widget = Some(WidgetsNames.hidden),
+        default = Some("false")
+      ),
       CommonField.formFieldChild,
       CommonField.formFieldStatic,
       CommonField.formi18n,
@@ -112,7 +120,7 @@ object FormUIDef {
         LayoutBlock(None,8,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description","show_navigation").map(Left(_)))
             ),
           ))
         ).map(Right(_))),

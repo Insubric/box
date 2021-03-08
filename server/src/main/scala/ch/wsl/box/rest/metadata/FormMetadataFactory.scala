@@ -198,9 +198,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
       val formActions = if(actions.isEmpty) {
         if(form.entity == FormMetadataFactory.STATIC_PAGE) {
-          FormActionsMetadata.defaultForPages
+          FormActionsMetadata.defaultForPages.copy(showNavigation = form.show_navigation)
         } else {
-          FormActionsMetadata.default
+          FormActionsMetadata.default.copy(showNavigation = form.show_navigation)
         }
       } else {
         FormActionsMetadata(
@@ -216,9 +216,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               confirmText = a.confirm_text
             )
           },
-          navigationActions = Seq() // TODO
+          navigationActions = Seq(), // TODO
+          showNavigation = form.show_navigation
         )
       }
+
 
       val keyStrategy = if(Managed(form.entity)) SurrugateKey else NaturalKey
 

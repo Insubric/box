@@ -1,0 +1,1 @@
+alter table box.form add column if not exists show_navigation boolean not null default true;

@@ -22,17 +22,31 @@ case class BoxExceptionHandler(origins:Seq[String]) extends Logging {
   import ch.wsl.box.shared.utils.JSONUtils._
 
   def psql2sqlReport(sql: PSQLException):SQLExceptionReport = {
-    val result  = SQLExceptionReport(
-      Option(sql.getServerErrorMessage.getSchema),
-      Option(sql.getServerErrorMessage.getTable),
-      Option(sql.getServerErrorMessage.getColumn),
-      Option(sql.getServerErrorMessage.getConstraint),
-      Option(sql.getServerErrorMessage.getDetail),
-      Option(sql.getServerErrorMessage.getHint),
-      Option(sql.getServerErrorMessage.getInternalQuery),
-      Option(sql.getServerErrorMessage.getMessage)
-    )
-    result
+    if(sql.getServerErrorMessage != null) {
+      val result = SQLExceptionReport(
+        Option(sql.getServerErrorMessage.getSchema),
+        Option(sql.getServerErrorMessage.getTable),
+        Option(sql.getServerErrorMessage.getColumn),
+        Option(sql.getServerErrorMessage.getConstraint),
+        Option(sql.getServerErrorMessage.getDetail),
+        Option(sql.getServerErrorMessage.getHint),
+        Option(sql.getServerErrorMessage.getInternalQuery),
+        Option(sql.getServerErrorMessage.getMessage)
+      )
+      result
+    } else {
+      val result = SQLExceptionReport(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(sql.getMessage)
+      )
+      result
+    }
   }
 
   def handler()  = ExceptionHandler {

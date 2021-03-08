@@ -302,6 +302,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
   }
 
+  val showNavigation:ReadableProperty[Boolean] = model.subProp(_.public).transform(x => !x)
+    .combine {
+      model.subProp(_.metadata).transform(x => !x.exists(_.static))
+    }(_ && _)
+    .combine {
+      model.subProp(_.metadata).transform(x => x.exists(_.action.showNavigation))
+    }(_ && _)
 
 
 
@@ -376,10 +383,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
-    val recordNavigation = showIf(model.subProp(_.public).transform(x => !x)) {
-      div(
-        showIf(model.subProp(_.metadata).transform(x => !x.exists(_.static))) {
-
+    val recordNavigation = showIf(presenter.showNavigation){
 
           def navigation = model.subModel(_.navigation)
 
@@ -413,8 +417,6 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               Navigation.button(navigation.subProp(_.hasNext), presenter.next, Labels.navigation.next, _.Float.right())
             )
           ).render
-        }
-      ).render
     }
 
 
@@ -441,7 +443,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       div(BootstrapStyles.Float.right(),ClientConf.style.navigatorArea) (
         recordNavigation
       ),
-      showIf(model.subProp(_.public).transform(x => !x).combine(model.subProp(_.metadata).transform(!_.exists(_.static)))((p,s) => p && s)) {
+      showIf(presenter.showNavigation) {
         div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
           produceWithNested(model.subProp(_.name)) { (m, release) =>
             div(

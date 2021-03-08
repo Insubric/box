@@ -57,16 +57,17 @@ case class FormAction(
 
 case class FormActionsMetadata(
                       actions:Seq[FormAction],
-                      navigationActions:Seq[FormAction]
+                      navigationActions:Seq[FormAction],
+                      showNavigation:Boolean
                       )
 
 object FormActionsMetadata {
 
-  def defaultForPages = FormActionsMetadata(Seq(),Seq())
+  def defaultForPages = FormActionsMetadata(Seq(),Seq(),false)
 
   def saveOnly = FormActionsMetadata(Seq(
     FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
-  ),Seq())
+  ),Seq(),false)
 
   def default:FormActionsMetadata = FormActionsMetadata(
     actions = Seq(
@@ -81,6 +82,7 @@ object FormActionsMetadata {
     ),
     navigationActions = Seq(
       FormAction(NoAction,Std, Some("/box/$kind/$name"), SharedLabels.entities.table)
-    )
+    ),
+    true
   )
 }
