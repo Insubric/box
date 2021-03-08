@@ -308,7 +308,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     display.flex,
     flexDirection.row,
     flexWrap.wrap,
-    justifyContent.spaceEvenly,
+    justifyContent.start,
     alignItems.center,
     alignContent.spaceAround
   )
