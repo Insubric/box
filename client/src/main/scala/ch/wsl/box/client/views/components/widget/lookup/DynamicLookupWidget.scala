@@ -1,7 +1,9 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
+import ch.wsl.box.client.Context
+import ch.wsl.box.client.services.Notification
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
-import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID}
+import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID, LookupLabel}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.properties.single.Property
@@ -14,7 +16,15 @@ trait DynamicLookupWidget extends Widget {
 
   override def field: JSONField = params.field
 
-  val lookupLabel = params.field.lookupLabel.get
+  val lookupLabel = params.field.lookupLabel match {
+    case Some(value) => value
+    case None => {
+      val message = s"${field.name} has no lookupLabel"
+      Notification.add(message)
+      logger.warn(message)
+      params.field.lookupLabel.get
+    }
+  }
 
   val monitoredFields:Property[Seq[(String,Json)]] = Property(Seq())
 

@@ -33,7 +33,7 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     FormUIDef.main(tablesAndViews,users.sortBy(_.username)),
     FormUIDef.page,
     FormUIDef.field(tablesAndViews),
-    FormUIDef.field_childs(forms),
+    FormUIDef.field_childs(forms.sortBy(_.name)),
     FormUIDef.field_static(tablesAndViews),
     FormUIDef.fieldI18n,
     FormUIDef.formI18n(viewsOnly),

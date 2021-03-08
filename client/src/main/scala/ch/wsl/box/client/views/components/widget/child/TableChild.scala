@@ -97,7 +97,7 @@ object TableChildFactory extends ChildRendererFactory {
               ),
               tr(ClientConf.style.childTableTr,
                 td(ClientConf.style.childTableTd,colspan := fields.length + 1,
-                  if (write && disableAdd) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
+                  if (write && !disableAdd) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
                     addItem(child, f)
                     true
                   }), Labels.subform.add) else frag()
