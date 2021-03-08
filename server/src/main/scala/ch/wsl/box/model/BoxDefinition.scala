@@ -4,6 +4,7 @@ import ch.wsl.box.jdbc.UserDatabase
 import ch.wsl.box.model.boxentities.BoxAccessLevel
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
+import ch.wsl.box.rest.utils.Cache
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -303,6 +304,8 @@ object BoxDefinition {
       _ <- DBIO.sequence(actions.reverse.map(_.update))
       _ <- DBIO.sequence(actions.reverse.map(_.fixSerial))
     } yield true
+
+    Cache.reset()
 
     db.run(boxDef.transactionally)
 
