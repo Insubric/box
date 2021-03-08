@@ -6,3 +6,13 @@ nav_order: 16
 ---
 
 # Simple child
+
+
+
+
+#### Params
+
+| Key          | Value             | Default           |
+|:-------------|:------------------|:------------------|
+| disableAdd      | Disable add button | `false`  |
+| disableRemove      | Disable remove button | `false`  |

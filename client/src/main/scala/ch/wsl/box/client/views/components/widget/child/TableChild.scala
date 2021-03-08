@@ -78,7 +78,7 @@ object TableChildFactory extends ChildRendererFactory {
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
                               div(
                                 widget.get.widget.render(write, Property(true)),
-                                if (write) div(
+                                if (write && !disableRemove) div(
                                   BootstrapStyles.Grid.row,
                                   div(BootstrapCol.md(12), ClientConf.style.block,
                                     div(BootstrapStyles.Float.right(),
@@ -97,7 +97,7 @@ object TableChildFactory extends ChildRendererFactory {
               ),
               tr(ClientConf.style.childTableTr,
                 td(ClientConf.style.childTableTd,colspan := fields.length + 1,
-                  if (write) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
+                  if (write && disableAdd) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
                     addItem(child, f)
                     true
                   }), Labels.subform.add) else frag()

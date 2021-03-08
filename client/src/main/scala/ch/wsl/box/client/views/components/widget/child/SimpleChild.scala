@@ -38,7 +38,7 @@ object SimpleChildFactory extends ChildRendererFactory {
                 val widget = childWidgets.find(_.id == e.get)
                 div(ClientConf.style.subform,
                   widget.get.widget.render(write, Property(true)),
-                  if (write) {
+                  if (write && !disableRemove) {
                     autoRelease(showIf(entity.transform(_.length > min)) {
                       div(
                         BootstrapStyles.Grid.row,
@@ -53,7 +53,7 @@ object SimpleChildFactory extends ChildRendererFactory {
                 ).render
               })
             ).render,
-            if (write) {
+            if (write && !disableAdd) {
               autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
                 a(onclick :+= ((e: Event) => addItem(child, f)), Labels.subform.add).render
               })

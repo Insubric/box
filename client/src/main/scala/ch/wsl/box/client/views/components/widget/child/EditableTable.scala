@@ -220,14 +220,14 @@ object EditableTable extends ChildRendererFactory {
                           )
                         },
                         td( tableStyle.td,
-                          if (write) a(onclick :+= ((_: Event) => removeItem(row)), Labels.subform.remove) else frag()
+                          if (write && !disableRemove) a(onclick :+= ((_: Event) => removeItem(row)), Labels.subform.remove) else frag()
                         )
                       )
                     },
                     tr(tableStyle.tr,
                       td(tableStyle.td,colspan := fields.length),
                       td(tableStyle.td,
-                        if (write) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
+                        if (write && !disableAdd) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
                           addItem(child, f)
                           true
                         }), Labels.subform.add) else frag()

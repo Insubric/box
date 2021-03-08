@@ -42,6 +42,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val min:Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)
     val max:Option[Int] = field.params.flatMap(_.js("max").as[Int].toOption)
 
+    val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
+    val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
+
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
     val entity: SeqProperty[String] = SeqProperty(Seq())
     val metadata = children.find(_.objId == child.objId)
