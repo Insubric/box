@@ -13,7 +13,7 @@ case class RoutesGenerator(viewList:Seq[String],tableList:Seq[String],model:Mode
   def composeRoutes():String = {
     (
       tableList.flatMap(t => singleRoute("ch.wsl.box.rest.routes.Table",t)) ++
-        viewList.flatMap(v => singleRoute("ch.wsl.box.rest.routes.View",v))
+        viewList.flatMap(v => singleRoute("ch.wsl.box.rest.routes.Table",v))
       ).mkString(" ~ \n    ")
   }
 

@@ -10,8 +10,15 @@ import io.udash.css.CssView._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
+import io.udash.css._
 
 case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget with HasData {
+
+  val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
+  val topElement:Seq[Modifier] = field.params.exists(_.js("topElement") == true.asJson) match {
+    case true => Seq(marginTop := (-21).px)
+    case false => Seq()
+  }
 
   def jsToBool(json:Json):Boolean = field.`type` match {
     case JSONFieldTypes.BOOLEAN => json.asBoolean.getOrElse(false)
@@ -37,7 +44,7 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
     autoRelease(data.sync[Boolean](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
 
     div(
-      tooltip(Checkbox(booleanModel)().render), " ", WidgetUtils.toLabel(field)
+      tooltip(Checkbox(booleanModel)(topElement).render), " ", if(!noLabel) { WidgetUtils.toLabel(field) } else frag()
     )
   }
 
