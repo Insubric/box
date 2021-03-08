@@ -48,18 +48,19 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
+
+  private def queryForm(query: JSONQuery):JSONQuery = metadata.query.map{ defaultQuery =>
+    JSONQuery(
+      filter = defaultQuery.filter ++ query.filter,
+      sort = defaultQuery.sort ++ query.sort,
+      paging = defaultQuery.paging.orElse(query.paging),
+      lang = defaultQuery.lang
+    )
+  }.getOrElse(query)
+
   private def streamSeq(query:JSONQuery):DBIO[Seq[Json]] = {
 
-    val q:JSONQuery = metadata.query.map{ defaultQuery =>
-        JSONQuery(
-          filter = defaultQuery.filter ++ query.filter,
-          sort = defaultQuery.sort ++ query.sort,
-          paging = defaultQuery.paging.orElse(query.paging),
-          lang = defaultQuery.lang
-        )
-    }.getOrElse(query)
-
-    jsonAction.find(q).flatMap{ rows =>
+    jsonAction.find(queryForm(query)).flatMap{ rows =>
       DBIO.sequence(rows.map(expandJson))
     }
 
@@ -73,7 +74,7 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]]):DBIO[Seq[Json]] = _list(query).map{ _.map{ row =>
+  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]]):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
 
 
     val lookup = Lookup.valueExtractor(lookupElements, metadata) _
@@ -91,7 +92,7 @@ case class FormActions(metadata:JSONMetadata,
 
     val lookup = Lookup.valueExtractor(lookupElements, metadata) _
 
-    _list(query).map { rows =>
+    _list(queryForm(query)).map { rows =>
       rows.map { json =>
         fields(metadata).map { field =>
           lookup(field, json.get(field)).getOrElse(json.get(field))
@@ -261,25 +262,29 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  override def find(query: JSONQuery) = jsonAction.find(query)
+  override def find(query: JSONQuery) = jsonAction.find(queryForm(query))
 
-  override def count() = jsonAction.count()
+  override def count() = metadata.query match {
+    case Some(value) => jsonAction.count(value).map(JSONCount)
+    case None => jsonAction.count()
+  }
   override def count(query: JSONQuery) = jsonAction.count(query)
 
   override def ids(query: JSONQuery) = {
+    val q = queryForm(query)
     metadata.view.map(v => Registry().actions(v)) match {
-      case None => jsonAction.ids(query)
+      case None => jsonAction.ids(q)
       case Some(v) => for {
-        data <- v.find(query)
-        n <- v.count(query)
+        data <- v.find(q)
+        n <- v.count(q)
       } yield {
-        val last = query.paging match {
+        val last = q.paging match {
           case None => true
           case Some(paging) => (paging.currentPage * paging.pageLength) >= n
         }
         IDs(
           last,
-          query.paging.map(_.currentPage).getOrElse(1),
+          q.paging.map(_.currentPage).getOrElse(1),
           data.flatMap { x => JSONID.fromData(x, metadata).map(_.asString) },
           n
         )
