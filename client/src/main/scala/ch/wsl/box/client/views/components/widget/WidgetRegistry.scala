@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory}
+import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory, TrasparentChild}
 import ch.wsl.box.client.views.components.widget.labels.{LinkedFormWidget, LookupLabelWidget, StaticTextWidget, TitleWidget}
 import ch.wsl.box.client.views.components.widget.lookup.{PopupWidgetFactory, SelectWidgetFactory}
 import ch.wsl.box.model.shared.WidgetsNames
@@ -36,6 +36,7 @@ object WidgetRegistry extends Logging {
 
     TableChildFactory,
     SimpleChildFactory,
+    TrasparentChild,
     EditableTable,
     LookupFormWidget,
     LinkedFormWidget,

@@ -23,6 +23,7 @@ object WidgetsNames {
   val redactor = "redactor"
   val simpleFile = "simpleFile"
   val simpleChild = "simpleChild"
+  val trasparentChild = "trasparentChild"
   val tableChild = "tableChild"
   val editableTable = "editableTable"
   val h1 = "title_h1"
