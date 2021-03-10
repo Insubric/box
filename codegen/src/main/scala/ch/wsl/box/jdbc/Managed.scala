@@ -13,7 +13,7 @@ object Managed {
 
   def hasTriggerDefault(table:String,field:String) = {
     val key = s"$table.$field"
-    triggerDefault.toSeq.flatten.contains(key)
+    triggerDefault.toSeq.flatten.contains(key) || dbKeys.contains(key)
   }
 
   /**
