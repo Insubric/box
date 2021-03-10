@@ -37,6 +37,7 @@ trait ViewActions[T] {
  */
 trait TableActions[T] extends ViewActions[T] {
   def insert(obj: T): DBIO[JSONID]
+  def insertReturningModel(obj: T): DBIO[T]
 
   def delete(id:JSONID): DBIO[Int]
 

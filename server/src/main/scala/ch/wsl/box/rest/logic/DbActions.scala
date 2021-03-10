@@ -2,6 +2,7 @@ package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
+import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.{Connection, FullDatabase, PostgresProfile}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, FormMetadataFactory}
@@ -138,14 +139,21 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   }
 
   def insert(e: M) = {
-    logger.info(s"INSERT $e")
+    for{
+      result <-  insertReturningModel(e)
+      keys <- keys()
+    } yield new EnhancedModel(result).ID(keys)
+  }
+
+
+  override def insertReturningModel(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
+    logger.info(s"INSERT $obj")
     resetMetadataCache()
     for{
       result <-  {
-        (entity.returning(entity) += e)
+        (entity.returning(entity) += obj)
       }.transactionally
-      keys <- keys()
-    } yield new EnhancedModel(result).ID(keys)
+    } yield result
   }
 
   def delete(id:JSONID) = {

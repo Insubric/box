@@ -2,6 +2,7 @@ package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
+import ch.wsl
 import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.model.shared._
@@ -80,8 +81,7 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
   }
 
   override def insert(json: Json):DBIO[JSONID] = dbActions.insert(toM(json))
-
-
+  override def insertReturningModel(json: Json)= dbActions.insertReturningModel(toM(json)).map(_.asJson)
 
   override def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[JSONID] = {
     for{

@@ -182,8 +182,7 @@ case class FormActions(metadata:JSONMetadata,
   }
 
   def insert(e:Json) = for{
-    insertedId <- jsonAction.insert(e)
-    inserted <- jsonAction.getById(insertedId).map(_.get)
+    inserted <- jsonAction.insertReturningModel(e)
     _ <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
       for {
         metadata <- DBIO.from(Connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
@@ -195,9 +194,13 @@ case class FormActions(metadata:JSONMetadata,
         result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,jsonActions,metadataFactory).insert(row)))
       } yield result
     })
-  } yield insertedId
+  } yield JSONID.fromData(inserted,metadata).getOrElse(JSONID.empty)
 
 
+  override def insertReturningModel(obj: Json) = for{
+    id <- insert(obj)
+    full <- getById(id)
+  } yield full.getOrElse(Json.Null)
 
   def update(id:JSONID, e:Json) = {
     for{
@@ -270,25 +273,32 @@ case class FormActions(metadata:JSONMetadata,
   }
   override def count(query: JSONQuery) = jsonAction.count(query)
 
-  override def ids(query: JSONQuery) = {
+  override def ids(query: JSONQuery): DBIO[IDs] = {
     val q = queryForm(query)
-    metadata.view.map(v => Registry().actions(v)) match {
-      case None => jsonAction.ids(q)
+    val fut:DBIO[(Seq[Json],Int)] = metadata.view.map(v => Registry().actions(v)) match {
+      case None => for {
+        data <- jsonAction.find(q)
+        n <- jsonAction.count(q)
+      } yield (data, n)
       case Some(v) => for {
         data <- v.find(q)
         n <- v.count(q)
-      } yield {
-        val last = q.paging match {
-          case None => true
-          case Some(paging) => (paging.currentPage * paging.pageLength) >= n
-        }
-        IDs(
-          last,
-          q.paging.map(_.currentPage).getOrElse(1),
-          data.flatMap { x => JSONID.fromData(x, metadata).map(_.asString) },
-          n
-        )
-      }
+      } yield (data, n)
     }
+
+    fut.map { case (data:Seq[Json], n:Int) =>
+      val last = q.paging match {
+        case None => true
+        case Some(paging) => (paging.currentPage * paging.pageLength) >= n
+      }
+      IDs(
+        last,
+        q.paging.map(_.currentPage).getOrElse(1),
+        data.flatMap{ x => JSONID.fromData(x, metadata).map(_.asString) },
+        n
+      )
+    }
+
+
   }
 }
