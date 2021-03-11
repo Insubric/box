@@ -7,6 +7,7 @@ case object CopyAction extends Action
 case object RevertAction extends Action
 case object DeleteAction extends Action
 case object NoAction extends Action
+case object BackAction extends Action
 
 object Action{
   def fromString(s:String):Action = s match {
@@ -15,6 +16,7 @@ object Action{
     case "RevertAction" => RevertAction
     case "DeleteAction" => DeleteAction
     case "NoAction" => NoAction
+    case "BackAction" => BackAction
   }
 }
 

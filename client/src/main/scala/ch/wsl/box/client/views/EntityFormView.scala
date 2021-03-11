@@ -347,15 +347,11 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           presenter.reset()
           Navigate.toUrl(url)
         }
-        case CopyAction => {
-          presenter.duplicate()
-        }
-        case DeleteAction => {
-          presenter.delete()
-        }
-        case RevertAction => {
-          presenter.revert()
-        }
+        case CopyAction => presenter.duplicate()
+        case DeleteAction => presenter.delete()
+        case RevertAction => presenter.revert()
+        case BackAction => Navigate.back()
+
       }
 
     def confirm(cb: () => Any) =  action.confirmText match {

@@ -27,6 +27,10 @@ object Navigate extends Logging {
     Context.applicationInstance.goTo(state)
   }
 
+  def back() = toAction{ () =>
+    window.history.back()
+  }
+
   def toAction(action: () => Unit) = {
     if(enabled) {
       action()
