@@ -19,7 +19,7 @@ import scala.concurrent.Future
   * Created by andre on 6/1/2017.
   */
 
-case class ChildRow(widget:ChildWidget,id:String, data:ReadableProperty[Json], open:Boolean, rowId:Option[JSONID], deleted:Boolean=false)
+case class ChildRow(widget:ChildWidget,id:String, data:ReadableProperty[Json], open:Property[Boolean], rowId:Option[JSONID], deleted:Boolean=false)
 
 trait ChildRendererFactory extends ComponentWidgetFactory {
 
@@ -70,7 +70,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val widget = JSONMetadataRenderer(metadata.get, propData, children, childId)
 
-      val childRow = ChildRow(widget,id,propData,open,JSONID.fromData(propData.get,metadata.get))
+      val childRow = ChildRow(widget,id,propData,Property(open),JSONID.fromData(propData.get,metadata.get))
       childWidgets += childRow
       entity.append(id)
       logger.debug(s"Added row ${childRow.rowId.map(_.asString).getOrElse("No ID")} of childForm ${metadata.get.name}")

@@ -11,6 +11,7 @@ case class JSONField(
                       nullable: Boolean,
                       readOnly: Boolean = false,
                       label:Option[String] = None,
+                      dynamicLabel:Option[String] = None,
                       lookup:Option[JSONFieldLookup] = None,
                       placeholder:Option[String] = None,
                       widget: Option[String] = None,

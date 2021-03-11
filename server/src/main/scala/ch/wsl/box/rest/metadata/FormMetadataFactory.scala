@@ -409,6 +409,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           readOnly = field.read_only.getOrElse(false),
           label = Some(lab),
           lookup = look,
+          dynamicLabel = if(look.isEmpty) fieldI18n.flatMap(_.lookupTextField) else None,
           placeholder = fieldI18n.flatMap(_.placeholder),
           widget = field.widget,
           child = subform(field),

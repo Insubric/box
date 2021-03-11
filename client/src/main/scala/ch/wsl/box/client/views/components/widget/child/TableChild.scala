@@ -49,16 +49,15 @@ object TableChildFactory extends ChildRendererFactory {
               tbody(
                 autoRelease(produce(entity) { ent => //cannot use repeat because we have two childs for each iteration so frag is not working
                   ent.map { e =>
-                    val widget = childWidgets.find(_.id == e)
-                    val open = Property(widget.get.open)
+                    val widget = childWidgets.find(_.id == e).get
 
                     def toggleRow() = {
-                      val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.get.rowId)
-                      open.set(!open.get)
-                      if (open.get) {
+                      val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId)
+                      widget.open.toggle()
+                      if (widget.open.get) {
                         services.clientSession.setTableChildOpen(tableChildElement)
                         logger.debug("Opening child")
-                        widget.get.widget.afterRender()
+                        widget.widget.afterRender()
                       } else {
                         services.clientSession.setTableChildClose(tableChildElement)
                       }
@@ -66,18 +65,18 @@ object TableChildFactory extends ChildRendererFactory {
 
                     frag(
                       tr(`class` := TestHooks.tableChildRow,ClientConf.style.childTableTr,
-                        td(ClientConf.style.childTableTd, ClientConf.style.childTableAction, a(id := TestHooks.tableChildButtonId(f.objId,widget.get.rowId), produce(open) {
+                        td(ClientConf.style.childTableTd, ClientConf.style.childTableAction, a(id := TestHooks.tableChildButtonId(f.objId,widget.rowId), produce(widget.open) {
                           case true => span(Icons.caretDown).render
                           case false => span(Icons.caretRight).render
                         }, onclick :+= ((e: Event) => toggleRow()))),
-                        autoRelease(produce(widget.get.data) { data => fields.map(x => td(ClientConf.style.childTableTd, data.get(x.name))).render }),
+                        autoRelease(produce(widget.data) { data => fields.map(x => td(ClientConf.style.childTableTd, data.get(x.name))).render }),
                       ),
-                      tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr, id := TestHooks.tableChildRowId(f.objId,widget.get.rowId),
-                        autoRelease(produce(open) { o =>
+                      tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr, id := TestHooks.tableChildRowId(f.objId,widget.rowId),
+                        autoRelease(produce(widget.open) { o =>
                           if (!o) frag().render else
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
                               div(
-                                widget.get.widget.render(write, Property(true)),
+                                widget.widget.render(write, Property(true)),
                                 if (write && !disableRemove) div(
                                   BootstrapStyles.Grid.row,
                                   div(BootstrapCol.md(12), ClientConf.style.block,
