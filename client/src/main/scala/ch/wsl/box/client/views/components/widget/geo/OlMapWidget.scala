@@ -1,149 +1,48 @@
-package ch.wsl.box.client.views.components.widget
+package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
-import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, GeometryCollection}
+import ch.wsl.box.client.utils.GeoJson.FeatureCollection
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
-import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
-import io.circe.Json
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams}
+import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import io.circe.{Json, _}
+import io.circe.generic.auto._
+import io.circe.scalajs._
+import io.circe.syntax._
 import io.udash._
-import org.scalablytyped.runtime.StringDictionary
+import io.udash.bootstrap.utils.BootstrapStyles
+import org.scalajs.dom
+import org.scalajs.dom.{Event, _}
+import org.scalajs.dom.html.Div
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logging
 import typings.ol._
-import io.circe.scalajs._
-import io.udash.bootstrap.utils.BootstrapStyles
-import org.scalajs.dom.Event
-import typings.geojson.mod.Geometry
-import typings.ol.mod.Feature
-import typings.ol.selectMod.SelectEvent
-import io.circe._
-import io.circe.syntax._
-import io.circe.generic.auto._
-import io.udash.bindings.inputs
-import io.udash.wrappers.jquery.jQ
-
-import scala.scalajs.js
-import org.scalajs.dom._
-import org.scalajs.dom.html.Div
 import typings.ol.coordinateMod.Coordinate
-import typings.ol.drawMod.DrawEvent
-import typings.ol.modifyMod.ModifyEvent
-import typings.ol.sourceMod.WMTS
+import typings.ol.selectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
-import typings.ol.translateMod.TranslateEvent
 import typings.ol.viewMod.FitOptions
 
 import scala.concurrent.{Future, Promise}
+import scala.scalajs.js
 import scala.util.Try
-import org.scalajs.dom
 
 
 
 
 
-case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Property[Json]) extends Widget with HasData with Logging {
+case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Property[Json]) extends Widget with MapWidget with HasData with Logging {
 
   import ch.wsl.box.client.Context._
-
+  import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
 
-  import io.udash.css.CssView._
 
 
-  /*
-{
-  "features": {
-      "point":  true,
-      "line": false,
-      "polygon": true
-  },
-  "multiGeometry": false,
-  "projection": {
-      "name": "EPSG:21781",
-      "proj": "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=600000 +y_0=200000 +ellps=bessel +towgs84=674.4,15.1,405.3,0,0,0,0 +units=m +no_defs",
-      "extent": [485071.54,75346.36,828515.78,299941.84]
-  }
-}
- */
-  case class MapParamsFeatures(
-                                point: Boolean,
-                                multiPoint: Boolean,
-                                line: Boolean,
-                                multiLine:Boolean,
-                                polygon: Boolean,
-                                multiPolygon: Boolean,
-                                geometryCollection: Boolean
-                              )
 
-  case class MapParamsProjection(
-                                  name:String,
-                                  proj:String,
-                                  extent: Seq[Double],
-                                  unit: String
-                                )
 
-  case class MapParamsLayers(
-                            name: String,
-                            capabilitiesUrl: String,
-                            layerId:String
-                            )
-
-  case class MapParams(
-                        features: MapParamsFeatures,
-                        defaultProjection: String,
-                        projections: Seq[MapParamsProjection],
-                        baseLayers: Option[Seq[MapParamsLayers]]
-                      )
-
-  val defaultParams = MapParams(
-    features = MapParamsFeatures(true,true,true,true,true,true,true),
-    defaultProjection = "EPSG:3857",
-    projections = Seq(MapParamsProjection(
-      name = "EPSG:3857",
-      proj = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs",
-      extent = Seq(-20026376.39, -20048966.10, 20026376.39, 20048966.10),
-      unit = "m"
-    )),
-    None
-  )
-
-  val wgs84 = MapParamsProjection(
-    name = "EPSG:4326",
-    proj = "+proj=longlat +datum=WGS84 +no_defs",
-    extent = Seq(-180, -90, 180, 90),
-    unit = "m"
-  )
-
-  val openStreetMapLayer = new layerMod.Tile(baseTileMod.Options().setSource(new sourceMod.OSM()))
-
-  val jsonOption:Json = ClientConf.mapOptions.deepMerge(field.params.getOrElse(JsonObject().asJson))
-  val options:MapParams = jsonOption.as[MapParams] match {
-    case Right(value) => value
-    case Left(error) => {
-      logger.warn(s"Using default params - ${error} on json: $jsonOption")
-      defaultParams
-    }
-  }
-
-  logger.info(s"$options")
-
-  typings.proj4.mod.^.asInstanceOf[js.Dynamic].default.defs(
-    wgs84.name,
-    wgs84.proj
-  )
-
-  options.projections.map { projection =>
-    //typings error need to map it manually
-    typings.proj4.mod.^.asInstanceOf[js.Dynamic].default.defs(
-      projection.name,
-      projection.proj
-    )
-  }
-
-  proj4Mod.register(typings.proj4.mod.^.asInstanceOf[js.Dynamic].default)
 
 
 
@@ -236,23 +135,6 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
 
     result.future
   }
-
-  def toOlProj(projection: MapParamsProjection) = {
-    new projectionMod.default(projectionMod.Options(projection.name)
-      .setUnits(projection.unit)
-      .setExtent(js.Tuple4(
-        projection.extent.lift(0).getOrElse(0),
-        projection.extent.lift(1).getOrElse(0),
-        projection.extent.lift(2).getOrElse(0),
-        projection.extent.lift(3).getOrElse(0),
-      ))
-    )
-  }
-
-  val wgs84Proj = toOlProj(wgs84)
-  val projections = options.projections.map { projection => projection.name -> toOlProj(projection) }.toMap
-
-  val defaultProjection = projections(options.defaultProjection)
 
 
   def loadMap(mapDiv:Div) = {
@@ -349,8 +231,8 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
       listener.cancel()
       val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
       convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
-        import ch.wsl.box.client.utils.GeoJson._
         import ch.wsl.box.client.utils.GeoJson.Geometry._
+        import ch.wsl.box.client.utils.GeoJson._
         val geometries = collection.features.map(_.geometry)
         logger.info(s"$geometries")
         geometries.length match {
