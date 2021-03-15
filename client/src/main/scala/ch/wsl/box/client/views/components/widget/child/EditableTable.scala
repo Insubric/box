@@ -29,7 +29,8 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
   private val lightMain = ColorUtils.RGB.fromHex(conf.colors.main.value).lighten(0.7).copy(saturation = 0.5).color
 
   val tableContainer = style(
-    margin(10 px),
+    margin.`0`,
+    marginTop(10 px),
     overflow.auto
   )
 
@@ -46,8 +47,7 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
     borderStyle.solid,
     padding(cellPadding px),
     textAlign.left,
-    fontSize(12 px),
-    cursor.pointer
+    fontSize(12 px)
   )
 
   val selectedWrapper = style(
@@ -211,7 +211,9 @@ object EditableTable extends ChildRendererFactory {
 
           produce(columns) { cols =>
 
-            val colWidth = width := (100/(cols+1)).pct
+            val additionalColumns = if (write && !disableRemove) 1 else 0
+
+            val colWidth = width := (100/(cols+additionalColumns)).pct
 
             Seq(
               tableStyleElement,
@@ -238,7 +240,7 @@ object EditableTable extends ChildRendererFactory {
                       }
 
                     },
-                    th("", tableStyle.th)
+                    if (write && !disableRemove) th("", tableStyle.th) else frag()
                   ),
 
                   produce(entity) { ent =>
@@ -271,20 +273,22 @@ object EditableTable extends ChildRendererFactory {
                               ).render
                             }
                           },
-                          td(tableStyle.td,colWidth,
-                            if (write && !disableRemove) a(onclick :+= ((_: Event) => removeItem(row)), Labels.subform.remove) else frag()
-                          )
+                          if (write && !disableRemove) td(tableStyle.td,colWidth,
+                             a(onclick :+= ((_: Event) => removeItem(row)), Labels.subform.remove)
+                          ) else frag()
                         )
                       },
-                      tr(tableStyle.tr,
-                        td(tableStyle.td, colspan := cols),
-                        td(tableStyle.td,colWidth,
-                          if (write && !disableAdd) a(id := TestHooks.addChildId(f.objId), onclick :+= ((e: Event) => {
-                            addItem(child, f)
-                            true
-                          }), Labels.subform.add) else frag()
-                        ),
-                      )
+                      if (write && !disableAdd) {
+                        tr(tableStyle.tr,
+                          td(tableStyle.td, colspan := cols),
+                          td(tableStyle.td,colWidth,
+                            a(id := TestHooks.addChildId(f.objId), onclick :+= ((e: Event) => {
+                              addItem(child, f)
+                              true
+                            }), Labels.subform.add)
+                          ),
+                        )
+                      } else frag()
                     ).render
                   }
 
