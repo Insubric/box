@@ -47,7 +47,15 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
     borderStyle.solid,
     padding(cellPadding px),
     textAlign.left,
-    fontSize(12 px)
+    fontSize(12 px),
+    unsafeChild("select") (
+      &.focus(
+        marginBottom(-1 px)
+      ),
+      &.hover(
+        marginBottom(-1 px)
+      )
+    )
   )
 
   val selectedWrapper = style(
@@ -110,65 +118,6 @@ object EditableTable extends ChildRendererFactory {
     import scalatags.JsDom.all._
 
     override def child: Child = field.child.get
-
-
-    case class Cell(td: HTMLElement, id:String,widget:Widget,onChange: () => Unit) {
-      def exec(f:HTMLElement => Unit) = {
-        val inputToFocus = td.querySelector("input")
-        if(inputToFocus != null) {
-          f(inputToFocus.asInstanceOf[HTMLElement])
-        }
-        val selectToFocus = td.querySelector("select")
-        if(selectToFocus != null) {
-          f(selectToFocus.asInstanceOf[HTMLElement])
-        }
-      }
-    }
-
-    private var cell:Option[Cell] = None
-
-    def resetCell() = {
-      cell.foreach{c =>
-        c.widget.killWidget()
-        c.exec(_.dispatchEvent(new org.scalajs.dom.Event("change")))
-        c.onChange()
-        c.td.innerHTML = div(cell.toSeq.map(_.widget.showOnTable())).render.innerHTML
-        c.td.onclick = (e) => selectCell(c)
-      }
-    }
-
-    def selectCell(cell:Cell): Unit = {
-
-      if(this.cell.forall(_.id != cell.id)) {
-        this.resetCell()
-        this.cell = Some(cell)
-      }
-
-
-      cell.widget.killWidget()
-      cell.td.onclick = (e) => {}
-
-      val el = div(
-        tableStyle.selectedWrapper,
-        height := cell.td.clientHeight,
-        width := cell.td.clientWidth,
-        div(
-          tableStyle.selectedContent,
-          height := cell.td.clientHeight-(tableStyle.selectedBorder*2),
-          width := cell.td.clientWidth-(tableStyle.selectedBorder*2),
-          cell.widget.editOnTable()
-        )
-      ).render
-      cell.td.innerHTML = ""
-      cell.td.appendChild(el)
-
-      cell.exec(_.focus())
-      cell.exec(_.onfocusout = (e) => {
-        resetCell()
-        this.cell = None
-      })
-
-    }
 
 
 
@@ -251,25 +200,15 @@ object EditableTable extends ChildRendererFactory {
                           for (field <- fields) yield {
                             val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
                             val data: Property[Json] = Property(Json.Null)
-                            var listener = childWidget.widget.data.listen(d => data.set(d.js(field.name)), true)
                             val widget = widgetFactory.create(WidgetParams(
                               id = Property(childWidget.rowId.map(_.asString)),
-                              prop = data,
+                              prop = childWidget.widget.data.bitransform(child => child.js(field.name))(el => childWidget.widget.data.get.deepMerge(Json.obj(field.name -> el))),
                               field = field, metadata = f, allData = childWidget.widget.data, children = Seq()
                             ))
 
-                            def change() = {
-                              val newData = childWidget.widget.data.get.deepMerge(Json.obj(field.name -> data.get))
-                              listener.cancel()
-                              childWidget.widget.data.set(newData)
-                              listener = childWidget.widget.data.listen(d => data.set(d.js(field.name)))
-                            }
 
                             showIfCondition(field) {
-                              td(widget.showOnTable(), tableStyle.td,colWidth,
-                                if (!field.readOnly) {
-                                  Seq(onclick :+= ((e: Event) => selectCell(Cell(e.target.asInstanceOf[HTMLElement], row + field.name, widget, change))))
-                                } else Seq[Modifier]()
+                              td(if(field.readOnly) widget.showOnTable() else widget.editOnTable(), tableStyle.td,colWidth,
                               ).render
                             }
                           },
