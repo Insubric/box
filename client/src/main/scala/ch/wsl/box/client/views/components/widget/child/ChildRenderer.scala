@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget.child
 import java.util.UUID
 
 import ch.wsl.box.client.Context._
-import ch.wsl.box.client.services.{ ClientSession, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientSession, Labels}
 import ch.wsl.box.client.views.components.JSONMetadataRenderer
 import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared._
@@ -19,7 +19,7 @@ import scala.concurrent.Future
   * Created by andre on 6/1/2017.
   */
 
-case class ChildRow(widget:ChildWidget,id:String, data:ReadableProperty[Json], open:Property[Boolean], rowId:Option[JSONID], deleted:Boolean=false)
+case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean], rowId:Option[JSONID], deleted:Boolean=false)
 
 trait ChildRendererFactory extends ComponentWidgetFactory {
 
@@ -119,11 +119,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       val childMetadata = children.find(_.objId == child.objId).get
 
       val rows = data.seq(child.key)
+      BrowserConsole.log(io.circe.scalajs.convertJsonToJs(rows.asJson))
 
+      val out = Future.sequence(entity.get.zipWithIndex.map{ case (e,i) =>
 
-      val out = Future.sequence(childWidgets.zipWithIndex.filterNot(x => x._1.deleted).map { case (cw,i) =>
+        val cw = childWidgets.find(_.id == e).get
 
-        val oldData = cw.widget.data.get
+        val oldData = cw.data.get
         val newData = rows.lift(i).getOrElse(Json.obj())
 
         logger.debug(s"olddata: $oldData")
@@ -161,11 +163,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       }
 
-
+      logger.debug("After save")
       propagate(data, _.afterSave).map(collectData)
     }
 
     override def beforeSave(data: Json, metadata: JSONMetadata) = {
+      logger.debug("Before save")
       propagate(data, _.beforeSave).map(collectData)
     }
 

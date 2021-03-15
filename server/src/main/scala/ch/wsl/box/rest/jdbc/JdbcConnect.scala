@@ -35,7 +35,7 @@ object JdbcConnect extends Logging {
         connection.setAutoCommit(false)
         // create the statement, and run the select query
         val roleStatement = connection.createStatement()
-        roleStatement.execute(s"SET ROLE ${up.name}")
+        roleStatement.execute(s"""SET ROLE "${up.name}" """)
 
         val statement = connection.createStatement()
         val argsStr = if (args == null) ""

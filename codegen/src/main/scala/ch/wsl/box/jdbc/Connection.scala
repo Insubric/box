@@ -65,7 +65,7 @@ object Connection extends Logging {
   def dbForUser(name: String): UserDatabase = new UserDatabase {
 
     //cannot interpolate directly
-    val setRole: SqlAction[Int, NoStream, Effect] = sqlu"SET ROLE placeholder".overrideStatements(Seq(s"SET ROLE $name"))
+    val setRole: SqlAction[Int, NoStream, Effect] = sqlu"SET ROLE placeholder".overrideStatements(Seq(s"""SET ROLE "$name" """))
     val resetRole = sqlu"RESET ROLE"
 
     override def stream[T](a: StreamingDBIO[Seq[T], T]) = {

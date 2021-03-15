@@ -192,17 +192,17 @@ object EditableTable extends ChildRendererFactory {
                     if (write && !disableRemove) th("", tableStyle.th) else frag()
                   ),
 
-                  produce(entity) { ent =>
+
                     tbody(
-                      for (row <- ent) yield {
-                        val childWidget = childWidgets.find(_.id == row).get
+                      repeat(entity) { row =>
+                        val childWidget = childWidgets.find(_.id == row.get).get
+
                         tr(tableStyle.tr,
                           for (field <- fields) yield {
                             val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
-                            val data: Property[Json] = Property(Json.Null)
                             val widget = widgetFactory.create(WidgetParams(
                               id = Property(childWidget.rowId.map(_.asString)),
-                              prop = childWidget.widget.data.bitransform(child => child.js(field.name))(el => childWidget.widget.data.get.deepMerge(Json.obj(field.name -> el))),
+                              prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
                               field = field, metadata = f, allData = childWidget.widget.data, children = Seq()
                             ))
 
@@ -213,9 +213,9 @@ object EditableTable extends ChildRendererFactory {
                             }
                           },
                           if (write && !disableRemove) td(tableStyle.td,colWidth,
-                             a(onclick :+= ((_: Event) => removeItem(row)), Labels.subform.remove)
+                             a(onclick :+= ((_: Event) => removeItem(row.get)), Labels.subform.remove)
                           ) else frag()
-                        )
+                        ).render
                       },
                       if (write && !disableAdd) {
                         tr(tableStyle.tr,
@@ -229,8 +229,6 @@ object EditableTable extends ChildRendererFactory {
                         )
                       } else frag()
                     ).render
-                  }
-
                 )
               ).render
             )

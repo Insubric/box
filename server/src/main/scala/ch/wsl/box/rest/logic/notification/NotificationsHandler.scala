@@ -31,7 +31,7 @@ class Listener(conn: java.sql.Connection,channel:String,callback: (String) => Fu
     running = false
   }
   private val stmt = conn.createStatement
-  val listenQuery = s"SET ROLE ${Connection.adminUser}; LISTEN $channel"
+  val listenQuery = s"""SET ROLE "${Connection.adminUser}"; LISTEN $channel"""
   logger.info(listenQuery)
   stmt.execute(listenQuery)
   stmt.close
