@@ -61,7 +61,9 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
 
   baseLayer.listen(loadBase,false)
 
-  override def afterRender(): Unit = {
+  override def afterRender(): Unit = {}
+
+  private def _afterRender(): Unit = {
     if(map != null && featuresLayer != null) {
       loadBase(baseLayer.get).map { _ =>
         map.addLayer(featuresLayer)
@@ -392,6 +394,16 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
 
     loadMap(mapDiv)
 
+    val observer = new MutationObserver({(mutations,observer) =>
+      if(document.contains(mapDiv)) {
+        observer.disconnect()
+        _afterRender()
+      }
+    })
+
+    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+
+
     div(
       label(field.title),
       mapDiv
@@ -476,6 +488,15 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
     val mapDiv: Div = div(height := 400).render
 
     val (map,vectorSource) = loadMap(mapDiv)
+
+    val observer = new MutationObserver({(mutations,observer) =>
+      if(document.contains(mapDiv) && mapDiv.offsetHeight > 0 ) {
+        observer.disconnect()
+        _afterRender()
+      }
+    })
+
+    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
     div(
       label(field.title),
