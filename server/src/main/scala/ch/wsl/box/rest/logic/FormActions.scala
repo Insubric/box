@@ -52,7 +52,7 @@ case class FormActions(metadata:JSONMetadata,
   private def queryForm(query: JSONQuery):JSONQuery = metadata.query.map{ defaultQuery =>
     JSONQuery(
       filter = defaultQuery.filter ++ query.filter,
-      sort = defaultQuery.sort ++ query.sort,
+      sort = query.sort ++ defaultQuery.sort,
       paging = defaultQuery.paging.orElse(query.paging),
       lang = defaultQuery.lang
     )
