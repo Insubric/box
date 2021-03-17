@@ -19,6 +19,7 @@ import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -29,7 +30,7 @@ case class Reference(association:Seq[ReferenceKey])
 case class FormActions(metadata:JSONMetadata,
                        jsonActions: String => TableActions[Json],
                        metadataFactory: MetadataFactory
-                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext) extends DBFiltersImpl with Logging with TableActions[Json] {
+                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
 
   import ch.wsl.box.shared.utils.JSONUtils._
 
@@ -138,7 +139,7 @@ case class FormActions(metadata:JSONMetadata,
 
   def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[_])): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).map { field =>
     for {
-      form <- DBIO.from(Connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
+      form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
       dbSubforms <- getChild(e,form,field.child.get)
       subs = e.seq(field.name)
       subJsonWithIndexs = attachArrayIndex(subs,form)
@@ -185,7 +186,7 @@ case class FormActions(metadata:JSONMetadata,
     inserted <- jsonAction.insertReturningModel(e)
     _ <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
       for {
-        metadata <- DBIO.from(Connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
+        metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
         rows = attachArrayIndex(e.seq(field.name),metadata)
         //attach parent id
         rowsWithId = rows.map{ row =>
@@ -260,7 +261,7 @@ case class FormActions(metadata:JSONMetadata,
         case ("static",_) => DBIO.successful(field.name -> field.default.asJson)  //set default value
         case (_,None) => DBIO.successful(field.name -> dataJson.js(field.name))        //use given value
         case (_,Some(child)) => for{
-          form <- DBIO.from(Connection.adminDB.run(metadataFactory.of(child.objId,metadata.lang)))
+          form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(child.objId,metadata.lang)))
           data <- getChild(dataJson,form,child)
         } yield {
           logger.info(s"expanding child ${field.name} : ${data.asJson}")

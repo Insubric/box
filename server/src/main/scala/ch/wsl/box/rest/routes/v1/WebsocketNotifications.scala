@@ -5,26 +5,30 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives
 import akka.stream.{CompletionStrategy, Materializer, OverflowStrategy}
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.rest.logic.notification.NotificationsHandler
 import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.services.Services
 import io.circe._
 import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.auto._
 import scribe.Logging
+import wvlet.airframe.bind
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class WebsocketNotifications(implicit mat:Materializer,up:UserProfile) {
+class WebsocketNotifications(implicit mat:Materializer,up:UserProfile,services:Services) {
 
   import Directives._
 
 
+
   val route = pathPrefix("notifications") {
     pathPrefix(Segment) { topic =>
-      handleWebSocketMessages(NotificationChannels.add(up.name, topic).websocketFlow)
+      handleWebSocketMessages(services.notificationChannels.add(up.name, topic).websocketFlow)
     }
   }
 
@@ -53,7 +57,11 @@ class NotificationChannel(user:String,topic:String)(implicit mat: Materializer) 
   }
 }
 
-object NotificationChannels extends Logging {
+trait NotificationChannels {
+  def add(user:String,topic: String)(implicit mat: Materializer):NotificationChannel
+}
+
+class NotificationChannelsImpl(connection:Connection) extends NotificationChannels with Logging {
 
   private var notificationChannels: ListBuffer[NotificationChannel] = ListBuffer.empty[NotificationChannel]
   def add(user:String,topic: String)(implicit mat: Materializer) = {
@@ -82,6 +90,6 @@ object NotificationChannels extends Logging {
     }
   }
 
-  NotificationsHandler.create("ui_feedback_channel",handleNotification)
+  NotificationsHandler.create("ui_feedback_channel",connection,handleNotification)
 
 }

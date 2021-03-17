@@ -58,7 +58,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
 
   val dbActions = new DbActions[T,M](table)
-  implicit val boxDb = FullDatabase(db,Connection.adminDB)
+  implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
   private def boxFile(fileId: FileId,data:Option[Array[Byte]],tpe:String):BoxFile = {
     val mime = data.map(services.imageCacher.mime)

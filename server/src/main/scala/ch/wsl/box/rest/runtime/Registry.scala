@@ -1,6 +1,7 @@
 package ch.wsl.box.rest.runtime
 
 import ch.wsl.box.codegen.{CodeGenerator, CustomizedCodeGenerator}
+import ch.wsl.box.services.Services
 import com.typesafe.config.ConfigFactory
 import net.ceedubs.ficus.Ficus._
 import scribe.Logging
@@ -36,7 +37,7 @@ object Registry extends Logging {
    */
   def set(r:RegistryInstance) = _registry = r
 
-  def load() = {
+  def load()(implicit services:Services) = {
 
   try {
     _registry = Class.forName("ch.wsl.box.generated.GenRegistry")
@@ -46,7 +47,7 @@ object Registry extends Logging {
   } catch { case t:Throwable =>
 
       val schema = ConfigFactory.load().as[Option[String]]("db.schema").getOrElse("public")
-      val files = CodeGenerator(schema).generatedFiles()
+      val files = CodeGenerator(schema).generatedFiles(services.connection)
 
       val entitiesCode =  files.entities.packageCode(
         profile = "ch.wsl.box.jdbc.PostgresProfile",

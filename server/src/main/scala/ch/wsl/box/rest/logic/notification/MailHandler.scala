@@ -1,5 +1,6 @@
 package ch.wsl.box.rest.logic.notification
 
+import ch.wsl.box.services.Services
 import ch.wsl.box.services.mail.{Mail, MailService}
 import io.circe._
 import io.circe.syntax._
@@ -15,8 +16,7 @@ case class MailNotification(from:String,to:Seq[String],subject:String,text:Strin
 
 class MailHandler(mailService:MailService) extends Logging {
 
-
-  def listen()(implicit ex:ExecutionContext):Unit = {
+  def listen()(implicit ex:ExecutionContext,services: Services):Unit = {
 
     def handleNotification(str:String): Future[Boolean] = {
       parse(str) match {
@@ -33,7 +33,7 @@ class MailHandler(mailService:MailService) extends Logging {
       }
     }
 
-    NotificationsHandler.create("mail_feedback_channel", handleNotification)
+    NotificationsHandler.create("mail_feedback_channel",services.connection, handleNotification)
   }
 
 }

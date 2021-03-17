@@ -2,8 +2,8 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import ch.wsl.box.jdbc.{FullDatabase, UserDatabase}
-import ch.wsl.box.rest.utils.{BoxConfig, UserProfile}
+import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
+import ch.wsl.box.rest.utils.{BoxConfig, DatabaseSetup, UserProfile}
 import org.scalatest.concurrent.ScalaFutures
 import _root_.io.circe._
 import _root_.io.circe.parser._
@@ -13,7 +13,12 @@ import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxConf
 import ch.wsl.box.model.{BuildBox, DropBox}
+import ch.wsl.box.rest.routes.v1.NotificationChannels
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.services.{TestContainerConnection, TestModule}
+import ch.wsl.box.services.Services
+import ch.wsl.box.services.files.ImageCache
+import ch.wsl.box.services.mail.MailService
 import ch.wsl.box.testmodel.{Entities, GenRegistry}
 import com.dimafeng.testcontainers.scalatest.TestContainerForAll
 import com.dimafeng.testcontainers.PostgreSQLContainer
@@ -24,125 +29,55 @@ import scribe.{Level, Logger, Logging}
 import scala.concurrent.{Await, Future}
 
 
-trait BaseSpec extends AsyncFlatSpec with Matchers with TestContainerForAll with Logging {
+trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
 
   private val executor = AsyncExecutor("public-executor",50,50,1000,50)
 
   Logger.root.clearHandlers().withHandler(minimumLevel = Some(Level.Info)).replace()
   //Logger.select(className("scala.slick")).setLevel(Level.Debug)
 
-  override val containerDef = PostgreSQLContainer.Def(
+  val containerDef = PostgreSQLContainer.Def(
     mountPostgresDataToTmpfs = true
   )
+
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
 
 
-  private def initBox(db:Database,username:String):Future[Boolean] = {
-    for {
-     _ <- DropBox.fut(db)
-     _ <- BuildBox.install(db,username)
-     _ <- db.run(BoxConf.BoxConfTable.filter(_.key === "cache.enable").map(_.value).update(Some("false")).transactionally) //disable cache for testing
-    } yield true
-  }
+  def withServices[A](run:Services => Future[A]):A = {
+    val container = containerDef.start()
+    TestModule(container).injector.run[Services, A] { implicit services =>
+      val assertion = for{
+        _ <- DatabaseSetup.setUp()
+        _ = BoxConfig.load(services.connection.adminDB)
+        assertion <- run(services)
+      } yield assertion
 
-  private def initDb(db:Database):Future[Boolean] = {
+      val result = Await.result(assertion,60.seconds)
 
-    val createFK = sqlu"""
-      alter table "public"."db_child" add constraint "db_child_parent_id_fk" foreign key("parent_id") references "db_parent"("id") on update NO ACTION on delete NO ACTION;
-      alter table "public"."db_subchild" add constraint "db_subchild_child_id_fk" foreign key("child_id") references "db_child"("id") on update NO ACTION on delete NO ACTION;
-      alter table "public"."app_child" add constraint "app_child_parent_id_fk" foreign key("parent_id") references "app_parent"("id") on update NO ACTION on delete NO ACTION;
-      alter table "public"."app_subchild" add constraint "app_subchild_child_id_fk" foreign key("child_id") references "app_child"("id") on update NO ACTION on delete NO ACTION;
-      """
+      container.stop()
 
-    val dropFK = sqlu"""
-      alter table if exists "public"."db_child" drop constraint "db_child_parent_id_fk";
-      alter table if exists "public"."db_subchild" drop constraint "db_subchild_child_id_fk";
-      alter table if exists "public"."app_child" drop constraint "app_child_parent_id_fk";
-      alter table if exists "public"."app_subchild" drop constraint "app_subchild_child_id_fk";
-      """
-
-
-    for{
-      _ <- db.run{
-        DBIO.seq(
-          dropFK,
-          Entities.schema.dropIfExists,
-          Entities.schema.createIfNotExists,
-          createFK
-        )
-      }
-    } yield true
-  }
-
-
-  private def connectToContainerDB(container:PostgreSQLContainer, schema:String = "public"):Database = {
-
-    val dbPath = container.jdbcUrl
-    val dbUsername = container.username
-    val dbPassword = container.password
-
-    if(schema == "box") {
-      val generic = Database.forURL(s"$dbPath",
-        driver = "org.postgresql.Driver",
-        user = dbUsername,
-        password = dbPassword,
-        executor = executor
-      )
-
-      Await.result(generic.run(DBIO.seq(
-        sqlu"""
-            drop schema if exists box cascade;
-            create schema if not exists box;
-            """)), 10.seconds)
-
+      result
     }
-
-    val db = Database.forURL(s"$dbPath&currentSchema=$schema",
-      driver="org.postgresql.Driver",
-      user=dbUsername,
-      password=dbPassword,
-      executor = executor
-    )
-
-
-    val init = schema match {
-      case "public" => initDb(db)
-      case "box" => initBox(db,dbUsername)
-    }
-
-    Await.result(init,30.seconds)
-
-    if(schema == "box") BoxConfig.load(db)
-
-    db
   }
 
-  private def userDatabase():UserDatabase = UserDatabase
-
-  private def createUserProfile(container:PostgreSQLContainer)  = {
-    UserProfile(
-      container.username,
-      connectToContainerDB(container),
-      connectToContainerDB(container,"box")
-    )
+  private def createUserProfile(implicit services:Services)  = {
+      UserProfile(services.connection.adminUser)
   }
 
 
-  def withDB[A](runTest: Database => A): A = withContainers{ container =>
-    val db = connectToContainerDB(container)
-    runTest(db)
+  def withDB[A](runTest: UserDatabase => Future[A]): A = withServices{ services =>
+    runTest(services.connection.adminDB)
   }
 
-  def withFullDB[A](runTest: FullDatabase => A): A = withContainers{ container =>
-    val db = connectToContainerDB(container)
-    runTest(FullDatabase(db,db))
+  def withFullDB[A](runTest: FullDatabase => Future[A]): A = withServices{ services =>
+    runTest(FullDatabase(services.connection.adminDB,services.connection.adminDB))
   }
 
-  def withUserProfile[A](runTest: UserProfile => A): A = withContainers{ container =>
-    runTest(createUserProfile(container))
+  def withUserProfile[A](runTest: UserProfile => Future[A]): A = withServices{ services =>
+    runTest(createUserProfile(services))
   }
 
   def stringToJson(str:String):Json = parse(str) match {

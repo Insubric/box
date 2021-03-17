@@ -4,13 +4,17 @@ package ch.wsl.box.rest
 import ch.wsl.box.jdbc.FullDatabase
 import ch.wsl.box.rest.logic.FormActions
 import ch.wsl.box.model.shared.{JSONID, JSONKeyValue}
-import ch.wsl.box.rest.metadata.{ FormMetadataFactory}
+import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.testmodel.EntityActionsRegistry
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.fixtures.{AppManagedIdFixtures, DbManagedIdFixtures, FormFixtures}
 import ch.wsl.box.rest.utils.UserProfile
-import io.circe.Json
+import _root_.io.circe.Json
+import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils._
+import org.scalatest.Assertion
+
+import scala.concurrent.Future
 
 
 class UpdateFormSpec extends BaseSpec {
@@ -26,25 +30,37 @@ class UpdateFormSpec extends BaseSpec {
 
 
 
-  def upsert(formName:String,id:Option[JSONID],json:Json)(implicit up:UserProfile, fdb: FullDatabase) = {
+  def upsert(formName:String,id:Option[JSONID],json:Json)(implicit services:Services) = {
+
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+
     for{
-      form <- FormMetadataFactory(up.boxDb,up.db).of(formName,"it")
-      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory(up.boxDb,up.db))
+      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
+      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
       i <- up.db.run(actions.upsertIfNeeded(id,json).transactionally)
       result <- up.db.run(actions.getById(i))
     } yield result
   }
 
-  def appManagedUpsert(id:JSONID, json:Json)(implicit up:UserProfile, fdb: FullDatabase) = {
+  def appManagedUpsert(id:JSONID, json:Json)(implicit services:Services): Future[Assertion] = {
+
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+
     for{
-      _ <- new FormFixtures("app_").insertForm()
+      _ <- new FormFixtures("app_").insertForm(up.db)
       result <- upsert("app_parent",Some(id),json)
     } yield result.get shouldBe json
   }
 
-  def dbManagedUpsert(json:Json)(assertion:Json => org.scalatest.Assertion)(implicit up:UserProfile, fdb: FullDatabase) = {
+  def dbManagedUpsert(json:Json)(assertion:Json => org.scalatest.Assertion)(implicit services:Services) = {
+
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+
     for{
-      _ <- new FormFixtures("db_").insertForm()
+      _ <- new FormFixtures("db_").insertForm(up.db)
       result <- upsert("db_parent",None,json)
     } yield assertion(result.get)
   }
@@ -52,31 +68,23 @@ class UpdateFormSpec extends BaseSpec {
 
 
 
-  "App managed form"  should "insert a single layer json"  in withUserProfile { implicit up =>
-    implicit val bdb = FullDatabase(up.db,up.db)
-
+  "App managed form"  should "insert a single layer json"  in withServices[Assertion] { implicit services =>
     appManagedUpsert(id,appManagedLayers(1))
-
   }
 
-  it should "insert a 2 layer json" in withUserProfile { implicit up =>
-
-    implicit val bdb = FullDatabase(up.db,up.db)
+  it should "insert a 2 layer json" in withServices[Assertion] { implicit services =>
 
     appManagedUpsert(id,appManagedLayers(2))
 
   }
 
-  it should "insert a 3 layer json" in withUserProfile { implicit up =>
-
-    implicit val bdb = FullDatabase(up.db,up.db)
+  it should "insert a 3 layer json" in withServices[Assertion] { implicit services =>
 
     appManagedUpsert(id,appManagedLayers(3))
 
   }
 
-  "Db managed form" should "insert a single layer json" in withUserProfile { implicit up =>
-    implicit val bdb = FullDatabase(up.db,up.db)
+  "Db managed form" should "insert a single layer json" in withServices[Assertion] { implicit services =>
 
     dbManagedUpsert(dbManagedLayers(1)){ json =>
       json.get("name") shouldBe "parent"
@@ -84,9 +92,7 @@ class UpdateFormSpec extends BaseSpec {
 
   }
 
-  it should "insert a 2 layer json" in withUserProfile { implicit up =>
-
-    implicit val bdb = FullDatabase(up.db,up.db)
+  it should "insert a 2 layer json" in withServices[Assertion] { implicit services =>
 
     dbManagedUpsert(dbManagedLayers(2)) { json =>
       json.get("name") shouldBe "parent"
@@ -97,9 +103,7 @@ class UpdateFormSpec extends BaseSpec {
 
   }
 
-  it should "insert a 3 layer json" in withUserProfile { implicit up =>
-
-    implicit val bdb = FullDatabase(up.db,up.db)
+  it should "insert a 3 layer json" in withServices[Assertion] { implicit services =>
 
     dbManagedUpsert(dbManagedLayers(3)) { json =>
       json.get("name") shouldBe "parent"

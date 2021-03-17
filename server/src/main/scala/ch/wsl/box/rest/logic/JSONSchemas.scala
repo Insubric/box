@@ -8,11 +8,12 @@ import ch.wsl.box.rest.utils.UserProfile
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.UserDatabase
+import ch.wsl.box.services.Services
 /**
  * Created by andreaminetti on 10/03/16.
  *
  */
-class JSONSchemas()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext) {
+class JSONSchemas()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) {
 
 
 

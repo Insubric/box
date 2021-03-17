@@ -9,7 +9,6 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.Materializer
 import ch.wsl.box.model.BoxActionsRegistry
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.model.boxentities.{BoxConf, BoxUITable, Schema}
 import ch.wsl.box.rest.utils.{BoxConfig, BoxSession, Cache}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 
@@ -63,17 +62,6 @@ case class Root(appVersion:String,akkaConf:Config, restart: () => Unit, origins:
     }
   }
 
-  def ddl = pathPrefix("ddl") {
-    path("box") {
-      complete(
-        HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,
-          Schema.box.createStatements.mkString("\n\n\n")
-            .replaceAll(",",",\n\t")
-            .replaceAll("\" \\(", "\" (\n\t")
-        ))
-      )
-    }
-  }
 
   def resetServer = pathPrefix("server") {
     path("reset") {
@@ -96,7 +84,6 @@ case class Root(appVersion:String,akkaConf:Config, restart: () => Unit, origins:
   val route:Route = UI.clientFiles ~
     encodeResponseWith(Gzip.withLevel(6)) {
       status ~
-        ddl ~
         resetServer ~
         resetCache ~
         cors.handle {

@@ -3,8 +3,10 @@ package ch.wsl.box.testmodel
 import ch.wsl.box.rest.runtime._
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.Materializer
+
 import scala.concurrent.ExecutionContext
 import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.services.Services
 
 
 object GeneratedRoutes extends GeneratedRoutes {
@@ -15,7 +17,7 @@ object GeneratedRoutes extends GeneratedRoutes {
   import Directives._
   import io.circe.generic.auto._
 
-  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext):Route = {
+  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services):Route = {
   implicit val db = up.db
 
     Table[Simple,Simple_row]("simple",Simple, lang).route ~ 

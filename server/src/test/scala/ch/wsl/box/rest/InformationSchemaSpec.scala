@@ -17,11 +17,11 @@ import scala.concurrent.duration._
   */
 class InformationSchemaSpec extends BaseSpec {
 
-  def infoSchema(table:String = "simple")(implicit bdb:FullDatabase) = new PgInformationSchema(table)
+  def infoSchema(table:String = "simple")(implicit bdb:FullDatabase) = new PgInformationSchema("public",table)
 
   "The service" should "query pgcolumn" in withFullDB { implicit db =>
 
-    val res: Future[Seq[PgColumn]] = infoSchema().columns
+    val res: Future[Seq[PgColumn]] = db.adminDb.run(infoSchema().columns)
 
     res.map{ r =>
       r.nonEmpty shouldBe true
@@ -33,7 +33,7 @@ class InformationSchemaSpec extends BaseSpec {
 
   it should "query foreign keys" in withFullDB { implicit db =>
 
-    val res = infoSchema("app_child").fks
+    val res = db.adminDb.run(infoSchema("app_child").fks)
 
     res.map{ r =>
       r.nonEmpty shouldBe true
@@ -45,7 +45,7 @@ class InformationSchemaSpec extends BaseSpec {
 
   it should "query primary key" in withFullDB { implicit db =>
 
-    val res = infoSchema().pk
+    val res = db.db.run(infoSchema().pk)
 
     res.map{ pk =>
       pk.keys.nonEmpty shouldBe true

@@ -3,13 +3,12 @@ package ch.wsl.box.rest
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import ch.wsl.box.model.shared.JSONQuery
-
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeWS}
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
-import io.circe.Json
-
+import _root_.io.circe.Json
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -19,22 +18,26 @@ class RuntimeFunctionSpec extends BaseSpec {
   val dr = DataResultTable(Seq("aa"),Seq(Seq("aa","bb")))
 
   val context = Context(
-    Json.Null,
-    new RuntimeWS {
-      override def get(url: String)(implicit ec: ExecutionContext, mat: Materializer, system: ActorSystem): Future[String] = ???
+      Json.Null,
+      new RuntimeWS {
+        override def get(url: String)(implicit ec: ExecutionContext, mat: Materializer, system: ActorSystem): Future[String] = ???
 
-      override def post(url: String, data: String, contentType: String)(implicit ec: ExecutionContext, mat: Materializer, system: ActorSystem): Future[String] = ???
-    },
-    new RuntimePSQL {
-      override def function(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,db:Database): Future[Option[DataResultTable]] = {
-        Future.successful(Some(dr))
+        override def post(url: String, data: String, contentType: String)(implicit ec: ExecutionContext, mat: Materializer, system: ActorSystem): Future[String] = ???
+      },
+      new RuntimePSQL {
+
+
+        override def function(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = {
+          Future.successful(Some(dr))
+        }
+
+        def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]] = ???
       }
-
-      def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer):Future[Option[DataResultTable]] = ???
-    }
     )
 
-  "Function" should "be parsed and evaluated" in withUserProfile { implicit up =>
+  "Function" should "be parsed and evaluated" in withServices { implicit services =>
+
+    implicit val up = UserProfile(services.connection.adminUser)
 
     val code =
       """
@@ -49,7 +52,9 @@ class RuntimeFunctionSpec extends BaseSpec {
     }
   }
 
-  it should "with external call should be parsed and evaluated" in withUserProfile { implicit up =>
+  it should "with external call should be parsed and evaluated" in withServices { implicit services =>
+
+    implicit val up = UserProfile(services.connection.adminUser)
 
     val code =
       """
@@ -62,7 +67,9 @@ class RuntimeFunctionSpec extends BaseSpec {
   }
 
 
-  it should "with ws call should be parsed and evaluated" in withUserProfile { implicit up =>
+  it should "with ws call should be parsed and evaluated" in withServices { implicit services =>
+
+    implicit val up = UserProfile(services.connection.adminUser)
 
     val code =
       """
@@ -79,7 +86,10 @@ class RuntimeFunctionSpec extends BaseSpec {
 
 
 
-  it should "do a POST call as well" in withUserProfile { implicit up =>
+  it should "do a POST call as well" in withServices { implicit services =>
+
+    implicit val up = UserProfile(services.connection.adminUser)
+
     val code =
       """
         |for{

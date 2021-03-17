@@ -25,6 +25,7 @@ case class RoutesGenerator(viewList:Seq[String],tableList:Seq[String],model:Mode
        |import akka.stream.Materializer
        |import scala.concurrent.ExecutionContext
        |import ch.wsl.box.rest.utils.UserProfile
+       |import ch.wsl.box.services.Services
        |
        |
              |object $name extends GeneratedRoutes {
@@ -34,7 +35,7 @@ case class RoutesGenerator(viewList:Seq[String],tableList:Seq[String],model:Mode
        |  import Directives._
        |  import io.circe.generic.auto._
        |
-             |  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext):Route = {
+             |  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services):Route = {
              |  implicit val db = up.db
              |
        |    ${composeRoutes()}

@@ -5,6 +5,7 @@ import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_row}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.jdbc.UserDatabase
 
 import scala.concurrent.ExecutionContext
 
@@ -32,7 +33,8 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
         |    }
         |  ]
         |}
-        |""".stripMargin)
+        |""".stripMargin),
+    show_navigation = true
   )
 
   private val childForm = BoxForm_row(
@@ -53,7 +55,8 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
         |    }
         |  ]
         |}
-        |""".stripMargin)
+        |""".stripMargin),
+    show_navigation = true
   )
 
   private val subchildForm = BoxForm_row(
@@ -73,7 +76,8 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
         |    }
         |  ]
         |}
-        |""".stripMargin)
+        |""".stripMargin),
+    show_navigation = true
   )
 
   private def parentFormFields(parentFormId:Int,childFormId:Int) = Seq(
@@ -96,14 +100,14 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
   )
 
 
-  def insertForm()(implicit up:UserProfile) = for{
-    _ <- up.boxDb.run(BoxFormTable.filter(x => x.name === parentName || x.name === childName ).delete)
-    parentId <- up.boxDb.run( (BoxFormTable returning BoxFormTable.map(_.form_id)) += parentForm)
-    childId <- up.boxDb.run( (BoxFormTable returning BoxFormTable.map(_.form_id)) += childForm)
-    subchildId <- up.boxDb.run( (BoxFormTable returning BoxFormTable.map(_.form_id)) += subchildForm)
-    _ <- up.boxDb.run(DBIO.sequence(parentFormFields(parentId,childId).map(x => BoxFieldTable += x)))
-    _ <- up.boxDb.run(DBIO.sequence(childFormFields(childId,subchildId).map(x => BoxFieldTable += x)))
-    _ <- up.boxDb.run(DBIO.sequence(subchildFormFields(subchildId).map(x => BoxFieldTable += x)))
+  def insertForm(implicit db:UserDatabase) = for{
+    _ <- db.run(BoxFormTable.filter(x => x.name === parentName || x.name === childName ).delete)
+    parentId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_id)) += parentForm)
+    childId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_id)) += childForm)
+    subchildId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_id)) += subchildForm)
+    _ <- db.run(DBIO.sequence(parentFormFields(parentId,childId).map(x => BoxFieldTable += x)))
+    _ <- db.run(DBIO.sequence(childFormFields(childId,subchildId).map(x => BoxFieldTable += x)))
+    _ <- db.run(DBIO.sequence(subchildFormFields(subchildId).map(x => BoxFieldTable += x)))
   } yield {
     parentForm.name
   }

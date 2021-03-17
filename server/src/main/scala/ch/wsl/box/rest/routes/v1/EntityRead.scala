@@ -23,6 +23,7 @@ import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.routes.enablers.CSVDownload
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,7 +35,7 @@ object EntityRead extends Logging  {
                         dec: Decoder[M],
                         mat: Materializer,
                         up: UserProfile,
-                        ec: ExecutionContext):Route =  {
+                        ec: ExecutionContext,services:Services):Route =  {
 
 
     import JSONSupport._
@@ -48,7 +49,7 @@ object EntityRead extends Logging  {
     import JSONData._
 
     implicit val db = up.db
-    implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+    implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
 
     pathPrefix("lookup") {
@@ -74,7 +75,7 @@ object EntityRead extends Logging  {
         path("metadata") {
           get {
             complete {
-              EntityMetadataFactory.of(Connection.dbSchema,name, lang)
+              EntityMetadataFactory.of(services.connection.dbSchema,name, lang)
             }
           }
         } ~

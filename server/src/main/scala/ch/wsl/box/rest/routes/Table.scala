@@ -22,6 +22,7 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.services.Services
 import io.circe.parser.decode
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
@@ -41,7 +42,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
                                                              dec:Decoder[M],
                                                              mat:Materializer,
                                                              up:UserProfile,
-                                                             ec: ExecutionContext) extends enablers.CSVDownload with Logging {
+                                                             ec: ExecutionContext,services:Services) extends enablers.CSVDownload with Logging {
 
 
   import JSONSupport._
@@ -53,7 +54,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   import ch.wsl.box.model.shared.EntityKind
 
     implicit val db = up.db
-    implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+    implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
 
     val dbActions = new DbActions[T,M](table)
@@ -78,7 +79,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
           val query = parse(q).right.get.as[JSONQuery].right.get
           complete {
             val io = for {
-              metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name, lang))
+              metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
               //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
               data <- jsonActions.find(query)
             } yield {
@@ -124,13 +125,13 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
   def metadata:Route = path("metadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name, lang, limitLookupFromFk) }
+      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk) }
     }
   }
 
   def tabularMetadata:Route = path("tabularMetadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name, lang, limitLookupFromFk) }
+      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk) }
     }
   }
 
@@ -185,7 +186,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
             import kantan.csv._
             import kantan.csv.ops._
             val query = parse(q).right.get.as[JSONQuery].right.get
-            val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name,lang, limitLookupFromFk).map{ metadata =>
+            val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, limitLookupFromFk).map{ metadata =>
               Seq(metadata.fields.map(_.name)).asCsv(rfc)
             }).concat(Source.fromPublisher(db.stream(dbActions.find(query))).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
             complete(csv)

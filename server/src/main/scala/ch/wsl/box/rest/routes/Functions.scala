@@ -7,6 +7,7 @@ import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.logic.functions.RuntimeFunction
 import ch.wsl.box.rest.metadata.{DataMetadataFactory, FunctionMetadataFactory}
 import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.services.Services
 import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,15 +20,15 @@ object Functions extends Data {
 
 
 
-  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext): DataMetadataFactory = FunctionMetadataFactory()
+  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = FunctionMetadataFactory()
 
   def functions = ch.wsl.box.model.boxentities.BoxFunction
 
-  override def data(function: String, params: Json, lang: String)(implicit up: UserProfile,  mat: Materializer, ec: ExecutionContext,system:ActorSystem): Future[Option[DataContainer]] = {
+  override def data(function: String, params: Json, lang: String)(implicit up: UserProfile,  mat: Materializer, ec: ExecutionContext,system:ActorSystem,services:Services): Future[Option[DataContainer]] = {
     implicit def db:UserDatabase = up.db
 
     for{
-      functionDef <- Connection.adminDB.run{
+      functionDef <- services.connection.adminDB.run{
         functions.BoxFunctionTable.filter(_.name === function).result
       }.map(_.headOption)
       result <- functionDef match {

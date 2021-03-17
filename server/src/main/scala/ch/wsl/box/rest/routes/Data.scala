@@ -25,6 +25,7 @@ import ch.wsl.box.rest.io.ShapeFileWriter
 import ch.wsl.box.rest.logic.{DataResult, DataResultObject, DataResultTable}
 import ch.wsl.box.rest.metadata.DataMetadataFactory
 import ch.wsl.box.rest.pdf.Pdf
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,11 +45,11 @@ trait Data extends Logging {
   import ch.wsl.box.shared.utils.Formatters._
   import io.circe.generic.auto._
 
-  def metadataFactory(implicit up: UserProfile,mat:Materializer, ec: ExecutionContext):DataMetadataFactory
+  def metadataFactory(implicit up: UserProfile,mat:Materializer, ec: ExecutionContext,services:Services):DataMetadataFactory
 
-  def data(function:String,params:Json,lang:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext, system:ActorSystem):Future[Option[DataContainer]]
+  def data(function:String,params:Json,lang:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext, system:ActorSystem,services:Services):Future[Option[DataContainer]]
 
-  def render(function:String,params:Json,lang:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext, system:ActorSystem) = {
+  def render(function:String,params:Json,lang:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext, system:ActorSystem,services:Services) = {
      import ch.wsl.box.model.boxentities.BoxFunction._
 
     onSuccess(data(function,params,lang)) {
@@ -87,7 +88,7 @@ trait Data extends Logging {
   }
 
 
-  def route(implicit up:UserProfile, ec:ExecutionContext,mat:Materializer, system:ActorSystem):Route = {
+  def route(implicit up:UserProfile, ec:ExecutionContext,mat:Materializer, system:ActorSystem,services: Services):Route = {
     pathPrefix("list") {
       //      complete(JSONExportMetadataFactory().list)
       path(Segment) { lang =>
@@ -111,7 +112,7 @@ trait Data extends Logging {
         pathPrefix("metadata") {
           path(Segment) { lang =>
             get {
-              complete(metadataFactory.of(Connection.dbSchema,function, lang))
+              complete(metadataFactory.of(services.connection.dbSchema,function, lang))
             }
           }
         } ~

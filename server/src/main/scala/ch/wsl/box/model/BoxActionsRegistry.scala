@@ -8,10 +8,11 @@ import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.rest.runtime.Registry._registry
+import ch.wsl.box.services.Services
 
 import scala.util.Try
 
-class BoxActionsRegistry(implicit ec:ExecutionContext)  {
+class BoxActionsRegistry(implicit ec:ExecutionContext,services:Services)  {
 
   import io.circe._
   import io.circe.generic.auto._
@@ -59,6 +60,6 @@ class BoxActionsRegistry(implicit ec:ExecutionContext)  {
 }
 
 object BoxActionsRegistry{
-  def apply()(implicit ec: ExecutionContext) = new BoxActionsRegistry
+  def apply()(implicit ec: ExecutionContext,services:Services) = new BoxActionsRegistry
 }
 

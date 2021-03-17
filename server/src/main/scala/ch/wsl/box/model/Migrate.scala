@@ -7,6 +7,8 @@ import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.boxentities.BoxSchema
 import org.flywaydb.core.Flyway
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.DefaultModule
+import ch.wsl.box.services.Services
 import javax.sql.DataSource
 import schemagen.SchemaGenerator
 
@@ -32,7 +34,7 @@ object Migrate {
 
 
 
-  def box() = {
+  def box(connection:Connection) = {
     val flyway = Flyway.configure()
       .baselineOnMigrate(true)
       .sqlMigrationPrefix("BOX_V")
@@ -42,33 +44,36 @@ object Migrate {
       .defaultSchema(BoxSchema.schema.get)
       .table("flyway_schema_history_box")
       .locations("migrations")
-      .dataSource(new DatabaseDatasource(Connection.dbConnection))
+      .dataSource(new DatabaseDatasource(connection.dbConnection))
       .load()
 
     flyway.migrate()
   }
 
-  def app() = {
+  def app(connection:Connection) = {
     val flyway = Flyway.configure()
       .baselineOnMigrate(true)
-      .schemas(Connection.dbSchema)
-      .defaultSchema(Connection.dbSchema)
+      .schemas(connection.dbSchema)
+      .defaultSchema(connection.dbSchema)
       .table("flyway_schema_history")
       .locations("migrations")
-      .dataSource(new DatabaseDatasource(Connection.dbConnection))
+      .dataSource(new DatabaseDatasource(connection.dbConnection))
       .load()
 
     flyway.migrate()
   }
 
-  def all() = {
-    box()
-    app()
-    SchemaGenerator.run()
-    LabelsUpdate.run(Connection.dbConnection)
+  def all(connection:Connection) = {
+    box(connection)
+    app(connection)
+    new SchemaGenerator(connection).run()
+    LabelsUpdate.run(connection.dbConnection)
   }
 
   def main(args: Array[String]): Unit = {
-    all()
+    DefaultModule.injector.build[Services] { services =>
+      all(services.connection)
+    }
+
   }
 }

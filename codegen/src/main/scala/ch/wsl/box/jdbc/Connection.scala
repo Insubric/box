@@ -11,7 +11,6 @@ import slick.dbio.{DBIOAction, NoStream}
 import slick.jdbc.{ResultSetConcurrency, ResultSetType}
 import slick.sql.SqlAction
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.jdbc.UserDatabase
 
 import scala.concurrent.{Await, ExecutionContext}
 
@@ -23,11 +22,13 @@ trait Connection extends Logging {
 
   def dbConnection: box.jdbc.PostgresProfile.backend.Database
   def adminUser:String
+  def dbSchema:String
+  def dbPath:String
   //val executor = AsyncExecutor("public-executor",50,50,10000,50)
 
 
 
-  val adminDB = dbForUser(adminUser)
+  def adminDB = dbForUser(adminUser)
 
 
   def dbForUser(name: String): UserDatabase = new UserDatabase {

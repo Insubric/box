@@ -11,6 +11,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Auth, BoxConfig, UserProfile}
+import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.parser._
@@ -53,10 +54,10 @@ object FormMetadataFactory{
     }
   }
 
-  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext):DBIO[Option[UserProfile]] = {
+  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):DBIO[Option[UserProfile]] = {
     BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption
   }.map{_.map{ form =>
-    Auth.userProfileForUser(form.guest_user.get)
+    new Auth().userProfileForUser(form.guest_user.get)
   }}
 
 
@@ -64,7 +65,7 @@ object FormMetadataFactory{
 
 
 
-case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext) extends Logging with MetadataFactory {
+case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with MetadataFactory {
 
   def list: DBIO[Seq[String]] = {
     BoxForm.BoxFormTable.result
@@ -139,7 +140,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   private def keys(form:BoxForm_row):DBIO[Seq[String]] = form.edit_key_field.map{x =>
     DBIO.successful(x.split(",").toSeq.map(_.trim))
-  }.getOrElse(EntityMetadataFactory.keysOf(Connection.dbSchema,form.entity))
+  }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
   private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String) = {
 
@@ -160,7 +161,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       })
       actions <- BoxForm.BoxForm_actions.filter(_.form_id === form.form_id.get).result
 
-      cols <- new PgInformationSchema(Connection.dbSchema,form.entity)(ec).columns
+      cols <- new PgInformationSchema(services.connection.dbSchema,form.entity)(ec).columns
       columns = fields.map(f => cols.find(_.column_name == f._1.name))
       keys <- keys(form)
       jsonFieldsPartial <- fieldsToJsonFields(fields.zip(fieldsFile).zip(columns), lang)
@@ -373,7 +374,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     //implicit def fDb = FullDatabase(up.db,adminDb)
 
     for{
-      keys <- EntityMetadataFactory.keysOf(Connection.dbSchema,refEntity)
+      keys <- EntityMetadataFactory.keysOf(services.connection.dbSchema,refEntity)
       filter = { for{
         queryString <- field.lookupQuery
         queryJson <- parse(queryString).right.toOption

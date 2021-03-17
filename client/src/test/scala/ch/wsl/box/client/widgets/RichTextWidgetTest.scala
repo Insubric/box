@@ -4,7 +4,7 @@ import ch.wsl.box.client.InsertMultilevelChildTest.waitCycle
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONMetadata, Layout, LayoutBlock, SharedLabels, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONMetadata, Layout, LayoutBlock, NaturalKey, SharedLabels, WidgetsNames}
 import io.circe.Json
 import org.scalajs.dom.{KeyboardEventInit, document, window}
 import org.scalajs.dom.ext._
@@ -59,7 +59,7 @@ object RichTextWidgetTest extends TestBase {
           widget = Some(WidgetsNames.richTextEditorFull)
         )
       ),
-      layout = Layout(Seq(LayoutBlock(None,12,Seq(
+      layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
         Left(rtfName),
       )))),
       entity = "test",
@@ -70,7 +70,8 @@ object RichTextWidgetTest extends TestBase {
       query = None,
       exportFields = Seq("id"),
       view = None,
-      action = FormActionsMetadata.default
+      action = FormActionsMetadata.default,
+      keyStrategy = NaturalKey,
     )
   }
 
