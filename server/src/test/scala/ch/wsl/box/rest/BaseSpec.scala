@@ -2,9 +2,12 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import ch.wsl.box.jdbc.FullDatabase
+import ch.wsl.box.jdbc.{FullDatabase, UserDatabase}
 import ch.wsl.box.rest.utils.{BoxConfig, UserProfile}
 import org.scalatest.concurrent.ScalaFutures
+import _root_.io.circe._
+import _root_.io.circe.parser._
+import _root_.io.circe.generic.auto._
 
 import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -17,9 +20,6 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
 import org.scalatest.matchers.should.Matchers
 import scribe.{Level, Logger, Logging}
-import io.circe._
-import io.circe.parser._
-import io.circe.generic.auto._
 
 import scala.concurrent.{Await, Future}
 
@@ -119,6 +119,8 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with TestContainerForAll with
 
     db
   }
+
+  private def userDatabase():UserDatabase = UserDatabase
 
   private def createUserProfile(container:PostgreSQLContainer)  = {
     UserProfile(
