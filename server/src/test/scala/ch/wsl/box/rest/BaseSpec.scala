@@ -24,6 +24,7 @@ import com.dimafeng.testcontainers.scalatest.TestContainerForAll
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
 import org.scalatest.matchers.should.Matchers
+import org.testcontainers.utility.DockerImageName
 import scribe.{Level, Logger, Logging}
 
 import scala.concurrent.{Await, Future}
@@ -37,6 +38,7 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
   //Logger.select(className("scala.slick")).setLevel(Level.Debug)
 
   val containerDef = PostgreSQLContainer.Def(
+    dockerImageName = DockerImageName.parse("postgis/postgis:13-master").asCompatibleSubstituteFor("postgres"),
     mountPostgresDataToTmpfs = true
   )
 
