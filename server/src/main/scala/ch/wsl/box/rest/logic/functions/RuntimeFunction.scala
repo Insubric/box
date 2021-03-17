@@ -64,6 +64,7 @@ object RuntimeFunction {
                   |implicit def matImpl = mat
                   |implicit def systemImpl = system
                   |implicit def langImpl = Lang(lang)
+                  |implicit def servicesImpl = services
                   |$embedded
                   |}}
                   |

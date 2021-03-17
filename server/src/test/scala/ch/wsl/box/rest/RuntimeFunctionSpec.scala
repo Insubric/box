@@ -52,7 +52,7 @@ class RuntimeFunctionSpec extends BaseSpec {
     }
   }
 
-  it should "with external call should be parsed and evaluated" in withServices { implicit services =>
+  it should "call with external be parsed and evaluated" in withServices { implicit services =>
 
     implicit val up = UserProfile(services.connection.adminUser)
 
