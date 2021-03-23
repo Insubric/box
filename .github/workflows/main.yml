@@ -21,7 +21,7 @@ jobs:
       - name: Setup testspace
         uses: testspace-com/setup-testspace@v1
         with:
-          domain: ${{ github.repository.owner }}
+          domain: Insubric
       - name: Setup Scala
         uses: olafurpg/setup-scala@v10
         with:
