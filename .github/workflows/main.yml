@@ -17,8 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Find tag
-        id: tagger
-        uses: jimschubert/query-tag-action@v1
+        run: export BUILD_CODE=`git describe --tags`
       - name: Setup Scala
         uses: olafurpg/setup-scala@v10
         with:
@@ -40,7 +39,6 @@ jobs:
         env:
           AUTOMATE_USERNAME: ${{secrets.AUTOMATE_USERNAME}}
           AUTOMATE_ACCESS_KEY: ${{secrets.AUTOMATE_ACCESS_KEY}}
-          BUILD_CODE: ${{steps.tagger.outputs.tag}}
         run: |
           export PATH=./node_modules/.bin:$PATH
           sbt client/test
