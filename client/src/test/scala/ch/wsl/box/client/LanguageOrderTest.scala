@@ -4,9 +4,8 @@ import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.services.{ClientConf, ClientSession, Labels}
 import org.scalajs.dom.{document, window}
 import org.scalajs.dom.ext._
-import utest.{Tests, assert, test}
 
-object LanguageOrderTest extends TestBase {
+class LanguageOrderTest extends TestBase {
 
   import Context._
 
@@ -16,14 +15,13 @@ object LanguageOrderTest extends TestBase {
     x.textContent.contains(ref)
   }
 
-  val tests = Tests{
-    test("language order test") - {
+    "language" should "be ordered" in {
       Main.setupUI().map { _ =>
         assert(ClientConf.langs.length == 2)
         assert(ClientConf.langs(0) == "it")
         assert(ClientConf.langs(1) == "en")
       }
     }
-  }
+
 
 }

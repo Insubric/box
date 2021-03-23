@@ -1,6 +1,5 @@
 package ch.wsl.box.client
 
-import ch.wsl.box.client.ChildTest.waitCycle
 import ch.wsl.box.client.mocks.{RestMock, Values}
 import ch.wsl.box.client.services.REST
 import ch.wsl.box.client.utils.TestHooks
@@ -10,11 +9,10 @@ import io.circe.Json
 import org.scalajs.dom.{File, document}
 import org.scalajs.dom.ext._
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
-import utest.{Tests, assert, test}
 
 import scala.concurrent.Future
 
-object InsertMultilevelChildTest extends TestBase {
+class InsertMultilevelChildTest extends TestBase {
 
   val childText = "Test"
   val subchildText = "Test Sub"
@@ -37,8 +35,7 @@ object InsertMultilevelChildTest extends TestBase {
 
   import Context._
 
-  val tests = Tests{
-    test("child insert test") - {
+    "child" should "be inserted" in {
 
       for {
         _ <- Main.setupUI()
@@ -73,9 +70,9 @@ object InsertMultilevelChildTest extends TestBase {
         }
         _ <- waitCycle
 
-      } yield true
+      } yield succeed
 
-    }
+
 
 
 

@@ -181,7 +181,8 @@ object Settings {
 //    "org.scalatest" %%% "scalatest" % versions.scalatest % "test",
 //    "org.scalatest" %%% "scalatest-flatspec" % versions.scalatest % "test",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "com.lihaoyi" %%% "utest" % "0.7.5" % "test"
+    //"com.lihaoyi" %%% "utest" % "0.7.7" % "test"
+    "org.scalatest" %%% "scalatest" % "3.2.5" % Test
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */
