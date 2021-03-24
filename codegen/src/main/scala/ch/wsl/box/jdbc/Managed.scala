@@ -27,7 +27,7 @@ object Managed {
     keyStrategy match {
       case Some("db") => !appKeys.contains(table)
       case Some("app") => dbKeys.contains(table)
-      case _ => true
+      case _ => false
     }
   }
 }
