@@ -8,6 +8,7 @@ import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.Widget
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.bootstrap.badge.UdashBadge
 import io.udash.bootstrap.utils.BootstrapStyles.Color
@@ -320,9 +321,19 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
   import io.udash.css.CssView._
 
 
-  def labelTitle = produce(model.subProp(_.metadata)) { m =>
+  def labelTitle = produceWithNested(model.subProp(_.metadata)) { (m,nested) =>
+
+
     val name = m.map(_.label).getOrElse(model.get.name)
-    span(name).render
+
+    val nameProp:ReadableProperty[String] = m.flatMap(_.dynamicLabel) match {
+      case None => Property(name)
+      case Some(dl) => {
+        model.subProp(_.data).transform(_.getOpt(dl).getOrElse(name))
+      }
+    }
+
+    span(nested(bind(nameProp))).render
   }
 
   def actionRenderer(_id:Option[String])(action:FormAction):Modifier = {

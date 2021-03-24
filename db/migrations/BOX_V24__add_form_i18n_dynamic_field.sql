@@ -1,0 +1,1 @@
+alter table box.form_i18n add column if not exists dynamic_label text;

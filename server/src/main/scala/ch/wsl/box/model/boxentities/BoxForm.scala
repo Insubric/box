@@ -68,12 +68,12 @@ object BoxForm {
     **/
   case class BoxForm_i18n_row(id: Option[Int] = None, form_id: Option[Int] = None,
                               lang: Option[String] = None, label: Option[String] = None,
-                              view_table: Option[String] = None)
+                              view_table: Option[String] = None, dynamic_label:Option[String] = None)
   /** GetResult implicit for fetching Form_i18n_row objects using plain SQL queries */
 
   /** Table description of table form_i18n. Objects of this class serve as prototypes for rows in queries. */
   class BoxForm_i18n(_tableTag: Tag) extends profile.api.Table[BoxForm_i18n_row](_tableTag,BoxSchema.schema, "form_i18n") {
-    def * = (Rep.Some(id), form_id, lang, label,viewTable) <> (BoxForm_i18n_row.tupled, BoxForm_i18n_row.unapply)
+    def * = (Rep.Some(id), form_id, lang, label,viewTable,dynamic_label) <> (BoxForm_i18n_row.tupled, BoxForm_i18n_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
@@ -85,6 +85,8 @@ object BoxForm {
     val label: Rep[Option[String]] = column[Option[String]]("label", O.Default(None))
 
     val viewTable: Rep[Option[String]] = column[Option[String]]("view_table", O.Default(None))
+
+    val dynamic_label: Rep[Option[String]] = column[Option[String]]("dynamic_label", O.Default(None))
 
 
 

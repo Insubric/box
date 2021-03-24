@@ -34,7 +34,8 @@ case class JSONMetadata(
                          exportFields:Seq[String],
                          view:Option[String],
                          action:FormActionsMetadata,
-                         static:Boolean = false
+                         static:Boolean = false,
+                         dynamicLabel:Option[String] = None,
                        ) {
   def order:Ordering[JSONID] = new Ordering[JSONID] {
     override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>
