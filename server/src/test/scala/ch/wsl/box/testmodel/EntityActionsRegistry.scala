@@ -3,8 +3,8 @@ package ch.wsl.box.testmodel
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 import ch.wsl.box.rest.logic.{JSONTableActions, JSONViewActions, TableActions, ViewActions}
-
 import ch.wsl.box.rest.runtime._
+import ch.wsl.box.services.Services
 
 object EntityActionsRegistry extends ActionRegistry {
 
@@ -15,7 +15,7 @@ object EntityActionsRegistry extends ActionRegistry {
   import io.circe.generic.auto._
   import ch.wsl.box.rest.utils.JSONSupport._
 
-  override def apply(name: String)(implicit ec: ExecutionContext): TableActions[Json] = name match {
+  override def apply(name: String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {
     case "simple" => JSONTableActions[Simple,Simple_row](Simple)
     case "app_parent" => JSONTableActions[AppParent,AppParent_row](AppParent)
     case "app_child" => JSONTableActions[AppChild,AppChild_row](AppChild)

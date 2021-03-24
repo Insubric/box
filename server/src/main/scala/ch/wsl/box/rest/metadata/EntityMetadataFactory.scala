@@ -14,6 +14,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{FullDatabase, Managed, TypeMapping}
 import ch.wsl.box.model.BoxFieldAccessRegistry
 import ch.wsl.box.rest.runtime.{ColType, Registry}
+import ch.wsl.box.services.Services
 import com.avsystem.commons.Try
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -55,7 +56,7 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def of(_schema:String,table:String,lang:String, lookupMaxRows:Int = 100)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,boxDatabase: FullDatabase):Future[JSONMetadata] = boxDatabase.adminDb.run{
+  def of(_schema:String,table:String,lang:String, lookupMaxRows:Int = 100)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
 
     logger.warn("searching cache table for " + Seq(up.name, table, lang, lookupMaxRows).mkString)
 

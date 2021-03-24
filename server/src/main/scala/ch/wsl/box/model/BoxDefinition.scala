@@ -5,6 +5,7 @@ import ch.wsl.box.model.boxentities.BoxAccessLevel
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.utils.Cache
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -120,9 +121,9 @@ object BoxDefinition {
 
     db.run(boxDef)
   }
-  
+
   def diff(o:BoxDefinition,n:BoxDefinition):BoxDefinitionMerge = {
-    
+
     def merge[T](f:BoxDefinition => Seq[T],pkCompare:(T,T) => Boolean, allCompare:(T,T) => Boolean):MergeElement[T] = {
 
       f(n).filter(x => f(o).find(y => pkCompare(x,y)).exists(y => !allCompare(x,y)) )
@@ -161,29 +162,29 @@ object BoxDefinition {
       merge(_.ui_src, _.id == _.id, _ == _),
       //merge(_.users, _.username == _.username, _ == _)
     )
-    
+
   }
 
-  
+
   case class CommitAction(
                          insert:DBIO[_],
                          delete:DBIO[_],
                          update:DBIO[_],
                          fixSerial:DBIO[_]
                          )
-  
-  def update(db:UserDatabase,merge:BoxDefinitionMerge)(implicit ec:ExecutionContext) = {
+
+  def update(db:UserDatabase,merge:BoxDefinitionMerge)(implicit ec:ExecutionContext, services: Services) = {
     def commit[M,T <: Table[M]](f:BoxDefinitionMerge => MergeElement[M],table:TableQuery[T],filteredTable:M => Query[T,M,Seq],fixAutoIncrement:DBIO[_] = DBIO.successful()) = {
 
       val deleteAction = DBIO.sequence(f(merge).delete.map( row => filteredTable(row).delete))
-      
+
       CommitAction(
         table.forceInsertAll(f(merge).insert),
         deleteAction,
         table.insertOrUpdateAll(f(merge).update),
         fixAutoIncrement
       )
-      
+
     }
 
     val actions = Seq(
@@ -310,5 +311,5 @@ object BoxDefinition {
     db.run(boxDef.transactionally)
 
   }
-  
+
 }

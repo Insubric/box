@@ -1,5 +1,6 @@
 package ch.wsl.box.codegen
 
+import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import com.typesafe.config.ConfigFactory
 import net.ceedubs.ficus.Ficus._
 import schemagen.SchemaGenerator
@@ -22,19 +23,20 @@ case class GeneratedFiles(
 
 case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends BaseCodeGenerator {
 
-  def generatedFiles(): GeneratedFiles = {
+  def generatedFiles(connection:Connection): GeneratedFiles = {
+
 
 
     val calculatedViews = enabledViews.map(_.name.name).distinct
     val calculatedTables = enabledTables.map(_.name.name).distinct
 
     GeneratedFiles(
-      entities = EntitiesGenerator(dbModel),
+      entities = EntitiesGenerator(connection,dbModel),
       generatedRoutes = RoutesGenerator(calculatedViews, calculatedTables, dbModel),
       entityActionsRegistry = EntityActionsRegistryGenerator(calculatedViews ++ calculatedTables, dbModel),
       fileAccessGenerator = FileAccessGenerator(dbModel, dbConf),
       registry = RegistryGenerator(dbModel),
-      fieldRegistry = FieldAccessGenerator(calculatedTables, calculatedViews, dbModel)
+      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel)
     )
 
   }
@@ -44,12 +46,14 @@ object CustomizedCodeGenerator  {
 
   def main(args: Array[String]):Unit = {
 
-    SchemaGenerator.run()
+    val connection = new ConnectionConfImpl()
+
+    new SchemaGenerator(connection).run()
 
     val schema:String  = ConfigFactory.load().as[Option[String]]("db.schema").getOrElse("public")
     val boxSchema:String  = ConfigFactory.load().as[Option[String]]("box.db.schema").getOrElse("box")
 
-    val files = CodeGenerator(schema).generatedFiles()
+    val files = CodeGenerator(schema).generatedFiles(connection)
     val boxFiles = CodeGenerator(boxSchema,Seq(
       "export",
       "export_field",
@@ -69,7 +73,7 @@ object CustomizedCodeGenerator  {
       "labels",
       "news",
       "news_i18n"
-    )).generatedFiles()
+    )).generatedFiles(connection)
 
     files.entities.writeToFile(
       "ch.wsl.box.jdbc.PostgresProfile",

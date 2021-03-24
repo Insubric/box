@@ -12,20 +12,21 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext) extends Logging with DataMetadataFactory {
+case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
 
   import io.circe.generic.auto._
 
   implicit val db = up.db
-  implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+  implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
   def functions = ch.wsl.box.model.boxentities.BoxFunction
 
-  def list: Future[Seq[String]] = Connection.adminDB.run{
+  def list: Future[Seq[String]] = services.connection.adminDB.run{
     functions.BoxFunctionTable.result
   }.map{_.sortBy(_.order.getOrElse(Double.MaxValue)).map(_.name)}
 
@@ -48,7 +49,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
 
     for{
       al <- up.accessLevel
-      qr <-  Connection.adminDB.run(query.result)
+      qr <-  services.connection.adminDB.run(query.result)
     } yield {
       qr.filter(_._6.map(ar => checkRole(List(),ar, al)).getOrElse(true)) // TODO how to manage roles?
         .sortBy(_._3.getOrElse(Double.MaxValue)).map(
@@ -67,7 +68,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
 
     } yield (ei18.flatMap(_.label), e.name, e.order, ei18.flatMap(_.hint), ei18.flatMap(_.tooltip),e.mode)
 
-    Connection.adminDB.run{
+    services.connection.adminDB.run{
       query.result
     }.map(_.map{ case (label, name, _, hint, tooltip, mode) =>
       ExportDef(name, label.getOrElse(name), hint, tooltip, mode)
@@ -87,11 +88,11 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
     } yield (f, fi18n)
 
     for {
-      (func, functionI18n)  <- Connection.adminDB.run {
+      (func, functionI18n)  <- services.connection.adminDB.run {
         queryExport.result
       }.map(_.head)
 
-      fields <- Connection.adminDB.run {
+      fields <- services.connection.adminDB.run {
         queryField(func.function_id.get).sortBy(_._1.field_id).result
       }
 

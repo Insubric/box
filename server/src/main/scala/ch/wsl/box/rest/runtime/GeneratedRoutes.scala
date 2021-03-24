@@ -8,7 +8,7 @@ import ch.wsl.box.services.Services
 import scala.concurrent.ExecutionContext
 
 trait GeneratedRoutes {
-  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext):Route
+  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services):Route
 }
 
 trait GeneratedFileRoutes {

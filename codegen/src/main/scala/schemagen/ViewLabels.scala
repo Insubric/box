@@ -23,7 +23,7 @@ object ViewLabels extends Logging {
 
   private val insert = langs.map(l => s"('$l',NEW.key,NEW.$l)").mkString("",",",";")
 
-  def addVLabel = Connection.dbConnection.run {
+  def addVLabel(connection:Connection) = connection.dbConnection.run {
     val q =
       sqlu"""
        drop trigger if exists v_labels_update on box.v_labels;
@@ -71,9 +71,9 @@ object ViewLabels extends Logging {
     logger.error(t.getMessage)
   }
 
-  def run() = {
+  def run(connection:Connection) = {
     for{
-      r1 <- addVLabel
+      r1 <- addVLabel(connection)
     } yield true
   }
 

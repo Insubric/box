@@ -16,6 +16,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+      - name: Find tag
+        run: export BUILD_CODE=`git describe --tags`
+      - name: Setup testspace
+        uses: testspace-com/setup-testspace@v1
+        with:
+          domain: Insubric
       - name: Setup Scala
         uses: olafurpg/setup-scala@v10
         with:
@@ -32,8 +38,17 @@ jobs:
           sbt codegen/clean
           sbt server/clean
           sbt client/clean
-          sbt server/test
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m server/test
+      - name: Push server result to testspace
+        run: testspace server/target/test-reports/*.xml
+        if: always()
       - name: Run tests client
+        env:
+          AUTOMATE_USERNAME: ${{secrets.AUTOMATE_USERNAME}}
+          AUTOMATE_ACCESS_KEY: ${{secrets.AUTOMATE_ACCESS_KEY}}
         run: |
           export PATH=./node_modules/.bin:$PATH
-          sbt client/test
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/test
+      - name: Push server result to testspace
+        run: testspace client/target/test-reports/*.xml
+        if: always()

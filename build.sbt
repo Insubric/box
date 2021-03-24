@@ -1,6 +1,4 @@
-import org.openqa.selenium.remote.{DesiredCapabilities, RemoteWebDriver}
 import org.scalajs.jsenv.Input.Script
-import org.scalajs.jsenv.selenium.SeleniumJSEnv
 
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
@@ -54,6 +52,8 @@ lazy val server: Project  = project
     mainClass in (Compile, packageBin) := Some("ch.wsl.box.rest.Boot"),
     mainClass in (Compile, run) := Some("ch.wsl.box.rest.Boot"),
     resourceDirectory in Compile := baseDirectory.value / "../resources",
+    unmanagedResourceDirectories in Test += baseDirectory.value / "../db",
+    fork in Test := true,
     git.useGitDescribe := true,
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := "boxInfo",
@@ -172,35 +172,11 @@ lazy val client: Project = (project in file("client"))
 //    }.value,
 
     //To use Selenium uncomment the following line
-    jsEnv in Test := {
-
-
-      val AUTOMATE_USERNAME = "andreaminetti2"
-      val AUTOMATE_ACCESS_KEY = "nXRrVsimjiuuhm6UxpBe"
-      val URL = "https://" + AUTOMATE_USERNAME + ":" + AUTOMATE_ACCESS_KEY + "@hub-cloud.browserstack.com/wd/hub"
-
-
-      val caps = new DesiredCapabilities
-      caps.setCapability("os_version", "10")
-      caps.setCapability("resolution", "1920x1080")
-      caps.setCapability("browser", "Chrome")
-      caps.setCapability("browser_version", "latest-beta")
-      caps.setCapability("os", "Windows")
-      caps.setCapability("name", "BStack-[Java] Sample Test") // test name
-
-      caps.setCapability("build", "BStack Build Number 1") // CI/CD job or build name
-
-      val driver = new RemoteWebDriver(new URL(URL), caps)
-
-
-
-      val jsenv = new org.scalajs.jsenv.selenium.SeleniumJSEnv(new org.openqa.selenium.chrome.ChromeOptions(), SeleniumJSEnv.Config().withKeepAlive(true))
-      println(jsenv)
-      jsenv
-    },
-
-
-    testFrameworks += new TestFramework("utest.runner.Framework"),
+    scalaJSStage in Test := FullOptStage,
+    jsEnv in Test := BrowserStackRunner.load(),
+    concurrentRestrictions := Seq(
+      Tags.limit(Tags.Test,5) //browserstack limit
+    ),
     requireJsDomEnv in Test := true,
   )
   .enablePlugins(

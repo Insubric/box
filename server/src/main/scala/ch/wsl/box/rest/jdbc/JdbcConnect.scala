@@ -13,6 +13,7 @@ import scala.util.Try
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{Connection, UserDatabase}
 import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.services.Services
 
 
 /**
@@ -26,11 +27,11 @@ object JdbcConnect extends Logging {
 
 
 
-  def function(name:String, args: Seq[Json], lang:String)(implicit ec:ExecutionContext,up:UserProfile):Future[Option[DataResultTable]] = {
+  def function(name:String, args: Seq[Json], lang:String)(implicit ec:ExecutionContext,up:UserProfile,services:Services):Future[Option[DataResultTable]] = {
 
     val result = Future{
       // make the connection
-      val connection = Connection.dbConnection.source.createConnection()
+      val connection = services.connection.dbConnection.source.createConnection()
       val result = Try {
         connection.setAutoCommit(false)
         // create the statement, and run the select query
@@ -41,7 +42,7 @@ object JdbcConnect extends Logging {
         val argsStr = if (args == null) ""
         else args.map(_.toString()).mkString(",")
 
-        val query = s"SELECT * FROM ${Connection.dbSchema}.$name($argsStr)".replaceAll("'","\\'").replaceAll("\"","'")
+        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'","\\'").replaceAll("\"","'")
         logger.info(query)
         val resultSet = statement.executeQuery(query)
         connection.commit()
@@ -64,9 +65,9 @@ object JdbcConnect extends Logging {
 
 
   // TODO @boris, could we user the default labels table instead creating a new one just for the export?
-  private def useI18nHeader(lang:String,keys: Seq[String])(implicit ec:ExecutionContext):Future[Seq[String]] = Future.sequence{
+  private def useI18nHeader(lang:String,keys: Seq[String])(implicit ec:ExecutionContext,services:Services):Future[Seq[String]] = Future.sequence{
     keys.map{ key =>
-      Connection.adminDB.run(BoxExportField.BoxExportHeader_i18nTable.filter(e => e.key === key && e.lang === lang).result).map { label =>
+      services.connection.adminDB.run(BoxExportField.BoxExportHeader_i18nTable.filter(e => e.key === key && e.lang === lang).result).map { label =>
         if(label.isEmpty) logger.warn(s"No translation for $key in $lang, insert translation in table export_header_i18n")
         label.headOption.map(_.label).getOrElse(key)
       }

@@ -18,6 +18,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -34,7 +35,7 @@ case class Form(
                  kind:String,
                  public: Boolean = false,
                  schema:Option[String] = None
-               )(implicit up:UserProfile, ec: ExecutionContext, mat:Materializer) extends enablers.CSVDownload with Logging {
+               )(implicit up:UserProfile, ec: ExecutionContext, mat:Materializer,services:Services) extends enablers.CSVDownload with Logging {
 
     import JSONSupport._
     import akka.http.scaladsl.model._
@@ -48,7 +49,7 @@ case class Form(
 
 
     implicit val implicitDB = db
-    implicit val boxDb = FullDatabase(db,Connection.adminDB)
+    implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
     val metadata: DBIO[JSONMetadata] = metadataFactory.of(name,lang)
 
@@ -113,7 +114,7 @@ case class Form(
     def tabularMetadata(fields:Option[Seq[String]] = None) = metadata.flatMap{ m =>
       val filteredFields = m.view match {
         case None => DBIO.successful(_tabMetadata(fields,m))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),view,lang).map{ vm =>
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang).map{ vm =>
           viewTableMetadata(fields.getOrElse(m.tabularFields),m,vm)
         })
       }
@@ -216,7 +217,7 @@ case class Form(
     path("keys") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(f => EntityMetadataFactory.keysOf(schema.getOrElse(Connection.dbSchema),f.entity)))
+          boxDb.adminDb.run(metadata.flatMap(f => EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),f.entity)))
         }
       }
     } ~

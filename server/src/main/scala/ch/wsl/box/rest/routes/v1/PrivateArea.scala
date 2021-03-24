@@ -84,7 +84,7 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
 
   def forms(implicit up:UserProfile) = path("forms") {
     get {
-      complete(Connection.adminDB.run(FormMetadataFactory().list))
+      complete(services.connection.adminDB.run(FormMetadataFactory().list))
     }
   }
 
@@ -99,7 +99,7 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
   def news(implicit up:UserProfile) = pathPrefix("news") {
     pathPrefix(Segment) { lang =>
       get{
-        complete(Connection.adminDB.run(NewsLoader.get(lang)))
+        complete(services.connection.adminDB.run(NewsLoader.get(lang)))
       }
     }
   }

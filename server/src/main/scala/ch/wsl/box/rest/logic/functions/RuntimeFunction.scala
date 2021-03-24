@@ -9,6 +9,7 @@ import io.circe.Json
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.services.Services
 
 
 trait RuntimeWS{
@@ -17,8 +18,8 @@ trait RuntimeWS{
 }
 
 trait RuntimePSQL{
-  def function(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,up: UserProfile):Future[Option[DataResultTable]]
-  def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer):Future[Option[DataResultTable]]
+  def function(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,up: UserProfile,services:Services):Future[Option[DataResultTable]]
+  def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]]
 }
 
 case class Context(data:Json,ws:RuntimeWS,psql:RuntimePSQL)
@@ -31,7 +32,7 @@ object RuntimeFunction {
     PSQLImpl
   )
 
-  private val compiledFunctions = scala.collection.mutable.Map[String,(ExecutionContext,UserProfile,Materializer,ActorSystem) => ((Context,String) => Future[DataResult])]()
+  private val compiledFunctions = scala.collection.mutable.Map[String,(ExecutionContext,UserProfile,Materializer,ActorSystem,Services) => ((Context,String) => Future[DataResult])]()
 
   def resetCache() = {
     compiledFunctions.clear()
@@ -54,23 +55,25 @@ object RuntimeFunction {
                   |import ch.wsl.box.model.shared.JSONQuery
                   |import ch.wsl.box.model.shared.JSONQuery._
                   |import ch.wsl.box.model.shared.JSONQueryFilter._
+                  |import ch.wsl.box.services.Services
                   |
-                  |(ec:ExecutionContext,up:UserProfile,mat:Materializer,system:ActorSystem) => { (context:Context,lang:String) => {
+                  |(ec:ExecutionContext,up:UserProfile,mat:Materializer,system:ActorSystem,services:Services) => { (context:Context,lang:String) => {
                   |implicit def ecImpl = ec
                   |implicit def dbImpl = up.db
                   |implicit def upImpl = up
                   |implicit def matImpl = mat
                   |implicit def systemImpl = system
                   |implicit def langImpl = Lang(lang)
+                  |implicit def servicesImpl = services
                   |$embedded
                   |}}
                   |
      """.stripMargin
 
-    Eval[(ExecutionContext,UserProfile,Materializer,ActorSystem) => ((Context,String) => Future[DataResult])](code)
+    Eval[(ExecutionContext,UserProfile,Materializer,ActorSystem,Services) => ((Context,String) => Future[DataResult])](code)
   }
 
-  def apply(name:String,embedded:String)(implicit ec:ExecutionContext,up:UserProfile,mat:Materializer,system:ActorSystem): (Context,String) => Future[DataResult] = {
+  def apply(name:String,embedded:String)(implicit ec:ExecutionContext,up:UserProfile,mat:Materializer,system:ActorSystem,services:Services): (Context,String) => Future[DataResult] = {
 
     val function = compiledFunctions.get(name) match {
       case Some(f) => f
@@ -83,7 +86,7 @@ object RuntimeFunction {
       }
     }
 
-    function(ec,up,mat,system)
+    function(ec,up,mat,system,services)
 
   }
 }

@@ -7,6 +7,7 @@ import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxForm_i18n_row, BoxForm_row}
 import ch.wsl.box.model.shared.{Layout, LayoutBlock}
 import ch.wsl.box.rest.utils.{BoxConfig, UserProfile}
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,13 +19,13 @@ object StubMetadataFactory {
   import Layout._
   import ch.wsl.box.jdbc.PostgresProfile.api._
 
-  def forEntity(entity:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext):Future[Boolean] = {
+  def forEntity(entity:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services):Future[Boolean] = {
 
-    implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+    implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
     for{
       langs <- Future.sequence(BoxConfig.langs.map{ lang =>
-        EntityMetadataFactory.of(Connection.dbSchema,entity,lang).map(x => (lang,x))
+        EntityMetadataFactory.of(services.connection.dbSchema,entity,lang).map(x => (lang,x))
       })
       metadata = langs.head._2
       form <- {

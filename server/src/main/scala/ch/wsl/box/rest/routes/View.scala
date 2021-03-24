@@ -20,6 +20,7 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,7 +35,9 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
                                                      dec:Decoder[M],
                                                      mat:Materializer,
                                                      up:UserProfile,
-                                                     ec: ExecutionContext) extends enablers.CSVDownload with Logging {
+                                                     ec: ExecutionContext,
+                                                     services:Services
+                                                    ) extends enablers.CSVDownload with Logging {
 
 
 
@@ -50,7 +53,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   import JSONData._
 
   implicit val db = up.db
-  implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+  implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
   val dbActions = new DbActions[T,M](table)
   val jsonActions = JSONTableActions[T,M](table)
@@ -63,7 +66,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
           val query = parse(q).right.get.as[JSONQuery].right.get
           complete {
             val io = for {
-              metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name, lang))
+              metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
               //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
               data <- jsonActions.find(query)
             } yield {
@@ -109,13 +112,13 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
   def metadata:Route = path("metadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name, lang) }
+      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang) }
     }
   }
 
   def tabularMetadata:Route = path("tabularMetadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(Connection.dbSchema),name, lang) }
+      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang) }
     }
   }
 
@@ -171,7 +174,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
             val query = parse(q).right.get.as[JSONQuery].right.get
             complete {
               for {
-                metadata <- EntityMetadataFactory.of(Connection.dbSchema, name, lang.getOrElse("en"))
+                metadata <- EntityMetadataFactory.of(services.connection.dbSchema, name, lang.getOrElse("en"))
                 fkValues <- lang match {
                   case None => Future.successful(None)
                   case Some(_) => db.run(Lookup.valuesForEntity(metadata).map(Some(_)))

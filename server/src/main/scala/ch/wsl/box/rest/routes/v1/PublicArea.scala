@@ -12,22 +12,23 @@ import ch.wsl.box.model.shared.EntityKind
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.rest.routes.Form
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem) {
+case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
 
-  lazy val publicEntities:Future[Seq[BoxPublicEntities.Row]] = Connection.adminDB.run(BoxPublicEntities.table.result)
+  lazy val publicEntities:Future[Seq[BoxPublicEntities.Row]] = services.connection.adminDB.run(BoxPublicEntities.table.result)
 
   import akka.http.scaladsl.server.Directives._
 
-  implicit val up = Auth.adminUserProfile
+  implicit val up = new Auth().adminUserProfile
 
   def form = pathPrefix("form") {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        val route: Future[Route] = Connection.adminDB.run(FormMetadataFactory.hasGuestAccess(name)).map {
+        val route: Future[Route] = services.connection.adminDB.run(FormMetadataFactory.hasGuestAccess(name)).map {
           _ match {
             case Some(userProfile) => {
               implicit val up = userProfile

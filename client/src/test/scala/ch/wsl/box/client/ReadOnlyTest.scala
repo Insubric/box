@@ -1,20 +1,17 @@
 package ch.wsl.box.client
 
-import ch.wsl.box.client.ChildTest.{countChilds, waitCycle}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{EntityKind, JSONID, JSONKeyValue, SharedLabels}
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
 import org.scalajs.dom.{document, window}
-import utest.{TestSuite, Tests, assert, test}
 
 import scala.concurrent.Future
 
-object ReadOnlyTest extends TestBase {
+class ReadOnlyTest extends TestBase {
 
   import Context._
 
-  val tests = Tests{
-    test("read only field test") - {
+    "read only field" should "not be editable" in {
       for {
         _ <- Main.setupUI()
         _ <- Context.services.clientSession.login("test", "test")
@@ -31,8 +28,8 @@ object ReadOnlyTest extends TestBase {
           assert(field.innerHTML == values.readOnlyValue)
         }
 
-      } yield true
+      } yield succeed
     }
-  }
+
 
 }

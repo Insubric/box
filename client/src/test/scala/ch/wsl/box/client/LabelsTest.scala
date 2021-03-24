@@ -4,9 +4,8 @@ import ch.wsl.box.client.services.{ClientConf, ClientSession, Labels}
 import org.scalajs.dom.document
 import org.scalajs.dom.ext._
 import org.scalajs.dom.window
-import utest._
 
-object LabelsTest extends TestBase {
+class LabelsTest extends TestBase {
 
   import Context._
 
@@ -16,8 +15,7 @@ object LabelsTest extends TestBase {
     x.textContent.contains(ref)
   }
 
-  val tests = Tests{
-    test("labels test") - {
+    "labels" should "exists" in {
       Main.setupUI().flatMap { _ =>
         assert(ClientConf.langs.length == 2)
         assert(services.clientSession.lang() == "it")
@@ -33,10 +31,11 @@ object LabelsTest extends TestBase {
             assert(services.clientSession.lang() == "it")
             assert(checkOnHeader(values.headerLangIt))
             assert(Labels.header.lang == values.headerLangIt)
+            succeed
           }
         }
       }
     }
-  }
+
 
 }

@@ -1,17 +1,15 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.utils.TestHooks
-import utest._
 import org.scalajs.dom.document
 import org.scalajs.dom.window
 
 
-object LoginTest extends TestBase {
+class LoginTest extends TestBase {
 
   import Context._
 
-  val tests = Tests{
-    test("login test") - {
+    "login" should "be done" in {
       Main.setupUI().flatMap { _ =>
           val beforeLogin = document.body.innerHTML
           assert(document.querySelectorAll(s"#${TestHooks.logoutButton}").length == 0)
@@ -25,6 +23,5 @@ object LoginTest extends TestBase {
           }
       }
     }
-  }
 
 }

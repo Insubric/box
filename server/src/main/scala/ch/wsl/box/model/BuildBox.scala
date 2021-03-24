@@ -3,8 +3,10 @@ package ch.wsl.box.model
 import java.util.Base64
 
 import boxentities._
-import ch.wsl.box.jdbc.Connection
+import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.DefaultModule
+import ch.wsl.box.services.Services
 import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.Await
@@ -12,7 +14,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-object BuildBox extends App {
+object BuildBox {
 
   println("Installing box schema")
 
@@ -22,6 +24,7 @@ object BuildBox extends App {
   def install(boxDb:Database,username:String) = {
 
     val createSchemaStatement = s"create schema if not exists ${BoxSchema.schema.getOrElse("box")};"
+
 
     //!!!!!!!!! never change this schema use flyway migration if you need to change the schema
     for{
@@ -502,15 +505,17 @@ ALTER TABLE ONLY box.function_field
     } yield "ok"
   }
 
+  def main(args: Array[String]): Unit = {
+    println("Dropping box tables")
 
-  val installShowError = install(Connection.dbConnection,Connection.dbConf.as[String]("user")).recover{ case t:Throwable => t.printStackTrace()}
+    DefaultModule.injector.build[Services] { services =>
+      val installShowError = install(services.connection.dbConnection,services.connection.adminUser).recover{ case t:Throwable => t.printStackTrace()}
 
-  Await.result(installShowError, 30 seconds)
+      Await.result(installShowError, 30 seconds)
 
-  println("Box schema ready")
-
-
-
+      println("Box schema ready")
+    }
+  }
 
 }
 
@@ -737,6 +742,7 @@ object DefaultLabels {
       |fr	ui.index.title	<h1>BOX database</h1> Bienvenue a BOX.
       |de	ui.index.title	<h1>BOX database</h1> Wilkommen zur BOX.      |
     """.stripMargin
+
 
   val labels:Seq[BoxLabels.BoxLabels_row] = rawLabels.lines.map(_.split("\\t")).filterNot(_.length < 3).map{ line =>
     BoxLabels.BoxLabels_row(lang = line(0), key = line(1), label = Some(line.drop(2).mkString(" ")))

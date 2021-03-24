@@ -21,6 +21,7 @@ case class EntityActionsRegistryGenerator(tableList:Seq[String], model:Model) ex
          |import scala.util.Try
          |import ch.wsl.box.rest.logic.{JSONPageActions, JSONTableActions, JSONViewActions, TableActions, ViewActions}
          |import ch.wsl.box.rest.metadata.FormMetadataFactory
+         |import ch.wsl.box.services.Services
          |
          |import ch.wsl.box.rest.runtime._
          |
@@ -31,7 +32,7 @@ case class EntityActionsRegistryGenerator(tableList:Seq[String], model:Model) ex
          |  import io.circe.generic.auto._
          |  import ch.wsl.box.rest.utils.JSONSupport._
          |
-         |  def apply(name:String)(implicit ec: ExecutionContext): TableActions[Json] = name match {
+         |  def apply(name:String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {
          |    case FormMetadataFactory.STATIC_PAGE => JSONPageActions
          |    ${tableList.flatMap(mapTable).mkString("\n")}
          |  }

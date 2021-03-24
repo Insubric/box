@@ -1,7 +1,8 @@
 package ch.wsl.box.client.mocks
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, WidgetsNames}
-import io.circe._, io.circe.syntax._
+import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, WidgetsNames}
+import io.circe._
+import io.circe.syntax._
 
 class Values {
   val headerLangEn = "test header en"
@@ -73,7 +74,7 @@ class Values {
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,Seq(
+    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
       Left("child"),
       Left(readOnlyField),
       Left(conditionerField),
@@ -87,7 +88,9 @@ class Values {
     query = None,
     exportFields = Seq("id"),
     view = None,
-    action = FormActionsMetadata.default
+    action = FormActionsMetadata.default,
+    keyStrategy = NaturalKey,
+    static = false
   )
 
   val childMetadata = JSONMetadata(
@@ -124,7 +127,7 @@ class Values {
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
     entity = "test_child",
     lang = "it",
     tabularFields = Seq("id"),
@@ -133,7 +136,8 @@ class Values {
     query = None,
     exportFields = Seq("id"),
     view = None,
-    action = FormActionsMetadata.default
+    action = FormActionsMetadata.default,
+    keyStrategy = NaturalKey,
   )
 
   val subchildMetadata = JSONMetadata(
@@ -157,7 +161,7 @@ class Values {
         nullable = true
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
     entity = "test_subchild",
     lang = "it",
     tabularFields = Seq("id"),
@@ -166,7 +170,8 @@ class Values {
     query = None,
     exportFields = Seq("id"),
     view = None,
-    action = FormActionsMetadata.default
+    action = FormActionsMetadata.default,
+    keyStrategy = NaturalKey,
   )
 
   object ids {

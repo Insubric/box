@@ -50,7 +50,7 @@ class Box(name:String,version:String)(implicit val executionContext: ExecutionCo
   def start() =  {
 
 
-    BoxConfig.load(Connection.adminDB)
+    BoxConfig.load(services.connection.adminDB)
 
 
     val akkaConf: Config = BoxConfig.akkaHttpSession
@@ -68,7 +68,7 @@ class Box(name:String,version:String)(implicit val executionContext: ExecutionCo
 
     val loggerWriter = BoxConfig.logDB match  {
       case false => ConsoleWriter
-      case true => new DbWriter(Connection.adminDB)
+      case true => new DbWriter(services.connection.adminDB)
     }
     println(s"Logger level: ${BoxConfig.loggerLevel}")
 
@@ -118,13 +118,14 @@ object Boot extends App  {
 
   def run(name:String,app_version:String,module:Design) {
 
-    Migrate.all()
+
 
     val executionContext = ExecutionContext.fromExecutor(
       new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
     )
 
     module.build[Services] { services =>
+      Migrate.all(services.connection)
       val server = new Box(name, app_version)(executionContext, services)
       server.start()
     }

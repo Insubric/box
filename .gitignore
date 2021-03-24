@@ -2,6 +2,7 @@
 *.log
 .history
 target
+.tmp
 
 # sbt specific
 dist/*

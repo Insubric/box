@@ -4,13 +4,14 @@ import ch.wsl.box.client.mocks.{RestMock, Values}
 import ch.wsl.box.client.services.REST
 import ch.wsl.box.client.utils.TestHooks
 import org.scalajs.dom.{document, window}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should
 import scribe.{Level, Logger, Logging}
-import utest.{ArrowAssert, TestSuite}
 import wvlet.airframe.Design
 
 import scala.concurrent.{Future, Promise}
 
-trait TestBase extends TestSuite with Logging {
+trait TestBase extends AnyFlatSpec with should.Matchers with Logging {
 
   Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Debug)).replace()
 
@@ -44,7 +45,7 @@ trait TestBase extends TestSuite with Logging {
     if(!condition) {
       println(document.documentElement.outerHTML)
     }
-    condition ==> true
+    condition shouldBe true
   }
 
 }

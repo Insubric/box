@@ -11,18 +11,19 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext) extends Logging with DataMetadataFactory {
+case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
 
   import io.circe.generic.auto._
 
   implicit val db = up.db
-  implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+  implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
-  def list: Future[Seq[String]] = Connection.adminDB.run{
+  def list: Future[Seq[String]] = services.connection.adminDB.run{
     BoxExport.BoxExportTable.result
   }.map{_.sortBy(_.order.getOrElse(Double.MaxValue)).map(_.name)}
 
@@ -46,7 +47,7 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
     for{
       roles <- up.memberOf
       al <- up.accessLevel
-      qr <-  Connection.adminDB.run(query.result)
+      qr <-  services.connection.adminDB.run(query.result)
     } yield {
        qr.filter(_._7.map(ar => checkRole(roles, ar, al)).getOrElse(true))
          .sortBy(_._4.getOrElse(Double.MaxValue)).map(
@@ -65,7 +66,7 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
 
     } yield (ei18.flatMap(_.label), e.function, e.name, e.order, ei18.flatMap(_.hint), ei18.flatMap(_.tooltip))
 
-    Connection.adminDB.run{
+    services.connection.adminDB.run{
       query.result
     }.map(_.map{ case (label, function, name, _, hint, tooltip) =>
       ExportDef(function, label.getOrElse(name), hint, tooltip,FunctionKind.Modes.TABLE)
@@ -85,11 +86,11 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
     } yield (f, fi18n)
 
     for {
-      (export,exportI18n) <- Connection.adminDB.run {
+      (export,exportI18n) <- services.connection.adminDB.run {
         queryExport.result
       }.map(_.head)
 
-      fields <- Connection.adminDB.run {
+      fields <- services.connection.adminDB.run {
         queryField(export.export_id.get).sortBy(_._1.field_id).result
       }
 

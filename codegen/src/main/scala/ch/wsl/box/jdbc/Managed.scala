@@ -3,13 +3,16 @@ package ch.wsl.box.jdbc
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 
+import scala.util.Try
+import scala.collection.JavaConverters._
+
 object Managed {
 
-  val conf: Config = ConfigFactory.load().as[Config]("db")
-  val dbKeys = conf.getStringList("generator.keys.db")
-  val appKeys = conf.getStringList("generator.keys.app")
-  val keyStrategy = conf.getString("generator.keys.default.strategy")
-  private val triggerDefault = conf.as[Option[Seq[String]]]("generator.hasTriggerDefault")
+  private val conf: Option[Config] = Try(ConfigFactory.load().as[Config]("db")).toOption
+  private val dbKeys = conf.flatMap(x => Try(x.getStringList("generator.keys.db").asScala).toOption).toSeq.flatten
+  private val appKeys = conf.flatMap(x => Try(x.getStringList("generator.keys.app").asScala).toOption).toSeq.flatten
+  private val keyStrategy = conf.flatMap(x => Try(x.getString("generator.keys.default.strategy")).toOption)
+  private val triggerDefault = conf.flatMap(_.as[Option[Seq[String]]]("generator.hasTriggerDefault"))
 
   def hasTriggerDefault(table:String,field:String) = {
     val key = s"$table.$field"
@@ -22,8 +25,9 @@ object Managed {
     */
   def apply(table:String):Boolean = {
     keyStrategy match {
-      case "db" => !appKeys.contains(table)
-      case "app" => dbKeys.contains(table)
+      case Some("db") => !appKeys.contains(table)
+      case Some("app") => dbKeys.contains(table)
+      case _ => false
     }
   }
 }

@@ -32,13 +32,13 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
         Form(name, lang,BoxActionsRegistry().tableActions,BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX.kind,schema = BoxSchema.schema).route
       }
     } ~ pathEnd{
-      complete(Connection.adminDB.run(BoxFormMetadataFactory().list))
+      complete(services.connection.adminDB.run(BoxFormMetadataFactory().list))
     }
   }
 
   def boxAdmins = path("box-admins") {
     get {
-      complete(Connection.adminDB.run(BoxFormMetadataFactory().list))
+      complete(services.connection.adminDB.run(BoxFormMetadataFactory().list))
     }
   }
 
@@ -67,13 +67,13 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
   def boxDefinition = pathPrefix("box-definition") {
     get{
-      complete(BoxDefinition.`export`(Connection.adminDB).map(_.asJson))
+      complete(BoxDefinition.`export`(services.connection.adminDB).map(_.asJson))
     } ~
     path("diff") {
       post{
         entity(as[BoxDefinition]) {  newDef =>
           complete {
-            BoxDefinition.`export`(Connection.adminDB).map { oldDef =>
+            BoxDefinition.`export`(services.connection.adminDB).map { oldDef =>
               BoxDefinition.diff(oldDef, newDef).asJson
             }
           }
@@ -84,7 +84,7 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
       post{
         entity(as[BoxDefinitionMerge]) { merge =>
           complete {
-            BoxDefinition.update(Connection.adminDB,merge)
+            BoxDefinition.update(services.connection.adminDB,merge)
           }
         }
       }
@@ -95,7 +95,7 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
 
 
-  val route = Auth.onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
+  val route = new Auth().onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
     //access to box tables for administrator
     forms ~
     boxAdmins ~

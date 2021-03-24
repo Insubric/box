@@ -1,7 +1,6 @@
-
 //addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.1.0")
 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.2.0")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.5.0")
 
 addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "4.0.2")
 
@@ -23,5 +22,6 @@ addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.18.0")
 
 libraryDependencies += "org.scala-js" %% "scalajs-env-selenium" % "1.1.0"
 libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
+libraryDependencies += "com.browserstack" % "browserstack-local-java" % "1.0.3"
 libraryDependencies += "org.seleniumhq.selenium" % "selenium-firefox-driver" % "3.141.59"
 libraryDependencies += "org.seleniumhq.selenium" % "selenium-chrome-driver" % "3.141.59"

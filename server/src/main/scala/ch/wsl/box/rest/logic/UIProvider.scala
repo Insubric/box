@@ -6,11 +6,12 @@ import ch.wsl.box.rest.routes.File.BoxFile
 
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.services.Services
 
 
 object UIProvider {
   final val NOT_LOGGED_IN = -1
-  def forAccessLevel(accessLevel:Int)(implicit ec:ExecutionContext):Future[Map[String,String]] = Connection.adminDB.run {
+  def forAccessLevel(accessLevel:Int)(implicit ec:ExecutionContext,services:Services):Future[Map[String,String]] = services.connection.adminDB.run {
     BoxUITable.BoxUITable.filter(_.accessLevel <= accessLevel).result
   }.map { result =>
     result.groupBy(_.key).map{ case (key,values) =>
@@ -18,7 +19,7 @@ object UIProvider {
     }
   }
 
-  def fileForAccessLevel(name:String,accessLevel:Int)(implicit ec:ExecutionContext):Future[Option[BoxFile]] = Connection.adminDB.run {
+  def fileForAccessLevel(name:String,accessLevel:Int)(implicit ec:ExecutionContext,services:Services):Future[Option[BoxFile]] = services.connection.adminDB.run {
     val q = BoxUIsrcTable.BoxUIsrcTable.filter(t => t.accessLevel <= accessLevel && t.name === name)
     val r = q.result
     r

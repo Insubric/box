@@ -4,19 +4,19 @@ import java.security.MessageDigest
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import ch.wsl.box.jdbc.Connection.{dbConf, dbPath, logger, poolSize}
 import net.ceedubs.ficus.Ficus._
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.services.Services
 import scribe.Logging
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-object Auth extends Logging {
+class Auth()(implicit services:Services) extends Logging {
 
 
   def adminUserProfile = UserProfile(
-    name = dbConf.as[String]("user")
+    name = services.connection.adminUser
   )
 
 
@@ -36,10 +36,10 @@ object Auth extends Logging {
 
     userProfiles.get(hash).orElse {
 
-      logger.info(s"Creating new pool for $name with hash $hash with poolsize $poolSize")
+      logger.info(s"Creating new pool for $name with hash $hash")
 
 
-      val validUser = Await.result(Database.forURL(dbPath, name, password, driver = "org.postgresql.Driver").run {
+      val validUser = Await.result(Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run {
         sql"""select 1""".as[Int]
       }.map { _ =>
         true
@@ -61,7 +61,6 @@ object Auth extends Logging {
 
   }
 
-  //todo: verificare differenza di Auth.boxDB con userProfile.box
   def onlyAdminstrator(s: BoxSession)(r: Route)(implicit ec: ExecutionContext): Route = {
 
     onSuccess(s.userProfile.get.accessLevel) {

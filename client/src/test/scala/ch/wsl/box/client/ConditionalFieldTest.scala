@@ -1,21 +1,19 @@
 package ch.wsl.box.client
 
-import ch.wsl.box.client.ChildTest.waitCycle
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{EntityKind, JSONID, JSONKeyValue}
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
-import utest.{Tests, test}
 
 import scala.concurrent.Future
 
-object ConditionalFieldTest extends TestBase {
+class ConditionalFieldTest extends TestBase {
 
   import Context._
 
-  val tests = Tests{
-    test("conditional field test") - {
+
+    "conditional field" should "work" in  {
 
       def condidionalVisible() = document.getElementsByClassName(TestHooks.formField(values.conditionalField)).length > 0
 
@@ -43,8 +41,8 @@ object ConditionalFieldTest extends TestBase {
         _ <- Future {
           assert(!condidionalVisible())
         }
-      } yield true
+      } yield succeed
     }
-  }
+
 
 }

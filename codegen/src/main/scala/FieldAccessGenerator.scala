@@ -12,7 +12,7 @@ import scala.concurrent.duration.DurationInt
 
 
 
-case class FieldAccessGenerator(tabs:Seq[String], views:Seq[String], model:Model) extends slick.codegen.SourceCodeGenerator(model)
+case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Seq[String], model:Model) extends slick.codegen.SourceCodeGenerator(model)
   with BoxSourceCodeGenerator
   with slick.codegen.OutputHelpers {
 
@@ -26,7 +26,7 @@ case class FieldAccessGenerator(tabs:Seq[String], views:Seq[String], model:Model
   def mapField(table:Table):Seq[String] = {
 
     val pgColumns = Await.result(
-      Connection.dbConnection.run(
+      connection.dbConnection.run(
         new PgInformationSchema(table.model.name.schema.getOrElse("public"),table.model.name.table).columns
       ),
       10.seconds

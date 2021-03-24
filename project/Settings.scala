@@ -49,7 +49,7 @@ object Settings {
     val junit = "4.12"
     val scalatest = "3.2.2"
     val selenium = "3.14.0"
-    val testcontainersScalaVersion = "0.35.0"
+    val testcontainersScalaVersion = "0.39.3"
 
     //logs
     val logback = "1.2.3"
@@ -181,7 +181,8 @@ object Settings {
 //    "org.scalatest" %%% "scalatest" % versions.scalatest % "test",
 //    "org.scalatest" %%% "scalatest-flatspec" % versions.scalatest % "test",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "com.lihaoyi" %%% "utest" % "0.7.5" % "test"
+    //"com.lihaoyi" %%% "utest" % "0.7.7" % "test"
+    "org.scalatest" %%% "scalatest" % "3.2.5" % Test
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */

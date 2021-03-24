@@ -7,6 +7,7 @@ import ch.wsl.box.rest.jdbc.JdbcConnect
 import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
+import ch.wsl.box.services.Services
 import geotrellis.vector.geometryDecoder
 import io.circe.Json
 import org.locationtech.jts.geom.Geometry
@@ -19,12 +20,12 @@ object PSQLImpl extends RuntimePSQL {
   import ch.wsl.box.shared.utils.JSONUtils._
 
 
-  override def function(name: String, parameters: Seq[Json])(implicit lang: Lang,ec: ExecutionContext, up: UserProfile): Future[Option[DataResultTable]] = JdbcConnect.function(name,parameters,lang.lang)
+  override def function(name: String, parameters: Seq[Json])(implicit lang: Lang,ec: ExecutionContext, up: UserProfile,services:Services): Future[Option[DataResultTable]] = JdbcConnect.function(name,parameters,lang.lang)
 
-  override def table(name: String, query:JSONQuery)(implicit lang:Lang, ec: ExecutionContext, up: UserProfile, mat:Materializer): Future[Option[DataResultTable]] = {
+  override def table(name: String, query:JSONQuery)(implicit lang:Lang, ec: ExecutionContext, up: UserProfile, mat:Materializer,services:Services): Future[Option[DataResultTable]] = {
 
     implicit val db = up.db
-    implicit val boxDb = FullDatabase(up.db,Connection.adminDB)
+    implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
     val actions = Registry().actions(name)
 
