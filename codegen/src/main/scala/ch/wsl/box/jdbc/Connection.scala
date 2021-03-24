@@ -67,8 +67,7 @@ class ConnectionConfImpl extends Connection {
   val dbPath = dbConf.as[String]("url")
   val dbPassword = dbConf.as[String]("password")
   val dbSchema = dbConf.as[String]("schema")
-  val adminPoolSize = dbConf.as[Option[Int]]("adminPoolSize").getOrElse(5)
-  val poolSize = dbConf.as[Option[Int]]("poolSize").getOrElse(3)
+  val adminPoolSize = dbConf.as[Option[Int]]("adminPoolSize").getOrElse(15)
   val enableConnectionPool = dbConf.as[Option[Boolean]]("enableConnectionPool").getOrElse(true)
   val adminUser = dbConf.as[String]("user")
 
