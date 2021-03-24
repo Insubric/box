@@ -4,7 +4,9 @@ import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
+import io.circe.syntax._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash._
 import scalacss.ScalatagsCss._
@@ -22,6 +24,8 @@ object TrasparentChild extends ChildRendererFactory {
 
   case class TrasparentChildRenderer(row_id: Property[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
 
+    val distribute = field.params.exists(_.js("distribute") == true.asJson)
+
     def child = field.child.get
 
     import io.udash.css.CssView._
@@ -32,7 +36,7 @@ object TrasparentChild extends ChildRendererFactory {
       metadata match {
         case None => p("child not found")
         case Some(f) => {
-            div(
+            div(if(distribute) { ClientConf.style.distributionContrainer } else frag(),
               autoRelease(repeat(entity) { e =>
                 val widget = childWidgets.find(_.id == e.get)
                 div(

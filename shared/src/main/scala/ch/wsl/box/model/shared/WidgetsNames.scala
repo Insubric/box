@@ -64,7 +64,8 @@ object WidgetsNames {
       tableChild,
       editableTable,
       linkedForm,
-      lookupForm
+      lookupForm,
+      trasparentChild
     ),
     FILE -> Seq(
       simpleFile,
