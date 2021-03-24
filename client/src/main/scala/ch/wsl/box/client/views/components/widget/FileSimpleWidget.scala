@@ -93,6 +93,7 @@ case class FileSimpleWidget(id:Property[Option[String]], data:Property[Json], fi
   }
 
 
+  val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
 
   val acceptMultipleFiles = Property(false)
   val selectedFiles = SeqProperty.blank[File]
@@ -128,6 +129,7 @@ case class FileSimpleWidget(id:Property[Option[String]], data:Property[Json], fi
 
   override def edit() = {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,
+      if(noLabel) frag() else WidgetUtils.toLabel(field),
       showFile,
       upload,
       //autoRelease(produce(id) { _ => div(FileInput(selectedFile, Property(false))("file")).render }),
