@@ -235,23 +235,40 @@ object FormUIDef {
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          forms.map{ form => JSONLookup(form.form_id.get.toString,form.name) }
+          forms.map{ form => JSONLookup(form.form_id.get.toString,form.name) }.sortBy(_.value)
         ))
       ),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,
         label = Some("Parent key fields"),
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.simpleChild.asJson,WidgetsNames.tableChild.asJson,WidgetsNames.lookupForm.asJson,WidgetsNames.editableTable.asJson)))
+        condition = Some(ConditionalField("widget",Seq(
+          WidgetsNames.simpleChild.asJson,
+          WidgetsNames.tableChild.asJson,
+          WidgetsNames.lookupForm.asJson,
+          WidgetsNames.editableTable.asJson,
+          WidgetsNames.trasparentChild.asJson,
+        )))
       ),
       JSONField(JSONFieldTypes.STRING,"childFields",true,
         label = Some("Child key fields"),
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.simpleChild.asJson,WidgetsNames.tableChild.asJson,WidgetsNames.editableTable.asJson)))
+        condition = Some(ConditionalField("widget",Seq(
+          WidgetsNames.simpleChild.asJson,
+          WidgetsNames.tableChild.asJson,
+          WidgetsNames.editableTable.asJson,
+          WidgetsNames.trasparentChild.asJson,
+        )))
       ),
       JSONField(JSONFieldTypes.STRING,"childQuery",true,
         widget = Some(WidgetsNames.code),
         params = Some(Json.obj("language" -> "json".asJson, "height" -> 200.asJson)),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.linkedForm.asJson,WidgetsNames.simpleChild.asJson,WidgetsNames.tableChild.asJson,WidgetsNames.editableTable.asJson)))
+        condition = Some(ConditionalField("widget",Seq(
+          WidgetsNames.linkedForm.asJson,
+          WidgetsNames.simpleChild.asJson,
+          WidgetsNames.tableChild.asJson,
+          WidgetsNames.editableTable.asJson,
+          WidgetsNames.trasparentChild.asJson,
+        )))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,

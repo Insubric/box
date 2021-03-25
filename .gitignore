@@ -69,3 +69,5 @@ metals.*
 .bsp
 
 node_modules
+
+LOCAL_README.md

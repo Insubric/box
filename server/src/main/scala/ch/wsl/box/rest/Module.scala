@@ -23,4 +23,7 @@ object DefaultModule extends Module {
     .bind[Config].to[ConfigFileImpl]
     .bind[Services].toEagerSingleton
 
+  val connectionInjector = newDesign
+    .bind[Connection].to[ConnectionConfImpl]
+
 }

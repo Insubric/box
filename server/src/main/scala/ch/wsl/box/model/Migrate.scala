@@ -12,7 +12,9 @@ import ch.wsl.box.services.Services
 import javax.sql.DataSource
 import schemagen.SchemaGenerator
 
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 
 
@@ -66,14 +68,17 @@ object Migrate {
   def all(connection:Connection) = {
     box(connection)
     app(connection)
-    new SchemaGenerator(connection).run()
-    LabelsUpdate.run(connection.dbConnection)
+    for {
+     _ <- new SchemaGenerator(connection).run()
+     _ <- LabelsUpdate.run(connection.dbConnection)
+    } yield true
   }
 
   def main(args: Array[String]): Unit = {
-    DefaultModule.injector.build[Services] { services =>
-      all(services.connection)
+    DefaultModule.connectionInjector.build[Connection] { connection =>
+      Await.result(all(connection).recover{ case t =>
+        t.printStackTrace()
+      },10.seconds)
     }
-
   }
 }

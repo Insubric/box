@@ -5,11 +5,11 @@ import ch.wsl.box.model.boxentities.BoxLabels.{BoxLabelsTable, BoxLabels_row}
 import ch.wsl.box.model.shared.SharedLabels
 import ch.wsl.box.rest.utils.BoxConfig
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 object LabelsUpdate {
 
-  def run(db:Database)(implicit ec:ExecutionContext) = {
+  def run(db:Database)(implicit ec:ExecutionContext): Future[Option[Int]] = {
 
     val all = for{
       label <- BoxLabelsTable

@@ -6,7 +6,9 @@ import net.ceedubs.ficus.Ficus._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import scribe.Logging
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
+
 
 object ViewLabels extends Logging {
 
@@ -23,7 +25,7 @@ object ViewLabels extends Logging {
 
   private val insert = langs.map(l => s"('$l',NEW.key,NEW.$l)").mkString("",",",";")
 
-  def addVLabel(connection:Connection) = connection.dbConnection.run {
+  def addVLabel(connection:Connection)(implicit ec:ExecutionContext) = connection.dbConnection.run {
     val q =
       sqlu"""
        drop trigger if exists v_labels_update on box.v_labels;
@@ -71,7 +73,7 @@ object ViewLabels extends Logging {
     logger.error(t.getMessage)
   }
 
-  def run(connection:Connection) = {
+  def run(connection:Connection)(implicit ec:ExecutionContext) = {
     for{
       r1 <- addVLabel(connection)
     } yield true

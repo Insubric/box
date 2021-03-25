@@ -6,6 +6,10 @@ import net.ceedubs.ficus.Ficus._
 import schemagen.SchemaGenerator
 import slick.codegen.SourceCodeGenerator
 
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+
 
 /**
  *  This customizes the Slick code generator.
@@ -48,7 +52,8 @@ object CustomizedCodeGenerator  {
 
     val connection = new ConnectionConfImpl()
 
-    new SchemaGenerator(connection).run()
+    Await.result(new SchemaGenerator(connection).run(),120.seconds)
+
 
     val schema:String  = ConfigFactory.load().as[Option[String]]("db.schema").getOrElse("public")
     val boxSchema:String  = ConfigFactory.load().as[Option[String]]("box.db.schema").getOrElse("box")
