@@ -14,6 +14,7 @@ import io.circe.syntax._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.table.UdashTable
 import io.udash._
+import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import scalacss.internal.mutable.StyleSheet
@@ -109,9 +110,9 @@ object EditableTable extends ChildRendererFactory {
     import ch.wsl.box.client.Context._
 
 
-    val tableStyle = TableStyle(ClientConf.styleConf,metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
+    val tableStyle = TableStyle(ClientConf.styleConf, metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
     val tableStyleElement = document.createElement("style")
-    tableStyleElement.innerText = tableStyle.render(cssStringRenderer,cssEnv)
+    tableStyleElement.innerText = tableStyle.render(cssStringRenderer, cssEnv)
 
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._
@@ -120,25 +121,35 @@ object EditableTable extends ChildRendererFactory {
     override def child: Child = field.child.get
 
 
-
-    def showIfCondition(field:JSONField)(m:Seq[Node]): Modifier = {
+    def showIfCondition(field: JSONField)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
       field.condition match {
-        case Some(value) => showIf(entity.transform(_.flatMap(r => childWidgets.find(_.id == r)).forall{x =>
-          value.conditionValues.contains(x.data.get.js(value.conditionFieldId))
-        })) { m }
+        case Some(value) => {
+          val propShow = Property(false)
+          entity.listen({ e =>
+            val show = e.map(r => childWidgets.find(_.id == r).forall { x =>
+              value.conditionValues.contains(x.data.get.js(value.conditionFieldId))
+            })
+            if (show != propShow.get) propShow.toggle()
+          }, true)
+
+
+          showIf(propShow) {
+            m.render
+          }
+        }
         case None => m
       }
     }
 
-    def countColumns(metadata:JSONMetadata):ReadableProperty[Int] = {
+    def countColumns(metadata: JSONMetadata): ReadableProperty[Int] = {
 
       val fields = metadata.rawTabularFields.flatMap(field => metadata.fields.find(_.name == field))
 
-      entity.transform{ e =>
-        e.flatMap(r => childWidgets.find(_.id == r).map{ x =>
-          fields.map{f =>
+      entity.transform { e =>
+        e.flatMap(r => childWidgets.find(_.id == r).map { x =>
+          fields.map { f =>
             f.condition match {
-              case Some(value) => if(value.conditionValues.contains(x.data.get.js(value.conditionFieldId))) 1 else 0
+              case Some(value) => if (value.conditionValues.contains(x.data.get.js(value.conditionFieldId))) 1 else 0
               case None => 1
             }
           }
@@ -148,97 +159,98 @@ object EditableTable extends ChildRendererFactory {
     }
 
     override protected def render(write: Boolean): Modifier = {
+      div(
+        tableStyleElement,
+        renderTable(write)
+      )
+    }
 
-      metadata match {
-        case None => p("child not found")
-        case Some(f) => {
+    def renderTable(write: Boolean):Modifier = metadata match {
+      case None => p("child not found")
+      case Some(f) => {
 
-          val columns = countColumns(f)
+        val columns = countColumns(f)
 
-          val fields = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
+        val fields = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
 
 
-          produce(columns) { cols =>
+        produce(columns) { cols =>
 
-            val additionalColumns = if (write && !disableRemove) 1 else 0
+          val additionalColumns = if (write && !disableRemove) 1 else 0
 
-            val colWidth = width := (100/(cols+additionalColumns)).pct
+          val colWidth = width := (100 / (cols + additionalColumns)).pct
 
-            Seq(
-              tableStyleElement,
-              div(tableStyle.tableContainer,
-                table(tableStyle.table,
-                  thead(
-                    for (field <- fields) yield {
-                      val name = field.label.getOrElse(field.name)
-                      field.dynamicLabel match {
-                        case Some(value) => {
-                          val title = entity.transform{ e =>
-                            val rows = e.flatMap(row => childWidgets.find(_.id == row).get.data.get.getOpt(value))
-                            if(rows.isEmpty) name else rows.distinct.mkString(", ")
-                          }
-                          showIfCondition(field) {
-                            th(bind(title), tableStyle.th, colWidth).render
-                          }
-                        }
-                        case None => {
-                          showIfCondition(field) {
-                            th(name, tableStyle.th, colWidth).render
-                          }
-                        }
+
+          div(tableStyle.tableContainer,
+            table(tableStyle.table,
+              thead(
+                for (field <- fields) yield {
+                  val name = field.label.getOrElse(field.name)
+                  field.dynamicLabel match {
+                    case Some(value) => {
+                      val title = entity.transform { e =>
+                        val rows = e.flatMap(row => childWidgets.find(_.id == row).get.data.get.getOpt(value))
+                        if (rows.isEmpty) name else rows.distinct.mkString(", ")
                       }
+                      showIfCondition(field) {
+                        th(bind(title), tableStyle.th, colWidth)
+                      }
+                    }
+                    case None => {
+                      showIfCondition(field) {
+                        th(name, tableStyle.th, colWidth)
+                      }
+                    }
+                  }
 
-                    },
-                    if (write && !disableRemove) th("", tableStyle.th) else frag()
-                  ),
-
-
-                    tbody(
-                      repeat(entity) { row =>
-                        val childWidget = childWidgets.find(_.id == row.get).get
-
-                        tr(tableStyle.tr,
-                          for (field <- fields) yield {
-                            val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
-                            val widget = widgetFactory.create(WidgetParams(
-                              id = Property(childWidget.rowId.map(_.asString)),
-                              prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
-                              field = field, metadata = f, allData = childWidget.widget.data, children = Seq()
-                            ))
+                },
+                if (write && !disableRemove) th("", tableStyle.th) else frag()
+              ),
 
 
-                            showIfCondition(field) {
-                              td(if(field.readOnly) widget.showOnTable() else widget.editOnTable(), tableStyle.td,colWidth,
-                              ).render
-                            }
-                          },
-                          if (write && !disableRemove) td(tableStyle.td,colWidth,
-                             a(onclick :+= ((_: Event) => removeItem(row.get)), Labels.subform.remove)
-                          ) else frag()
-                        ).render
-                      },
-                      if (write && !disableAdd) {
-                        tr(tableStyle.tr,
-                          td(tableStyle.td, colspan := cols),
-                          td(tableStyle.td,colWidth,
-                            a(id := TestHooks.addChildId(f.objId), onclick :+= ((e: Event) => {
-                              addItem(child, f)
-                              true
-                            }), Labels.subform.add)
-                          ),
+              tbody(
+                repeat(entity) { row =>
+                  val childWidget = childWidgets.find(_.id == row.get).get
+
+                  tr(tableStyle.tr,
+                    for (field <- fields) yield {
+                      val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
+                      val widget = widgetFactory.create(WidgetParams(
+                        id = Property(childWidget.rowId.map(_.asString)),
+                        prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
+                        field = field, metadata = f, allData = childWidget.widget.data, children = Seq()
+                      ))
+
+
+                      showIfCondition(field) {
+                        td(if (field.readOnly) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
                         )
-                      } else frag()
-                    ).render
-                )
+                      }
+                    },
+                    if (write && !disableRemove) td(tableStyle.td, colWidth,
+                      a(onclick :+= ((_: Event) => removeItem(row.get)), Labels.subform.remove)
+                    ) else frag()
+                  ).render
+                },
+                if (write && !disableAdd) {
+                  tr(tableStyle.tr,
+                    td(tableStyle.td, colspan := cols),
+                    td(tableStyle.td, colWidth,
+                      a(id := TestHooks.addChildId(f.objId), onclick :+= ((e: Event) => {
+                        addItem(child, f)
+                        true
+                      }), Labels.subform.add)
+                    ),
+                  )
+                } else frag()
               ).render
             )
-          }
-
-
+          ).render
         }
+
+
       }
     }
+
   }
-
-
 }

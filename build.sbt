@@ -132,6 +132,8 @@ lazy val client: Project = (project in file("client"))
       "@fontsource/open-sans" -> "4.2.1",
       "file-saver" -> "2.0.5",
       "@types/file-saver" -> "2.0.1",
+      "js-md5" -> "0.7.3",
+      "@types/js-md5" -> "0.4.2",
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "ol-ext",

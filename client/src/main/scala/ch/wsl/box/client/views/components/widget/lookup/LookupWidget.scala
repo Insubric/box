@@ -10,6 +10,10 @@ import io.udash.{SeqProperty, bind}
 import io.udash.properties.single.Property
 import scalatags.JsDom
 
+object LookupWidget {
+  var remoteLookup:scala.collection.mutable.Map[String,Seq[JSONLookup]] = scala.collection.mutable.Map()
+}
+
 trait LookupWidget extends Widget with HasData {
 
   import ch.wsl.box.client.Context._
@@ -80,7 +84,7 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
-
+  var widgetCacheKeys:scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
 
   for{
     look <- field.lookup
@@ -89,28 +93,55 @@ trait LookupWidget extends Widget with HasData {
     if(query.find(_ == '#').nonEmpty) {
 
       val variables =extractVariables(query)
-      val queryWithSubstitutions = allData.transform({ json =>
-        variables.foldRight(query){(variable, finalQuery) =>
+
+      val queryWithSubstitutions = Property("")
+
+      autoRelease(allData.listen({ json =>
+        val q = variables.foldRight(query){(variable, finalQuery) =>
           finalQuery.replaceAll("#" + variable, "\"" + json.js(variable).string + "\"")
         }
-      })
-      queryWithSubstitutions.listen({ q =>
+        if(queryWithSubstitutions.get != q)
+          queryWithSubstitutions.set(q)
+      },true))
+
+      autoRelease(queryWithSubstitutions.listen({ q =>
+
+        val cacheKey =  typings.jsMd5.mod.^(look.lookupEntity + look.map + q)
         lookup.set(Seq(), true) //reset lookup state
 
-        val jsonQuery = parser.parse(q) match {
-          case Left(e) => {
-            logger.error(e.message)
-            Json.Null
+        widgetCacheKeys.add(q)
+
+        if(q.nonEmpty) {
+          LookupWidget.remoteLookup.get(cacheKey) match {
+            case Some(value) => setNewLookup(value)
+            case None => {
+              val jsonQuery = parser.parse(q) match {
+                case Left(e) => {
+                  logger.error(e.message)
+                  Json.Null
+                }
+                case Right(j) => j
+              }
+
+              services.rest.lookup(services.clientSession.lang(), look.lookupEntity, look.map, jsonQuery).map { lookups =>
+                LookupWidget.remoteLookup.put(cacheKey,toSeq(lookups))
+                setNewLookup(toSeq(lookups))
+              }
+            }
           }
-          case Right(j) => j
+
+
+
         }
 
-        services.rest.lookup(services.clientSession.lang(),look.lookupEntity, look.map, jsonQuery).map { lookups =>
-          setNewLookup(toSeq(lookups))
-        }
-
-      }, true)
+      }, true))
     }
+  }
+
+  override def killWidget(): Unit = {
+    widgetCacheKeys.foreach(k => LookupWidget.remoteLookup.remove(k))
+    widgetCacheKeys.clear()
+    super.killWidget()
   }
 
   private def extractVariables(query:String):Seq[String] = {

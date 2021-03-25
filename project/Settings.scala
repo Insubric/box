@@ -68,7 +68,7 @@ object Settings {
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M4"
+    val udash = "0.9.0-M9"
     val udashJQuery = "3.0.4"
 
     val scribe = "2.7.12"
@@ -178,10 +178,7 @@ object Settings {
     "io.circe" %%% "circe-scalajs" % versions.circe,
     "org.scala-js" %%% "scalajs-dom" % "1.0.0",
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
-//    "org.scalatest" %%% "scalatest" % versions.scalatest % "test",
-//    "org.scalatest" %%% "scalatest-flatspec" % versions.scalatest % "test",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    //"com.lihaoyi" %%% "utest" % "0.7.7" % "test"
     "org.scalatest" %%% "scalatest" % "3.2.5" % Test
   ))
 

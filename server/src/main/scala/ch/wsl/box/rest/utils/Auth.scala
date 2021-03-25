@@ -12,6 +12,10 @@ import scribe.Logging
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
+object Auth {
+  val userProfiles: scala.collection.mutable.Map[String, UserProfile] = scala.collection.mutable.Map()
+}
+
 class Auth()(implicit services:Services) extends Logging {
 
 
@@ -20,7 +24,7 @@ class Auth()(implicit services:Services) extends Logging {
   )
 
 
-  val userProfiles: scala.collection.mutable.Map[String, UserProfile] = scala.collection.mutable.Map()
+
 
   /**
     * check if this is a valid user on your system and return his profile,
@@ -34,7 +38,7 @@ class Auth()(implicit services:Services) extends Logging {
       _ + _
     }
 
-    userProfiles.get(hash).orElse {
+    Auth.userProfiles.get(hash).orElse {
 
       logger.info(s"Creating new pool for $name with hash $hash")
 
@@ -49,7 +53,7 @@ class Auth()(implicit services:Services) extends Logging {
 
         val up = UserProfile(name)
 
-        userProfiles += hash -> up
+        Auth.userProfiles += hash -> up
 
         Some(up)
       } else {
