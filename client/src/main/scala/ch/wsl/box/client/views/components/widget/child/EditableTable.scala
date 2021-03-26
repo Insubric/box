@@ -126,10 +126,10 @@ object EditableTable extends ChildRendererFactory {
         case Some(value) => {
           val propShow = Property(false)
           entity.listen({ e =>
-            val show = e.map(r => childWidgets.find(_.id == r).forall { x =>
+            val show = e.forall(r => childWidgets.find(_.id == r).forall { x =>
               value.conditionValues.contains(x.data.get.js(value.conditionFieldId))
             })
-            if (show != propShow.get) propShow.toggle()
+            if (show != propShow.get) propShow.set(show)
           }, true)
 
 
