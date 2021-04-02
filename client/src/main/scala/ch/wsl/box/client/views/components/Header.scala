@@ -64,10 +64,16 @@ object Header {
       frag(a(id := TestHooks.logoutButton, ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); services.clientSession.logout() } ),"Logout"), ClientConf.menuSeparator).render
     },
     ClientConf.menuSeparator,
-    Labels.header.lang + " ",
-    ClientConf.langs.map{ l =>
-      span(a(id := TestHooks.langSwitch(l), ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); services.clientSession.setLang(l)  } ),l)," ")
-    }
+    if(ClientConf.langs.length > 1) {
+      frag(
+        Labels.header.lang + " ",
+        ClientConf.langs.map { l =>
+          span(a(id := TestHooks.langSwitch(l), ClientConf.style.linkHeaderFooter, onclick :+= ((e: Event) => {
+            showMenu.set(false); services.clientSession.setLang(l)
+          }), l), " ")
+        }
+      )
+    } else frag()
   )
 
   def menu:Seq[Modifier] =
