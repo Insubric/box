@@ -426,7 +426,7 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
 
   def controlButton(icon:Icon,title:String,section:Control.Section) = {
     produce(activeControl) { c =>
-      val isActive = if(c == section) "active" else ""
+      val isActive = if(c == section) "active" else "none"
       button(
         cls := isActive,
         BootstrapStyles.Button.btn,
