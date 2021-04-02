@@ -85,12 +85,12 @@ case class JSONFieldMap(valueProperty:String, textProperty:String, localValuePro
 
 case class ChildMapping(parent:String,child:String)
 
-case class Child(objId:Int, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery])
+case class Child(objId:Int, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String])
 
 object Child{
-  def apply(objId: Int, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery]): Child = {
+  def apply(objId: Int, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String): Child = {
     val mapping = masterFields.split(",").map(_.trim).zip(childFields.split(",").map(_.trim)).map{ case (p,c) => ChildMapping(p,c)}
-    new Child(objId, key, mapping, childQuery)
+    new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim))
   }
 }
 

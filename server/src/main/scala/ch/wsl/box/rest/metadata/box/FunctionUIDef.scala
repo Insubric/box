@@ -45,8 +45,8 @@ object FunctionUIDef {
       ))),
       JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.textarea),label = Some("")),
       JSONField(JSONFieldTypes.NUMBER,"order",true),
-      JSONField(JSONFieldTypes.CHILD,"function_field",true,child = Some(Child(FUNCTION_FIELD,"function_field","function_id","function_id",None))),
-      JSONField(JSONFieldTypes.CHILD,"function_i18n",true,child = Some(Child(FUNCTION_I18N,"function_i18n","function_id","function_id",None)))
+      JSONField(JSONFieldTypes.CHILD,"function_field",true,child = Some(Child(FUNCTION_FIELD,"function_field","function_id","function_id",None,""))),
+      JSONField(JSONFieldTypes.CHILD,"function_i18n",true,child = Some(Child(FUNCTION_I18N,"function_i18n","function_id","function_id",None,"")))
     ),
     layout = Layout(
       blocks = Seq(
@@ -89,7 +89,7 @@ object FunctionUIDef {
       CommonField.name,
       CommonField.widget,
       CommonField.typ(child = false),
-      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_id","field_id",None))),
+      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_id","field_id",None,""))),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
@@ -135,11 +135,11 @@ object FunctionUIDef {
       JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.NUMBER,"id",false,widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
-      CommonField.label,
+      CommonField.label(),
       CommonField.tooltip,
       CommonField.hint,
-      CommonField.placeholder,
-      CommonField.lookupTextField,
+      CommonField.placeholder(),
+      CommonField.lookupTextField(),
     ),
     layout = Layout(
       blocks = Seq(
@@ -167,7 +167,7 @@ object FunctionUIDef {
       JSONField(JSONFieldTypes.NUMBER,"function_id",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.NUMBER,"id",false,widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
-      CommonField.label,
+      CommonField.label(),
       CommonField.tooltip,
       CommonField.hint,
     ),

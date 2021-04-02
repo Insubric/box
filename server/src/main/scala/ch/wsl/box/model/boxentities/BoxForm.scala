@@ -31,12 +31,13 @@ object BoxForm {
                          exportFields: Option[String] = None,
                          guest_user:Option[String] = None,
                          edit_key_field:Option[String] = None,
-                         show_navigation:Boolean
+                         show_navigation:Boolean,
+                         props:Option[String] = None
                         )
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
   class BoxForm(_tableTag: Tag) extends profile.api.Table[BoxForm_row](_tableTag,BoxSchema.schema, "form") {
-    def * = (Rep.Some(form_id), name, entity, description, layout, tabularFields, query,exportFields,guest_user,edit_key_field,show_navigation) <> (BoxForm_row.tupled, BoxForm_row.unapply)
+    def * = (Rep.Some(form_id), name, entity, description, layout, tabularFields, query,exportFields,guest_user,edit_key_field,show_navigation,props) <> (BoxForm_row.tupled, BoxForm_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val form_id: Rep[Int] = column[Int]("form_id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
@@ -53,6 +54,7 @@ object BoxForm {
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
     val edit_key_field: Rep[Option[String]] = column[Option[String]]("edit_key_field", O.Default(None))
     val query: Rep[Option[String]] = column[Option[String]]("query", O.Default(None))
+    val props: Rep[Option[String]] = column[Option[String]]("props", O.Default(None))
 
   }
   /** Collection-like TableQuery object for table Form */

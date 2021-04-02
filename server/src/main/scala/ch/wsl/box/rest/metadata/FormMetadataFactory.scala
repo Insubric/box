@@ -352,15 +352,17 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         case _ => {}
       }
 
-      for{
-        id <- field.child_form_id
-        local <- field.masterFields
-        remote <- field.childFields
-      } yield {
-        Child(id,field.name,local,remote,childQuery)
+      BoxForm.BoxFormTable.filter(_.form_id === field.child_form_id.getOrElse(0)).map(_.props).result.map { props =>
+
+        for{
+          id <- field.child_form_id
+          local <- field.masterFields
+          remote <- field.childFields
+        } yield
+            Child(id,field.name,local,remote,childQuery,props.flatten.headOption.getOrElse(""))
+        }
       }
-    }
-    case _ => None
+    case _ => DBIO.successful(None)
   }
 
   private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String): DBIO[Option[JSONFieldLookup]] = {for{
@@ -403,6 +405,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         look <- lookup(field, fieldI18n, lang)
         lab <- label(field, fieldI18n, lang)
         linked <- linkedForms(field, fieldI18n)
+        subform <- subform(field)
       } yield {
         JSONField(
           `type` = field.`type`,
@@ -414,7 +417,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           dynamicLabel = if(look.isEmpty) fieldI18n.flatMap(_.lookupTextField) else None,
           placeholder = fieldI18n.flatMap(_.placeholder),
           widget = field.widget,
-          child = subform(field),
+          child = subform,
           default = field.default,
           file = fieldFile.map(file),
           condition = condition(field),

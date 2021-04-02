@@ -53,9 +53,15 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     private def add(data:Json,open:Boolean): Unit = {
 
+      val props:ReadableProperty[Json] = masterData.transform{js =>
+        child.props.map(p => p -> js.js(p)).toMap.asJson
+      }
+
       val id = UUID.randomUUID().toString
-      val propData = Property(data)
+      val propData = Property(data.deepMerge(props.get))
       val childId = Property(data.ID(metadata.get.keys).map(_.asString))
+
+      props.listen(p => propData.set(propData.get.deepMerge(p)))
 
       propData.listen{data =>
         val newData = prop.get.as[Seq[Json]].toSeq.flatten.map{x =>
@@ -102,7 +108,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         //      println(s"local:$local sub:$sub")
         m.child -> masterData.get.js(m.parent)
       }
-      keys.toMap
+
       val placeholder: Map[String, Json] = JSONMetadata.jsonPlaceholder(metadata, children) ++ keys.toMap
 
       //    println(placeholder)

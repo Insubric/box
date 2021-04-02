@@ -18,7 +18,8 @@ object LabelUIDef {
           objId = LABEL,
           key = "labels",
           mapping = Seq(),
-          childQuery = None
+          childQuery = None,
+          props = Seq()
         ))
       )
     ),

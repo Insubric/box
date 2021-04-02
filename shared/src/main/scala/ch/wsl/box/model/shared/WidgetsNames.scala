@@ -124,6 +124,8 @@ object WidgetsNames {
     )
   )
 
+  def all = mapping.values.flatten.toSeq
+
   val defaults = mapping.map{case (k,v) => k -> v.head}  //using defaults is deprecated with starting form interface builder in box 1.3.0
 
 }

@@ -70,7 +70,8 @@ class Values {
           key = "child",
           masterFields = "id",
           childFields = "parent_id",
-          None
+          childQuery = None,
+          props = ""
         ))
       )
     ),
@@ -123,7 +124,8 @@ class Values {
           key = "subchild",
           masterFields = "id",
           childFields = "child_id",
-          None
+          childQuery = None,
+          props = ""
         ))
       )
     ),
