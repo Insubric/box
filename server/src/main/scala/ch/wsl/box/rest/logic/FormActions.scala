@@ -137,7 +137,12 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[_])): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).map { field =>
+  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[_]),alwaysApply:Boolean = false): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).filter { field =>
+    field.condition match {
+      case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
+      case None => true
+    }
+  }.map{ field =>
     for {
       form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
       dbSubforms <- getChild(e,form,field.child.get)
@@ -177,7 +182,7 @@ case class FormActions(metadata:JSONMetadata,
   def delete(id:JSONID) = {
     for{
       json <- getById(id)
-      subs <- DBIO.sequence(subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json)))
+      subs <- DBIO.sequence(subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true))
       current <- deleteSingle(id,json.get)
     } yield current + subs.size
   }
