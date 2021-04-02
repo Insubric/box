@@ -85,7 +85,7 @@ case class MonacoWidget(_id: Property[Option[String]], field: JSONField, data: P
       }
     })
 
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+
 
     autoRelease(produce(_id) { _ =>
 
@@ -100,6 +100,8 @@ case class MonacoWidget(_id: Property[Option[String]], field: JSONField, data: P
 
 
       val title = field.label.getOrElse(field.name)
+
+      observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
       //Monaco.load(container,language,prop.get.string,{s:String => prop.set(s.asJson)})
       div(
