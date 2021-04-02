@@ -13,6 +13,7 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.syntax._
 import io.circe.parser._
 import io.udash.bootstrap.utils.BootstrapStyles
+import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
 import org.scalajs.dom.html.Div
 import typings.monacoEditor.mod.editor.{IStandaloneCodeEditor, IStandaloneEditorConstructionOptions}
 
@@ -38,7 +39,7 @@ case class MonacoWidget(_id: Property[Option[String]], field: JSONField, data: P
   val language = field.params.flatMap(_.getOpt("language")).getOrElse(defaultLanguage)
   val containerHeight:Int = field.params.flatMap(_.js("height").as[Int].toOption).getOrElse(200)
 
-  override def afterRender(): Unit = {
+  def _afterRender(): Unit = {
     if(container != null) {
 
       logger.info(language)
@@ -76,6 +77,15 @@ case class MonacoWidget(_id: Property[Option[String]], field: JSONField, data: P
   }
 
   override protected def edit(): JsDom.all.Modifier = {
+
+    val observer = new MutationObserver({(mutations,observer) =>
+      if(document.contains(container)) {
+        observer.disconnect()
+        _afterRender()
+      }
+    })
+
+    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
     autoRelease(produce(_id) { _ =>
 

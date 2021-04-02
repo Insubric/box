@@ -54,6 +54,8 @@ object WidgetRegistry extends Logging {
     RichTextEditorWidgetFactory(RichTextEditorWidget.Full),
     RedactorFactory,
 
+    DynamicWidget,
+
   )
 
   def forName(widgetName:String): ComponentWidgetFactory = widgets.find(_.name == widgetName) match {

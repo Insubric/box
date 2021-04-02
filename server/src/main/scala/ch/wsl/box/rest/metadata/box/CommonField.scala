@@ -67,8 +67,15 @@ object CommonField {
   )
 
 
-  def label(widgetDisabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.input),
-    condition = Some(ConditionalField("widget",WidgetsNames.all.diff(widgetDisabled).map(_.asJson)))
+  def label(widgetDisabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.dynamicWidget),
+    condition = Some(ConditionalField("widget",WidgetsNames.all.diff(widgetDisabled).map(_.asJson))),
+    params = Some(Json.obj(
+      "selectorField" -> "widget".asJson,
+      "widgetMapping" -> Json.obj(
+        "html" -> Json.obj("name" -> WidgetsNames.code.asJson, "params" -> Json.obj("language" -> "html".asJson))
+      ),
+      "default" -> Json.obj("name" -> WidgetsNames.input.asJson)
+    ))
   )
   val tooltip = JSONField(JSONFieldTypes.STRING,"tooltip",true, widget = Some(WidgetsNames.input))
   val hint = JSONField(JSONFieldTypes.STRING,"hint",true, widget = Some(WidgetsNames.input))

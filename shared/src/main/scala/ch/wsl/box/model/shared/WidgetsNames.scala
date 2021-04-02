@@ -38,6 +38,7 @@ object WidgetsNames {
   val lookupForm = "lookup_form"
   val fileWithPreview = "fileWithPreview"
   val lookupLabel = "lookupLabel"
+  val dynamicWidget = "dynamicWidget"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -47,6 +48,7 @@ object WidgetsNames {
       checkbox,
       inputDisabled,
       hidden,
+      dynamicWidget,
     ),
     STRING -> Seq(
       input,
@@ -59,6 +61,7 @@ object WidgetsNames {
       select,
       popup,
       hidden,
+      dynamicWidget,
     ),
     CHILD -> Seq(
       simpleChild,
@@ -66,7 +69,8 @@ object WidgetsNames {
       editableTable,
       linkedForm,
       lookupForm,
-      trasparentChild
+      trasparentChild,
+      dynamicWidget,
     ),
     FILE -> Seq(
       simpleFile,
@@ -75,38 +79,46 @@ object WidgetsNames {
     DATE -> Seq(
       datepicker,
       input,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     DATETIME -> Seq(
       datetimePicker,
       input,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     TIME -> Seq(
       timepicker,
       input,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     INTERVAL -> Seq(
       input,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     BOOLEAN -> Seq(
       checkbox,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     ARRAY_NUMBER -> Seq(
       input,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     ARRAY_STRING -> Seq(
       input,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     GEOMETRY -> Seq(
       map,
       mapPoint,
-      hidden
+      hidden,
+      dynamicWidget,
     ),
     JSON -> Seq(
       code,
@@ -120,7 +132,8 @@ object WidgetsNames {
       h4,
       h5,
       lookupLabel,
-      html
+      html,
+      dynamicWidget,
     )
   )
 
