@@ -33,6 +33,7 @@ object WidgetsNames {
   val h4 = "title_h4"
   val h5 = "title_h5"
   val staticText = "static_text"
+  val html = "html"
   val linkedForm = "linked_form"
   val lookupForm = "lookup_form"
   val fileWithPreview = "fileWithPreview"
@@ -118,7 +119,8 @@ object WidgetsNames {
       h3,
       h4,
       h5,
-      lookupLabel
+      lookupLabel,
+      html
     )
   )
 

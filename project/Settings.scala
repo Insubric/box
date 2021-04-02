@@ -89,7 +89,8 @@ object Settings {
     "io.circe" %%% "circe-generic" % versions.circe,
     "io.circe" %%% "circe-parser" % versions.circe,
     "com.outr" %%% "scribe" % versions.scribe,
-    "com.nrinaudo" %%% "kantan.csv" % versions.kantan
+    "com.nrinaudo" %%% "kantan.csv" % versions.kantan,
+    "com.github.eikek" %%% "yamusca-core" % "0.8.0"
   ))
 
   val sharedJVMCodegenDependencies = Def.setting(Seq(

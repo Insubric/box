@@ -3,6 +3,7 @@ package ch.wsl.box.shared.utils
 import ch.wsl.box.model.shared.JSONID
 import io.circe._
 import scribe.Logging
+import yamusca.imports._
 
 /**
   * Created by andre on 5/22/2017.
@@ -31,6 +32,17 @@ object JSONUtils extends Logging {
         obj => el.printWith(Printer.spaces2) //obj.toMap.map{ case (k:String,v:Json) => s"""  "$k": ${v.string}  """}.mkString("{\n", ",\n", "\n}")
       )
       result
+    }
+
+    def toMustacheValue:Value = {
+      el.fold(
+        Value.of(""),
+        bool => Value.of(bool.toString),
+        num => Value.of(num.toString),
+        str => Value.of(str),
+        arr => Value.fromSeq(arr.map(_.toMustacheValue)),
+        obj => Value.fromMap(obj.toMap.mapValues(_.toMustacheValue).toMap)
+      )
     }
 
     //return JSON value of the given field
