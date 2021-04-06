@@ -32,8 +32,10 @@ object HtmlWidget extends ComponentWidgetFactory {
 
         val variables = tmpl.els.flatMap{
           case Variable(key, _) => Some(key)
+          case Section(key, _, _) => Some(key)
           case _ => None
         }
+
         val watchedVariables:ReadableProperty[Context] = data.transform{ js =>
           val values = variables.map{v =>
             v -> js.js(v).toMustacheValue
