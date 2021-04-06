@@ -48,6 +48,7 @@ trait Widget extends Logging {
   protected def edit():Modifier
 
   def showOnTable():Modifier = frag("Not implemented")
+  def text():ReadableProperty[String] = Property("Not implemented")
   def editOnTable():Modifier = frag("Not implemented")
 
   def render(write:Boolean,conditional:ReadableProperty[Boolean]):Modifier = showIf(conditional) {
@@ -116,6 +117,9 @@ trait HasData extends Widget {
   def data:Property[Json]
 
   override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform(_.string)))
+
+
+  override def text(): ReadableProperty[String] = data.transform(_.string)
 
 }
 

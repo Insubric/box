@@ -89,7 +89,7 @@ case class Child(objId:Int, key:String, mapping:Seq[ChildMapping], childQuery:Op
 
 object Child{
   def apply(objId: Int, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String): Child = {
-    val mapping = masterFields.split(",").map(_.trim).zip(childFields.split(",").map(_.trim)).filterNot(_._1 == "").map{ case (p,c) => ChildMapping(p,c)}
+    val mapping = masterFields.split(",").map(_.trim).zip(childFields.split(",").map(_.trim)).filterNot(x => x._1 == "#all" || x._2 == "#all").map{ case (p,c) => ChildMapping(p,c)}
     new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim))
   }
 }

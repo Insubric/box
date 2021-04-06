@@ -356,9 +356,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
         for {
           id <- field.child_form_id
+          local <- field.masterFields
+          remote <- field.masterFields
         } yield {
-          val local = field.masterFields.getOrElse("")
-          val remote = field.childFields.getOrElse("")
           Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""))
         }
       }

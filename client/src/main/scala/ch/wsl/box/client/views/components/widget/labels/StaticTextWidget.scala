@@ -18,9 +18,9 @@ object StaticTextWidget extends ComponentWidgetFactory {
 
   case class StaticTextWidgetImpl(field:JSONField) extends Widget {
 
-    val text:String = field.label.getOrElse(field.name)
+    val _text:String = field.label.getOrElse(field.name)
 
-    override protected def show(): JsDom.all.Modifier = p(text)
+    override protected def show(): JsDom.all.Modifier = p(_text)
 
 
     override protected def edit(): JsDom.all.Modifier = show()

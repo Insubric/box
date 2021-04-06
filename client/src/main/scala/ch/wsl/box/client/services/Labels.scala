@@ -89,6 +89,7 @@ object Labels {
     def changed = get(SharedLabels.form.changed)
     def removeMap = get(SharedLabels.form.removeMap)
     def removeImage = get(SharedLabels.form.removeImage)
+    def print = get(SharedLabels.form.print)
   }
 
   object lookup{

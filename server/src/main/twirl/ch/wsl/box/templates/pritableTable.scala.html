@@ -1,0 +1,23 @@
+@import ch.wsl.box.model.shared.PDFTable
+@(table:PDFTable)
+
+<style>
+    table {
+        width: 100%;
+    }
+</style>
+<h3>@table.title</h3>
+<table>
+    <tr>
+    @for(header <- table.header) {
+        <th>@header</th>
+    }
+    </tr>
+    @for(row <- table.rows) {
+        <tr>
+            @for(cell <- row) {
+                <td>@cell</td>
+            }
+        </tr>
+    }
+</table>

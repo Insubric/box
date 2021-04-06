@@ -25,14 +25,14 @@ case class TitleWidget(level:Int) extends ComponentWidgetFactory {
 
   case class H1WidgetImpl(field:JSONField) extends Widget {
 
-    val text:String = field.label.getOrElse(field.name)
+    val _text:String = field.label.getOrElse(field.name)
 
     override protected def show(): JsDom.all.Modifier = level match {
-      case 1 => h1(text)
-      case 2 => h2(text)
-      case 3 => h3(text)
-      case 4 => h4(text)
-      case 5 => h5(text)
+      case 1 => h1(_text)
+      case 2 => h2(_text)
+      case 3 => h3(_text)
+      case 4 => h4(_text)
+      case 5 => h5(_text)
     }
 
     override protected def edit(): JsDom.all.Modifier = show()

@@ -1,15 +1,17 @@
 package ch.wsl.box.rest.routes.v1
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.MediaTypes
+import akka.http.scaladsl.model.headers.ContentDispositionTypes
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpHeader, HttpResponse, StatusCodes, headers}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
 import ch.wsl.box.model.BoxActionsRegistry
-import ch.wsl.box.model.shared.EntityKind
+import ch.wsl.box.model.shared.{EntityKind, PDFTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
+import ch.wsl.box.rest.pdf.{PDFExport}
 import ch.wsl.box.rest.routes.{BoxFileRoutes, Export, Form, Functions, Table, View}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
@@ -17,6 +19,7 @@ import ch.wsl.box.services.Services
 import com.softwaremill.session.SessionDirectives.touchOptionalSession
 import com.softwaremill.session.SessionManager
 import com.softwaremill.session.SessionOptions.{oneOff, usingCookiesOrHeaders}
+import io.circe.Json
 
 import scala.concurrent.ExecutionContext
 
@@ -26,6 +29,7 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
   import ch.wsl.box.jdbc.Connection
   import ch.wsl.box.rest.utils.JSONSupport._
   import io.circe.generic.auto._
+  import ch.wsl.box.shared.utils.Formatters._
 
   def export(implicit up:UserProfile) = pathPrefix("export") {
     Export.route
@@ -39,7 +43,7 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     Registry().fileRoutes()
   }
 
-  def entity(implicit up:UserProfile) = pathPrefix("entity") {
+  def entityRoute(implicit up:UserProfile) = pathPrefix("entity") {
     pathPrefix(Segment) { lang =>
       Registry().routes(lang)
     }
@@ -104,6 +108,23 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     }
   }
 
+  def renderTable(implicit up:UserProfile) = pathPrefix("renderTable") {
+    post{
+      entity(as[PDFTable]){ table =>
+        complete {
+//          val contentType = MediaTypes.`application/pdf`
+//          val file = PDFExport(table)
+//          val name = table.title
+//
+//          val entity = HttpEntity(contentType, file)
+//          val contentDistribution: HttpHeader = headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> name, "size" -> file.length.toString))
+//          HttpResponse(entity = entity, headers = scala.collection.immutable.Seq(contentDistribution))
+          PDFExport(table)
+        }
+      }
+    }
+  }
+
   val route = touchOptionalSession(oneOff, usingCookiesOrHeaders) {
     case Some(session) => {
       implicit val up = session.userProfile.get
@@ -113,13 +134,14 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
         export ~
         function ~
         file ~
-        entity ~
+        entityRoute ~
         entities ~
         tables ~
         views ~
         forms ~
         form ~
         news ~
+        renderTable ~
         auth(session) ~
         new WebsocketNotifications().route ~
         Admin(session).route

@@ -59,6 +59,7 @@ trait LookupWidget extends Widget with HasData {
 
 
   override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(selectModel))
+  override def text() = selectModel
 
 
 

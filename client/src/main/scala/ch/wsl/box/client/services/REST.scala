@@ -1,9 +1,10 @@
 package ch.wsl.box.client.services
 
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
-import ch.wsl.box.client.viewmodel.{BoxDefinition}
+import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared._
 import io.circe.Json
+import org.scalajs.dom
 import org.scalajs.dom.File
 
 import scala.concurrent.Future
@@ -61,6 +62,9 @@ trait REST{
   def data(kind:String,name:String,params:Json,lang:String):Future[Seq[Seq[String]]]
 
   def tableAccess(table:String, kind:String):Future[TableAccess]
+
+  //renderers
+  def renderTable(table:PDFTable):Future[String]
 
   //admin
   def generateStub(entity:String):Future[Boolean]

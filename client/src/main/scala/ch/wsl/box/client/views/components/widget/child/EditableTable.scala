@@ -5,10 +5,11 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, ClientSession, La
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
-import ch.wsl.box.client.styles.{BootstrapCol, Icons, StyleConf}
+import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
-import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, PDFTable, WidgetsNames}
+import com.avsystem.commons.BSeq
 import io.circe._
 import io.circe.syntax._
 import io.udash.bootstrap.BootstrapStyles
@@ -20,6 +21,7 @@ import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import scalacss.internal.mutable.StyleSheet
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
+import typings.printJs.mod.PrintTypes
 
 case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
   import dsl._
@@ -102,10 +104,10 @@ object EditableTable extends ChildRendererFactory {
   override def name: String = WidgetsNames.editableTable
 
 
-  override def create(params: WidgetParams): Widget = EditableTableRenderer(params.id,params.prop,params.field,params.allData,params.children)
+  override def create(params: WidgetParams): Widget = EditableTableRenderer(params.id,params.prop,params.field,params.allData,params.children,params.metadata)
 
 
-  case class EditableTableRenderer(row_id: Property[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
+  case class EditableTableRenderer(row_id: Property[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata],parentMetadata:JSONMetadata) extends ChildRenderer {
 
     import ch.wsl.box.client.Context._
 
@@ -121,14 +123,85 @@ object EditableTable extends ChildRendererFactory {
     override def child: Child = field.child.get
 
 
+    def fields(f:JSONMetadata) = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
+
+    def colHeader(field:JSONField):ReadableProperty[String] = {
+        val name = field.label.getOrElse(field.name)
+        field.dynamicLabel match {
+          case Some(value) => {
+            val title = entity.transform { e =>
+              val rows = e.flatMap(row => childWidgets.find(_.id == row).get.data.get.getOpt(value))
+              if (rows.isEmpty) name else rows.distinct.mkString(", ")
+            }
+            title
+          }
+          case None => {
+            Property(name)
+          }
+        }
+    }
+
+    def colContentWidget(childWidget:ChildRow, field:JSONField, metadata:JSONMetadata):Widget = {
+      val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
+      widgetFactory.create(WidgetParams(
+        id = Property(childWidget.rowId.map(_.asString)),
+        prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
+        field = field, metadata = metadata, allData = childWidget.widget.data, children = Seq()
+      ))
+    }
+
+    def printTable(metadata:JSONMetadata) = {
+      val f = fields(metadata).filter(f => checkCondition(f,entity.get.toSeq))
+
+      logger.info(masterData.get.toString())
+      logger.info(prop.get.toString())
+
+      val title = parentMetadata.dynamicLabel match {
+        case None => metadata.label
+        case Some(dl) => masterData.get.getOpt(dl).getOrElse(metadata.label)
+      }
+
+      val table = PDFTable(
+        title = title,
+        header = f.map(colHeader).map(_.get),
+        rows = entity.get.toSeq.map{ row =>
+          val childWidget = childWidgets.find(_.id == row).get
+          f.map { field =>
+            val widget = colContentWidget(childWidget, field, metadata)
+            val result = widget.text().get
+            widget.killWidget()
+            result
+          }
+        }
+      )
+      services.rest.renderTable(table).foreach{ pdf =>
+        typings.printJs.mod.^(
+          typings.printJs.mod.Configuration()
+            .setBase64(true)
+            .setPrintable(pdf)
+            .setType(PrintTypes.pdf)
+        )
+      }
+    }
+
+    def checkCondition(field: JSONField,e:Seq[String]) = {
+      field.condition match {
+        case Some(value) => {
+            e.forall(r => childWidgets.find(_.id == r).forall { x =>
+              value.conditionValues.contains(x.data.get.js(value.conditionFieldId))
+            })
+        }
+        case None => true
+      }
+    }
+
+
     def showIfCondition(field: JSONField)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
       field.condition match {
         case Some(value) => {
           val propShow = Property(false)
           entity.listen({ e =>
-            val show = e.forall(r => childWidgets.find(_.id == r).forall { x =>
-              value.conditionValues.contains(x.data.get.js(value.conditionFieldId))
-            })
+            val show = checkCondition(field,e.toSeq)
             if (show != propShow.get) propShow.set(show)
           }, true)
 
@@ -143,17 +216,17 @@ object EditableTable extends ChildRendererFactory {
 
     def countColumns(metadata: JSONMetadata): ReadableProperty[Int] = {
 
-      val fields = metadata.rawTabularFields.flatMap(field => metadata.fields.find(_.name == field))
+      val f = fields(metadata)
 
       entity.transform { e =>
         e.flatMap(r => childWidgets.find(_.id == r).map { x =>
-          fields.map { f =>
+          f.map { f =>
             f.condition match {
               case Some(value) => if (value.conditionValues.contains(x.data.get.js(value.conditionFieldId))) 1 else 0
               case None => 1
             }
           }
-        }).headOption.map(_.sum).getOrElse(fields.length)
+        }).headOption.map(_.sum).getOrElse(f.length)
       }
 
     }
@@ -167,11 +240,11 @@ object EditableTable extends ChildRendererFactory {
 
     def renderTable(write: Boolean):Modifier = metadata match {
       case None => p("child not found")
-      case Some(f) => {
+      case Some(m) => {
 
-        val columns = countColumns(f)
+        val columns = countColumns(m)
 
-        val fields = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
+        val f = fields(m)
 
 
         produce(columns) { cols =>
@@ -184,23 +257,10 @@ object EditableTable extends ChildRendererFactory {
           div(tableStyle.tableContainer,
             table(tableStyle.table,
               thead(
-                for (field <- fields) yield {
-                  val name = field.label.getOrElse(field.name)
-                  field.dynamicLabel match {
-                    case Some(value) => {
-                      val title = entity.transform { e =>
-                        val rows = e.flatMap(row => childWidgets.find(_.id == row).get.data.get.getOpt(value))
-                        if (rows.isEmpty) name else rows.distinct.mkString(", ")
-                      }
-                      showIfCondition(field) {
-                        th(bind(title), tableStyle.th, colWidth)
-                      }
-                    }
-                    case None => {
-                      showIfCondition(field) {
-                        th(name, tableStyle.th, colWidth)
-                      }
-                    }
+                for (field <- f) yield {
+                  val name = colHeader(field)
+                  showIfCondition(field) {
+                    th(bind(name), tableStyle.th, colWidth)
                   }
 
                 },
@@ -213,13 +273,8 @@ object EditableTable extends ChildRendererFactory {
                   val childWidget = childWidgets.find(_.id == row.get).get
 
                   tr(tableStyle.tr,
-                    for (field <- fields) yield {
-                      val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
-                      val widget = widgetFactory.create(WidgetParams(
-                        id = Property(childWidget.rowId.map(_.asString)),
-                        prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
-                        field = field, metadata = f, allData = childWidget.widget.data, children = Seq()
-                      ))
+                    for (field <- f) yield {
+                      val widget = colContentWidget(childWidget,field,m)
 
 
                       showIfCondition(field) {
@@ -236,15 +291,16 @@ object EditableTable extends ChildRendererFactory {
                   tr(tableStyle.tr,
                     td(tableStyle.td, colspan := cols),
                     td(tableStyle.td, colWidth,
-                      a(id := TestHooks.addChildId(f.objId), onclick :+= ((e: Event) => {
-                        addItem(child, f)
+                      a(id := TestHooks.addChildId(m.objId), onclick :+= ((e: Event) => {
+                        addItem(child, m)
                         true
                       }), Labels.subform.add)
                     ),
                   )
                 } else frag()
               ).render
-            )
+            ),
+            button(ClientConf.style.boxButtonImportant,Labels.form.print,onclick :+= ((e:Event) => printTable(m) ))
           ).render
         }
 

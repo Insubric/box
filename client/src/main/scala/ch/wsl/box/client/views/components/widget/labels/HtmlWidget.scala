@@ -19,13 +19,13 @@ object HtmlWidget extends ComponentWidgetFactory {
   case class HtmlWidgetImpl(field:JSONField,data:Property[Json]) extends Widget {
 
 
-    val text:String = field.label.getOrElse(field.name)
+    val _text:String = field.label.getOrElse(field.name)
 
-    val template = mustache.parse(text)
+    val template = mustache.parse(_text)
 
 
     override protected def show(): JsDom.all.Modifier = template match {
-      case Left(_) => raw(text)
+      case Left(_) => raw(_text)
       case Right(tmpl) => {
 
         val renderer = mustache.render(tmpl)
