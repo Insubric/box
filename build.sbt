@@ -164,18 +164,18 @@ lazy val client: Project = (project in file("client"))
     javaOptions in fullOptJS += "-Xmx4G -XX:MaxMetaspaceSize=1G -XX:MaxPermSize=1G -XX:+CMSClassUnloadingEnabled -Xss3m",
 
     //To use jsdom headless browser uncomment the following lines
-//    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
-//    jsEnvInput in Test := Def.task{
-//      val targetDir = (npmUpdate in Test).value
-//      println(targetDir)
-//      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
-//      println(r)
-//      r
-//    }.value,
+    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    jsEnvInput in Test := Def.task{
+      val targetDir = (npmUpdate in Test).value
+      println(targetDir)
+      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
+      println(r)
+      r
+    }.value,
 
     //To use Selenium uncomment the following line
     scalaJSStage in Test := FullOptStage,
-    jsEnv in Test := BrowserStackRunner.load(),
+//    jsEnv in Test := BrowserStackRunner.load(),
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
     ),

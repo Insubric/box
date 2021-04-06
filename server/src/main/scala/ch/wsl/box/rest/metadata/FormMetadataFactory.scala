@@ -341,27 +341,28 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
       import io.circe.generic.auto._
 
-      val childQuery:Option[JSONQuery] = for{
+      val childQuery: Option[JSONQuery] = for {
         filter <- field.childQuery
         json <- parse(filter).right.toOption
         result <- json.as[JSONQuery].right.toOption
       } yield result
 
-      (field.childQuery,childQuery) match {
-        case (Some(f),None) => logger.warn(s"$f not parsed correctly")
+      (field.childQuery, childQuery) match {
+        case (Some(f), None) => logger.warn(s"$f not parsed correctly")
         case _ => {}
       }
 
       BoxForm.BoxFormTable.filter(_.form_id === field.child_form_id.getOrElse(0)).map(_.props).result.map { props =>
 
-        for{
+        for {
           id <- field.child_form_id
-          local <- field.masterFields
-          remote <- field.childFields
-        } yield
-            Child(id,field.name,local,remote,childQuery,props.flatten.headOption.getOrElse(""))
+        } yield {
+          val local = field.masterFields.getOrElse("")
+          val remote = field.childFields.getOrElse("")
+          Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""))
         }
       }
+    }
     case _ => DBIO.successful(None)
   }
 
