@@ -98,7 +98,7 @@ case class FileWidget(id:Property[Option[String]], data:Property[Json], field:JS
         case Some(u) => div(
           //need to understand why is been uploaded two times
           img(src := Routes.apiV1(s"${u}/thumb?$randomString"),ClientConf.style.imageThumb) ,br,
-          nested(produce(fileName) { name => a(href := Routes.apiV1(u), name).render })
+          nested(produce(fileName) { name => a(href := Routes.apiV1(s"$u?name=$name"), name).render })
         ).render
         case None => div().render
       }
