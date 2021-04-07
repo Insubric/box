@@ -121,9 +121,6 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       resize.vertical
     ),
 
-    unsafeRoot("select")(
-      direction.rtl
-    ),
 
     unsafeRoot("option")(
       direction.ltr

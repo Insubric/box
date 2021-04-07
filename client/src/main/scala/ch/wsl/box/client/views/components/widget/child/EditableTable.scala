@@ -180,6 +180,7 @@ object EditableTable extends ChildRendererFactory {
             .setBase64(true)
             .setPrintable(pdf)
             .setType(PrintTypes.pdf)
+            .setStyle("@page { size: A4 landscape; }")
         )
       }
     }

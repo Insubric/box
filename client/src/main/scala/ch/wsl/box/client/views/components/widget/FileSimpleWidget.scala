@@ -80,12 +80,12 @@ case class FileSimpleWidget(id:Property[Option[String]], data:Property[Json], fi
           div(
             produce(source){
               case None => Seq()
-              case Some(image) => img(src := image, ClientConf.style.maxFullWidth, BootstrapStyles.Float.right()).render
+              case Some(image) => img(src := image, ClientConf.style.maxFullWidth).render
 
             }
           ).render
         } else {
-          button("Download", ClientConf.style.boxButton, BootstrapStyles.Float.right(), onclick :+= ((e: Event) => downloadFile())).render
+          button("Download", ClientConf.style.boxButton, onclick :+= ((e: Event) => downloadFile())).render
         }
       },
       div(BootstrapStyles.Visibility.clearfix)
@@ -114,9 +114,9 @@ case class FileSimpleWidget(id:Property[Option[String]], data:Property[Json], fi
   private def upload = {
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding)(
-      button("Upload",ClientConf.style.boxButton,BootstrapStyles.Float.right(), onclick :+= ((e:Event) => fileInput.click()) ),
+      button("Upload",ClientConf.style.boxButton, onclick :+= ((e:Event) => fileInput.click()) ),
       showIf(source.transform(_.isDefined)){
-        button("Delete",ClientConf.style.boxButtonDanger,BootstrapStyles.Float.right(), onclick :+= ((e:Event) => if(window.confirm(Labels.form.removeMap)) data.set(Json.Null)) ).render
+        button("Delete",ClientConf.style.boxButtonDanger, onclick :+= ((e:Event) => if(window.confirm(Labels.form.removeMap)) data.set(Json.Null)) ).render
       },
       div(BootstrapStyles.Visibility.clearfix)
     )
