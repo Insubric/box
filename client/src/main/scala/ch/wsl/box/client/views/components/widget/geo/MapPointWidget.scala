@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.GeoJson.{Coordinates, Geometry, Point}

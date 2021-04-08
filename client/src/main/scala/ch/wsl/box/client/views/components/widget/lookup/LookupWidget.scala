@@ -125,7 +125,9 @@ trait LookupWidget extends Widget with HasData {
               }
 
               services.rest.lookup(services.clientSession.lang(), look.lookupEntity, look.map, jsonQuery).map { lookups =>
-                LookupWidget.remoteLookup.put(cacheKey,toSeq(lookups))
+                if(lookups.nonEmpty) {
+                  LookupWidget.remoteLookup.put(cacheKey, toSeq(lookups))
+                }
                 setNewLookup(toSeq(lookups))
               }
             }
