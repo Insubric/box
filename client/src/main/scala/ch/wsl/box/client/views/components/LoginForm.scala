@@ -27,9 +27,9 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
     strong(bind(model.subProp(_.message))),
     br,
     label(Labels.login.username),br,
-    TextInput(model.subProp(_.username))(width := 300.px),br,br,
+    TextInput(model.subProp(_.username))(attr("autocorrect") := "off", attr("autocapitalize") := "none",width := 100.pct),br,br,
     label(Labels.login.password),br,
-    PasswordInput(model.subProp(_.password))(width := 300.px),br,br,
+    PasswordInput(model.subProp(_.password))(width := 100.pct),br,br,
     button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,`type` := "submit",Labels.login.button)
   )
 }

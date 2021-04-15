@@ -31,7 +31,7 @@ object LoginPopup {
   }
 
   private val body = (x:NestedInterceptor) => div(
-    div(BootstrapStyles.container, height := 300.px)(
+    div(BootstrapStyles.container, height := 300.px, width := 300.px)(
       div(BootstrapStyles.Grid.row,
         BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Center),
         BootstrapStyles.Flex.alignItems(BootstrapStyles.FlexAlign.Center),

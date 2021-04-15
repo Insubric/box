@@ -50,7 +50,7 @@ case class LoginView(presenter:LoginPresenter) extends View {
           BootstrapStyles.Flex.alignItems(BootstrapStyles.FlexAlign.Center),
         height := 100.pct
       )(
-        div(BootstrapStyles.Card.card,BootstrapStyles.Flex.autoMargin(BootstrapStyles.Side.All))(
+        div(BootstrapStyles.Card.card,BootstrapStyles.Flex.autoMargin(BootstrapStyles.Side.All), minWidth := 300.px)(
           div(BootstrapStyles.Card.header)(
             h3(BootstrapStyles.Card.title)(
               strong(Labels.login.title)

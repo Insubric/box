@@ -63,6 +63,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       ),
       &.hover(
         inputHighlight
+      ),
+      media.maxWidth(600 px)( //disable autozoom
+        height(26 px),
+        fontSize(16 px)
       )
     ),
 
@@ -83,6 +87,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       ),
       &.hover(
         inputHighlight
+      ),
+      media.maxWidth(600 px)( //disable autozoom
+        height(26 px),
+        fontSize(16 px)
       )
     ),
 
@@ -118,7 +126,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderRadius.`0`,
       backgroundColor.white,
       borderColor(rgb(169, 169, 169)),
-      resize.vertical
+      resize.vertical,
+      media.maxWidth(600 px)( //disable autozoom
+        fontSize(16 px)
+      )
     ),
 
 

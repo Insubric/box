@@ -1,6 +1,10 @@
 package ch.wsl.box.rest.routes
 
-import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpEntity, MediaTypes}
+import java.net.{Inet4Address, InetAddress}
+
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpEntity, HttpRequest, MediaTypes}
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
 import boxInfo.BoxBuildInfo
@@ -21,11 +25,21 @@ object UI {
 
   val devServer: Boolean = ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
 
-  val clientFiles:Route =
+  def clientFiles(implicit system:ActorSystem):Route =
     pathSingleSlash {
       get {
         complete {
           ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,BoxConfig.enableRedactor,devServer)
+        }
+      }
+    } ~
+    pathPrefix("devServer") {
+      get {
+        extractUnmatchedPath { path =>
+          val req = HttpRequest(uri = s"http://localhost:8888$path")
+          complete{
+            Http().singleRequest(req)
+          }
         }
       }
     } ~
