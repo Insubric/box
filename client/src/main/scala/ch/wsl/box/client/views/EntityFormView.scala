@@ -4,6 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, FormState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.Widget
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
@@ -18,6 +19,7 @@ import io.udash.component.ComponentId
 import io.udash.core.Presenter
 import io.udash.properties.single.Property
 import org.scalajs.dom._
+import org.scalajs.dom.raw.HTMLFormElement
 import scribe.Logging
 
 import scala.concurrent.Future
@@ -118,7 +120,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   import io.circe.syntax._
 
-  def save(action:JSONID => Unit) = {
+
+  private var _form:HTMLFormElement = scalatags.JsDom.all.form().render
+
+  def setForm(form:HTMLFormElement)= { _form = form }
+
+  def save(action:JSONID => Unit):Unit  = {
+
+    if(!_form.reportValidity()) {
+      logger.warn(s"Form validation failed")
+      return
+    }
 
     val m = model.get
     m.metadata.foreach{ metadata =>
@@ -485,12 +497,16 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         ).render
       },
       hr(ClientConf.style.hrThin),
-      produce(model.subProp(_.metadata)){ form =>
+      produce(model.subProp(_.metadata)){ _form =>
         div(BootstrapCol.md(12),ClientConf.style.fullHeightMax,
-          form match {
+          _form match {
             case None => p("Loading form")
             case Some(f) => {
-              presenter.loadWidgets(f).render(model.get.write,Property(true))
+              val mainForm = form(
+                presenter.loadWidgets(f).render(model.get.write,Property(true))
+              ).render
+              presenter.setForm(mainForm)
+              mainForm
             }
           }
         ).render

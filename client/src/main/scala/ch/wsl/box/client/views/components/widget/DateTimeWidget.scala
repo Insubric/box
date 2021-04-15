@@ -129,7 +129,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     }
 
     val picker = input(
-      style,if(field.nullable) {} else ClientConf.style.notNullable,
+      style,WidgetUtils.toNullable(field.nullable),
       onkeydown := { (e: KeyboardEvent) =>
         e.stopPropagation()
         e.keyCode match {

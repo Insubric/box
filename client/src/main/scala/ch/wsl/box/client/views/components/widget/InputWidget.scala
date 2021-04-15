@@ -120,7 +120,8 @@ object InputWidget extends Logging {
     override def edit() = editMe(field,true, false, modifiers){ case y =>
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
-      TextArea(stringModel)(y:_*).render
+      val mod = y ++ WidgetUtils.toNullable(field.nullable)
+      TextArea(stringModel)(mod:_*).render
     }
     override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data,field,true,modifiers))
   }

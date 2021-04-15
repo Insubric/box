@@ -64,7 +64,7 @@ object WidgetUtils extends Logging{
   def toNullable(nullable: Boolean):Seq[Modifier]={
     nullable match{
       case true => Seq.empty
-      case false => Seq(required := true,ClientConf.style.notNullable)
+      case false => Seq(required := "required",ClientConf.style.notNullable)
     }
   }
 

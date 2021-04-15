@@ -30,11 +30,12 @@ object BoxField {
                            conditionFieldId:Option[String] = None,
                            conditionValues:Option[String] = None,
                            params:Option[Json] = None,
-                           read_only:Option[Boolean] = Some(false)
+                           read_only:Option[Boolean] = Some(false),
+                           required:Option[Boolean] = Some(false)
                          )
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,BoxSchema.schema, "field") {
-    def * = (Rep.Some(field_id), form_id, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_id,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,Rep.Some(read_only)) <> (BoxField_row.tupled, BoxField_row.unapply)
+    def * = (Rep.Some(field_id), form_id, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_id,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,Rep.Some(read_only),required) <> (BoxField_row.tupled, BoxField_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_id: Rep[Int] = column[Int]("field_id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
@@ -62,6 +63,7 @@ object BoxField {
     val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
     val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
     val read_only: Rep[Boolean] = column[Boolean]("read_only", O.AutoInc)
+    val required: Rep[Option[Boolean]] = column[Option[Boolean]]("required")
 
     /** Foreign key referencing Form (database name fkey_form) */
     lazy val formFk = foreignKey("fkey_form", form_id, BoxForm.BoxFormTable)(r => r.form_id, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
