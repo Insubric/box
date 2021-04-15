@@ -5,8 +5,9 @@ import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.utils.GeoJson.FeatureCollection
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, _}
 import io.circe.generic.auto._
 import io.circe.scalajs._
@@ -499,7 +500,8 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
     div(
-      label(field.title),
+      WidgetUtils.toLabel(field),br,
+      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       produce(data) { geo =>
         import ch.wsl.box.client.utils.GeoJson.Geometry._
         import ch.wsl.box.client.utils.GeoJson._
@@ -557,6 +559,7 @@ case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Pro
         }
 
         frag(
+
           div(
             BootstrapStyles.Button.group,
             BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),

@@ -151,13 +151,16 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
       if(noLabel) frag() else WidgetUtils.toLabel(field)," ",
       div(
         display.`inline-block`,
-        " Lat: ",NumberInput(y)(step := 0.00000000001,width := 70.px, float.none),
-        " Lng: ",NumberInput(x)(step := 0.00000000001,width := 70.px, float.none)," ",
+        " Lat: ",NumberInput(y)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable)),
+        " Lng: ",NumberInput(x)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))," ",
         WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value,paddingTop := 0.px, paddingBottom := 0.px)(
-          onclick :+= ((e: Event) => dom.window.navigator.geolocation.getCurrentPosition{position =>
-            val localCoords = projMod.transform(js.Array(position.coords.longitude,position.coords.latitude),wgs84Proj,defaultProjection)
-            geometry.set(Some(Point(Coordinates(localCoords(0),localCoords(1)))))
-          })
+          onclick :+= {(e: Event) =>
+            dom.window.navigator.geolocation.getCurrentPosition{ position =>
+              val localCoords = projMod.transform(js.Array(position.coords.longitude,position.coords.latitude),wgs84Proj,defaultProjection)
+              geometry.set(Some(Point(Coordinates(localCoords(0),localCoords(1)))))
+            }
+            e.preventDefault() // needed in order to avoid triggering the form validation
+          }
         )(Icons.target).render),
         WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
