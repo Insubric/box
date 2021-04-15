@@ -86,7 +86,7 @@ case class FormActions(metadata:JSONMetadata,
     Json.obj(columns:_*)
   }}
 
-  def csv(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[String] = {
+  def csv(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
 
     import kantan.csv._
     import kantan.csv.ops._
@@ -94,11 +94,13 @@ case class FormActions(metadata:JSONMetadata,
     val lookup = Lookup.valueExtractor(lookupElements, metadata) _
 
     _list(queryForm(query)).map { rows =>
-      rows.map { json =>
+
+      val csvRows = rows.map { json =>
         fields(metadata).map { field =>
           lookup(field, json.get(field)).getOrElse(json.get(field))
         }
-      }.asCsv(rfc)
+      }
+      CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
     }
 
 

@@ -1,4 +1,4 @@
-package ch.wsl.box.rest.pdf
+package ch.wsl.box.rest.io.pdf
 
 import java.io.ByteArrayOutputStream
 

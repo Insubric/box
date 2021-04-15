@@ -19,7 +19,7 @@ import ch.wsl.box.model.shared.{EntityKind, LoginRequest}
 import ch.wsl.box.rest.jdbc.JdbcConnect
 import ch.wsl.box.rest.logic.functions.RuntimeFunction
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, EntityMetadataFactory, FormMetadataFactory, StubMetadataFactory}
-import ch.wsl.box.rest.pdf.Pdf
+import ch.wsl.box.rest.io.pdf.Pdf
 import ch.wsl.box.rest.runtime.Registry
 import com.softwaremill.session.{HeaderConfig, InMemoryRefreshTokenStorage, SessionConfig, SessionManager}
 import com.typesafe.config.Config

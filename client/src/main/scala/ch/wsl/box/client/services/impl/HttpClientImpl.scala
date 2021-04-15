@@ -1,7 +1,7 @@
 package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.services.HttpClient.Response
-import ch.wsl.box.client.services.{HttpClient, Notification}
+import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Notification}
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
 import org.scalajs.dom
 import org.scalajs.dom.{File, FormData, XMLHttpRequest}
@@ -22,13 +22,14 @@ class HttpClientImpl extends HttpClient with Logging {
   import scala.concurrent.blocking
 
 
-  private def httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T]):Future[Response[T]] = {
+  private def httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit):Future[Response[T]] = {
 
 
     val promise = Promise[Response[T]]()
     blocking {
       val xhr = new dom.XMLHttpRequest()
-      xhr.open(method, url, false)
+      logger.info(s"Calling HTTP service: $method $url ")
+      xhr.open(method, url, true)
       //xhr.withCredentials = true
       xhr.setRequestHeader("Cache-Control","no-store")
       if (json) {
@@ -37,22 +38,28 @@ class HttpClientImpl extends HttpClient with Logging {
       if (file) {
         xhr.setRequestHeader("Content-Type", "application/octet-stream")
       }
+
+      def defaultHandler() = decoder match {
+        case Some(value) => decode[T](xhr.responseText)(value) match {
+          case Left(fail) => {
+            logger.warn(s"Failed to decode JSON on $url with error: $fail")
+            promise.failure(fail)
+          }
+          case Right(result) => promise.success(Right(result))
+        }
+        case None => {
+          promise.success(Right(xhr.response.asInstanceOf[T]))
+        }
+      }
+
       xhr.onload = { (e: dom.Event) =>
         if (xhr.status == 200) {
           if (xhr.getResponseHeader("Content-Type").contains("text")) {
             promise.success(Right(xhr.responseText.asInstanceOf[T]))
-
           } else if (xhr.getResponseHeader("Content-Type").contains("application/octet-stream")) {
             promise.success(Right(xhr.response.asInstanceOf[T]))
-
           } else {
-            decode[T](xhr.responseText) match {
-              case Left(fail) => {
-                logger.warn(s"Failed to decode JSON on $url with error: $fail")
-                promise.failure(fail)
-              }
-              case Right(result) => promise.success(Right(result))
-            }
+            defaultHandler()
           }
         } else if (xhr.status == 401 || xhr.status == 403) {
           logger.info("Not authorized")
@@ -110,7 +117,7 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  private def httpCallWithNoticeInterceptor[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T]):Future[T] = httpCall(method,url,json,file)(send).map{
+  private def httpCallWithNoticeInterceptor[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T]):Future[T] = httpCall(method,url,json,file,Some(decoder))(send).map{
     case Right(result) => result
     case Left(error) => {
       Notification.add(error.humanReadable(Map()))
@@ -128,6 +135,17 @@ class HttpClientImpl extends HttpClient with Logging {
 
 
   def post[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D]):Future[R] = send[D, R]("POST", url, obj)
+
+  def postFileResponse[D](url: String, obj: D)(implicit  encoder: io.circe.Encoder[D]):Future[File] = httpCall[File]("POST",url){ xhr =>
+    xhr.responseType = "blob"
+    xhr.send(obj.asJson.toString())
+  }.map{
+    case Right(result) => result
+    case Left(error) => {
+      Notification.add(error.humanReadable(Map()))
+      throw new Exception(error.toString)
+    }
+  }
 
   def put[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D]):Future[R] = send[D, R]("PUT", url, obj)
 

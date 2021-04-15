@@ -88,10 +88,17 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
     get {
       optionalSession(oneOff, usingCookiesOrHeaders) {
         case None => complete(UIProvider.forAccessLevel(UIProvider.NOT_LOGGED_IN))
-        case Some(session) => complete(for {
-          accessLevel <- session.userProfile.get.accessLevel
-          ui <- UIProvider.forAccessLevel(accessLevel)
-        } yield ui)
+        case Some(session) => complete(
+          {
+            for {
+              accessLevel <- session.userProfile.get.accessLevel
+              ui <- UIProvider.forAccessLevel(accessLevel)
+            } yield ui
+          }.recoverWith{ case t =>
+            t.printStackTrace()
+            UIProvider.forAccessLevel(UIProvider.NOT_LOGGED_IN)
+          }
+        )
       }
     }
   }

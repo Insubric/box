@@ -8,10 +8,12 @@ import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
 import ch.wsl.box.model.BoxActionsRegistry
-import ch.wsl.box.model.shared.{EntityKind, PDFTable}
+import ch.wsl.box.model.shared.{CSVTable, EntityKind, PDFTable, XLSTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
-import ch.wsl.box.rest.pdf.{PDFExport}
+import ch.wsl.box.rest.io.pdf.PDFExport
+import ch.wsl.box.rest.io.xls.XLS
+import ch.wsl.box.rest.io.csv.CSV
 import ch.wsl.box.rest.routes.{BoxFileRoutes, Export, Form, Functions, Table, View}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
@@ -112,15 +114,24 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     post{
       entity(as[PDFTable]){ table =>
         complete {
-//          val contentType = MediaTypes.`application/pdf`
-//          val file = PDFExport(table)
-//          val name = table.title
-//
-//          val entity = HttpEntity(contentType, file)
-//          val contentDistribution: HttpHeader = headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> name, "size" -> file.length.toString))
-//          HttpResponse(entity = entity, headers = scala.collection.immutable.Seq(contentDistribution))
           PDFExport(table)
         }
+      }
+    }
+  }
+
+  def exportCSV(implicit up:UserProfile) = pathPrefix("exportCSV") {
+    post{
+      entity(as[CSVTable]){ table =>
+        CSV.download(table)
+      }
+    }
+  }
+
+  def exportXLS(implicit up:UserProfile) = pathPrefix("exportXLS") {
+    post{
+      entity(as[XLSTable]){ table =>
+        XLS.route(table)
       }
     }
   }
@@ -142,6 +153,8 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
         form ~
         news ~
         renderTable ~
+        exportCSV ~
+        exportXLS ~
         auth(session) ~
         new WebsocketNotifications().route ~
         Admin(session).route

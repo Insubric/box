@@ -21,10 +21,10 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.rest.io.ShapeFileWriter
 import ch.wsl.box.rest.logic.{DataResult, DataResultObject, DataResultTable}
 import ch.wsl.box.rest.metadata.DataMetadataFactory
-import ch.wsl.box.rest.pdf.Pdf
+import ch.wsl.box.rest.io.pdf.Pdf
+import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}

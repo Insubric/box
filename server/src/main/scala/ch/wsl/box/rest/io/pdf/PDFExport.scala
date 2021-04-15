@@ -1,4 +1,4 @@
-package ch.wsl.box.rest.pdf
+package ch.wsl.box.rest.io.pdf
 
 import ch.wsl.box.model.shared.PDFTable
 

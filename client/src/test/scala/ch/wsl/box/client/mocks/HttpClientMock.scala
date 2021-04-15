@@ -9,6 +9,8 @@ import scala.concurrent.Future
 class HttpClientMock extends HttpClient {
   override def post[D, R](url: String, obj: D)(implicit decoder: Decoder[R], encoder: Encoder[D]): Future[R] = throw new Exception("post not implemented")
 
+  override def postFileResponse[D](url: String, obj: D)(implicit encoder: Encoder[D]): Future[File] = throw new Exception("post not implemented")
+
   override def put[D, R](url: String, obj: D)(implicit decoder: Decoder[R], encoder: Encoder[D]): Future[R] = throw new Exception("put not implemented")
 
   override def get[T](url: String)(implicit decoder: Decoder[T]): Future[T] = throw new Exception("delete not implemented")

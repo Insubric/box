@@ -20,6 +20,7 @@ object HttpClient{
 
 trait HttpClient{
   def post[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D]):Future[R]
+  def postFileResponse[D](url: String, obj: D)(implicit encoder: io.circe.Encoder[D]):Future[File]
   def put[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D]):Future[R]
   def get[T](url: String)(implicit decoder: io.circe.Decoder[T]): Future[T]
   def delete[T](url: String)(implicit decoder: io.circe.Decoder[T]): Future[T]

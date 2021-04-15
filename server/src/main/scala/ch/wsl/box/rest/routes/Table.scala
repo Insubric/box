@@ -14,13 +14,14 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
-import ch.wsl.box.rest.utils.{BoxConfig, JSONSupport, UserProfile, XLSExport, XLSTable}
+import ch.wsl.box.rest.utils.{BoxConfig, JSONSupport, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.services.Services
 import io.circe.parser.decode
@@ -73,32 +74,22 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
 
   def xls:Route = path("xlsx") {
-    respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.xlsx"))) {
-      get {
-        parameters('q) { q =>
-          val query = parse(q).right.get.as[JSONQuery].right.get
-          complete {
-            val io = for {
-              metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
-              //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-              data <- jsonActions.find(query)
-            } yield {
-              val table = XLSTable(
-                title = name,
-                header = metadata.fields.map(_.name),
-                rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
-              )
-              val os = new ByteArrayOutputStream()
-              XLSExport(table, os)
-              os.flush()
-              os.close()
-              HttpResponse(entity = HttpEntity(MediaTypes.`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, os.toByteArray))
-            }
-
-            db.run(io)
-
-          }
+    get {
+      parameters('q) { q =>
+        val query = parse(q).right.get.as[JSONQuery].right.get
+        val io = for {
+          metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
+          //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
+          data <- jsonActions.find(query)
+        } yield {
+          val table = XLSTable(
+            title = name,
+            header = metadata.fields.map(_.name),
+            rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
+          )
+          XLS.route(table)
         }
+        onSuccess(db.run(io))(x => x)
       }
     }
   }

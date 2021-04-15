@@ -8,7 +8,7 @@ import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
-import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, PDFTable, WidgetsNames}
+import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
 import com.avsystem.commons.BSeq
 import io.circe._
 import io.circe.syntax._
@@ -17,11 +17,15 @@ import io.udash.bootstrap.table.UdashTable
 import io.udash._
 import org.scalajs.dom
 import org.scalajs.dom._
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
+import org.scalajs.dom.raw.{Blob, HTMLAnchorElement, HTMLElement, HTMLInputElement}
 import scalacss.internal.mutable.StyleSheet
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
 import typings.printJs.mod.PrintTypes
+import typings.std.global.atob
+
+import scala.scalajs.js
+import scala.scalajs.js.typedarray.Uint8Array
 
 case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
   import dsl._
@@ -150,21 +154,19 @@ object EditableTable extends ChildRendererFactory {
       ))
     }
 
-    def printTable(metadata:JSONMetadata) = {
+    def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
       val f = fields(metadata).filter(f => checkCondition(f,entity.get.toSeq))
 
-      logger.info(masterData.get.toString())
-      logger.info(prop.get.toString())
 
       val title = parentMetadata.dynamicLabel match {
         case None => metadata.label
         case Some(dl) => masterData.get.getOpt(dl).getOrElse(metadata.label)
       }
 
-      val table = PDFTable(
-        title = title,
-        header = f.map(colHeader).map(_.get),
-        rows = entity.get.toSeq.map{ row =>
+      (
+        title,
+        f.map(colHeader).map(_.get),
+        entity.get.toSeq.map{ row =>
           val childWidget = childWidgets.find(_.id == row).get
           f.map { field =>
             val widget = colContentWidget(childWidget, field, metadata)
@@ -174,6 +176,13 @@ object EditableTable extends ChildRendererFactory {
           }
         }
       )
+    }
+
+    def printTable(metadata:JSONMetadata) = {
+      val (title,header,rows) = currentTable(metadata)
+
+      val table = PDFTable(title, header, rows)
+
       services.rest.renderTable(table).foreach{ pdf =>
         typings.printJs.mod.^(
           typings.printJs.mod.Configuration()
@@ -182,6 +191,26 @@ object EditableTable extends ChildRendererFactory {
             .setType(PrintTypes.pdf)
             .setStyle("@page { size: A4 landscape; }")
         )
+      }
+    }
+
+    def exportCSV(metadata:JSONMetadata) = {
+      val (title,header,rows) = currentTable(metadata)
+
+      val table = CSVTable(title, header, rows)
+
+      services.rest.exportCSV(table).foreach{ csv =>
+        typings.fileSaver.mod.saveAs(csv,s"${metadata.label}.csv")
+      }
+    }
+
+    def exportXLS(metadata:JSONMetadata) = {
+      val (title,header,rows) = currentTable(metadata)
+
+      val table = XLSTable(title, header, rows)
+
+      services.rest.exportXLS(table).foreach{ xls =>
+        typings.fileSaver.mod.saveAs(xls,s"${metadata.label}.xlsx")
       }
     }
 
@@ -301,7 +330,9 @@ object EditableTable extends ChildRendererFactory {
                 } else frag()
               ).render
             ),
-            button(ClientConf.style.boxButtonImportant,Labels.form.print,onclick :+= ((e:Event) => printTable(m) ))
+            button(ClientConf.style.boxButtonImportant,Labels.form.print,onclick :+= ((e:Event) => printTable(m) )),
+            button(ClientConf.style.boxButtonImportant,Labels.entity.csv,onclick :+= ((e:Event) => exportCSV(m) )),
+            button(ClientConf.style.boxButtonImportant,Labels.entity.xls,onclick :+= ((e:Event) => exportXLS(m) )),
           ).render
         }
 

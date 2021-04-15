@@ -65,6 +65,8 @@ trait REST{
 
   //renderers
   def renderTable(table:PDFTable):Future[String]
+  def exportCSV(table:CSVTable):Future[File]
+  def exportXLS(table:XLSTable):Future[File]
 
   //admin
   def generateStub(entity:String):Future[Boolean]

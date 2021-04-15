@@ -10,12 +10,14 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.utils.{Cache, JSONSupport, UserProfile, XLSExport, XLSTable}
+import ch.wsl.box.rest.utils.{Cache, JSONSupport, UserProfile}
 import io.circe.Json
 import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
+import ch.wsl.box.rest.io.csv.{CSV}
+import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
@@ -62,39 +64,6 @@ case class Form(
     }
 
 
-
-
-    def xls:Route = path("xlsx") {
-      respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.xlsx"))) {
-        get {
-          parameters('q) { q =>
-            val query = parse(q).right.get.as[JSONQuery].right.get
-            complete {
-              val io = for {
-                metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-                formActions = FormActions(metadata, jsonActions, metadataFactory)
-                fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-                data <- formActions.list(query, fkValues)
-              } yield {
-                val table = XLSTable(
-                  title = name,
-                  header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
-                  rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
-                )
-                val os = new ByteArrayOutputStream()
-                XLSExport(table, os)
-                os.flush()
-                os.close()
-                HttpResponse(entity = HttpEntity(MediaTypes.`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, os.toByteArray))
-              }
-
-              db.run(io)
-            }
-          }
-        }
-      }
-    }
-
     private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {
           case Some(fields) => m.fields.filter(field => fields.contains(field.name))
@@ -130,6 +99,72 @@ case class Form(
         r
       }
     }
+
+
+  def xls = path("xlsx") {
+    get {
+      privateOnly {
+        parameters('q) { q =>
+          val query = parse(q).right.get.as[JSONQuery].right.get
+          val io = for {
+            metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
+            formActions = FormActions(metadata, jsonActions, metadataFactory)
+            fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
+            data <- formActions.list(query, fkValues)
+            xlsTable = XLSTable(
+              title = name,
+              header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
+              rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
+            )
+          } yield {
+            XLS.route(xlsTable)
+          }
+          onSuccess(db.run(io))(x => x)
+        }
+      }
+    }
+  }
+
+  def csvTable(query:JSONQuery):Future[CSVTable] = {
+    for {
+      metadata <- boxDb.adminDb.run(tabularMetadata())
+      formActions = FormActions(metadata, jsonActions, metadataFactory)
+      csv <- db.run(formActions.csv(query, None))
+    } yield csv
+  }
+
+  def csvTable(q:String,fk:Option[String],fields:Option[String]):DBIO[CSVTable] = {
+    val query = parse(q).right.get.as[JSONQuery].right.get
+    val tabMetadata = tabularMetadata(fields.map(_.split(",").map(_.trim).toSeq))
+    for {
+      metadata <- DBIO.from(boxDb.adminDb.run(tabMetadata))
+      formActions = FormActions(metadata, jsonActions, metadataFactory)
+      fkValues <- fk match {
+        case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
+        case _ => DBIO.successful(None)
+      }
+      csv <- formActions.csv(query, fkValues, _.exportFields)
+    } yield csv.copy(
+      showHeader = true,
+      header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
+    )
+  }
+
+  def csv:Route = path("csv") {
+    post {
+      privateOnly {
+        entity(as[JSONQuery]) { query =>
+          onSuccess(csvTable(query))(csv => CSV.body(csv))
+        }
+      }
+    } ~ get {
+      privateOnly {
+        parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
+          onSuccess(db.run(csvTable(q,fk,fields)))(csv => CSV.download(csv))
+        }
+      }
+    }
+  }
 
     def route = pathPrefix("id") {
       path(Segment) { strId =>
@@ -270,59 +305,7 @@ case class Form(
       }
     } ~
     xls ~
-    path("csv") {
-      post {
-        privateOnly {
-          entity(as[JSONQuery]) { query =>
-            logger.info("csv")
-            complete {
-              for {
-                metadata <- boxDb.adminDb.run(tabularMetadata())
-                formActions = FormActions(metadata, jsonActions, metadataFactory)
-                csv <- db.run(formActions.csv(query, None))
-              } yield {
-                csv
-              }
-            }
-          }
-        }
-      } ~
-      respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment,Map("filename" -> s"$name.csv"))) {
-        get {
-          privateOnly {
-            parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-              val query = parse(q).right.get.as[JSONQuery].right.get
-              val tabMetadata = tabularMetadata(fields.map(_.split(",").map(_.trim).toSeq))
-              complete {
-                val io = for {
-                  metadata <- DBIO.from(boxDb.adminDb.run(tabMetadata))
-                  formActions = FormActions(metadata, jsonActions, metadataFactory)
-                  fkValues <- fk match {
-                    case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
-                    case _ => DBIO.successful(None)
-                  }
-                  csv <- formActions.csv(query, fkValues, _.exportFields)
-                } yield {
-
-                  logger.info(s"fk: ${fkValues.toString.take(50)}...")
-                  val formActions = FormActions(metadata, jsonActions, metadataFactory)
-
-                  val headers = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
-
-                  import kantan.csv._
-                  import kantan.csv.ops._
-
-                  Seq(headers).asCsv(rfc) + "\n" + csv
-                }
-
-                db.run(io)
-
-              }
-            }
-          }
-        }
-      }
-    } ~
+    csv ~
     pathEnd {
         post {
           entity(as[Json]) { e =>

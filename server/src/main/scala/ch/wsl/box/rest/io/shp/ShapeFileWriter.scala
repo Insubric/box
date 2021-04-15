@@ -1,34 +1,22 @@
-package ch.wsl.box.rest.io
+package ch.wsl.box.rest.io.shp
 
-import ch.wsl.box.rest.logic.DataResultTable
-
-import java.io.{ByteArrayOutputStream, File, FileInputStream, InputStream}
-import java.nio.ByteBuffer
-import java.nio.channels.{Channels, WritableByteChannel}
-import java.util
-import org.arakhne.afc.io.dbase.DBaseFileWriter
-import org.arakhne.afc.io.shape.ESRIFileUtil
-import org.arakhne.afc.io.shape.ShapeElementType
-import org.arakhne.afc.vmutil.FileSystem
-
+import java.io.ByteArrayOutputStream
 import java.util
 import java.util.zip.{ZipEntry, ZipOutputStream}
-import collection.JavaConverters._
-import org.arakhne.afc.attrs.attr.{Attribute, AttributeImpl, AttributeType, AttributeValue, AttributeValueImpl}
+
+import ch.wsl.box.rest.logic.DataResultTable
+import org.arakhne.afc.attrs.attr._
 import org.arakhne.afc.attrs.collection.{AbstractAttributeProvider, AttributeProvider}
-import org.arakhne.afc.io.shape.{ESRIBounds, ESRIPoint, ElementExporter, ShapeFileIndexWriter, ShapeMultiPatchType}
+import org.arakhne.afc.io.dbase.DBaseFileWriter
+import org.arakhne.afc.io.shape._
 import org.arakhne.afc.math.geometry.d2.d.Point2d
-import org.arakhne.afc.progress.{ProgressionEvent, ProgressionListener}
 
-import scala.concurrent.Promise
-
-//https://github.com/gallandarakhneorg/afc/blob/master/advanced/shapefile/src/test/java/org/arakhne/afc/io/shape/GlobalWriteTest.java
+import scala.collection.JavaConverters._
 
 object ShapeFileWriter {
 
 
   def writePoints(myData: DataResultTable) = {
-
 
 
     val data = for (i <- 1 to 10) yield {
@@ -41,7 +29,7 @@ object ShapeFileWriter {
         val values = Map(
           "attr1" -> new AttributeValueImpl(s"test$i"),
           "attr2" -> new AttributeValueImpl(true),
-          "attr3" -> new AttributeValueImpl(1+i)
+          "attr3" -> new AttributeValueImpl(1 + i)
         )
 
 
@@ -50,12 +38,12 @@ object ShapeFileWriter {
         override def hasAttribute(name: String): Boolean = values.contains(name)
 
         override def getAllAttributes: util.Collection[Attribute] = {
-          val seq:Seq[Attribute] = values.map{case (name,v) => new AttributeImpl(name,v)}.toSeq
+          val seq: Seq[Attribute] = values.map { case (name, v) => new AttributeImpl(name, v) }.toSeq
           seq.asJavaCollection
         }
 
-        override def getAllAttributesByType: util.Map[AttributeType, util.Collection[Attribute]] = values.groupBy(_._2.getType).map{  case (name,v) =>
-          val seq:Seq[Attribute] = v.map{case (name,v) => new AttributeImpl(name,v)}.toSeq
+        override def getAllAttributesByType: util.Map[AttributeType, util.Collection[Attribute]] = values.groupBy(_._2.getType).map { case (name, v) =>
+          val seq: Seq[Attribute] = v.map { case (name, v) => new AttributeImpl(name, v) }.toSeq
           name -> seq.asJavaCollection
         }.asJava
 
@@ -63,9 +51,9 @@ object ShapeFileWriter {
 
         override def getAttribute(name: String): AttributeValue = values(name)
 
-        override def getAttribute(name: String, defaultValue: AttributeValue): AttributeValue = values.getOrElse(name,defaultValue)
+        override def getAttribute(name: String, defaultValue: AttributeValue): AttributeValue = values.getOrElse(name, defaultValue)
 
-        override def getAttributeObject(name: String): Attribute = new AttributeImpl(name,values(name))
+        override def getAttributeObject(name: String): Attribute = new AttributeImpl(name, values(name))
 
         override def freeMemory(): Unit = {}
 
@@ -76,7 +64,7 @@ object ShapeFileWriter {
     val exporter = new ElementExporter[Point2d] {
       override def getAttributeProviders(elements: util.Collection[_ <: Point2d]): Array[AttributeProvider] = elements.asScala.map(getAttributeProvider).toArray
 
-      override def getAttributeProvider(element: Point2d): AttributeProvider = data.zipWithIndex.find(_._1 == element).map{ case (p,i) => attributes(i) }.orNull
+      override def getAttributeProvider(element: Point2d): AttributeProvider = data.zipWithIndex.find(_._1 == element).map { case (p, i) => attributes(i) }.orNull
 
       override def getFileBounds: ESRIBounds = new ESRIBounds(
         data.map(_.getX).min,
@@ -99,18 +87,17 @@ object ShapeFileWriter {
     val dbfStream = new ByteArrayOutputStream()
 
 
-
     // Dbf writing
     val dbfWriter = new DBaseFileWriter(dbfStream)
-//    dbfWriter.writeHeader(attributes.asJava)
-//    dbfWriter.write(attributes.asJava)
+    //    dbfWriter.writeHeader(attributes.asJava)
+    //    dbfWriter.write(attributes.asJava)
 
     // Shx writing
     val shxWriter = new ShapeFileIndexWriter(shxStream, ShapeElementType.POINT, exporter.getFileBounds())
     //shxWriter.write(data.length)
 
     // Shp writing
-    val writer = new org.arakhne.afc.io.shape.ShapeFileWriter(shpStream, ShapeElementType.POINT, exporter,dbfWriter,shxWriter)
+    val writer = new org.arakhne.afc.io.shape.ShapeFileWriter(shpStream, ShapeElementType.POINT, exporter, dbfWriter, shxWriter)
     writer.write(data.toList.asJavaCollection)
     writer.close()
     shxWriter.close()
@@ -144,11 +131,6 @@ object ShapeFileWriter {
     result
 
   }
-
-
-
-
-
 
 
 }

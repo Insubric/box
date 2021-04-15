@@ -1,7 +1,7 @@
 package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONMetadata, JSONQuery}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import slick.basic.DatabasePublisher
 
