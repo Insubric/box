@@ -84,7 +84,7 @@ object TableChildFactory extends ChildRendererFactory {
                                   BootstrapStyles.Grid.row,
                                   div(BootstrapCol.md(12), ClientConf.style.block,
                                     div(BootstrapStyles.Float.right(),
-                                      a(onclick :+= ((_: Event) => removeItem(e)), Labels.subform.remove)
+                                      a(onclick :+= ((_: Event) => removeItem(widget)), Labels.subform.remove, id.bind(widget.rowId.transform(x => TestHooks.deleteChildId(f.objId,x))))
                                     )
                                   )
                                 ) else frag()

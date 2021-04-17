@@ -59,7 +59,7 @@ class RichTextWidgetTest extends TestBase {
 
     for {
       _ <- Main.setupUI()
-      _ <- Context.services.clientSession.login("test", "test")
+      _ <- login
       _ <- waitLoggedIn
       _ <- Future {
         Context.applicationInstance.goTo(EntityFormState("form", formName, "true", Some("id::1"), false))

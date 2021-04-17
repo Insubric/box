@@ -47,7 +47,7 @@ object TrasparentChild extends ChildRendererFactory {
                         BootstrapStyles.Grid.row,
                         div(BootstrapCol.md(12), ClientConf.style.block,
                           div(BootstrapStyles.Float.right(),
-                            a(onclick :+= ((_: Event) => removeItem(e.get)), Labels.subform.remove)
+                            a(onclick :+= ((_: Event) => removeItem(widget.get)), Labels.subform.remove)
                           )
                         )
                       ).render

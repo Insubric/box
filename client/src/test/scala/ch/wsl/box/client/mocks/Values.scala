@@ -211,4 +211,8 @@ class Values {
     ???
   }
 
+  def children(entity:String):Seq[JSONMetadata] = {
+    Seq(childMetadata,subchildMetadata)
+  }
+
 }

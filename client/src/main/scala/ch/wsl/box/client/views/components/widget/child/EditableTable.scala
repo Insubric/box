@@ -313,7 +313,7 @@ object EditableTable extends ChildRendererFactory {
                       }
                     },
                     if (write && !disableRemove) td(tableStyle.td, colWidth,
-                      a(onclick :+= ((_: Event) => removeItem(row.get)), Labels.subform.remove)
+                      a(onclick :+= ((_: Event) => removeItem(childWidget)), Labels.subform.remove)
                     ) else frag()
                   ).render
                 },

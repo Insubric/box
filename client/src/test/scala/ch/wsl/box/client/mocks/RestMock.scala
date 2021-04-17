@@ -86,7 +86,7 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
   override def children(kind: String, entity: String, lang: String, public:Boolean): Future[Seq[JSONMetadata]] = Future.successful{
-    Seq(values.childMetadata,values.subchildMetadata)
+    values.children(entity)
   }
 
   override def lookup(lang: String, lookupEntity: String, map: JSONFieldMap, queryWithSubstitutions: Json): Future[Seq[JSONLookup]] = {

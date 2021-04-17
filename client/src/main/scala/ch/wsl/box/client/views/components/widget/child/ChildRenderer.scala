@@ -91,12 +91,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
 
-    def removeItem(itemToRemove: String) = {
+    def removeItem(itemToRemove: ChildRow) = {
       logger.info("removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
-        entity.remove(itemToRemove)
-        val childToDelete = childWidgets.zipWithIndex.find(x => x._1.id == itemToRemove).get
+        val childToDelete = childWidgets.zipWithIndex.find(x => x._1.rowId.get == itemToRemove.rowId.get && x._1.id == itemToRemove.id).get
+        entity.remove(childToDelete._1.id)
         childWidgets.update(childToDelete._2, childToDelete._1.copy(deleted = true))
+        masterData.set(masterData.get.deepMerge(Json.obj("$changed" -> true.asJson)))
       }
     }
 
@@ -130,12 +131,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       val rows = data.seq(child.key)
       BrowserConsole.log(io.circe.scalajs.convertJsonToJs(rows.asJson))
 
-      val out = Future.sequence(entity.get.zipWithIndex.map{ case (e,i) =>
+      val out = Future.sequence(childWidgets.filterNot(_.deleted).map{ case cw =>
 
-        val cw = childWidgets.find(_.id == e).get
 
         val oldData = cw.data.get
-        val newData = rows.lift(i).getOrElse(Json.obj())
+        val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m) == cw.rowId.get )).getOrElse(Json.obj())
 
         logger.debug(s"olddata: $oldData")
         logger.debug(s"newdata: $newData")

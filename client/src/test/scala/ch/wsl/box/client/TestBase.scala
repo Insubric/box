@@ -40,6 +40,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     promise.future
   }
 
+  def login = Context.services.clientSession.login("test", "test")
 
   def waitLoggedIn = waitElement{() => document.getElementById(TestHooks.logoutButton)}
 
@@ -67,6 +68,14 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     promise.future
   }
 
+  def waitId(id:String,name:String = "") = waitElement({() =>
+    document.getElementById(id)
+  },name)
+
+  def waitNotId(id:String,name:String = "") = waitNotElement({() =>
+    document.getElementById(id)
+  },name)
+
   def waitElement(elementExtractor:() => Element,name:String = "") = waiter( () => document.contains(elementExtractor()),name)
 
   def waitNotElement(elementExtractor:() => Element,name:String = "") = waiter( () => !document.contains(elementExtractor()),name)
@@ -77,5 +86,8 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     }
     condition shouldBe true
   }
+
+  def formChanged = waitId(TestHooks.dataChanged,"Data changed")
+  def formUnchanged = waitNotId(TestHooks.dataChanged,"Data unchanged")
 
 }
