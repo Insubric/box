@@ -1,6 +1,6 @@
 package ch.wsl.box.client.mocks
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
 
@@ -90,7 +90,7 @@ class Values {
     exportFields = Seq("id"),
     view = None,
     action = FormActionsMetadata.default,
-    keyStrategy = NaturalKey,
+    keyStrategy = SurrugateKey,
     static = false
   )
 
@@ -107,7 +107,7 @@ class Values {
       JSONField(
         JSONFieldTypes.NUMBER,
         name = "parent_id",
-        nullable = false
+        nullable = true
       ),
       JSONField(
         JSONFieldTypes.STRING,
@@ -139,7 +139,7 @@ class Values {
     exportFields = Seq("id"),
     view = None,
     action = FormActionsMetadata.default,
-    keyStrategy = NaturalKey,
+    keyStrategy = SurrugateKey,
   )
 
   val subchildMetadata = JSONMetadata(
@@ -173,7 +173,7 @@ class Values {
     exportFields = Seq("id"),
     view = None,
     action = FormActionsMetadata.default,
-    keyStrategy = NaturalKey,
+    keyStrategy = SurrugateKey,
   )
 
   object ids {

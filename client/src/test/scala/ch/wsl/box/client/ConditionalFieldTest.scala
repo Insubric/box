@@ -10,34 +10,34 @@ import scala.concurrent.Future
 
 class ConditionalFieldTest extends TestBase {
 
-  import Context._
 
 
     "conditional field" should "work" in  {
 
+      def conditionalField() = document.getElementsByClassName(TestHooks.formField(values.conditionalField)).item(0)
       def condidionalVisible() = document.getElementsByClassName(TestHooks.formField(values.conditionalField)).length > 0
 
       for {
         _ <- Main.setupUI()
         _ <- Context.services.clientSession.login("test", "test")
-        _ <- waitCycle
+        _ <- waitLoggedIn
         _ <- Future {
           Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", "1"))).asString), false))
         }
-        _ <- waitCycle
+        _ <- waitElement(() => document.querySelector(s".${TestHooks.formField(values.conditionerField)}"))
         conditioner = document.querySelector(s".${TestHooks.formField(values.conditionerField)}").asInstanceOf[HTMLInputElement]
         _ <- Future {
           assert(!condidionalVisible())
           conditioner.value = values.conditionalValue
           conditioner.onchange(new Event("change"))
         }
-        _ <- waitCycle
+        _ <- waitElement(conditionalField)
         _ <- Future {
           assert(condidionalVisible())
           conditioner.value = "something else"
           conditioner.onchange(new Event("change"))
         }
-        _ <- waitCycle
+        _ <- waitNotElement(conditionalField)
         _ <- Future {
           assert(!condidionalVisible())
         }

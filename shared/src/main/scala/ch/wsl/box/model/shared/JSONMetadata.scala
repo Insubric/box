@@ -91,6 +91,25 @@ object JSONMetadata extends Logging {
   }
 
 
+  def simple(id:Int,entity:String, lang:String,fields:Seq[JSONField],keys:Seq[String]):JSONMetadata = JSONMetadata(
+    objId = id,
+    name = entity,
+    label = entity,
+    fields = fields,
+    layout = Layout(Seq(LayoutBlock(None,12,None,fields.map(x => Left(x.name))))),
+    entity = entity,
+    lang = lang,
+    tabularFields = fields.map(_.name),
+    rawTabularFields = fields.map(_.name),
+    keys = keys,
+    keyStrategy = NaturalKey,
+    query = None,
+    exportFields = fields.map(_.name),
+    view = None,
+    action = FormActionsMetadata.default,
+    static = false,
+    dynamicLabel = None
+  )
 
   def hasData(json:Json,keys:Seq[String]):Boolean = {
 

@@ -22,7 +22,7 @@ object TableChildFactory extends ChildRendererFactory {
   override def create(params: WidgetParams): Widget = TableChildRenderer(params.id,params.prop,params.field,params.allData,params.children)
 
 
-  case class TableChildRenderer(row_id: Property[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
+  case class TableChildRenderer(row_id: ReadableProperty[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
 
 
 
@@ -52,7 +52,7 @@ object TableChildFactory extends ChildRendererFactory {
                     val widget = childWidgets.find(_.id == e).get
 
                     def toggleRow() = {
-                      val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId)
+                      val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId.get)
                       widget.open.toggle()
                       if (widget.open.get) {
                         services.clientSession.setTableChildOpen(tableChildElement)
@@ -63,16 +63,19 @@ object TableChildFactory extends ChildRendererFactory {
                       }
                     }
 
-                    frag(
+                    Seq[Frag](
                       tr(`class` := TestHooks.tableChildRow,ClientConf.style.childTableTr,
-                        td(ClientConf.style.childTableTd, ClientConf.style.childTableAction, a(id := TestHooks.tableChildButtonId(f.objId,widget.rowId), produce(widget.open) {
-                          case true => span(Icons.caretDown).render
-                          case false => span(Icons.caretRight).render
-                        }, onclick :+= ((e: Event) => toggleRow()))),
+                        td(ClientConf.style.childTableTd, ClientConf.style.childTableAction,
+                              a(id.bind(widget.rowId.transform(i => TestHooks.tableChildButtonId(f.objId,i))), autoRelease(produce(widget.open) {
+                                case true => span(Icons.caretDown).render
+                                case false => span(Icons.caretRight).render
+                              }), onclick :+= ((e: Event) => toggleRow())).render
+
+                        ),
                         autoRelease(produce(widget.data) { data => fields.map(x => td(ClientConf.style.childTableTd, data.get(x.name))).render }),
                       ),
-                      tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr, id := TestHooks.tableChildRowId(f.objId,widget.rowId),
-                        autoRelease(produce(widget.open) { o =>
+                      tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr, id.bind(widget.rowId.transform(x => TestHooks.tableChildRowId(f.objId,x))),
+                        produce(widget.open) { o =>
                           if (!o) frag().render else
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
                               div(
@@ -87,8 +90,9 @@ object TableChildFactory extends ChildRendererFactory {
                                 ) else frag()
                               )
                             ).render
-                        })
+                        }
                       ).render
+
 
                     ).render
                   }

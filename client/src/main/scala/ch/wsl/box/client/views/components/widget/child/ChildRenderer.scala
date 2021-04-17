@@ -19,7 +19,10 @@ import scala.concurrent.Future
   * Created by andre on 6/1/2017.
   */
 
-case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean], rowId:Option[JSONID], deleted:Boolean=false)
+case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], deleted:Boolean=false) {
+  def rowId:ReadableProperty[Option[JSONID]] = data.transform(js => metadata.flatMap(m => JSONID.fromData(js,m)))
+  def rowIdStr:ReadableProperty[String] = rowId.transform(_.map(_.asString).getOrElse("noid"))
+}
 
 trait ChildRendererFactory extends ComponentWidgetFactory {
 
@@ -35,7 +38,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     import io.circe._
     import io.circe.syntax._
 
-    def row_id: Property[Option[String]]
+    def row_id: ReadableProperty[Option[String]]
     def prop: Property[Json]
     def field:JSONField
 
@@ -76,10 +79,10 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val widget = JSONMetadataRenderer(metadata.get, propData, children, childId)
 
-      val childRow = ChildRow(widget,id,propData,Property(open),JSONID.fromData(propData.get,metadata.get))
+      val childRow = ChildRow(widget,id,propData,Property(open),metadata)
       childWidgets += childRow
       entity.append(id)
-      logger.debug(s"Added row ${childRow.rowId.map(_.asString).getOrElse("No ID")} of childForm ${metadata.get.name}")
+      logger.debug(s"Added row ${childRow.rowId.get.map(_.asString).getOrElse("No ID")} of childForm ${metadata.get.name}")
       widget.afterRender()
     }
 

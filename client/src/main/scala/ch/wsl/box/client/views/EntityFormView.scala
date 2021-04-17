@@ -19,7 +19,7 @@ import io.udash.component.ComponentId
 import io.udash.core.Presenter
 import io.udash.properties.single.Property
 import org.scalajs.dom._
-import org.scalajs.dom.raw.HTMLFormElement
+import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement}
 import scribe.Logging
 
 import scala.concurrent.Future
@@ -128,6 +128,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def save(action:JSONID => Unit):Unit  = {
 
     if(!_form.reportValidity()) {
+      val errors = document.querySelectorAll("*:invalid")
+      for(i <- 0 to errors.length) {
+        errors.item(i) match {
+          case e:HTMLElement => logger.warn(s"Error on: ${e.outerHTML}")
+          case _ => logger.warn(s"Error on non HTMLElement")
+        }
+      }
       logger.warn(s"Form validation failed")
       return
     }

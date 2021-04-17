@@ -34,7 +34,7 @@ import scala.util.Try
 
 
 
-case class OlMapWidget(id: Property[Option[String]], field: JSONField, data: Property[Json]) extends Widget with MapWidget with HasData with Logging {
+case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json]) extends Widget with MapWidget with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import io.udash.css.CssView._

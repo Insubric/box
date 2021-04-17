@@ -9,18 +9,21 @@ import scala.concurrent.Future
 
 class ReadOnlyTest extends TestBase {
 
-  import Context._
 
     "read only field" should "not be editable" in {
       for {
         _ <- Main.setupUI()
         _ <- Context.services.clientSession.login("test", "test")
-        _ <- waitCycle
+        _ <- waitLoggedIn
         _ <- Future {
           Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", "1"))).asString),false))
         }
-        _ <- waitCycle
-        _ <- waitCycle
+        _ <- waitElement{() =>
+          logger.info(s"Looking for .${TestHooks.readOnlyField(values.readOnlyField)}")
+          val result = document.getElementsByClassName(TestHooks.readOnlyField(values.readOnlyField)).item(0)
+          if(result == null) logger.info("null") else logger.info(result.outerHTML)
+          result
+        }
         _ <- Future {
           assert(document.getElementsByClassName(TestHooks.readOnlyField(values.readOnlyField)).length == 1)
           assert(document.getElementsByClassName(TestHooks.readOnlyField(values.readOnlyField)).item(0).isInstanceOf[HTMLElement])

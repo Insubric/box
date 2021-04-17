@@ -20,7 +20,7 @@ import typings.monacoEditor.mod.editor.{IStandaloneCodeEditor, IStandaloneEditor
 import scala.concurrent.Future
 import scala.util.Try
 
-case class MonacoWidget(_id: Property[Option[String]], field: JSONField, data: Property[Json]) extends Widget with HasData with Logging {
+case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json]) extends Widget with HasData with Logging {
   import scalatags.JsDom.all._
   import scalacss.ScalatagsCss._
   import io.udash.css.CssView._

@@ -19,7 +19,7 @@ import scala.collection.mutable
 import scala.scalajs.js
 import scala.util.Try
 
-case class RichTextEditorWidget(_id: Property[Option[String]], field: JSONField, data: Property[Json], mode:Mode) extends Widget with HasData with Logging {
+case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], mode:Mode) extends Widget with HasData with Logging {
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
 

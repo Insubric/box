@@ -1,13 +1,13 @@
-package ch.wsl.box.client
+package ch.wsl.box.client.childs
 
-import ch.wsl.box.client.mocks.{RestMock, Values}
+import ch.wsl.box.client.mocks.RestMock
 import ch.wsl.box.client.services.REST
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{ExportDef, IDs, JSONCount, JSONFieldMap, JSONID, JSONKeyValue, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, SharedLabels}
+import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
+import ch.wsl.box.model.shared.{JSONID, JSONKeyValue, SharedLabels}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
-import org.scalajs.dom.{File, document}
-import org.scalajs.dom.ext._
+import org.scalajs.dom.document
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
 
 import scala.concurrent.Future
@@ -33,26 +33,25 @@ class InsertMultilevelChildTest extends TestBase {
 
   override def rest: REST = new ExpectingMock
 
-  import Context._
 
     "child" should "be inserted" in {
 
       for {
         _ <- Main.setupUI()
         _ <- Context.services.clientSession.login("test", "test")
-        _ <- waitCycle
+        _ <- waitLoggedIn
         _ <- Future {
           Context.applicationInstance.goTo(EntityFormState("form", values.testFormName, "true", None,false))
         }
-        _ <- waitCycle
+        _ <- waitElement(() => document.getElementById(TestHooks.addChildId(2)))
         _ <- Future {
           document.getElementById(TestHooks.addChildId(2)).asInstanceOf[HTMLElement].click()
         }
-        _ <- waitCycle
+        _ <- waitElement(() => document.getElementById(TestHooks.addChildId(3)))
         _ <- Future {
           document.getElementById(TestHooks.addChildId(3)).asInstanceOf[HTMLElement].click()
         }
-        _ <- waitCycle
+        _ <- waitElement(() => document.querySelector(s".${TestHooks.formField("text")}"))
         _ <- Future {
 
           val inputChild = document.querySelector(s".${TestHooks.formField("text")}").asInstanceOf[HTMLInputElement]
@@ -63,12 +62,11 @@ class InsertMultilevelChildTest extends TestBase {
           inputSubChild.value = subchildText
           inputSubChild.onchange(new Event("change"))
         }
-        _ <- waitCycle
+        _ <- waitElement(() => document.getElementById(TestHooks.dataChanged))
         _ <- Future {
           assert(document.getElementById(TestHooks.dataChanged) != null)
           document.getElementById(TestHooks.actionButton(SharedLabels.form.save)).asInstanceOf[HTMLElement].click()
         }
-        _ <- waitCycle
 
       } yield succeed
 

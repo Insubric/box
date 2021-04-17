@@ -126,7 +126,7 @@ trait HasData extends Widget {
 
 
 case class WidgetParams(
-                         id:Property[Option[String]],
+                         id:ReadableProperty[Option[String]],
                          prop:Property[Json],
                          field:JSONField,
                          metadata: JSONMetadata,

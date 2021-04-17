@@ -64,7 +64,7 @@ case class Redactor(editorId:String){
 
 }
 
-case class RedactorWidget(_id: Property[Option[String]], field: JSONField, data: Property[Json]) extends Widget with HasData with Logging {
+case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json]) extends Widget with HasData with Logging {
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
 

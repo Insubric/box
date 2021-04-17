@@ -7,7 +7,6 @@ import org.scalajs.dom.window
 
 class LoginTest extends TestBase {
 
-  import Context._
 
     "login" should "be done" in {
       Main.setupUI().flatMap { _ =>
@@ -15,7 +14,7 @@ class LoginTest extends TestBase {
           assert(document.querySelectorAll(s"#${TestHooks.logoutButton}").length == 0)
           for{
             _ <- Context.services.clientSession.login("test","test")
-            _ <- waitCycle
+            _ <- waitLoggedIn
           } yield {
             assert(beforeLogin != document.body.innerHTML)
             assert(document.querySelectorAll(s"#${TestHooks.logoutButton}").length == 1)

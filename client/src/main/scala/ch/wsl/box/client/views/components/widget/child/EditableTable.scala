@@ -111,7 +111,7 @@ object EditableTable extends ChildRendererFactory {
   override def create(params: WidgetParams): Widget = EditableTableRenderer(params.id,params.prop,params.field,params.allData,params.children,params.metadata)
 
 
-  case class EditableTableRenderer(row_id: Property[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata],parentMetadata:JSONMetadata) extends ChildRenderer {
+  case class EditableTableRenderer(row_id: ReadableProperty[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata],parentMetadata:JSONMetadata) extends ChildRenderer {
 
     import ch.wsl.box.client.Context._
 
@@ -148,7 +148,7 @@ object EditableTable extends ChildRendererFactory {
     def colContentWidget(childWidget:ChildRow, field:JSONField, metadata:JSONMetadata):Widget = {
       val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
       widgetFactory.create(WidgetParams(
-        id = Property(childWidget.rowId.map(_.asString)),
+        id = childWidget.rowId.transform(_.map(_.asString)),
         prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
         field = field, metadata = metadata, allData = childWidget.widget.data, children = Seq()
       ))

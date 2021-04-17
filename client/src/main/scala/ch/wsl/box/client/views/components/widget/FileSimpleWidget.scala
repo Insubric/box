@@ -30,7 +30,7 @@ import scala.util.Random
   * @param field
   * @param entity
   */
-case class FileSimpleWidget(id:Property[Option[String]], data:Property[Json], field:JSONField, entity:String) extends Widget with HasData with Logging {
+case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String) extends Widget with HasData with Logging {
 
   import scalatags.JsDom.all._
   import scalacss.ScalatagsCss._

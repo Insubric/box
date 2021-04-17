@@ -7,7 +7,6 @@ import org.scalajs.dom.ext._
 
 class LanguageOrderTest extends TestBase {
 
-  import Context._
 
   window.sessionStorage.setItem(ClientSession.LANG, "it")
 

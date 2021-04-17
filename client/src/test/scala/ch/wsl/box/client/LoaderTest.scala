@@ -6,7 +6,6 @@ import org.scalajs.dom.ext._
 
 class LoaderTest extends TestBase {
 
-  import Context._
 
 
     "loader" should "show title" in {

@@ -17,15 +17,15 @@ import io.circe.syntax._
 
 class RichTextWidgetTest extends TestBase {
 
-  import ch.wsl.box.client.Context._
-
-  val formName = "test_rich_text_form"
-  val rtfName = "rtfName"
 
 
-  val htmlData = "<p>Test paragraph 1</p><p>Test paragraph 2</p>"
+  private val formName = "test_rich_text_form"
+  private val rtfName = "rtfName"
 
-  val data = Map(
+
+  private val htmlData = "<p>Test paragraph 1</p><p>Test paragraph 2</p>"
+
+  private val data = Map(
     "id" -> 1.asJson,
     rtfName -> htmlData.asJson
   ).asJson
@@ -40,37 +40,12 @@ class RichTextWidgetTest extends TestBase {
       JSONID.fromMap(Map("id" -> "1"))
     }
 
-    override val metadata: JSONMetadata = JSONMetadata(
-      1,
-      formName,
-      testFormTitle,
-      fields = Seq(
-        JSONField(
-          JSONFieldTypes.NUMBER,
-          "id",
-          false
-        ),
-        JSONField(
-          JSONFieldTypes.STRING,
-          name = rtfName,
-          nullable = true,
-          widget = Some(WidgetsNames.richTextEditorFull)
-        )
-      ),
-      layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
-        Left(rtfName),
-      )))),
-      entity = "test",
-      lang = "it",
-      tabularFields = Seq("id"),
-      rawTabularFields = Seq("id"),
-      keys = Seq("id"),
-      query = None,
-      exportFields = Seq("id"),
-      view = None,
-      action = FormActionsMetadata.default,
-      keyStrategy = NaturalKey,
-    )
+    override val metadata: JSONMetadata = JSONMetadata.simple(1,testFormName,"it",Seq(
+      JSONField.number("id",nullable = false),
+      JSONField.string(rtfName).withWidget(WidgetsNames.richTextEditorFull)
+    ),Seq("id"))
+
+
   }
 
   override def values: Values = new RTValues
@@ -85,11 +60,11 @@ class RichTextWidgetTest extends TestBase {
     for {
       _ <- Main.setupUI()
       _ <- Context.services.clientSession.login("test", "test")
-      _ <- waitCycle
+      _ <- waitLoggedIn
       _ <- Future {
         Context.applicationInstance.goTo(EntityFormState("form", formName, "true", Some("id::1"), false))
       }
-      _ <- waitCycle
+      _ <- waitElement(() => document.querySelector(s".ql-container"))
       _ <- loaded
       editor = document.querySelector(s".ql-container").asInstanceOf[HTMLDivElement]
       _ <- Future {
@@ -97,7 +72,6 @@ class RichTextWidgetTest extends TestBase {
         //assert(editor.innerHTML == htmlData)
         //document.getElementById(TestHooks.actionButton(SharedLabels.form.save)).asInstanceOf[HTMLElement].click()
       }
-      _ <- waitCycle
 
     } yield succeed
 

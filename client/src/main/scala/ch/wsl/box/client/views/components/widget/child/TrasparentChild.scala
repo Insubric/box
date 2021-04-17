@@ -22,7 +22,7 @@ object TrasparentChild extends ChildRendererFactory {
 
   override def create(params: WidgetParams): Widget = TrasparentChildRenderer(params.id,params.prop,params.field,params.allData,params.children)
 
-  case class TrasparentChildRenderer(row_id: Property[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
+  case class TrasparentChildRenderer(row_id: ReadableProperty[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
 
     val distribute = field.params.exists(_.js("distribute") == true.asJson)
 

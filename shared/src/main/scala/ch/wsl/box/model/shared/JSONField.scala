@@ -26,11 +26,18 @@ case class JSONField(
                       query: Option[JSONQuery] = None,
                     ) {
   def title = label.getOrElse(name)
+
+  def withWidget(name:String) = copy(widget = Some(name))
+
 }
 
 object JSONField{
   val empty = JSONField("","",true,true)
   val fullWidth = empty.copy(params = Some(Json.obj("fullWidth" -> Json.True)))
+
+  def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
+  def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))
+
 }
 
 case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String])

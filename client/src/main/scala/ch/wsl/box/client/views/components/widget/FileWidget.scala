@@ -27,7 +27,7 @@ import scala.util.Random
   * @param field
   * @param entity
   */
-case class FileWidget(id:Property[Option[String]], data:Property[Json], field:JSONField, entity:String) extends Widget with HasData with Logging {
+case class FileWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String) extends Widget with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import scalatags.JsDom.all._
