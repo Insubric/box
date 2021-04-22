@@ -1,43 +1,48 @@
-import org.scalajs.jsenv.Input.Script
+
+
+inThisBuild(List(
+  sonatypeProfileName := "com.boxframework",
+  licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  homepage := Some(url("https://www.boxframework.com/")),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/Insubric/box"),
+      "scm:git@github.com:Insubric/box.git"
+    )
+  ),
+  developers := List(
+    Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
+    Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
+  )
+))
 
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
   organization := "boxframework",
   name := "box-codegen",
-  bintrayRepository := "maven",
-  bintrayOrganization := Some("waveinch"),
-  publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.codegenDependecies.value,
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  resourceDirectory in Compile := baseDirectory.value / "../resources",
-  unmanagedResourceDirectories in Compile += baseDirectory.value / "../db",
-  git.useGitDescribe := true
+  Compile / resourceDirectory := baseDirectory.value / "../resources",
+  Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
 ).dependsOn(sharedJVM)
 
 lazy val serverServices  = (project in file("server-services")).settings(
   organization := "boxframework",
   name := "box-server-services",
-  bintrayRepository := "maven",
-  bintrayOrganization := Some("waveinch"),
-  publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  git.useGitDescribe := true
 ).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
   .settings(
     organization := "boxframework",
     name := "box-server",
-    bintrayRepository := "maven",
-    bintrayOrganization := Some("waveinch"),
-    publishMavenStyle := true,
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     scalaVersion := Settings.versions.scala212,
     scalaBinaryVersion := "2.12",
@@ -48,29 +53,26 @@ lazy val server: Project  = project
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
     slick := slickCodeGenTask.value , // register manual sbt command
     deleteSlick := deleteSlickTask.value,
-    testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "html"),
-    mainClass in (Compile, packageBin) := Some("ch.wsl.box.rest.Boot"),
-    mainClass in (Compile, run) := Some("ch.wsl.box.rest.Boot"),
-    resourceDirectory in Compile := baseDirectory.value / "../resources",
-    unmanagedResourceDirectories in Test += baseDirectory.value / "../db",
-    fork in Test := true,
-    git.useGitDescribe := true,
+    Compile / packageBin / mainClass := Some("ch.wsl.box.rest.Boot"),
+    Compile / run / mainClass := Some("ch.wsl.box.rest.Boot"),
+    Compile / resourceDirectory := baseDirectory.value / "../resources",
+    Test / unmanagedResourceDirectories += baseDirectory.value / "../db",
+    Test / fork := true,
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := "boxInfo",
     buildInfoObject := "BoxBuildInfo",
-    pipelineStages in Assets := Seq(scalaJSPipeline),
-    compile in Compile := ((compile in Compile) dependsOn scalaJSPipeline).value,
-    WebKeys.packagePrefix in Assets := "public/",
-    managedClasspath in Runtime += (packageBin in Assets).value,
+    Compile / compile := ((Compile / compile) dependsOn scalaJSPipeline).value,
+    Runtime / managedClasspath += (Assets / packageBin).value,
+    Assets / WebKeys.packagePrefix := "public/",
     //Comment this to avoid errors in importing project, i.e. when changing libraries
-    pipelineStages in Assets := Seq(scalaJSPipeline),
+    Assets / pipelineStages := Seq(scalaJSPipeline),
     scalaJSProjects := Seq(client),
     Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
         (nodeModules / p).allPaths
       }.value
     },
-    testOptions in Test ++= Seq(
+    Test / testOptions ++= Seq(
       Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
@@ -91,15 +93,11 @@ lazy val server: Project  = project
 lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   organization := "boxframework",
   name := "box-server-cache-redis",
-  bintrayRepository := "maven",
-  bintrayOrganization := Some("waveinch"),
-  publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  git.useGitDescribe := true
 ).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
@@ -111,7 +109,7 @@ lazy val client: Project = (project in file("client"))
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
     libraryDependencies ++= Settings.scalajsDependencies.value,
     // yes, we want to package JS dependencies
-    skip in packageJSDependencies := false,
+    packageJSDependencies / skip := false,
     // use Scala.js provided launcher code to start the client app
     scalaJSUseMainModuleInitializer := true,
     Compile / npmDependencies ++= Seq(
@@ -139,13 +137,13 @@ lazy val client: Project = (project in file("client"))
     stIgnore += "@fontsource/open-sans",
     stIgnore += "ol-ext",
     // Use library mode for fastOptJS
-    webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(),
-    webpackConfigFile in fastOptJS := Some(baseDirectory.value / ".." / "dev.config.js"),
+    fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
+    fastOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "dev.config.js"),
     // Use application model mode for fullOptJS
-    webpackBundlingMode in fullOptJS := BundlingMode.Application,
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / ".." / "prod.config.js"),
-    webpackConfigFile in Test := Some(baseDirectory.value / ".." / "test.config.js"),
-    npmDevDependencies in Compile ++= Seq(
+    fullOptJS / webpackBundlingMode := BundlingMode.Application,
+    fullOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "prod.config.js"),
+    Test / webpackConfigFile  := Some(baseDirectory.value / ".." / "test.config.js"),
+    Compile / npmDevDependencies ++= Seq(
       "html-webpack-plugin" -> "4.3.0",
       "webpack-merge" -> "4.2.2",
       "style-loader" -> "1.2.1",
@@ -156,33 +154,30 @@ lazy val client: Project = (project in file("client"))
     ),
     // https://scalacenter.github.io/scalajs-bundler/cookbook.html#webpack-dev-server
     webpackDevServerPort := 8888,
-    version in webpack := "4.43.0",
-    version in installJsdom := "16.4.0",
-    version in startWebpackDevServer := "3.11.0",
-    fork in fastOptJS := true,
-    fork in fullOptJS := true,
-    javaOptions in fastOptJS += "-Xmx4G -XX:MaxMetaspaceSize=1G -XX:MaxPermSize=1G -XX:+CMSClassUnloadingEnabled -Xss3m",
-    javaOptions in fullOptJS += "-Xmx4G -XX:MaxMetaspaceSize=1G -XX:MaxPermSize=1G -XX:+CMSClassUnloadingEnabled -Xss3m",
+    webpack / version := "4.43.0",
+    installJsdom / version := "16.4.0",
+    startWebpackDevServer / version  := "3.11.0",
+
 
     //To use jsdom headless browser uncomment the following lines
-    jsEnv in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
-    jsEnvInput in Test := Def.task{
-      val targetDir = (npmUpdate in Test).value
-      println(targetDir)
-      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
-      println(r)
-      r
-    }.value,
+//    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+//    Test / jsEnvInput := Def.task{
+//      val targetDir = (npmUpdate in Test).value
+//      println(targetDir)
+//      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
+//      println(r)
+//      r
+//    }.value,
 
     //To use Selenium uncomment the following line
-//    scalaJSStage in Test := FullOptStage,
-//    jsEnv in Test := BrowserStackRunner.load(),
+    Test / scalaJSStage := FullOptStage,
+    Test / jsEnv := BrowserStackRunner.load(),
 
 
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
-    requireJsDomEnv in Test := true,
+    Test / requireJsDomEnv := true,
   )
   .enablePlugins(
     ScalaJSPlugin,
@@ -200,13 +195,10 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
   .settings(
     organization := "boxframework",
     name := "box-shared",
-    bintrayRepository := "maven",
-    bintrayOrganization := Some("waveinch"),
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
-    git.useGitDescribe := true
   )
   .jsSettings(
     libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
@@ -227,7 +219,7 @@ lazy val sharedJS: Project = shared.js.settings(
 lazy val slick = taskKey[Seq[File]]("gen-tables")
 lazy val slickCodeGenTask = Def.task{
   val dir = sourceDirectory.value
-  val cp = (dependencyClasspath in Compile).value
+  val cp = (Compile / dependencyClasspath).value
   val s = streams.value
   val outputDir = (dir / "main" / "scala").getPath // place generated files in sbt's managed sources folder
   println(outputDir)
@@ -263,45 +255,45 @@ lazy val box = (project in file("."))
 lazy val publishAll = taskKey[Unit]("Publish all modules")
 lazy val publishAllTask = {
   Def.sequential(
-    (clean in client),
-    (clean in server),
-    (clean in codegen),
-    (clean in serverCacheRedis),
-    (clean in serverServices),
-    (webpack in fullOptJS in Compile in client),
-    (compile in Compile in codegen),
-    (publish in sharedJVM),
-    (publish in codegen),
-    (publish in server),
-    (publish in serverCacheRedis),
-    (publish in serverServices),
+    (client / clean),
+    (server / clean),
+    (serverCacheRedis / clean),
+    (serverServices / clean),
+    (codegen / clean),
+    (client / Compile / fullOptJS / webpack),
+    (codegen / Compile / compile),
+    (sharedJVM / publish),
+    (codegen / publish),
+    (server / publish),
+    (serverCacheRedis / publish),
+    (serverServices / publish),
   )
 }
 
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {
   Def.sequential(
-    (clean in client),
-    (clean in server),
-    (clean in serverCacheRedis),
-    (clean in serverServices),
-    (clean in codegen),
-    (webpack in fullOptJS in Compile in client),
-    (compile in Compile in codegen),
-    (publishLocal in sharedJVM),
-    (publishLocal in codegen),
-    (publishLocal in server),
-    (publishLocal in serverCacheRedis),
-    (publishLocal in serverServices),
+    (client / clean),
+    (server / clean),
+    (serverCacheRedis / clean),
+    (serverServices / clean),
+    (codegen / clean),
+    (client / Compile / fullOptJS / webpack),
+    (codegen / Compile / compile),
+    (sharedJVM / publishLocal),
+    (codegen / publishLocal),
+    (server / publishLocal),
+    (serverCacheRedis / publishLocal),
+    (serverServices / publishLocal),
   )
 }
 
 lazy val installBox = taskKey[Unit]("Install box schema")
 lazy val installBoxTask = Def.sequential(
   //cleanAll,
-  (compile in Compile in server).toTask,
+  (server / Compile / compile).toTask,
   Def.task{
-    (runMain in Compile in server).toTask(" ch.wsl.box.model.BuildBox").value
+    (server / Compile / runMain).toTask(" ch.wsl.box.model.BuildBox").value
   }
 )
 
@@ -309,12 +301,16 @@ lazy val installBoxTask = Def.sequential(
 lazy val dropBox = taskKey[Unit]("Drop box schema")
 lazy val dropBoxTask = Def.sequential(
   //cleanAll,
-  (compile in Compile in server).toTask,
+  (server / Compile / compile).toTask,
   Def.task{
-    (runMain in Compile in server).toTask(" ch.wsl.box.model.DropBox").value
+    (server / Compile / runMain ).toTask(" ch.wsl.box.model.DropBox").value
   }
 )
 
 
+inThisBuild(List(
+  dynverSeparator := "-",
+  dynverVTagPrefix := false
+))
 
 

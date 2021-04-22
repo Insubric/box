@@ -184,7 +184,7 @@ object EditableTable extends ChildRendererFactory {
       val table = PDFTable(title, header, rows)
 
       services.rest.renderTable(table).foreach{ pdf =>
-        typings.printJs.mod.^(
+        typings.printJs.mod(
           typings.printJs.mod.Configuration()
             .setBase64(true)
             .setPrintable(pdf)
