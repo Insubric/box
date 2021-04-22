@@ -16,9 +16,9 @@ jobs:
         id: previoustag
         uses: "WyriHaximus/github-action-get-previous-tag@master"
       - name: Setup Scala
-          uses: olafurpg/setup-scala@v10
-          with:
-            java-version: "adopt@1.8"
+        uses: olafurpg/setup-scala@v10
+        with:
+          java-version: "adopt@1.8"
       - uses: olafurpg/setup-gpg@v3
       - name: Build bundle
         run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/fullOptJS::webpack
