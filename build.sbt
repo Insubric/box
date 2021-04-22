@@ -13,7 +13,9 @@ inThisBuild(List(
   developers := List(
     Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
-  )
+  ),
+  dynverSeparator := "-",
+  dynverVTagPrefix := false
 ))
 
 /** codegen project containing the customized code generator */
@@ -306,11 +308,3 @@ lazy val dropBoxTask = Def.sequential(
     (server / Compile / runMain ).toTask(" ch.wsl.box.model.DropBox").value
   }
 )
-
-
-inThisBuild(List(
-  dynverSeparator := "-",
-  dynverVTagPrefix := false
-))
-
-
