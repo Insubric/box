@@ -250,6 +250,7 @@ lazy val box = (project in file("."))
     publishAllLocal := publishAllLocalTask.value,
     installBox := installBoxTask.value,
     dropBox := dropBoxTask.value,
+    skip in publish := true
   )
 
 
