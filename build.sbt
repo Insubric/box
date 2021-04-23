@@ -20,6 +20,7 @@ inThisBuild(List(
   dynverVTagPrefix := false
 ))
 
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
 
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
