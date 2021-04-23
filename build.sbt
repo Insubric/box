@@ -1,7 +1,7 @@
 
 
 inThisBuild(List(
-  sonatypeProfileName := "com.boxframework",
+  organization := "com.boxframework",
   licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://www.boxframework.com/")),
   scmInfo := Some(
@@ -18,9 +18,9 @@ inThisBuild(List(
   dynverVTagPrefix := false
 ))
 
+
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
-  organization := "boxframework",
   name := "box-codegen",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
@@ -32,7 +32,6 @@ lazy val codegen  = (project in file("codegen")).settings(
 ).dependsOn(sharedJVM)
 
 lazy val serverServices  = (project in file("server-services")).settings(
-  organization := "boxframework",
   name := "box-server-services",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
@@ -43,7 +42,6 @@ lazy val serverServices  = (project in file("server-services")).settings(
 
 lazy val server: Project  = project
   .settings(
-    organization := "boxframework",
     name := "box-server",
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     scalaVersion := Settings.versions.scala212,
@@ -93,7 +91,6 @@ lazy val server: Project  = project
 
 
 lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
-  organization := "boxframework",
   name := "box-server-cache-redis",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
@@ -195,7 +192,6 @@ lazy val client: Project = (project in file("client"))
 lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
   .in(file("shared"))
   .settings(
-    organization := "boxframework",
     name := "box-shared",
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
@@ -250,7 +246,7 @@ lazy val box = (project in file("."))
     publishAllLocal := publishAllLocalTask.value,
     installBox := installBoxTask.value,
     dropBox := dropBoxTask.value,
-    skip in publish := true
+    publish / skip := true
   )
 
 
