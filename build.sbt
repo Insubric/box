@@ -3,7 +3,6 @@
 inThisBuild(List(
   organization := "com.boxframework",
   sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://www.boxframework.com/")),
   scmInfo := Some(
@@ -31,6 +30,7 @@ lazy val codegen  = (project in file("codegen")).settings(
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
   Compile / resourceDirectory := baseDirectory.value / "../resources",
   Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
+  sonatypeCredentialHost := "s01.oss.sonatype.org"
 ).dependsOn(sharedJVM)
 
 lazy val serverServices  = (project in file("server-services")).settings(
@@ -40,6 +40,7 @@ lazy val serverServices  = (project in file("server-services")).settings(
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
+  sonatypeCredentialHost := "s01.oss.sonatype.org"
 ).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
@@ -78,7 +79,8 @@ lazy val server: Project  = project
       Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
-    )
+    ),
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
   )
   .enablePlugins(
     GitVersioning,
@@ -99,6 +101,7 @@ lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
+  sonatypeCredentialHost := "s01.oss.sonatype.org"
 ).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
@@ -179,6 +182,7 @@ lazy val client: Project = (project in file("client"))
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
     Test / requireJsDomEnv := true,
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
   )
   .enablePlugins(
     ScalaJSPlugin,
@@ -199,6 +203,7 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
+    sonatypeCredentialHost := "s01.oss.sonatype.org"
   )
   .jsSettings(
     libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
