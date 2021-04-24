@@ -21,7 +21,7 @@ inThisBuild(List(
 ))
 
 ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-ThisBuild / sonatypeCredentialHost := "https://s01.oss.sonatype.org/service/local"
+ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
