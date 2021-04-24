@@ -20,6 +20,8 @@ inThisBuild(List(
   dynverVTagPrefix := false
 ))
 
+publish / skip := true
+
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
   name := "box-codegen",
