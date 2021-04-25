@@ -55,7 +55,6 @@ lazy val server: Project  = project
     scalaBinaryVersion := "2.12",
     scalacOptions ++= Settings.scalacOptionsServer,
     libraryDependencies ++= Settings.jvmDependencies.value,
-    resolvers ++= Seq(Resolver.jcenterRepo, Resolver.bintrayRepo("hseeberger", "maven")),
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
     slick := slickCodeGenTask.value , // register manual sbt command
@@ -255,16 +254,16 @@ lazy val deleteSlickTask = Def.task{
   ))
 }
 
-lazy val box = (project in file("."))
-  .settings(
-    publishAll := publishAllTask.value,
-    publishAllLocal := publishAllLocalTask.value,
-    installBox := installBoxTask.value,
-    dropBox := dropBoxTask.value,
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    publish / skip := true
-  )
+//lazy val box = (project in file("."))
+//  .settings(
+//    publishAll := publishAllTask.value,
+//    publishAllLocal := publishAllLocalTask.value,
+//    installBox := installBoxTask.value,
+//    dropBox := dropBoxTask.value,
+//    sonatypeCredentialHost := "s01.oss.sonatype.org",
+//    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+//    publish / skip := true
+//  )
 
 
 
