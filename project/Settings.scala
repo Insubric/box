@@ -42,7 +42,7 @@ object Settings {
     //HTTP actors
     val akka = "2.6.4"
     val akkaHttp = "10.1.11"
-    val akkaHttpJson = "1.36.0"
+    val akkaHttpJson = "1.32.0"
 
     //Testing
     val specs2 = "4.3.4"
