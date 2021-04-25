@@ -1,7 +1,7 @@
 
-
 val publishSettings = List(
   organization := "com.boxframework",
+  sonatypeProfileName := "com.boxframework",
   sonatypeCredentialHost := "s01.oss.sonatype.org",
   sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
@@ -18,6 +18,8 @@ val publishSettings = List(
   ),
   dynverSeparator := "-"
 )
+
+inThisBuild(publishSettings)
 
 publish / skip := true
 
