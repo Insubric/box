@@ -16,8 +16,7 @@ val publishSettings = List(
     Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
   ),
-  dynverSeparator := "-",
-  dynverVTagPrefix := false
+  dynverSeparator := "-"
 )
 
 publish / skip := true
