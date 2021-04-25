@@ -7,15 +7,10 @@ on:
 
 jobs:
   push:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Scala
-        uses: olafurpg/setup-scala@v10
-        with:
-          java-version: "adopt@1.8"
+      - uses: olafurpg/setup-scala@v10
       - uses: olafurpg/setup-gpg@v3
       - name: Build bundle
         run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/fullOptJS::webpack
@@ -26,4 +21,3 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_HOST: s01.oss.sonatype.org
