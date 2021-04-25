@@ -1,6 +1,6 @@
 
 
-inThisBuild(List(
+val publishSettings = List(
   organization := "com.boxframework",
   sonatypeCredentialHost := "s01.oss.sonatype.org",
   sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
@@ -16,9 +16,8 @@ inThisBuild(List(
     Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
   ),
-  dynverSeparator := "-",
-  dynverVTagPrefix := false
-))
+  dynverSeparator := "-"
+)
 
 publish / skip := true
 
@@ -29,12 +28,9 @@ lazy val codegen  = (project in file("codegen")).settings(
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.codegenDependecies.value,
   resolvers += Resolver.jcenterRepo,
-  resolvers += Resolver.bintrayRepo("waveinch","maven"),
   Compile / resourceDirectory := baseDirectory.value / "../resources",
   Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-).dependsOn(sharedJVM)
+).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val serverServices  = (project in file("server-services")).settings(
   name := "box-server-services",
@@ -42,10 +38,7 @@ lazy val serverServices  = (project in file("server-services")).settings(
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
-  resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-).dependsOn(sharedJVM)
+).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
   .settings(
@@ -55,7 +48,6 @@ lazy val server: Project  = project
     scalaBinaryVersion := "2.12",
     scalacOptions ++= Settings.scalacOptionsServer,
     libraryDependencies ++= Settings.jvmDependencies.value,
-    resolvers += Resolver.bintrayRepo("waveinch","maven"),
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
     slick := slickCodeGenTask.value , // register manual sbt command
     deleteSlick := deleteSlickTask.value,
@@ -83,9 +75,7 @@ lazy val server: Project  = project
       Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
     ),
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-  )
+  ).settings(publishSettings)
   .enablePlugins(
     GitVersioning,
     BuildInfoPlugin,
@@ -104,10 +94,7 @@ lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
-  resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-).dependsOn(serverServices)
+).settings(publishSettings).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
   .settings(
@@ -115,7 +102,6 @@ lazy val client: Project = (project in file("client"))
     scalaVersion := Settings.versions.scala213,
     scalacOptions ++= Settings.scalacOptions,
     resolvers += Resolver.jcenterRepo,
-    resolvers += Resolver.bintrayRepo("waveinch","maven"),
     libraryDependencies ++= Settings.scalajsDependencies.value,
     // yes, we want to package JS dependencies
     packageJSDependencies / skip := false,
@@ -187,9 +173,9 @@ lazy val client: Project = (project in file("client"))
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
     Test / requireJsDomEnv := true,
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+
   )
+  .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
     ScalablyTypedConverterPlugin
@@ -208,10 +194,8 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
-    resolvers += Resolver.bintrayRepo("waveinch","maven"),
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   )
+  .settings(publishSettings)
   .jsSettings(
     libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
   )
