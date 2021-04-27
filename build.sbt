@@ -1,4 +1,4 @@
-
+import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 
 val publishSettings = List(
   organization := "com.boxframework",
@@ -251,16 +251,13 @@ lazy val deleteSlickTask = Def.task{
   ))
 }
 
-//lazy val box = (project in file("."))
-//  .settings(
-//    publishAll := publishAllTask.value,
-//    publishAllLocal := publishAllLocalTask.value,
-//    installBox := installBoxTask.value,
-//    dropBox := dropBoxTask.value,
-//    sonatypeCredentialHost := "s01.oss.sonatype.org",
-//    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-//    publish / skip := true
-//  )
+lazy val box = (project in file("."))
+  .settings(
+    publishAll := publishAllTask.value,
+    publishAllLocal := publishAllLocalTask.value,
+    installBox := installBoxTask.value,
+    dropBox := dropBoxTask.value
+  )
 
 
 
@@ -274,11 +271,11 @@ lazy val publishAllTask = {
     (codegen / clean),
     (client / Compile / fullOptJS / webpack),
     (codegen / Compile / compile),
-    (sharedJVM / publish),
-    (codegen / publish),
-    (server / publish),
-    (serverCacheRedis / publish),
-    (serverServices / publish),
+    (sharedJVM / publishSigned),
+    (codegen / publishSigned),
+    (server / publishSigned),
+    (serverCacheRedis / publishSigned),
+    (serverServices / publishSigned),
   )
 }
 
