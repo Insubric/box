@@ -22,6 +22,7 @@ val publishSettings = List(
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
   publishMavenStyle := true,
+  dynverSonatypeSnapshots := true,
   sonatypeCredentialHost := "s01.oss.sonatype.org",
   credentials += Credentials(
     "Sonatype Nexus Repository Manager",
