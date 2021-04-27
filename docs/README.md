@@ -6,7 +6,7 @@ nav_order: 1
 
 # BOX
 
-![Maven central](https://flat.badgen.net/maven/v/maven-central/com.boxframework/box-server_2.12)
+[![Maven central](https://flat.badgen.net/maven/v/maven-central/com.boxframework/box-server_2.12)](https://maven-badges.herokuapp.com/maven-central/com.boxframework/box-server_2.12)
 
 
 ## Concept
