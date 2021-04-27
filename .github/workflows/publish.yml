@@ -25,6 +25,7 @@ jobs:
       - name: Publish to sonatype
         run: |
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m  publishAll
+          sbt sonatypeReleaseAll
         env:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}

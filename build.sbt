@@ -22,6 +22,7 @@ val publishSettings = List(
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
   publishMavenStyle := true,
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
   credentials += Credentials(
     "Sonatype Nexus Repository Manager",
     "s01.oss.sonatype.org",
@@ -257,7 +258,7 @@ lazy val box = (project in file("."))
     publishAllLocal := publishAllLocalTask.value,
     installBox := installBoxTask.value,
     dropBox := dropBoxTask.value
-  )
+  ).settings(publishSettings)
 
 
 
@@ -278,6 +279,7 @@ lazy val publishAllTask = {
     (serverServices / publishSigned),
   )
 }
+
 
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {

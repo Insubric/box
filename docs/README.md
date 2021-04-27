@@ -6,6 +6,9 @@ nav_order: 1
 
 # BOX
 
+![Maven central](https://flat.badgen.net/maven/v/maven-central/com.boxframework/box-server_2.12)
+
+
 ## Concept
 
 ## What is BOX 
