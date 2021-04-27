@@ -2,7 +2,7 @@ BOX
 ============================
 Bring the power of PostgreSQL to the web
 
-![Publish](https://github.com/Insubric/box/workflows/Publish/badge.svg)
+![Maven central](https://flat.badgen.net/maven/v/maven-central/com.boxframework/box-server_2.12)
 
 
 ## License

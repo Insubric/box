@@ -1,9 +1,7 @@
+import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 
 val publishSettings = List(
   organization := "com.boxframework",
-  sonatypeProfileName := "com.boxframework",
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://www.boxframework.com/")),
   scmInfo := Some(
@@ -16,7 +14,21 @@ val publishSettings = List(
     Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
   ),
-  dynverSeparator := "-"
+  dynverSeparator := "-",
+  pomIncludeRepository := { _ => false },
+  publishTo := {
+    val nexus = "https://s01.oss.sonatype.org/"
+    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+  publishMavenStyle := true,
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  credentials += Credentials(
+    "Sonatype Nexus Repository Manager",
+    "s01.oss.sonatype.org",
+    System.getenv("SONATYPE_USERNAME"),
+    System.getenv("SONATYPE_PASSWORD")
+  )
 )
 
 inThisBuild(publishSettings)
@@ -240,16 +252,13 @@ lazy val deleteSlickTask = Def.task{
   ))
 }
 
-//lazy val box = (project in file("."))
-//  .settings(
-//    publishAll := publishAllTask.value,
-//    publishAllLocal := publishAllLocalTask.value,
-//    installBox := installBoxTask.value,
-//    dropBox := dropBoxTask.value,
-//    sonatypeCredentialHost := "s01.oss.sonatype.org",
-//    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-//    publish / skip := true
-//  )
+lazy val box = (project in file("."))
+  .settings(
+    publishAll := publishAllTask.value,
+    publishAllLocal := publishAllLocalTask.value,
+    installBox := installBoxTask.value,
+    dropBox := dropBoxTask.value
+  ).settings(publishSettings)
 
 
 
@@ -263,13 +272,14 @@ lazy val publishAllTask = {
     (codegen / clean),
     (client / Compile / fullOptJS / webpack),
     (codegen / Compile / compile),
-    (sharedJVM / publish),
-    (codegen / publish),
-    (server / publish),
-    (serverCacheRedis / publish),
-    (serverServices / publish),
+    (sharedJVM / publishSigned),
+    (codegen / publishSigned),
+    (server / publishSigned),
+    (serverCacheRedis / publishSigned),
+    (serverServices / publishSigned),
   )
 }
+
 
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {
