@@ -1,10 +1,4 @@
 
-credentials += Credentials(
-  "Sonatype Nexus Repository Manager",
-  "oss.sonatype.org",
-  System.getenv("SONATYPE_USERNAME"),
-  System.getenv("SONATYPE_PASSWORD")
-)
 
 val publishSettings = List(
   organization := "com.boxframework",
@@ -27,7 +21,13 @@ val publishSettings = List(
     if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
-  publishMavenStyle := true
+  publishMavenStyle := true,
+  credentials += Credentials(
+    "Sonatype Nexus Repository Manager",
+    "s01.oss.sonatype.org",
+    System.getenv("SONATYPE_USERNAME"),
+    System.getenv("SONATYPE_PASSWORD")
+  )
 )
 
 inThisBuild(publishSettings)
