@@ -15,7 +15,9 @@ import scala.util.Try
 class BoxActionsRegistry(implicit ec:ExecutionContext,services:Services)  {
 
   import io.circe._
-  import io.circe.generic.auto._
+  import io.circe.generic.extras.auto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
   import ch.wsl.box.rest.utils.JSONSupport._
 
 
