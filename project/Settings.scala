@@ -88,6 +88,7 @@ object Settings {
     "io.circe" %%% "circe-core" % versions.circe,
     "io.circe" %%% "circe-generic" % versions.circe,
     "io.circe" %%% "circe-parser" % versions.circe,
+    "io.circe" %%% "circe-generic-extras" % versions.circe,
     "com.outr" %%% "scribe" % versions.scribe,
     "com.nrinaudo" %%% "kantan.csv" % versions.kantan,
     "com.github.eikek" %%% "yamusca-core" % "0.8.0"

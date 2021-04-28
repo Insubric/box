@@ -126,6 +126,21 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
     override def Column = new Column(_){
 
       private val hasDefault:Boolean = {
+//        val dbDefault = Await.result(
+//          connection.dbConnection.run(
+//            PgInformationSchema.hasDefault(
+//              model.table.schema.getOrElse("public"),
+//              model.table.table,
+//              model.name
+//            )
+//          ),
+//          10.seconds
+//        ) // this breaks #162 due to a Slick limitation
+        val explicitDefault = Managed.hasTriggerDefault(model.table.table,model.name)
+        explicitDefault  // || dbDefault
+      }
+
+      private val primaryWithDefault:Boolean = {
         val dbDefault = Await.result(
           connection.dbConnection.run(
             PgInformationSchema.hasDefault(
@@ -135,10 +150,13 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
             )
           ),
           10.seconds
-        )
+        ) // this breaks #162 due to a Slick limitation
         val explicitDefault = Managed.hasTriggerDefault(model.table.table,model.name)
-        explicitDefault || dbDefault
+        (explicitDefault  || dbDefault) && primaryKey
       }
+
+
+
 
       // customize Scala column names
       override def rawName = model.name
@@ -157,13 +175,14 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
 
       private val managed:Boolean = Managed(model.table.table) && primaryKey
 
-      override def asOption: Boolean =  (managed || hasDefault) && !model.nullable match { //add no model nullable condition to avoid double optionals
+      override def asOption: Boolean =  (managed || hasDefault || primaryWithDefault) && !model.nullable match { //add no model nullable condition to avoid double optionals
         case true => true
         case false => super.asOption
       }
 
+
       override def options: Iterable[String] = {
-        val opts = { managed || hasDefault match {
+        val opts = { (managed || primaryWithDefault) match {
           case false => super.options
           case true => {super.options.toSeq ++ Seq("O.AutoInc")}.distinct
         }}.filterNot{ opt => hasDefault && opt.startsWith("O.Default") }

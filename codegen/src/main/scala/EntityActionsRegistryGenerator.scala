@@ -29,7 +29,10 @@ case class EntityActionsRegistryGenerator(tableList:Seq[String], model:Model) ex
          |
          |  import $modelPackages._
          |  import io.circe._
-         |  import io.circe.generic.auto._
+         |  import io.circe.generic.extras.auto._
+         |  import io.circe.generic.extras.Configuration
+         |  implicit val customConfig: Configuration = Configuration.default.withDefaults
+         |
          |  import ch.wsl.box.rest.utils.JSONSupport._
          |
          |  def apply(name:String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {

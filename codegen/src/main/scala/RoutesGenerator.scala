@@ -33,7 +33,10 @@ case class RoutesGenerator(viewList:Seq[String],tableList:Seq[String],model:Mode
              |  import $modelPackages._
        |  import ch.wsl.box.rest.utils.JSONSupport._
        |  import Directives._
-       |  import io.circe.generic.auto._
+       |  import io.circe.generic.extras.auto._
+       |  import io.circe.generic.extras.Configuration
+       |  implicit val customConfig: Configuration = Configuration.default.withDefaults
+       |
        |
              |  def apply(lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services):Route = {
              |  implicit val db = up.db

@@ -412,7 +412,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           `type` = field.`type`,
           name = field.name,
           nullable = !pgColumn.exists(_.required) && !field.required.getOrElse(false),
-          readOnly = field.read_only.getOrElse(false),
+          readOnly = field.read_only,
           label = Some(lab),
           lookup = look,
           dynamicLabel = if(look.isEmpty) fieldI18n.flatMap(_.lookupTextField) else None,
