@@ -30,7 +30,7 @@ import scala.util.Random
   * @param field
   * @param entity
   */
-case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String) extends Widget with HasData with Logging {
+case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String,allData:Property[Json]) extends Widget with HasData with Logging {
 
   import scalatags.JsDom.all._
   import scalacss.ScalatagsCss._
@@ -40,6 +40,10 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
 
   val mime:Property[String] = Property("application/octet-stream")
   val source:Property[Option[String]] = Property(None)
+
+  val uploadFilenameField:Option[String] = field.params.flatMap(_.getOpt("uploadFilenameField"))
+  val downloadFilenameField:Option[String] = field.params.flatMap(_.getOpt("downloadFilenameField")).orElse(uploadFilenameField)
+  val showDownload:Boolean = field.params.exists(_.js("showDownload") == Json.True)
 
   data.listen({js =>
     val file = data.get.string
@@ -66,26 +70,34 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
       case "octet-strem" => "bin"
       case s:String => s
     }
-    val filename = s"download.$extension"
+    val filename = downloadFilenameField.flatMap(f => allData.get.getOpt(f)) match {
+      case Some(value) => value
+      case None => s"download.$extension"
+    }
+
     link.href = source.get.get
     link.asInstanceOf[js.Dynamic].download = filename
     link.click()
   }
 
   private def showFile = showIf(source.transform(_.isDefined)){
+
+    val downloadButton = button("Download", ClientConf.style.boxButton, onclick :+= ((e: Event) => downloadFile())).render
+
     div(BootstrapCol.md(12),ClientConf.style.noPadding)(
-      WidgetUtils.toLabel(field),
       produce(mime) { mime =>
         if(mime.startsWith("image")) {
           div(
             produce(source){
               case None => Seq()
               case Some(image) => img(src := image, ClientConf.style.maxFullWidth).render
-
-            }
+            },
+            if(showDownload) {
+              div(downloadButton)
+            } else frag()
           ).render
         } else {
-          button("Download", ClientConf.style.boxButton, onclick :+= ((e: Event) => downloadFile())).render
+          downloadButton
         }
       },
       div(BootstrapStyles.Visibility.clearfix)
@@ -99,6 +111,7 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
   val selectedFiles = SeqProperty.blank[File]
   val fileInput = FileInput(selectedFiles, acceptMultipleFiles)("files",display.none).render
 
+
   selectedFiles.listen{ _.headOption.map{ file =>
     val reader = new FileReader()
     reader.readAsDataURL(file)
@@ -107,6 +120,11 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
       val token = "base64,"
       val index = result.indexOf(token)
       val base64 = result.substring(index+token.length)
+
+      uploadFilenameField.foreach { field =>
+        allData.set(allData.get.deepMerge(Json.obj(field -> file.name.asJson)))
+      }
+
       data.set(base64.asJson)
     }
   }}
@@ -144,6 +162,6 @@ object FileSimpleWidgetFactory extends ComponentWidgetFactory {
 
   override def name: String = WidgetsNames.simpleFile
 
-  override def create(params: WidgetParams): Widget = FileSimpleWidget(params.id,params.prop,params.field,params.metadata.entity)
+  override def create(params: WidgetParams): Widget = FileSimpleWidget(params.id,params.prop,params.field,params.metadata.entity,params.allData)
 
 }
