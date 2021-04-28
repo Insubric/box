@@ -9,7 +9,7 @@ import io.udash._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe._
 import io.circe.syntax._
-import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.DateTimeFormatters
@@ -55,7 +55,6 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   override def edit() = editMe(id,field,data,style,range)
   override protected def show(): JsDom.all.Modifier = showMe(field.title,data)
 
-
   private def strToTime(s:String,r:Boolean): Array[String] = {
 
     dateTimeFormatters.parse(s).toSeq.flatMap{ parsed =>
@@ -78,6 +77,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     }
   }.toArray //cannot do toArray directly because array need the typetag to be constructed
 
+  def toDateOption(d:String):DateOption = d
+
   protected def toDate(jsonDate:Json,range:Boolean):Array[DateOption] = {
     logger.info(s"toDate $jsonDate")
     if(jsonDate == Json.Null) return Array()
@@ -85,7 +86,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     if(str == "") return Array()
 
 
-    def toDateOption(d:String):DateOption = d
+
 
     val result = if(range) {
       val tokens = str.split("to").map(_.trim)
@@ -140,6 +141,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
           case _ => {}
         }
       },
+      onclick := { (e:Event) =>
+        if(data.get == Json.Null) {
+          data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
+        }
+      },
       onblur := { (e: Event) =>
         e.stopPropagation()
         handleDate(e.target.asInstanceOf[HTMLInputElement].value.asJson, true)
@@ -151,12 +157,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     def setListener(immediate: Boolean, flatpicker:typings.flatpickr.instanceMod.Instance) = {
       changeListener = model.listen({ d =>
-        if(d != Json.Null && d.string == "") {
-          model.set(Json.Null)
-        } else {
-          logger.info(s"Changed model to $d")
-          handleDate(d)
-        }
+        logger.info(s"Changed model to $d")
+        handleDate(d)
       },immediate)
     }
 
@@ -182,6 +184,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       setListener(false, instance)
     }
 
+
+
+
+
+
     val options = typings.flatpickr.optionsMod.Options()
       .setAllowInput(true)
       .setOnChange(onChange)
@@ -192,9 +199,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     fieldType match {
       case FieldTypes.DateTime => options.setEnableTime(true).setTime_24hr(true)
-      case FieldTypes.Date => {}
+      case FieldTypes.Date => options.setEnableTime(false).setNoCalendar(false)
       case FieldTypes.Time => options.setEnableTime(true).setTime_24hr(true).setNoCalendar(true).setDateFormat("H:i")
     }
+
+    BrowserConsole.log(options)
 
     flatpicker = typings.flatpickr.mod.default(picker,options)
 
