@@ -151,8 +151,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     def setListener(immediate: Boolean, flatpicker:typings.flatpickr.instanceMod.Instance) = {
       changeListener = model.listen({ d =>
-        logger.info(s"Changed model to $d")
-        handleDate(d)
+        if(d != Json.Null && d.string == "") {
+          model.set(Json.Null)
+        } else {
+          logger.info(s"Changed model to $d")
+          handleDate(d)
+        }
       },immediate)
     }
 
@@ -170,7 +174,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
                           data:js.UndefOr[js.Any]) => {
       changeListener.cancel()
       logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance $data")
-      model.set(dateStr.asJson)
+      if(dateStr == "") {
+        model.set(Json.Null)
+      } else {
+        model.set(dateStr.asJson)
+      }
       setListener(false, instance)
     }
 
