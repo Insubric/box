@@ -50,9 +50,13 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   import akka.http.scaladsl.model._
   import akka.http.scaladsl.server.Directives._
   import ch.wsl.box.shared.utils.Formatters._
-  import io.circe.generic.auto._
+
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.model.shared.EntityKind
+
+  import io.circe.generic.extras.auto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
 
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
@@ -62,14 +66,9 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     val jsonActions = JSONTableActions[T,M](table)
     val limitLookupFromFk: Int = BoxConfig.fksLookupRowsLimit
 
-    import JSONSupport._
-    import akka.http.scaladsl.model._
-    import akka.http.scaladsl.server.Directives._
-    import io.circe.generic.auto._
+
     import io.circe.syntax._
     import io.circe.parser._
-    import ch.wsl.box.shared.utils.Formatters._
-    import ch.wsl.box.model.shared.EntityKind
     import JSONData._
 
 

@@ -47,7 +47,11 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   import akka.http.scaladsl.model._
   import akka.http.scaladsl.server.Directives._
   import ch.wsl.box.shared.utils.Formatters._
-  import io.circe.generic.auto._
+
+  import io.circe.generic.extras.auto._
+  import io.circe.generic.extras.Configuration
+  implicit val customConfig: Configuration = Configuration.default.withDefaults
+
   import io.circe.syntax._
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.model.shared.EntityKind

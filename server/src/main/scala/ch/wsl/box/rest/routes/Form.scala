@@ -42,7 +42,11 @@ case class Form(
     import JSONSupport._
     import akka.http.scaladsl.model._
     import akka.http.scaladsl.server.Directives._
-    import io.circe.generic.auto._
+
+    import io.circe.generic.extras.auto._
+    import io.circe.generic.extras.Configuration
+    implicit val customConfig: Configuration = Configuration.default.withDefaults
+
     import io.circe.syntax._
     import ch.wsl.box.shared.utils.Formatters._ //need to be after circe generic auto or it will be overridden
     import ch.wsl.box.shared.utils.JSONUtils._
