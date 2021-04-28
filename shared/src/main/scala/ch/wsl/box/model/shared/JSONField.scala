@@ -112,6 +112,7 @@ case class ConditionalField(conditionFieldId:String,conditionValues:Seq[Json])
 
 object JSONFieldTypes{
   val NUMBER = "number"
+  val INTEGER = "integer"
   val STRING = "string"
   val CHILD = "child"
   val FILE = "file"
@@ -126,5 +127,5 @@ object JSONFieldTypes{
   val JSON = "json"
   val STATIC = "static"
 
-  val ALL = Seq(NUMBER,STRING,FILE,DATE,DATETIME,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
+  val ALL = Seq(NUMBER,INTEGER,STRING,FILE,DATE,DATETIME,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
 }

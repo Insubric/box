@@ -34,9 +34,9 @@ object TypeMapping {
 
   val jsonTypesMapping =  Map(
     "numeric" -> JSONFieldTypes.NUMBER,
-    "integer" -> JSONFieldTypes.NUMBER,
-    "bigint" -> JSONFieldTypes.NUMBER,
-    "smallint" -> JSONFieldTypes.NUMBER,
+    "integer" -> JSONFieldTypes.INTEGER,
+    "bigint" -> JSONFieldTypes.INTEGER,
+    "smallint" -> JSONFieldTypes.INTEGER,
     "double precision" -> JSONFieldTypes.NUMBER,
     "real" -> JSONFieldTypes.NUMBER,
     "text" -> JSONFieldTypes.STRING,

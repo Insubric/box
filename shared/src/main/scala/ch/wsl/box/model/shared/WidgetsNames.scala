@@ -50,6 +50,15 @@ object WidgetsNames {
       hidden,
       dynamicWidget,
     ),
+    INTEGER -> Seq(
+      input,
+      select,
+      popup,
+      checkbox,
+      inputDisabled,
+      hidden,
+      dynamicWidget,
+    ),
     STRING -> Seq(
       input,
       twoLines,

@@ -139,7 +139,7 @@ object InputWidget extends Logging {
     val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
 
     def fromString(s:String) = field.`type` match {
-      case JSONFieldTypes.NUMBER => strToNumericJson(s)
+      case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER => strToNumericJson(s)
       case JSONFieldTypes.ARRAY_NUMBER => strToNumericArrayJson(s)
       case _ => strToJson(field.nullable)(s)
     }
@@ -148,7 +148,8 @@ object InputWidget extends Logging {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
       field.`type` match {
-        case JSONFieldTypes.NUMBER => NumberInput(stringModel)(y:_*).render
+        case JSONFieldTypes.NUMBER => NumberInput(stringModel)((y ++ Seq(step := "any")):_*).render
+        case JSONFieldTypes.INTEGER => NumberInput(stringModel)(y:_*).render
         case JSONFieldTypes.ARRAY_NUMBER => NumberInput(stringModel)(y++modifiers:_*).render
         case _ => TextInput(stringModel)(y++modifiers:_*).render
       }
