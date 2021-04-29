@@ -9,6 +9,8 @@ nav_order: 10
 
 This widget do a lookup in a foreign table and render it in the current form. It may be useful for example to show images that are stored in a lookup table.
 
+The value of the lookup is then injected in the data object with `$` so it can be used i.e. for conditional checking
+
 #### Supported types
 - **String**
 - **Number**
@@ -19,7 +21,7 @@ This widget do a lookup in a foreign table and render it in the current form. It
 |:-------------------|:------------------|:---------------------------------------------------------------|:------------------|:------------------|
 | field              | lookupEntity      | Select the target entity                                       | `true`            | `none`            |
 | field              | lookupValueField  | Column on the foreign entity                                   | `true`            | `none`            |
-| field translations | lookupTextField   | Field on the child form that should be used as label           | `false`           | `none`            |
+| field translations | lookupTextField   | Field on the foreign entity that should be used as label       | `false`           | `none`            |
 
 #### Params
 

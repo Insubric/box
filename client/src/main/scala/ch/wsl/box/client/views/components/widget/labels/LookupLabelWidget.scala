@@ -21,7 +21,7 @@ object LookupLabelWidget extends ComponentWidgetFactory {
   case class LookupLabelImpl(params: WidgetParams) extends DynamicLookupWidget {
 
     remoteField.listen(js =>
-      params.allData.set(params.allData.get.deepMerge(Json.obj(params.field.name -> js)))
+      params.allData.set(params.allData.get.deepMerge(Json.obj("$" + params.field.name -> js)))
     )
 
     override protected def show(): JsDom.all.Modifier = {

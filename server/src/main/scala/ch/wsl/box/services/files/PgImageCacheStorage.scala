@@ -6,9 +6,10 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxImageCache
 import ch.wsl.box.model.shared.JSONID
 import ch.wsl.box.services.file.{FileCacheKey, FileId, ImageCacheStorage}
+import scribe.Logging
 import wvlet.airframe.bind
 
-class PgImageCacheStorage extends ImageCacheStorage {
+class PgImageCacheStorage extends ImageCacheStorage with Logging {
 
   val connection = bind[Connection]
 
@@ -25,6 +26,10 @@ class PgImageCacheStorage extends ImageCacheStorage {
   }.map(_.headOption.map(_.data))
 
   override def clearField(id: FileId)(implicit ex: ExecutionContext): Future[Boolean] = connection.adminDB.run{
-    BoxImageCache.Table.filter(_.key.startsWith(id.asString(""))).delete
-  }.map(_ => true)
+    val prefix = id.asString("")
+    BoxImageCache.Table.filter(_.key.startsWith(prefix)).delete
+  }.map{ rows =>
+    logger.debug(s"Affected rows $rows")
+    true
+  }
 }

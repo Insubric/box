@@ -30,6 +30,7 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
   import Directives._
   import ch.wsl.box.jdbc.Connection
   import ch.wsl.box.rest.utils.JSONSupport._
+  import ch.wsl.box.rest.utils.JSONSupport.Full._
   import io.circe.generic.auto._
   import ch.wsl.box.shared.utils.Formatters._
 

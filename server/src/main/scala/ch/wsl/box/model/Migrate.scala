@@ -30,6 +30,7 @@ class DatabaseDatasource(database: Database) extends DataSource {
   override def setLoginTimeout(seconds: Int): Unit = DriverManager.setLoginTimeout(seconds)
   override def getLoginTimeout = DriverManager.getLoginTimeout
   override def getParentLogger = throw new SQLFeatureNotSupportedException()
+
 }
 
 object Migrate {
@@ -37,6 +38,9 @@ object Migrate {
 
 
   def box(connection:Connection) = {
+
+    val dataSource = new DatabaseDatasource(connection.dbConnection)
+
     val flyway = Flyway.configure()
       .baselineOnMigrate(true)
       .sqlMigrationPrefix("BOX_V")
@@ -46,10 +50,12 @@ object Migrate {
       .defaultSchema(BoxSchema.schema.get)
       .table("flyway_schema_history_box")
       .locations("migrations")
-      .dataSource(new DatabaseDatasource(connection.dbConnection))
+      .dataSource(dataSource)
       .load()
 
     flyway.migrate()
+
+    dataSource.getConnection.close()
   }
 
   def app(connection:Connection) = {

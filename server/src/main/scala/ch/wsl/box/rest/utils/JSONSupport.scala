@@ -10,6 +10,7 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.{ContentTypeRange, HttpEntity}
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
+import ch.wsl.box.model.shared.FileUtils
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import geotrellis.vector.io.json.GeoJsonSupport
 import io.circe.Decoder.Result
@@ -82,16 +83,33 @@ object JSONSupport extends GeoJsonSupport {
     }.apply(c)
   }
 
-  implicit val FileFormat : Encoder[Array[Byte]] with Decoder[Array[Byte]] = new Encoder[Array[Byte]] with Decoder[Array[Byte]] {
+  object Full {
 
-    override def apply(a: Array[Byte]): Json = Try {
-      Encoder.encodeString.apply(Base64.getEncoder.encodeToString(a))
-    }.getOrElse(Json.Null)
+    implicit val fileFormat: Encoder[Array[Byte]] with Decoder[Array[Byte]] = new Encoder[Array[Byte]] with Decoder[Array[Byte]] {
+
+      override def apply(a: Array[Byte]): Json = Try {
+        Encoder.encodeString.apply(Base64.getEncoder.encodeToString(a))
+      }.getOrElse(Json.Null)
 
 
-    override def apply(c: HCursor): Result[Array[Byte]] = Decoder.decodeString.map{s =>
-      Base64.getDecoder.decode(s)
-    }.apply(c)
+      override def apply(c: HCursor): Result[Array[Byte]] = Decoder.decodeString.map { s =>
+        Base64.getDecoder.decode(s)
+      }.apply(c)
+    }
+  }
+
+  object Light {
+    implicit val fileFormat: Encoder[Array[Byte]] with Decoder[Array[Byte]] = new Encoder[Array[Byte]] with Decoder[Array[Byte]] {
+
+      override def apply(a: Array[Byte]): Json = Try {
+        Json.fromString(FileUtils.keep)
+      }.getOrElse(Json.Null)
+
+
+      override def apply(c: HCursor): Result[Array[Byte]] = Decoder.decodeString.map { s =>
+        Base64.getDecoder.decode(s)
+      }.apply(c)
+    }
   }
 
 //  implicit val GeoJSON : Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] = new Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] {

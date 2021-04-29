@@ -44,6 +44,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
 
   import JSONSupport._
+  import Light._
   import akka.http.scaladsl.model._
   import akka.http.scaladsl.server.Directives._
   import ch.wsl.box.shared.utils.Formatters._
