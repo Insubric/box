@@ -13,7 +13,10 @@ import slick.basic.DatabasePublisher
 import ch.wsl.box.jdbc.{FullDatabase, PostgresProfile}
 import slick.lifted.{MappedProjection, TableQuery}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
+import ch.wsl.box.services.file.FileId
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -60,11 +63,25 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Pro
 case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](table:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
 
 
+  private def mergeCurrent(id:JSONID,current:Json,json:Json):Future[Json] = {
+    val fileFields = Registry().fields.tableFields.get(table.baseTableRow.tableName).toSeq.flatMap(_.filter{case (k,v) => v.jsonType == JSONFieldTypes.FILE }.keys)
+    val noKeepImage = fileFields.foldRight(json){ (fileField,js) => if(js.get(fileField) == FileUtils.keep) {
+      Json.fromJsonObject(js.asObject.get.filter(_._1 != fileField))
+    } else js }
+
+    Future.sequence{
+      fileFields.filter(ff => json.get(ff) != FileUtils.keep).map{ field =>
+        services.imageCacher.clear(FileId(id,s"${table.baseTableRow.tableName}.$field"))
+      }
+    }.map { _ =>
+      current.deepMerge(noKeepImage)
+    }
+  }
 
   override def update(id:JSONID, json: Json):DBIO[Int] = {
     for{
       current <- getById(id) //retrieve values in db
-      merged  = current.get.deepMerge(json) //merge old and new json
+      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
       updatedCount <- dbActions.update(id, toM(merged))
     } yield updatedCount
   }
@@ -72,7 +89,7 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
   override def updateIfNeeded(id:JSONID, json: Json):DBIO[Int] = {
     for{
       current <- getById(id) //retrieve values in db
-      merged  = current.get.deepMerge(json) //merge old and new json
+      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
       updateCount <- if (toM(current.get) != toM(merged)) {  //check if same
         dbActions.update(id, toM(merged))            //could also use updateIfNeeded and no check
       } else DBIO.successful(0)
@@ -91,11 +108,16 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
         case None => DBIO.successful(None)
       } //retrieve values in db
       result <- if (current.isDefined){   //if exists, check if we have to skip the update (if row is the same)
-        val merged  = current.get.deepMerge(json) //merge old and new json
-        val model = toM(merged)
-        if (toM(current.get) != model) {
-          dbActions.update(id.get, toM(merged)).map(_ => id.get)        //could also use updateIfNeeded and no check
-        } else DBIO.successful(id.get)
+
+        for{
+          merged <- DBIO.from(mergeCurrent(id.get,current.get,json)) //merge old and new json
+          model = toM(merged)
+          result <- if (toM(current.get) != model) {
+            dbActions.update(id.get, toM(merged)).map(_ => id.get)        //could also use updateIfNeeded and no check
+          } else DBIO.successful(id.get)
+        } yield result
+
+
       } else{
         insert(json)
       }

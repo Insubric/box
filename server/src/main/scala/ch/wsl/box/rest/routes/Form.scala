@@ -40,6 +40,7 @@ case class Form(
                )(implicit up:UserProfile, ec: ExecutionContext, mat:Materializer,services:Services) extends enablers.CSVDownload with Logging {
 
     import JSONSupport._
+    import Light._
     import akka.http.scaladsl.model._
     import akka.http.scaladsl.server.Directives._
 

@@ -38,7 +38,7 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
 
-  val mime:Property[String] = Property("application/octet-stream")
+  val mime:Property[Option[String]] = Property(None)
   val source:Property[Option[String]] = Property(None)
 
   val uploadFilenameField:Option[String] = field.params.flatMap(_.getOpt("uploadFilenameField"))
@@ -47,7 +47,7 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
 
   data.listen({js =>
     val file = data.get.string
-    if(file.length > 0) {
+    if(file.length > 0 && file != FileUtils.keep) {
       val mime = file.take(1) match {
         case "/" => "image/jpeg"
         case "i" => "image/png"
@@ -55,54 +55,58 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
         case "J" => "application/pdf"
         case _ => "application/octet-stream"
       }
-      this.mime.set(mime)
+      this.mime.set(Some(mime))
       this.source.set(Some(s"data:$mime;base64,$file"))
+    } else if(file == FileUtils.keep) {
+      source.set(Some(FileUtils.keep))
+      this.mime.set(None)
     } else {
       source.set(None)
-      this.mime.set("application/octet-stream")
+      this.mime.set(None)
     }
   }, true)
 
-  private def downloadFile(): Unit = {
 
-    val link = dom.document.createElement("a").asInstanceOf[HTMLAnchorElement]
-    val extension = mime.get.split("/")(1) match {
-      case "octet-strem" => "bin"
-      case s:String => s
+  def url(idString:String):Option[(String,String)] = {
+    JSONID.fromString(idString).map{ id =>
+      val randomString = UUID.randomUUID().toString
+      val u = s"/file/$entity.${field.name}/$idString"
+      (
+        s"$u/thumb?rand=$randomString",
+        s"$u?name=$name"
+      )
     }
-    val filename = downloadFilenameField.flatMap(f => allData.get.getOpt(f)) match {
-      case Some(value) => value
-      case None => s"download.$extension"
-    }
-
-    link.href = source.get.get
-    link.asInstanceOf[js.Dynamic].download = filename
-    link.click()
   }
 
-  private def showFile = showIf(source.transform(_.isDefined)){
+  val urls = id.transform(x => x.flatMap(url))
 
-    val downloadButton = button("Download", ClientConf.style.boxButton, onclick :+= ((e: Event) => downloadFile())).render
-
-    div(BootstrapCol.md(12),ClientConf.style.noPadding)(
-      produce(mime) { mime =>
-        if(mime.startsWith("image")) {
-          div(
-            produce(source){
-              case None => Seq()
-              case Some(image) => img(src := image, ClientConf.style.maxFullWidth).render
-            },
-            if(showDownload) {
-              div(downloadButton)
-            } else frag()
+  private def showFile = div(BootstrapCol.md(12),ClientConf.style.noPadding)(
+    produceWithNested(mime.combine(source)((m,s) => (m,s))) {
+      case ((Some(mime),source),nested) => if(mime.startsWith("image")) {
+        div(
+          source match {
+            case None => frag()
+            case Some(image) => img(src := image, ClientConf.style.maxFullWidth).render
+          }
+        ).render
+      } else span("File loaded").render
+      case ((None,Some(source)),nested) => div(
+        nested(produce(urls) {
+          case Some((thumb,download)) => div(
+            img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb),
+            div(
+              a("Download", ClientConf.style.boxButton, href := Routes.apiV1(download)),
+            )
           ).render
-        } else {
-          downloadButton
-        }
-      },
-      div(BootstrapStyles.Visibility.clearfix)
-    ).render
-  }
+          case _ => div().render
+        })
+      ).render
+      case _ => div().render
+    },
+    div(BootstrapStyles.Visibility.clearfix)
+  )
+
+
 
 
   val noLabel = field.params.exists(_.js("nolabel") == true.asJson)

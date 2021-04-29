@@ -54,6 +54,7 @@ object File{
 case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services) extends Logging {
   import Directives._
   import ch.wsl.box.rest.utils.JSONSupport._
+  import ch.wsl.box.rest.utils.JSONSupport.Full._
   import io.circe.generic.auto._
 
 
