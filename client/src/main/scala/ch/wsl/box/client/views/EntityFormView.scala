@@ -10,7 +10,7 @@ import ch.wsl.box.client.views.components.widget.Widget
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
-import io.circe.Json
+import io.circe.{Json, JsonNumber, JsonObject}
 import io.udash.bootstrap.badge.UdashBadge
 import io.udash.bootstrap.utils.BootstrapStyles.Color
 import io.udash.{showIf, _}
@@ -296,9 +296,27 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
 
+  def removeNonDataFields(js:Json):Json = {
+
+    val folder = new Json.Folder[Json] {
+      override def onNull: Json = Json.Null
+      override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
+      override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
+      override def onString(value: String): Json = Json.fromString(value)
+      override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(removeNonDataFields))
+      override def onObject(value: JsonObject): Json = Json.fromJsonObject{
+        value.filter(!_._1.startsWith("$"))
+      }
+    }
+
+    js.foldWith(folder)
+
+  }
 
   model.subProp(_.data).listen { d =>
-    if(!currentData.equals(d)) {
+    if(!currentData.equals(removeNonDataFields(d))) {
+      logger.info(currentData.toString())
+      logger.info(d.toString())
       avoidGoAway
     } else {
       enableGoAway

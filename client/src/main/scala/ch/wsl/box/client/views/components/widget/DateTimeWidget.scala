@@ -203,8 +203,6 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       case FieldTypes.Time => options.setEnableTime(true).setTime_24hr(true).setNoCalendar(true).setDateFormat("H:i")
     }
 
-    BrowserConsole.log(options)
-
     flatpicker = typings.flatpickr.mod.default(picker,options)
 
     setListener(true,flatpicker)
