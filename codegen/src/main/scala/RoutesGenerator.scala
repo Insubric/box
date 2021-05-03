@@ -32,6 +32,7 @@ case class RoutesGenerator(viewList:Seq[String],tableList:Seq[String],model:Mode
              |
              |  import $modelPackages._
        |  import ch.wsl.box.rest.utils.JSONSupport._
+       |  import Light._
        |  import Directives._
        |  import io.circe.generic.extras.auto._
        |  import io.circe.generic.extras.Configuration
