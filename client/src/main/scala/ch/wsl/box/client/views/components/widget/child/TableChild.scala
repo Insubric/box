@@ -4,7 +4,7 @@ import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.{ClientConf, ClientSession, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams}
+import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
 import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
@@ -72,7 +72,12 @@ object TableChildFactory extends ChildRendererFactory {
                               }), onclick :+= ((e: Event) => toggleRow())).render
 
                         ),
-                        autoRelease(produce(widget.data) { data => fields.map(x => td(ClientConf.style.childTableTd, data.get(x.name))).render }),
+                        autoRelease(produce(widget.data) { data => fields.map{x =>
+                          val tableWidget = x.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(x.`type`))
+                            .create(WidgetParams.simple(Property(data.js(x.name)),x,f))
+                          td(ClientConf.style.childTableTd, tableWidget.showOnTable())
+
+                        }.render }),
                       ),
                       tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr, id.bind(widget.rowId.transform(x => TestHooks.tableChildRowId(f.objId,x))),
                         produce(widget.open) { o =>

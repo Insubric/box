@@ -47,7 +47,7 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
   }
 
   override protected def show(): JsDom.all.Modifier = autoRelease(showIf(selectModel.transform(_.nonEmpty)){
-    div(BootstrapCol.md(12),ClientConf.style.noPadding)(
+    div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       lab(field.title),
       div(BootstrapStyles.Float.right(), bind(selectModel)),
       div(BootstrapStyles.Visibility.clearfix)
