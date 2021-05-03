@@ -19,10 +19,10 @@ object TableChildFactory extends ChildRendererFactory {
   override def name: String = WidgetsNames.tableChild
 
 
-  override def create(params: WidgetParams): Widget = TableChildRenderer(params.id,params.prop,params.field,params.allData,params.children)
+  override def create(params: WidgetParams): Widget = TableChildRenderer(params)
 
 
-  case class TableChildRenderer(row_id: ReadableProperty[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
+  case class TableChildRenderer(widgetParam:WidgetParams) extends ChildRenderer {
 
 
 

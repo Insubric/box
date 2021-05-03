@@ -17,9 +17,9 @@ object SimpleChildFactory extends ChildRendererFactory {
   override def name: String = WidgetsNames.simpleChild
 
 
-  override def create(params: WidgetParams): Widget = SimpleChildRenderer(params.id,params.prop,params.field,params.allData,params.children)
+  override def create(params: WidgetParams): Widget = SimpleChildRenderer(params)
 
-  case class SimpleChildRenderer(row_id: ReadableProperty[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata]) extends ChildRenderer {
+  case class SimpleChildRenderer(widgetParam:WidgetParams) extends ChildRenderer {
 
     def child = field.child.get
 

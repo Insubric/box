@@ -25,7 +25,7 @@ object SelectWidgetFactory extends ComponentWidgetFactory  {
 }
 
 
-class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Property[Json]) extends  LookupWidget with Logging {
+class SelectWidget(val field:JSONField, val data: Property[Json], val allData:ReadableProperty[Json]) extends  LookupWidget with Logging {
 
   val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).contains(true)
 

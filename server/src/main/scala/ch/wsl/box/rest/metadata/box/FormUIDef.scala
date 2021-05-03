@@ -422,7 +422,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.NUMBER,"id",false,widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
-      CommonField.label(),
+      CommonField.simpleLabel,
       JSONField(JSONFieldTypes.STRING,"view_table",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(

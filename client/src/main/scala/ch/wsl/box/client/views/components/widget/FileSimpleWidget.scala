@@ -30,7 +30,7 @@ import scala.util.Random
   * @param field
   * @param entity
   */
-case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String,allData:Property[Json]) extends Widget with HasData with Logging {
+case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasData with Logging {
 
   import scalatags.JsDom.all._
   import scalacss.ScalatagsCss._
@@ -38,12 +38,17 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
 
+  val field = widgetParams.field
+  val data = widgetParams.prop
+
   val mime:Property[Option[String]] = Property(None)
   val source:Property[Option[String]] = Property(None)
 
   val uploadFilenameField:Option[String] = field.params.flatMap(_.getOpt("uploadFilenameField"))
   val downloadFilenameField:Option[String] = field.params.flatMap(_.getOpt("downloadFilenameField")).orElse(uploadFilenameField)
   val showDownload:Boolean = field.params.exists(_.js("showDownload") == Json.True)
+
+  val filenameProp = uploadFilenameField.map{f => widgetParams.otherField(f)}
 
   data.listen({js =>
     val file = data.get.string
@@ -70,7 +75,7 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
   def url(idString:String):Option[(String,String)] = {
     JSONID.fromString(idString).map{ id =>
       val randomString = UUID.randomUUID().toString
-      val u = s"/file/$entity.${field.name}/$idString"
+      val u = s"/file/${widgetParams.metadata.entity}.${field.name}/$idString"
       (
         s"$u/thumb?rand=$randomString",
         s"$u?name=$name"
@@ -78,7 +83,7 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
     }
   }
 
-  val urls = id.transform(x => x.flatMap(url))
+  val urls = widgetParams.id.transform(x => x.flatMap(url))
 
   private def showFile = div(BootstrapCol.md(12),ClientConf.style.noPadding)(
     produceWithNested(mime.combine(source)((m,s) => (m,s))) {
@@ -125,8 +130,8 @@ case class FileSimpleWidget(id:ReadableProperty[Option[String]], data:Property[J
       val index = result.indexOf(token)
       val base64 = result.substring(index+token.length)
 
-      uploadFilenameField.foreach { field =>
-        allData.set(allData.get.deepMerge(Json.obj(field -> file.name.asJson)))
+      filenameProp.foreach { field =>
+        field.set(file.name.asJson)
       }
 
       data.set(base64.asJson)
@@ -166,6 +171,6 @@ object FileSimpleWidgetFactory extends ComponentWidgetFactory {
 
   override def name: String = WidgetsNames.simpleFile
 
-  override def create(params: WidgetParams): Widget = FileSimpleWidget(params.id,params.prop,params.field,params.metadata.entity,params.allData)
+  override def create(params: WidgetParams): Widget = FileSimpleWidget(params)
 
 }

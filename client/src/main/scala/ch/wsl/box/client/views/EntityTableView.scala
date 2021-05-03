@@ -11,6 +11,7 @@ import ch.wsl.box.model.shared.{JSONQuery, _}
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
+import io.circe.parser._
 import io.udash._
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.bootstrap.table.UdashTable
@@ -120,6 +121,21 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   private def _handleState(state: EntityTableState,emptyFieldsForm:JSONMetadata): Unit = {
 
     logger.info(s"handling Entity table state name=${state.entity} and kind=${state.kind}")
+
+
+    state.query.foreach{q =>
+      parse(q) match {
+        case Left(value) => {
+          logger.warn(s"Failed to parse query ${value.message}")
+        }
+        case Right(value) => value.as[JSONQuery] match {
+          case Left(value) => logger.warn(s"Failed to parse query ${value.message}")
+          case Right(value) => {
+            services.clientSession.setQuery(SessionQuery(value,state.entity))
+          }
+        }
+      }
+    }
 
     model.set(EntityTableModel.empty)
     model.subProp(_.name).set(state.entity)

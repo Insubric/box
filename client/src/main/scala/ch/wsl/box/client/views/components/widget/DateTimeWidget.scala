@@ -47,13 +47,19 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   val id:ReadableProperty[Option[String]]
   val range:Boolean
 
+  val format = field.params.flatMap(_.getOpt("format"))
+
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
   val style = fullWidth match {
     case true => ClientConf.style.dateTimePickerFullWidth
     case false => ClientConf.style.dateTimePicker
   }
   override def edit() = editMe(id,field,data,style,range)
-  override protected def show(): JsDom.all.Modifier = showMe(field.title,data)
+  override protected def show(): JsDom.all.Modifier = showMe(field.title)
+
+  val formatted:ReadableProperty[String] = data.transform{ js =>
+    dateTimeFormatters.parse(js.string).map(v => dateTimeFormatters.format(v,format) ).getOrElse("")
+  }
 
   private def strToTime(s:String,r:Boolean): Array[String] = {
 
@@ -104,9 +110,9 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
 
-  protected def showMe(modelLabel:String, model:Property[Json]):Modifier = autoRelease(WidgetUtils.showNotNull(model){ p =>
+  protected def showMe(modelLabel:String):Modifier = autoRelease(WidgetUtils.showNotNull(data){ p =>
     div(if (modelLabel.length > 0) label(modelLabel) else {},
-      div(BootstrapStyles.Float.right(), bind(model.transform(_.string))),
+      div(BootstrapStyles.Float.right(), bind(formatted)),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   })

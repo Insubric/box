@@ -309,7 +309,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
     }
 
-    js.foldWith(folder)
+    Json.Null.deepMerge(js).foldWith(folder).deepDropNullValues
 
   }
 

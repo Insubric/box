@@ -7,7 +7,7 @@ import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
+import ch.wsl.box.client.views.components.widget.{ Widget, WidgetParams, WidgetRegistry}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
 import com.avsystem.commons.BSeq
 import io.circe._
@@ -108,10 +108,12 @@ object EditableTable extends ChildRendererFactory {
   override def name: String = WidgetsNames.editableTable
 
 
-  override def create(params: WidgetParams): Widget = EditableTableRenderer(params.id,params.prop,params.field,params.allData,params.children,params.metadata)
+  override def create(params: WidgetParams): Widget = EditableTableRenderer(params)
 
 
-  case class EditableTableRenderer(row_id: ReadableProperty[Option[String]], prop: Property[Json], field:JSONField,masterData:Property[Json],children:Seq[JSONMetadata],parentMetadata:JSONMetadata) extends ChildRenderer {
+  case class EditableTableRenderer(widgetParam:WidgetParams) extends ChildRenderer {
+
+    val parentMetadata = widgetParam.metadata
 
     import ch.wsl.box.client.Context._
 
@@ -150,7 +152,7 @@ object EditableTable extends ChildRendererFactory {
       widgetFactory.create(WidgetParams(
         id = childWidget.rowId.transform(_.map(_.asString)),
         prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
-        field = field, metadata = metadata, allData = childWidget.widget.data, children = Seq()
+        field = field, metadata = metadata, _allData = childWidget.widget.data, children = Seq()
       ))
     }
 

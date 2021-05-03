@@ -44,7 +44,8 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false)
     case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false)
     case "/box" / kind / entity / "child" / childEntity => MasterChildState(kind,entity,childEntity)
-    case "/box" / kind / entity => EntityTableState(kind,entity)
+    case "/box" / kind / entity => EntityTableState(kind,entity,None)
+    case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query))
     case "/admin"  => AdminState
     case "/admin" / "box-definition"  => AdminBoxDefinitionState
     case "/admin" / "conf"  => AdminConfState
@@ -68,6 +69,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/box" / kind / entity / "row" / write / id  => LoginState4params("/box/kind/entity/row/write/id",kind,entity,write,id)
     case "/box" / kind / entity / "child" / childEntity => LoginState3params("/box/$kind/$entity/child/$childEntity",kind,entity,childEntity)
     case "/box" / kind / entity => LoginState2params("/box/$kind/$entity",kind,entity)
+    case "/box" / kind / entity / "query" / query => LoginState3params("/box/$kind/$entity/query/$query",kind,entity,query)
     case "/admin"  => LoginState("/admin")
     case "/admin" / "box-definition"  => LoginState("/admin/box-definition")
     case "/admin" / "conf"  => LoginState("/admin/conf")

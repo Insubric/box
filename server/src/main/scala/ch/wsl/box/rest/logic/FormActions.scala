@@ -20,6 +20,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
+import ch.wsl.box.shared.utils.DateTimeFormatters
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -75,13 +76,33 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
+  private def listRenderer(json:Json,lookupElements:Option[Map[String,Seq[Json]]])(name:String):Json = {
+
+    def jsonCSVRenderer(json:Json,field:JSONField):Json = {
+
+      val format = field.params.flatMap(_.getOpt("format"))
+
+      field.`type` match {
+        case JSONFieldTypes.DATETIME if format.isDefined => DateTimeFormatters.timestamp.parse(json.get(field.name)) match {
+          case Some(value) => DateTimeFormatters.timestamp.format(value,format).asJson
+          case None => json.js(field.name)
+        }
+        case _ => json.js(field.name)
+      }
+    }
+
+    Lookup.valueExtractor(lookupElements, metadata)(name, json.get(name)).map(_.asJson)
+      .orElse(metadata.fields.find(_.name == name).map(jsonCSVRenderer(json,_)))
+      .getOrElse(json.js(name))
+  }
+
+
+
   def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]]):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
 
 
-    val lookup = Lookup.valueExtractor(lookupElements, metadata) _
-
     val columns = metadata.tabularFields.map{f =>
-      (f, lookup(f,row.js(f).string).map(_.asJson).getOrElse(row.js(f)))
+      (f, listRenderer(row,lookupElements)(f))
     }
     Json.obj(columns:_*)
   }}
@@ -91,14 +112,12 @@ case class FormActions(metadata:JSONMetadata,
     import kantan.csv._
     import kantan.csv.ops._
 
-    val lookup = Lookup.valueExtractor(lookupElements, metadata) _
-
     _list(queryForm(query)).map { rows =>
 
       val csvRows = rows.map { json =>
-        fields(metadata).map { field =>
-          lookup(field, json.get(field)).getOrElse(json.get(field))
-        }
+
+
+        fields(metadata).map(listRenderer(json, lookupElements)).map(_.string)
       }
       CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
     }

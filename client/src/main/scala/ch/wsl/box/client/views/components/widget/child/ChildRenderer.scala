@@ -29,18 +29,22 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
   trait ChildRenderer extends Widget with Logging {
 
+    def widgetParam:WidgetParams
+
+
+
     def child:Child
-    def children:Seq[JSONMetadata]
-    def masterData:Property[Json]
+    def children:Seq[JSONMetadata] = widgetParam.children
+    def masterData:ReadableProperty[Json] = widgetParam.allData
 
     import ch.wsl.box.client.Context._
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.circe._
     import io.circe.syntax._
 
-    def row_id: ReadableProperty[Option[String]]
-    def prop: Property[Json]
-    def field:JSONField
+    def row_id: ReadableProperty[Option[String]] = widgetParam.id
+    def prop: Property[Json] = widgetParam.prop
+    def field:JSONField = widgetParam.field
 
     val min:Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)
     val max:Option[Int] = field.params.flatMap(_.js("max").as[Int].toOption)
@@ -51,6 +55,8 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
     val entity: SeqProperty[String] = SeqProperty(Seq())
     val metadata = children.find(_.objId == child.objId)
+
+    val changedField = widgetParam.otherField("$changed")
 
     protected def render(write: Boolean): JsDom.all.Modifier
 
@@ -97,7 +103,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         val childToDelete = childWidgets.zipWithIndex.find(x => x._1.rowId.get == itemToRemove.rowId.get && x._1.id == itemToRemove.id).get
         entity.remove(childToDelete._1.id)
         childWidgets.update(childToDelete._2, childToDelete._1.copy(deleted = true))
-        masterData.set(masterData.get.deepMerge(Json.obj("$changed" -> true.asJson)))
+        changedField.set(true.asJson)
       }
     }
 

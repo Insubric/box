@@ -1,7 +1,7 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.model.shared.ExportDef
+import ch.wsl.box.model.shared.{ExportDef, JSONQuery}
 import io.udash._
 
 import scala.scalajs.js.URIUtils
@@ -41,7 +41,7 @@ case object IndexState extends FinalRoutingState(Some(RootState))
 
 case class EntitiesState(kind:String, currentEntity:String) extends ContainerRoutingState(Some(RootState))
 
-case class EntityTableState(kind:String, entity:String) extends FinalRoutingState(Some(EntitiesState(kind,entity)))
+case class EntityTableState(kind:String, entity:String,query:Option[String]) extends FinalRoutingState(Some(EntitiesState(kind,entity)))
 
 abstract class FormState(
                           val kind:String,

@@ -29,7 +29,7 @@ object PopupWidgetFactory extends ComponentWidgetFactory  {
 
 }
 
-case class PopupWidget(field:JSONField, data: Property[Json],allData:Property[Json]) extends LookupWidget with Logging {
+case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadableProperty[Json]) extends LookupWidget with Logging {
 
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
