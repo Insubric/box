@@ -53,13 +53,13 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("Box Set-up"),
       ul(ClientConf.style.spacedList,
         li(
-          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX.kind,"form"))),
+          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX.kind,"form",None))),
         ),
         li(
-          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX.kind,"page"))),
+          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX.kind,"page",None))),
         ),
         li(
-          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX.kind,"function")))
+          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX.kind,"function",None)))
         ),
         li(
           div(
@@ -73,7 +73,7 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("News"),
       ul(ClientConf.style.spacedList,
         li(
-          a("News editor", Navigate.click(EntityTableState(EntityKind.BOX.kind,"news")))
+          a("News editor", Navigate.click(EntityTableState(EntityKind.BOX.kind,"news",None)))
         )
       )
     ),
