@@ -86,7 +86,8 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
       }
       case Some(layer) => loadWmtsLayer(
         layer.capabilitiesUrl,
-        layer.layerId
+        layer.layerId,
+        layer.time
       ).map{wmtsLayer =>
         services.clientSession.setBaseLayer(layer.layerId)
         setBaseLayer(wmtsLayer)
@@ -106,7 +107,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
   }
 
 
-  def loadWmtsLayer(capabilitiesUrl:String,layer:String) = {
+  def loadWmtsLayer(capabilitiesUrl:String,layer:String,time:Option[String]) = {
 
     val result = Promise[layerMod.Tile]()
 
@@ -124,6 +125,10 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
         val wmtsOptions = wmtsMod.optionsFromCapabilities(capabilities, js.Dictionary(
           "layer" -> layer
         ))
+
+        time.foreach { t =>
+          wmtsOptions.setDimensions(js.Dictionary("Time" -> t))
+        }
 
         val wmts = new layerMod.Tile(baseTileMod.Options().setSource(new sourceMod.WMTS(wmtsOptions)))
         result.success(wmts)
