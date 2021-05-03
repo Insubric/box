@@ -110,6 +110,17 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
 
+  override def showOnTable(): JsDom.all.Modifier = {
+    format match {
+      case Some(formatter) => bind(data.transform{js =>
+        dateTimeFormatters.parse(js.string)
+          .map(x => dateTimeFormatters.format(x,Some(formatter)))
+          .getOrElse(js.string)
+      })
+      case None => bind(data.transform(_.string))
+    }
+  }
+
   protected def showMe(modelLabel:String):Modifier = autoRelease(WidgetUtils.showNotNull(data){ p =>
     div(ClientConf.style.smallBottomMargin, if (modelLabel.length > 0) label(modelLabel) else {},
       div(BootstrapStyles.Float.right(), bind(formatted)),

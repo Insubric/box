@@ -142,6 +142,17 @@ case class WidgetParams(
 
 }
 
+object WidgetParams{
+  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata):WidgetParams = WidgetParams(
+    Property(None),
+    prop = prop,
+    field = field,
+    metadata = metadata,
+    _allData = prop,
+    children = Seq()
+  )
+}
+
 trait ComponentWidgetFactory{
 
   def name:String
