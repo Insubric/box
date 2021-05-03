@@ -67,6 +67,8 @@ object CommonField {
   )
 
 
+  val simpleLabel = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.input))
+
   def label(widgetDisabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.dynamicWidget),
     condition = Some(ConditionalField("widget",WidgetsNames.all.diff(widgetDisabled).map(_.asJson))),
     params = Some(Json.obj(
