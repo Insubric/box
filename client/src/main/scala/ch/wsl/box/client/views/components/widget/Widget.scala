@@ -18,7 +18,7 @@ import io.udash.bindings.Bindings
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
 import io.udash.properties.single.Property
-import org.scalajs.dom.Element
+import org.scalajs.dom.{Element, window}
 import org.scalajs.dom
 
 import scala.concurrent.duration._
@@ -130,9 +130,17 @@ case class WidgetParams(
                          prop:Property[Json],
                          field:JSONField,
                          metadata: JSONMetadata,
-                         allData:Property[Json],
+                         _allData:Property[Json],
                          children:Seq[JSONMetadata]
-                       )
+                       ) extends Logging {
+  def allData:ReadableProperty[Json] = _allData
+
+
+  def otherField(str:String):Property[Json] = {
+    _allData.bitransform(_.js(str))((fd:Json) => _allData.get.deepMerge(Json.obj((str,fd))))
+  }
+
+}
 
 trait ComponentWidgetFactory{
 

@@ -7,6 +7,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash._
 import io.udash.properties.single.Property
+import org.scalajs.dom
 import scalatags.JsDom
 import scalatags.JsDom.all._
 
@@ -20,11 +21,26 @@ object LookupLabelWidget extends ComponentWidgetFactory {
 
   case class LookupLabelImpl(params: WidgetParams) extends DynamicLookupWidget {
 
-    remoteField.listen(js =>
-      params.allData.set(params.allData.get.deepMerge(Json.obj("$" + params.field.name -> js)))
-    )
+    var value:Json = Json.Null
+
+    val injected = params.otherField("$" + params.field.name)
+
+    def injectValue():Unit = {
+      dom.window.setTimeout(() => injected.set(value),0)
+    }
+
+    remoteField.listen { js =>
+      value = js
+      injectValue()
+    }
+
+    params.allData.listen({ curr =>
+      if(!curr.js("$" + params.field.name).equals(value)) injectValue()
+    },true)
 
     override protected def show(): JsDom.all.Modifier = {
+
+
       div(
         widget().render(false,Property(true))
       )

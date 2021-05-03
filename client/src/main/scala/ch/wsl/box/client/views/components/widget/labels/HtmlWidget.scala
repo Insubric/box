@@ -16,7 +16,7 @@ object HtmlWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = HtmlWidgetImpl(params.field,params.allData)
 
-  case class HtmlWidgetImpl(field:JSONField,data:Property[Json]) extends Widget {
+  case class HtmlWidgetImpl(field:JSONField,data:ReadableProperty[Json]) extends Widget {
 
 
     val _text:String = field.label.getOrElse(field.name)

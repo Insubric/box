@@ -7,7 +7,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
 import io.udash.{SeqProperty, bind}
-import io.udash.properties.single.Property
+import io.udash.properties.single.{Property, ReadableProperty}
 import scalatags.JsDom
 
 object LookupWidget {
@@ -19,7 +19,7 @@ trait LookupWidget extends Widget with HasData {
   import ch.wsl.box.client.Context._
 
 
-  def allData:Property[Json]
+  def allData:ReadableProperty[Json]
 
 
   def field:JSONField
