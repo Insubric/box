@@ -46,7 +46,8 @@ case class MapParamsProjection(
 case class MapParamsLayers(
                             name: String,
                             capabilitiesUrl: String,
-                            layerId:String
+                            layerId:String,
+                            time:Option[String]
                           )
 
 case class MapParams(

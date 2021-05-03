@@ -34,6 +34,7 @@ case class EntityActionsRegistryGenerator(tableList:Seq[String], model:Model) ex
          |  implicit val customConfig: Configuration = Configuration.default.withDefaults
          |
          |  import ch.wsl.box.rest.utils.JSONSupport._
+         |  import Light._
          |
          |  def apply(name:String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {
          |    case FormMetadataFactory.STATIC_PAGE => JSONPageActions
