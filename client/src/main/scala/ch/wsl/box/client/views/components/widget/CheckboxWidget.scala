@@ -43,7 +43,7 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
 
     autoRelease(data.sync[Boolean](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
 
-    div(
+    div(ClientConf.style.smallBottomMargin,
       tooltip(Checkbox(booleanModel)(topElement).render), " ", if(!noLabel) { WidgetUtils.toLabel(field) } else frag()
     )
   }

@@ -111,7 +111,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
   protected def showMe(modelLabel:String):Modifier = autoRelease(WidgetUtils.showNotNull(data){ p =>
-    div(if (modelLabel.length > 0) label(modelLabel) else {},
+    div(ClientConf.style.smallBottomMargin, if (modelLabel.length > 0) label(modelLabel) else {},
       div(BootstrapStyles.Float.right(), bind(formatted)),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
