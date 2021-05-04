@@ -43,6 +43,8 @@ object DynamicWidget extends ComponentWidgetFactory {
     override protected def show(): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(false,Property(true))).render}
 
 
+    override def showOnTable(): JsDom.all.Modifier = bind(params.prop.transform(_.string))
+
     override protected def edit(): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(true,Property(true))).render}
   }
 }

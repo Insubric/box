@@ -25,6 +25,7 @@ import scalatags.JsDom.all.a
 import scribe.Logging
 
 import scala.concurrent.Future
+import scala.scalajs.js.URIUtils
 import scala.util.Try
 
 case class IDsVM(isLastPage:Boolean,
@@ -124,14 +125,18 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
     state.query.foreach{q =>
-      parse(q) match {
+
+
+      parse(URIUtils.decodeURIComponent(q)) match {
         case Left(value) => {
-          logger.warn(s"Failed to parse query ${value.message}")
+          logger.warn(s"Failed to parse query ${value.message} \n $q")
         }
-        case Right(value) => value.as[JSONQuery] match {
-          case Left(value) => logger.warn(s"Failed to parse query ${value.message}")
-          case Right(value) => {
-            services.clientSession.setQuery(SessionQuery(value,state.entity))
+        case Right(value) => {
+          value.as[JSONQuery] match {
+            case Left(value) => logger.warn(s"Failed to parse query ${value.message}")
+            case Right(value) => {
+              services.clientSession.setQuery(SessionQuery(value,state.entity))
+            }
           }
         }
       }

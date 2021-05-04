@@ -58,7 +58,12 @@ trait LookupWidget extends Widget with HasData {
   val selectModel = data.transform(value2Label)
 
 
-  override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(selectModel))
+  override def showOnTable(): JsDom.all.Modifier = {
+    autoRelease(bind(selectModel.combine(data)((a,b) => (a,b)).transform{
+      case (notFound,js) if notFound == Labels.lookup.not_found => js.string
+      case (t,_) => t
+    }))
+  }
   override def text() = selectModel
 
 

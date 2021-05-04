@@ -42,11 +42,20 @@ object ColorUtils {
   object RGB{
     def fromHex(hex:String):RGB = {
       val plain = hex.stripPrefix("#")
-      RGB(
-        Integer.valueOf(plain.substring(0,2),16).doubleValue() / 255.0,
-        Integer.valueOf(plain.substring(2,4),16).doubleValue() / 255.0,
-        Integer.valueOf(plain.substring(4,6),16).doubleValue() / 255.0
-      )
+      plain.length match {
+        case 6 => RGB(
+          Integer.valueOf(plain.substring(0,2),16).doubleValue() / 255.0,
+          Integer.valueOf(plain.substring(2,4),16).doubleValue() / 255.0,
+          Integer.valueOf(plain.substring(4,6),16).doubleValue() / 255.0
+        )
+        case 3 => RGB(
+          Integer.valueOf(plain.substring(0,1)*2,16).doubleValue() / 255.0,
+          Integer.valueOf(plain.substring(1,2)*2,16).doubleValue() / 255.0,
+          Integer.valueOf(plain.substring(2,3)*2,16).doubleValue() / 255.0
+        )
+        case _ => throw new Exception(s"Color hex format not parsable $hex")
+      }
+
 
     }
   }
