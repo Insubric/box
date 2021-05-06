@@ -7,8 +7,9 @@ import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.widget.{ Widget, WidgetParams, WidgetRegistry}
+import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import com.avsystem.commons.BSeq
 import io.circe._
 import io.circe.syntax._
@@ -121,6 +122,8 @@ object EditableTable extends ChildRendererFactory {
     val tableStyle = TableStyle(ClientConf.styleConf, metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
     val tableStyleElement = document.createElement("style")
     tableStyleElement.innerText = tableStyle.render(cssStringRenderer, cssEnv)
+
+    val hideExporters = widgetParam.field.params.exists(_.js("hideExporters") == Json.True)
 
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._
@@ -332,9 +335,13 @@ object EditableTable extends ChildRendererFactory {
                 } else frag()
               ).render
             ),
-            button(ClientConf.style.boxButtonImportant,Labels.form.print,onclick :+= ((e:Event) => printTable(m) )),
-            button(ClientConf.style.boxButtonImportant,Labels.entity.csv,onclick :+= ((e:Event) => exportCSV(m) )),
-            button(ClientConf.style.boxButtonImportant,Labels.entity.xls,onclick :+= ((e:Event) => exportXLS(m) )),
+            if(!hideExporters) {
+              Seq(
+                button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= ((e: Event) => printTable(m))),
+                button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= ((e: Event) => exportCSV(m))),
+                button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= ((e: Event) => exportXLS(m))),
+              )
+            }
           ).render
         }
 
