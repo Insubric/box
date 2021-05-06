@@ -75,6 +75,8 @@ trait DBFiltersImpl extends DbFilters with Logging {
   final val typOptTIMESTAMP = 16
   final val typOptDATE = 17
   final val typOptTIME = 18
+  final val typUUID = 19
+  final val typOptUUID = 20
   final val typError = 100
 
   //Not mapped, can be a filter applyed with those types?
@@ -94,6 +96,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
     case ColType("java.time.LocalDateTime",_,true) => typOptTIMESTAMP
     case ColType("java.time.LocalDate",_,true) => typOptDATE
     case ColType("java.time.LocalTime",_,true) => typOptTIME
+    case ColType("java.util.UUID",_,true) => typOptUUID
     case ColType("Short",_,false) => typSHORT
     case ColType("Double",_,false) => typDOUBLE
     case ColType("Int",_,false) => typINT
@@ -103,6 +106,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
     case ColType("java.time.LocalDateTime",_,false) => typTIMESTAMP
     case ColType("java.time.LocalDate",_,false) => typDATE
     case ColType("java.time.LocalTime",_,false) => typTIME
+    case ColType("java.util.UUID",_,false) => typUUID
     case _ => {
       logger.error("Type mapping for: " + myType + " not found")
       typError
@@ -157,6 +161,8 @@ trait DBFiltersImpl extends DbFilters with Logging {
             case from :: to :: Nil => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] >= from && c.asInstanceOf[Rep[Option[java.time.LocalDate]]] < to
           }
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] === toTime(v).get
+          case `typUUID` => c.asInstanceOf[Rep[java.util.UUID]] === java.util.UUID.fromString(v)
+          case `typOptUUID` => c.asInstanceOf[Rep[Option[java.util.UUID]]] === java.util.UUID.fromString(v)
           case `typError`  => None
           case _ => None
       }
@@ -207,6 +213,8 @@ trait DBFiltersImpl extends DbFilters with Logging {
             case from :: to :: Nil => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] < from || c.asInstanceOf[Rep[Option[java.time.LocalDate]]] >= to
           }
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] =!= toTime(v).get
+          case `typUUID` => c.asInstanceOf[Rep[java.util.UUID]] =!= java.util.UUID.fromString(v)
+          case `typOptUUID` => c.asInstanceOf[Rep[Option[java.util.UUID]]] =!= java.util.UUID.fromString(v)
           case `typError` => None
           case _ => None
       }
@@ -422,6 +430,8 @@ trait DBFiltersImpl extends DbFilters with Logging {
         case `typOptTIMESTAMP` => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]].inSet(elements.map(toTimestamp(_).head))
         case `typOptDATE` => c.asInstanceOf[Rep[Option[java.time.LocalDate]]].inSet(elements.map(toDate(_).head))
         case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]].inSet(elements.map(toTime(_).get))
+        case `typUUID` => c.asInstanceOf[Rep[java.util.UUID]].inSet(v.split(",").map(java.util.UUID.fromString))
+        case `typOptUUID` => c.asInstanceOf[Rep[Option[java.util.UUID]]].inSet(v.split(",").map(java.util.UUID.fromString))
         case `typError`  => None
         case _ => None
       }
