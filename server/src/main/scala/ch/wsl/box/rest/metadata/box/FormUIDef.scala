@@ -17,7 +17,7 @@ object FormUIDef {
     name = "form",
     label = "Form - Interface builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.inputDisabled)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.inputDisabled)),
       CommonField.formName,
       CommonField.formDescription,
       CommonField.formLayout,
@@ -51,8 +51,8 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.STRING,"exportFields",true,widget = Some(WidgetsNames.input)),
       JSONField(JSONFieldTypes.CHILD,"fields",true,
-        child = Some(Child(FORM_FIELD,"fields","form_id","form_id",
-          Some(JSONQuery.sortByKeys(Seq("field_id")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
+        child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
+          Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
           ""
         )),
         widget = Some(WidgetsNames.tableChild)
@@ -83,9 +83,9 @@ object FormUIDef {
     ),
     entity = "form",
     lang = "en",
-    tabularFields = Seq("form_id","name","entity","description"),
-    rawTabularFields = Seq("form_id","name","entity","description"),
-    keys = Seq("form_id"),
+    tabularFields = Seq("form_uuid","name","entity","description"),
+    rawTabularFields = Seq("form_uuid","name","entity","description"),
+    keys = Seq("form_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(
       JSONQuery.filterWith(JSONQueryFilter.WHERE.not("entity",FormMetadataFactory.STATIC_PAGE))
@@ -101,7 +101,7 @@ object FormUIDef {
     name = "page",
     label = "Pages - Interface builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.inputDisabled)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.inputDisabled)),
       CommonField.formName,
       CommonField.formDescription,
       CommonField.formLayout,
@@ -135,9 +135,9 @@ object FormUIDef {
     ),
     entity = "form",
     lang = "en",
-    tabularFields = Seq("form_id","name","description"),
-    rawTabularFields = Seq("form_id","name","description"),
-    keys = Seq("form_id"),
+    tabularFields = Seq("form_uuid","name","description"),
+    rawTabularFields = Seq("form_uuid","name","description"),
+    keys = Seq("form_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(
       JSONQuery.filterWith(JSONQueryFilter.WHERE.eq("entity",FormMetadataFactory.STATIC_PAGE))
@@ -153,15 +153,15 @@ object FormUIDef {
     name = "Field builder",
     label = "Field builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.name,
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_id","field_id",Some(JSONQuery.sortByKeys(Seq("field_id"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
-        child = Some(Child(FORM_FIELD_FILE,"field_file","field_id","field_id",None,"")),
+        child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,"")),
         condition = Some(ConditionalField("type",Seq(JSONFieldTypes.FILE.asJson))),
         params = Some(Map("max" -> 1, "min" -> 0).asJson),
         widget = Some(WidgetsNames.simpleChild)
@@ -207,9 +207,9 @@ object FormUIDef {
     ),
     entity = "field",
     lang = "en",
-    tabularFields = Seq("field_id","name","type","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_id"),
-    keys = Seq("field_id"),
+    tabularFields = Seq("field_uuid","name","type","widget"),
+    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -222,8 +222,8 @@ object FormUIDef {
     name = "Field builder childs",
     label = "Field builder childs",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.name,
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
@@ -235,12 +235,12 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.CHILD)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_id","field_id",Some(JSONQuery.sortByKeys(Seq("field_id"))),"widget")), widget = Some(WidgetsNames.tableChild)),
-      JSONField(JSONFieldTypes.NUMBER,"child_form_id",true,
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.STRING,"child_form_uuid",true,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          forms.map{ form => JSONLookup(form.form_id.get.toString,form.name) }.sortBy(_.value)
+          forms.map{ form => JSONLookup(form.form_uuid.get.toString,form.name) }.sortBy(_.value)
         ))
       ),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,
@@ -280,7 +280,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
       JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.checkbox)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
-        child = Some(Child(FORM_FIELD_FILE,"field_file","field_id","field_id",None,""))
+        child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,""))
       )
     ),
     layout = Layout(
@@ -290,7 +290,7 @@ object FormUIDef {
           "type",
           "widget",
           "read_only",
-          "child_form_id",
+          "child_form_uuid",
           "masterFields",
           "childFields",
           "childQuery",
@@ -305,9 +305,9 @@ object FormUIDef {
     ),
     entity = "field",
     lang = "en",
-    tabularFields = Seq("field_id","name","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_id"),
-    keys = Seq("field_id"),
+    tabularFields = Seq("field_uuid","name","widget"),
+    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -320,8 +320,8 @@ object FormUIDef {
     name = "Field builder static",
     label = "Field builder static",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.name,
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
@@ -333,7 +333,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.STATIC)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_id","field_id",Some(JSONQuery.sortByKeys(Seq("field_id"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,label=Some("Parent field"),
@@ -344,7 +344,7 @@ object FormUIDef {
       CommonField.conditionValues,
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
-        child = Some(Child(FORM_FIELD_FILE,"field_file","field_id","field_id",None,""))
+        child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,""))
       )
     ),
     layout = Layout(
@@ -366,9 +366,9 @@ object FormUIDef {
     ),
     entity = "field",
     lang = "en",
-    tabularFields = Seq("field_id","name","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_id"),
-    keys = Seq("field_id"),
+    tabularFields = Seq("field_uuid","name","widget"),
+    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -381,8 +381,8 @@ object FormUIDef {
     name = "FieldI18n builder",
     label = "FieldI18n builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false, widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"id",false, widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false, widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"uuid",false, widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
       CommonField.label(),
       CommonField.tooltip,
@@ -404,9 +404,9 @@ object FormUIDef {
     ),
     entity = "field_i18n",
     lang = "en",
-    tabularFields = Seq("field_id","id","lang","label"),
+    tabularFields = Seq("field_uuid","uuid","lang","label"),
     rawTabularFields = Seq("lang","label","lookupTextField"),
-    keys = Seq("id"),
+    keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -419,8 +419,8 @@ object FormUIDef {
     name = "FormI18n builder",
     label = "FormI18n builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"form_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
       CommonField.simpleLabel,
       JSONField(JSONFieldTypes.STRING,"view_table",true,
@@ -437,9 +437,9 @@ object FormUIDef {
     ),
     entity = "form_i18n",
     lang = "en",
-    tabularFields = Seq("form_id","id","lang","label"),
+    tabularFields = Seq("form_uuid","uuid","lang","label"),
     rawTabularFields = Seq("lang","label","view_table"),
-    keys = Seq("id"),
+    keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -452,7 +452,7 @@ object FormUIDef {
     name = "FieldFile builder",
     label = "FieldFile builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"file_field",false,widget = Some(WidgetsNames.input)),
       JSONField(JSONFieldTypes.STRING,"thumbnail_field",false,widget = Some(WidgetsNames.input)),
       JSONField(JSONFieldTypes.STRING,"name_field",false,widget = Some(WidgetsNames.input)),
@@ -464,9 +464,9 @@ object FormUIDef {
     ),
     entity = "field_file",
     lang = "en",
-    tabularFields = Seq("field_id","file_field"),
-    rawTabularFields = Seq("field_id","file_field"),
-    keys = Seq("field_id"),
+    tabularFields = Seq("field_uuid","file_field"),
+    rawTabularFields = Seq("field_uuid","file_field"),
+    keys = Seq("field_uuid"),
     keyStrategy = NaturalKey,
     query = None,
     exportFields = Seq(),

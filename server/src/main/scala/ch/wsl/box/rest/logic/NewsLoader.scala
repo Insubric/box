@@ -13,7 +13,7 @@ object NewsLoader {
   def get(lang:String)(implicit userProfile: UserProfile, ec:ExecutionContext): DBIO[Seq[NewsEntry]] = {
     val q = for{
       news <- BoxNews.BoxNewsTable
-      news_i18n <- BoxNews.BoxNews_i18nTable if news_i18n.lang === lang && news.news_id === news_i18n.news_id
+      news_i18n <- BoxNews.BoxNews_i18nTable if news_i18n.lang === lang && news.news_uuid === news_i18n.news_uuid
     } yield (news.datetime,news_i18n.title,news_i18n.text,news.author)
 
     {

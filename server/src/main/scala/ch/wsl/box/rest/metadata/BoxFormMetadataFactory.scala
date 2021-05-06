@@ -1,5 +1,7 @@
 package ch.wsl.box.rest.metadata
 
+import java.util.UUID
+
 import akka.stream.Materializer
 import ch.wsl.box.model.boxentities.{BoxForm, BoxUser}
 import ch.wsl.box.model.shared._
@@ -66,7 +68,7 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
 
   override def of(name: String, lang: String): DBIO[JSONMetadata] = registry.map(_.find(_.name == name).get)
 
-  override def of(id: Int, lang: String): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
+  override def of(id: UUID, lang: String): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
 
   override def children(form: JSONMetadata): DBIO[Seq[JSONMetadata]] = getForms().map{ forms =>
     form match {

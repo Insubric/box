@@ -14,7 +14,7 @@ object FunctionUIDef {
     name = "function",
     label = "Function builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"function_id",false),
+      JSONField(JSONFieldTypes.STRING,"function_uuid",false),
       JSONField(JSONFieldTypes.STRING,"name",false),
       JSONField(JSONFieldTypes.STRING,"function",false, widget = Some(WidgetsNames.code),label = Some(""),
         params = Some(Json.obj("language" -> "java".asJson, "height" -> 800.asJson)),
@@ -45,15 +45,15 @@ object FunctionUIDef {
       ))),
       JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.textarea),label = Some("")),
       JSONField(JSONFieldTypes.NUMBER,"order",true),
-      JSONField(JSONFieldTypes.CHILD,"function_field",true,child = Some(Child(FUNCTION_FIELD,"function_field","function_id","function_id",None,""))),
-      JSONField(JSONFieldTypes.CHILD,"function_i18n",true,child = Some(Child(FUNCTION_I18N,"function_i18n","function_id","function_id",None,"")))
+      JSONField(JSONFieldTypes.CHILD,"function_field",true,child = Some(Child(FUNCTION_FIELD,"function_field","function_uuid","function_uuid",None,""))),
+      JSONField(JSONFieldTypes.CHILD,"function_i18n",true,child = Some(Child(FUNCTION_I18N,"function_i18n","function_uuid","function_uuid",None,"")))
     ),
     layout = Layout(
       blocks = Seq(
         LayoutBlock(None,8,None,Seq(
           SubLayoutBlock(None,Seq(5,1,6),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("function_id","name","order","description","mode").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("function_uuid","name","order","description","mode").map(Left(_)))
             ),
             Left(""),
             Right(
@@ -69,9 +69,9 @@ object FunctionUIDef {
     ),
     entity = "function",
     lang = "en",
-    tabularFields = Seq("function_id","name","description"),
-    rawTabularFields = Seq("function_id","name","description"),
-    keys = Seq("function_id"),
+    tabularFields = Seq("function_uuid","name","description"),
+    rawTabularFields = Seq("function_uuid","name","description"),
+    keys = Seq("function_uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -84,12 +84,12 @@ object FunctionUIDef {
     name = "field",
     label = "Field builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"function_id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"function_uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.name,
       CommonField.widget,
       CommonField.typ(child = false),
-      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_id","field_id",None,""))),
+      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_uuid","field_uuid",None,""))),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
@@ -100,8 +100,8 @@ object FunctionUIDef {
     layout = Layout(
       blocks = Seq(
         LayoutBlock(None,4,None,Seq(
-          "field_id",
-          "function_id",
+          "field_uuid",
+          "function_uuid",
           "name",
           "type",
           "widget",
@@ -117,9 +117,9 @@ object FunctionUIDef {
     ),
     entity = "function_field",
     lang = "en",
-    tabularFields = Seq("field_id","function_id","name","widget"),
-    rawTabularFields = Seq("field_id","function_id","name","widget"),
-    keys = Seq("field_id"),
+    tabularFields = Seq("field_uuid","function_uuid","name","widget"),
+    rawTabularFields = Seq("field_uuid","function_uuid","name","widget"),
+    keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -132,8 +132,8 @@ object FunctionUIDef {
     name = "fieldI18n",
     label = "FieldI18n builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"field_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
       CommonField.simpleLabel,
       CommonField.tooltip,
@@ -143,15 +143,15 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,3,None,Seq("field_id","id","lang").map(Left(_))),
+        LayoutBlock(None,3,None,Seq("field_uuid","uuid","lang").map(Left(_))),
         LayoutBlock(None,9,None,Seq("label","placeholder","tooltip","hint","lookupTextField").map(Left(_))),
       )
     ),
     entity = "function_field_i18n",
     lang = "en",
-    tabularFields = Seq("field_id","id","lang","label"),
-    rawTabularFields = Seq("field_id","id","lang","label"),
-    keys = Seq("id"),
+    tabularFields = Seq("field_uuid","uuid","lang","label"),
+    rawTabularFields = Seq("field_uuid","uuid","lang","label"),
+    keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -164,8 +164,8 @@ object FunctionUIDef {
     name = "FormI18n builder",
     label = "FormI18n builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"function_id",false,widget = Some(WidgetsNames.hidden)),
-      JSONField(JSONFieldTypes.NUMBER,"id",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"function_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.lang,
       CommonField.simpleLabel,
       CommonField.tooltip,
@@ -178,9 +178,9 @@ object FunctionUIDef {
     ),
     entity = "function_i18n",
     lang = "en",
-    tabularFields = Seq("function_id","id","lang","label"),
-    rawTabularFields = Seq("function_id","id","lang","label"),
-    keys = Seq("id"),
+    tabularFields = Seq("function_uuid","uuid","lang","label"),
+    rawTabularFields = Seq("function_uuid","uuid","lang","label"),
+    keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),

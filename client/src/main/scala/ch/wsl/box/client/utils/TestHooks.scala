@@ -1,15 +1,17 @@
 package ch.wsl.box.client.utils
 
+import java.util.UUID
+
 import ch.wsl.box.model.shared.JSONID
 
 object TestHooks {
   def langSwitch(lang:String) = s"langSwitch_$lang"
-  def tableChildId(id:Int) = s"tableChildFormId$id"
+  def tableChildId(id:UUID) = s"tableChildFormId$id"
   val tableChildRow = s"tableChildRow"
-  def addChildId(id:Int) = s"addChildFormId$id"
-  def deleteChildId(formId:Int,rowId:Option[JSONID]) = s"deleteChildFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
-  def tableChildButtonId(formId:Int,rowId:Option[JSONID]) = s"tableChildButtonFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
-  def tableChildRowId(formId:Int,rowId:Option[JSONID]) = s"tableChildRowFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
+  def addChildId(id:UUID) = s"addChildFormId$id"
+  def deleteChildId(formId:UUID,rowId:Option[JSONID]) = s"deleteChildFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
+  def tableChildButtonId(formId:UUID,rowId:Option[JSONID]) = s"tableChildButtonFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
+  def tableChildRowId(formId:UUID,rowId:Option[JSONID]) = s"tableChildRowFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
   def actionButton(label:String) = s"formAction${label.replace(" ","").toLowerCase}"
   val logoutButton = "logoutButton"
   val dataChanged = "dataChanged"

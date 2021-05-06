@@ -1,5 +1,7 @@
 package ch.wsl.box.model.shared
 
+import java.util.UUID
+
 import io.circe.Json
 
 /**
@@ -37,7 +39,7 @@ object JSONField{
 
   def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
   def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))
-  def child(name:String, childId:Int, parentKey:String,childFields:String) = JSONField(
+  def child(name:String, childId:UUID, parentKey:String,childFields:String) = JSONField(
     JSONFieldTypes.CHILD,
     name,
     true,
@@ -99,10 +101,10 @@ case class JSONFieldMap(valueProperty:String, textProperty:String, localValuePro
 
 case class ChildMapping(parent:String,child:String)
 
-case class Child(objId:Int, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String])
+case class Child(objId:UUID, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String])
 
 object Child{
-  def apply(objId: Int, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String): Child = {
+  def apply(objId: UUID, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String): Child = {
     val parent = masterFields.split(",").map(_.trim)
     val child = childFields.split(",").map(_.trim)
 

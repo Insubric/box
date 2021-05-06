@@ -30,7 +30,7 @@ object StubMetadataFactory {
       metadata = langs.head._2
       form <- {
         val newForm = BoxForm_row(
-          form_id = None,
+          form_uuid = None,
           name = entity,
           description = None,
           entity = entity,
@@ -47,7 +47,7 @@ object StubMetadataFactory {
       }
       formI18n <- Future.sequence(langs.map{ lang =>
         val newFormI18n = BoxForm_i18n_row(
-          form_id = form.form_id,
+          form_uuid = form.form_uuid,
           lang = Some(lang._1),
           label = Some(entity)
         )
@@ -58,7 +58,7 @@ object StubMetadataFactory {
       a <- up.db.run {
         DBIO.seq(metadata.fields.map { field =>
           val newField = BoxField_row(
-            form_id = form.form_id.get,
+            form_uuid = form.form_uuid.get,
             `type` = field.`type`,
             name = field.name,
             widget = field.widget,
@@ -73,7 +73,7 @@ object StubMetadataFactory {
         }: _*).transactionally
       }
       fields <- up.db.run {
-        BoxField.BoxFieldTable.filter(_.form_id === form.form_id.get ).result
+        BoxField.BoxFieldTable.filter(_.form_uuid === form.form_uuid.get ).result
       }
       fieldsI18n <- {
         val t1: Future[Seq[Seq[BoxField_i18n_row]]] = Future.sequence(langs.map{ lang =>
@@ -82,7 +82,7 @@ object StubMetadataFactory {
             val field = fields.find(_.name == jsonField.name ).get
 
             val newFieldI18n = BoxField_i18n_row(
-              field_id = field.field_id,
+              field_uuid = field.field_uuid,
               lang = Some(lang._1),
               label = jsonField.label,
               placeholder = jsonField.placeholder,

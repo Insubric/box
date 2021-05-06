@@ -215,7 +215,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         entityData.foreach { x =>
           val isOpen:Boolean = services.clientSession.isTableChildOpen(ClientSession.TableChildElement(
             field.name,
-            metadata.map(_.objId).getOrElse(-1),
+            metadata.map(_.objId).getOrElse(UUID.randomUUID()),
             metadata.flatMap(m => JSONID.fromData(x,m))
           ))
           add(x, isOpen)

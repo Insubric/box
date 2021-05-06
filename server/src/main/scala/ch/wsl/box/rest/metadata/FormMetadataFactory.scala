@@ -1,5 +1,7 @@
 package ch.wsl.box.rest.metadata
 
+import java.util.UUID
+
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgColumns, PgInformationSchema}
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
@@ -36,7 +38,7 @@ object FormMetadataFactory{
    * cache should be resetted when an external field changes
    */
   private val cacheFormName = scala.collection.mutable.Map[(String, String, String),JSONMetadata]()   //(up.name, form id, lang)
-  private val cacheFormId = scala.collection.mutable.Map[(String, Int, String),JSONMetadata]()//(up.name, from name, lang)
+  private val cacheFormId = scala.collection.mutable.Map[(String, UUID, String),JSONMetadata]()//(up.name, from name, lang)
 
   final val STATIC_PAGE = "box_static_page"
 
@@ -71,14 +73,14 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     BoxForm.BoxFormTable.result
   }.map{_.map(_.name)}
 
-  def of(id:Int, lang:String):DBIO[JSONMetadata] = {
+  def of(id:UUID, lang:String):DBIO[JSONMetadata] = {
     val cacheKey = (up.name, id,lang)
     FormMetadataFactory.cacheFormId.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
         logger.info(s"Metadata cache miss! cache key: ($id,$lang), cache: ${FormMetadataFactory.cacheFormName}")
         val formQuery: Query[BoxForm.BoxForm, BoxForm_row, Seq] = for {
-          form <- BoxForm.BoxFormTable if form.form_id === id
+          form <- BoxForm.BoxFormTable if form.form_uuid === id
         } yield form
 
         for {
@@ -146,20 +148,20 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
     import io.circe.generic.auto._
 
-    def fieldQuery(formId:Int) = for{
-      (field,fieldI18n) <- BoxField.BoxFieldTable joinLeft BoxField.BoxField_i18nTable.filter(_.lang === lang) on(_.field_id === _.field_id) if field.form_id === formId
+    def fieldQuery(formId:UUID) = for{
+      (field,fieldI18n) <- BoxField.BoxFieldTable joinLeft BoxField.BoxField_i18nTable.filter(_.lang === lang) on(_.field_uuid === _.field_uuid) if field.form_uuid === formId
     } yield (field,fieldI18n)
 
-    val fQuery = formQuery joinLeft BoxForm.BoxForm_i18nTable.filter(_.lang === lang) on (_.form_id === _.form_id)
+    val fQuery = formQuery joinLeft BoxForm.BoxForm_i18nTable.filter(_.lang === lang) on (_.form_uuid === _.form_uuid)
 
 
     val result = for{
       (form,formI18n) <- fQuery.result.map(_.head)
-      fields <- fieldQuery(form.form_id.get).result
+      fields <- fieldQuery(form.form_uuid.get).result
       fieldsFile <- DBIO.sequence(fields.map { case (f, _) =>
-          BoxField.BoxFieldFileTable.filter(_.field_id === f.field_id).result.headOption
+          BoxField.BoxFieldFileTable.filter(_.field_uuid === f.field_uuid).result.headOption
       })
-      actions <- BoxForm.BoxForm_actions.filter(_.form_id === form.form_id.get).result
+      actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).result
 
       cols <- new PgInformationSchema(services.connection.dbSchema,form.entity)(ec).columns
       columns = fields.map(f => cols.find(_.column_name == f._1.name))
@@ -175,7 +177,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
       logger.info(s"Missing Key fields $missingKeyFields")
 
-      if(formI18n.isEmpty) logger.warn(s"Form ${form.name} (form_id: ${form.form_id}) has no translation to $lang")
+      if(formI18n.isEmpty) logger.warn(s"Form ${form.name} (form_id: ${form.form_uuid}) has no translation to $lang")
 
       val definedTableFields = form.tabularFields.toSeq.flatMap(_.split(",").map(_.trim))
       val missingKeyTableFields = keys.filterNot(k => definedTableFields.contains(k))
@@ -227,7 +229,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
 
       val result = JSONMetadata(
-        form.form_id.get,
+        form.form_uuid.get,
         form.name,
         formI18n.flatMap(_.label).getOrElse(form.name),
         jsonFields,
@@ -260,10 +262,10 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   private def linkedForms(field:BoxField_row,field_i18n_row:Option[BoxField_i18n_row]):DBIO[Option[LinkedForm]] = {
     val linkedFormOpt = for{
-      formId <- field.child_form_id
+      formId <- field.child_form_uuid
     } yield {
       for{
-        lForm <- BoxForm.BoxFormTable.filter(_.form_id === formId).result
+        lForm <- BoxForm.BoxFormTable.filter(_.form_uuid === formId).result
         keys <- keys(lForm(0))
       } yield {
         lForm.map{ value =>
@@ -324,12 +326,12 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String):DBIO[String] = {
 
-    field.child_form_id match {
+    field.child_form_uuid match {
       case None => DBIO.successful(fieldI18n.flatMap(_.label).getOrElse(field.name))
       case Some(subformId) => {
         {
           for{
-            (form,formI18n) <- BoxForm.BoxFormTable joinLeft BoxForm_i18nTable.filter(_.lang === lang) on (_.form_id === _.form_id) if form.form_id === subformId
+            (form,formI18n) <- BoxForm.BoxFormTable joinLeft BoxForm_i18nTable.filter(_.lang === lang) on (_.form_uuid === _.form_uuid) if form.form_uuid === subformId
           } yield (formI18n,form)
         }.result.map{x => x.head._1.flatMap(_.label).getOrElse(x.head._2.name)}
       }
@@ -352,10 +354,10 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         case _ => {}
       }
 
-      BoxForm.BoxFormTable.filter(_.form_id === field.child_form_id.getOrElse(0)).map(_.props).result.map { props =>
+      BoxForm.BoxFormTable.filter(_.form_uuid === field.child_form_uuid.getOrElse(UUID.randomUUID())).map(_.props).result.map { props =>
 
         for {
-          id <- field.child_form_id
+          id <- field.child_form_uuid
           local <- field.masterFields
           remote <- field.childFields
         } yield {
@@ -400,7 +402,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
     val jsonFields = fields.map{ case (((field,fieldI18n),fieldFile),pgColumn) =>
 
-      if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_id}) has no translation to $lang")
+      if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_uuid}) has no translation to $lang")
 
       for{
         look <- lookup(field, fieldI18n, lang)

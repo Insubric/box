@@ -1,5 +1,7 @@
 package ch.wsl.box.client.services
 
+import java.util.UUID
+
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
 import ch.wsl.box.model.shared.{IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
@@ -27,7 +29,7 @@ object ClientSession {
   final val LABELS = "labels"
   final val TABLECHILD_OPEN = "tablechild_open"
 
-  case class TableChildElement(field:String,childFormId:Int,id:Option[JSONID])
+  case class TableChildElement(field:String, childFormId:UUID, id:Option[JSONID])
 }
 
 class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
