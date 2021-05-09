@@ -86,6 +86,7 @@ class Listener(connection:Connection,channel:String,callback: (String) => Future
               callback(n.getParameter).onComplete {
                 case Success(ok) => true
                 case Failure(exception) => {
+                  exception.printStackTrace()
                   logger.error(exception.getMessage)
                   false
                 }

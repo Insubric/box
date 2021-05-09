@@ -22,10 +22,11 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
 
-class Box(name:String,version:String)(implicit val executionContext: ExecutionContext, services: Services) {
+class Box(name:String,version:String)(implicit services: Services) {
   private var server:Http.ServerBinding = null
 
-  implicit val system: ActorSystem = ActorSystem()
+  implicit val executionContext = services.executionContext
+  implicit val system: ActorSystem = services.actorSystem
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
 
@@ -76,7 +77,7 @@ class Box(name:String,version:String)(implicit val executionContext: ExecutionCo
 
 
     //Registring handlers
-    new MailHandler(services.mail).listen()
+    new MailHandler(services.mailDispatcher).listen()
 
     val scheduler = new CronScheduler(system)
     new BoxCronLoader(scheduler).load()
@@ -120,13 +121,9 @@ object Boot extends App  {
 
 
 
-    val executionContext = ExecutionContext.fromExecutor(
-      new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
-    )
-
     module.build[Services] { services =>
       Migrate.all(services.connection)
-      val server = new Box(name, app_version)(executionContext, services)
+      val server = new Box(name, app_version)(services)
       server.start()
     }
   }
