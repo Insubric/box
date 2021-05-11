@@ -1,6 +1,11 @@
 
--- FORMS
+-- Cleaning
+delete from box.field_i18n where id in
+ (select id from box.field_i18n fi
+                     left join box.field f on f.field_id=fi.field_id
+  where f.field_id is null);
 
+-- FORMS
 alter table box.form add column form_uuid uuid not null default gen_random_uuid();
 
 alter table box.form_i18n add column uuid uuid not null default gen_random_uuid();
@@ -60,25 +65,29 @@ where i.field_id = f.field_id;
 
 alter table box.field_file alter column field_uuid set not null;
 
-alter table box.field_i18n drop constraint fkey_field;
+alter table box.field_i18n drop constraint if exists fkey_field;
 alter table box.field_file drop constraint if exists field_file_fielf_id_fk;
-alter table box.field drop constraint fkey_form;
+alter table box.field drop constraint if exists fkey_form;
 alter table box.form_actions drop constraint form_actions_form_form_id_fk;
-alter table box.form_i18n drop constraint fkey_form;
+alter table box.form_i18n drop constraint if exists fkey_form;
 
-alter table box.form drop constraint form_pkey;
+alter table box.form drop constraint if exists form_pkey;
+alter table box.form drop constraint if exists form_pk;
 alter table box.form add constraint form_pkey primary key (form_uuid);
 
-alter table box.field drop constraint field_pkey;
+alter table box.field drop constraint if exists field_pkey;
+alter table box.field drop constraint if exists field_pk;
 alter table box.field add constraint field_pkey primary key (field_uuid);
 alter table box.field add constraint fkey_form foreign key (form_uuid) references box.form (form_uuid) on update cascade on delete cascade;
 alter table box.field add constraint fkey_form_child foreign key (child_form_uuid) references box.form (form_uuid) on update no action on delete no action;
 
-alter table box.field_i18n drop constraint field_i18n_pkey;
-alter table box.field_i18n add constraint field_i18n_pkey primary key (field_uuid);
+alter table box.field_i18n drop constraint if exists field_i18n_pkey;
+alter table box.field_i18n drop constraint if exists field_i18n_pk;
+alter table box.field_i18n add constraint field_i18n_pkey primary key (uuid);
 alter table box.field_i18n add constraint fkey_field foreign key (field_uuid) references box.field (field_uuid) on update cascade on delete cascade;
 
-alter table box.field_file drop constraint field_file_pkey;
+alter table box.field_file drop constraint if exists field_file_pkey;
+alter table box.field_file drop constraint if exists field_file_pk;
 alter table box.field_file add constraint field_file_pkey primary key (field_uuid);
 alter table box.field_file add constraint field_file_fielf_id_fk foreign key (field_uuid) references box.field (field_uuid) on update cascade on delete cascade;
 
@@ -166,7 +175,7 @@ alter table box.function_field add constraint function_field_pkey primary key (f
 alter table box.function_field add constraint fkey_form foreign key (function_uuid) references box.function (function_uuid) on update cascade on delete cascade;
 
 alter table box.function_field_i18n drop constraint function_field_i18n_pkey;
-alter table box.function_field_i18n add constraint function_field_i18n_pkey primary key (field_uuid);
+alter table box.function_field_i18n add constraint function_field_i18n_pkey primary key (uuid);
 alter table box.function_field_i18n add constraint fkey_field foreign key (field_uuid) references box.function_field (field_uuid) on update cascade on delete cascade;
 
 
@@ -242,7 +251,7 @@ alter table box.export_field add constraint export_field_pkey primary key (field
 alter table box.export_field add constraint fkey_form foreign key (export_uuid) references box.export (export_uuid) on update cascade on delete cascade;
 
 alter table box.export_field_i18n drop constraint export_field_i18n_pkey;
-alter table box.export_field_i18n add constraint export_field_i18n_pkey primary key (field_uuid);
+alter table box.export_field_i18n add constraint export_field_i18n_pkey primary key (uuid);
 alter table box.export_field_i18n add constraint fkey_field foreign key (field_uuid) references box.export_field (field_uuid) on update cascade on delete cascade;
 
 
