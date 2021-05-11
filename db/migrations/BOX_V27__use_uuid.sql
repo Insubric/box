@@ -95,7 +95,8 @@ alter table box.form_actions drop constraint form_actions_pk;
 alter table box.form_actions add constraint form_actions_pk primary key (uuid);
 alter table box.form_actions add constraint form_actions_form_form_id_fk foreign key (form_uuid) references box.form (form_uuid) on update cascade on delete cascade;
 
-alter table box.form_i18n drop constraint form_i18n_pkey;
+alter table box.form_i18n drop constraint if exists form_i18n_pkey;
+alter table box.form_i18n drop constraint if exists form_i18n_pk;
 alter table box.form_i18n add constraint form_i18n_pkey primary key (uuid);
 alter table box.form_i18n add constraint fkey_form foreign key (form_uuid) references box.form (form_uuid) on update cascade on delete cascade;
 
@@ -158,7 +159,7 @@ where i.field_id = f.field_id;
 alter table box.function_field_i18n alter column field_uuid set not null;
 
 
-alter table box.function_i18n drop constraint fkey_function;
+alter table box.function_i18n drop constraint if exists fkey_function;
 alter table box.function_field drop constraint if exists fkey_function;
 alter table box.function_field_i18n drop constraint fkey_field;
 
@@ -170,11 +171,11 @@ alter table box.function_i18n drop constraint function_i18n_pkey;
 alter table box.function_i18n add constraint function_i18n_pkey primary key (uuid);
 alter table box.function_i18n add constraint fkey_form foreign key (function_uuid) references box.function (function_uuid) on update cascade on delete cascade;
 
-alter table box.function_field drop constraint function_field_pkey;
+alter table box.function_field drop constraint if exists function_field_pkey;
 alter table box.function_field add constraint function_field_pkey primary key (field_uuid);
 alter table box.function_field add constraint fkey_form foreign key (function_uuid) references box.function (function_uuid) on update cascade on delete cascade;
 
-alter table box.function_field_i18n drop constraint function_field_i18n_pkey;
+alter table box.function_field_i18n drop constraint if exists function_field_i18n_pkey;
 alter table box.function_field_i18n add constraint function_field_i18n_pkey primary key (uuid);
 alter table box.function_field_i18n add constraint fkey_field foreign key (field_uuid) references box.function_field (field_uuid) on update cascade on delete cascade;
 
