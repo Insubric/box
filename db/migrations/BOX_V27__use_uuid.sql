@@ -161,21 +161,26 @@ alter table box.function_field_i18n alter column field_uuid set not null;
 
 alter table box.function_i18n drop constraint if exists fkey_function;
 alter table box.function_field drop constraint if exists fkey_function;
-alter table box.function_field_i18n drop constraint fkey_field;
+alter table box.function_field_i18n drop constraint if exists fkey_field;
 
 
-alter table box.function drop constraint function_pkey;
+alter table box.function drop constraint if exists function_pkey;
+alter table box.function drop constraint if exists function_pk;
 alter table box.function add constraint function_pkey primary key (function_uuid);
 
-alter table box.function_i18n drop constraint function_i18n_pkey;
+alter table box.function_i18n drop constraint if exists function_i18n_pkey;
+alter table box.function_i18n drop constraint if exists function_i18n_pk;
 alter table box.function_i18n add constraint function_i18n_pkey primary key (uuid);
 alter table box.function_i18n add constraint fkey_form foreign key (function_uuid) references box.function (function_uuid) on update cascade on delete cascade;
 
 alter table box.function_field drop constraint if exists function_field_pkey;
+alter table box.function_field drop constraint if exists function_field_pk;
 alter table box.function_field add constraint function_field_pkey primary key (field_uuid);
 alter table box.function_field add constraint fkey_form foreign key (function_uuid) references box.function (function_uuid) on update cascade on delete cascade;
 
 alter table box.function_field_i18n drop constraint if exists function_field_i18n_pkey;
+alter table box.function_field_i18n drop constraint if exists function_field_118n_pk;
+alter table box.function_field_i18n drop constraint if exists function_field_i18n_pk;
 alter table box.function_field_i18n add constraint function_field_i18n_pkey primary key (uuid);
 alter table box.function_field_i18n add constraint fkey_field foreign key (field_uuid) references box.function_field (field_uuid) on update cascade on delete cascade;
 
@@ -235,23 +240,26 @@ where i.field_id = f.field_id;
 
 alter table box.export_field_i18n alter column field_uuid set not null;
 
-alter table box.export_i18n drop constraint fkey_export;
+alter table box.export_i18n drop constraint if exists fkey_export;
 alter table box.export_field drop constraint if exists fkey_export;
-alter table box.export_field_i18n drop constraint fkey_field;
+alter table box.export_field_i18n drop constraint if exists fkey_field;
 
 
-alter table box.export drop constraint export_pkey;
+alter table box.export drop constraint if exists export_pkey;
 alter table box.export add constraint export_pkey primary key (export_uuid);
 
-alter table box.export_i18n drop constraint export_i18n_pkey;
+alter table box.export_i18n drop constraint if exists export_i18n_pk;
+alter table box.export_i18n drop constraint if exists export_i18n_pkey;
 alter table box.export_i18n add constraint export_i18n_pkey primary key (uuid);
 alter table box.export_i18n add constraint fkey_form foreign key (export_uuid) references box.export (export_uuid) on update cascade on delete cascade;
 
-alter table box.export_field drop constraint export_field_pkey;
+alter table box.export_field drop constraint if exists export_field_pk;
+alter table box.export_field drop constraint if exists export_field_pkey;
 alter table box.export_field add constraint export_field_pkey primary key (field_uuid);
 alter table box.export_field add constraint fkey_form foreign key (export_uuid) references box.export (export_uuid) on update cascade on delete cascade;
 
-alter table box.export_field_i18n drop constraint export_field_i18n_pkey;
+alter table box.export_field_i18n drop constraint if exists export_field_i18n_pkey;
+alter table box.export_field_i18n drop constraint if exists export_field_i18n_pk;
 alter table box.export_field_i18n add constraint export_field_i18n_pkey primary key (uuid);
 alter table box.export_field_i18n add constraint fkey_field foreign key (field_uuid) references box.export_field (field_uuid) on update cascade on delete cascade;
 
@@ -296,6 +304,7 @@ alter table box.news_i18n drop column news_id;
 
 alter table box.ui_src add column uuid uuid not null default gen_random_uuid();
 
-alter table box.ui_src drop constraint ui_src_pkey;
+alter table box.ui_src drop constraint if exists ui_src_pkey;
+alter table box.ui_src drop constraint if exists ui_src_pk;
 alter table box.ui_src add constraint ui_src_pkey primary key (uuid);
 alter table box.ui_src drop column id;
