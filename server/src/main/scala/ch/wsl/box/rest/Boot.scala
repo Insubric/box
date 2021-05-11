@@ -23,7 +23,6 @@ import scala.concurrent.duration._
 
 
 class Box(name:String,version:String)(implicit services: Services) {
-  private var server:Http.ServerBinding = null
 
   implicit val executionContext = services.executionContext
   implicit val system: ActorSystem = services.actorSystem
@@ -31,20 +30,6 @@ class Box(name:String,version:String)(implicit services: Services) {
 
 
 
-
-  def restart():Unit = {
-    if(server != null) {
-      server.terminate(5.seconds).map{ _ =>
-        start()
-      }
-    }
-  }
-
-  def stop() = {
-    if(server != null) {
-      server.unbind().onComplete(_ => system.terminate())
-    }
-  }
 
 
 
@@ -85,24 +70,28 @@ class Box(name:String,version:String)(implicit services: Services) {
     for{
       //pl <- preloading
       //_ <- pl.terminate(1.seconds)
-      b <- Http().bindAndHandle(Root(s"$name $version",akkaConf,() => this.restart(), origins).route, host, port) //attach the root route
+      binding <- Http().bindAndHandle(Root(s"$name $version",akkaConf, origins).route, host, port) //attach the root route
     } yield {
       println(
         s"""
-          |===================================
-          |
-          |    _/_/_/      _/_/    _/      _/
-          |   _/    _/  _/    _/    _/  _/
-          |  _/_/_/    _/    _/      _/
-          | _/    _/  _/    _/    _/  _/
-          |_/_/_/      _/_/    _/      _/
-          |
-          |===================================
-          |
-          |Box server started at http://$host:$port
-          |
-          |""".stripMargin)
-      server = b
+           |===================================
+           |
+           |    _/_/_/      _/_/    _/      _/
+           |   _/    _/  _/    _/    _/  _/
+           |  _/_/_/    _/    _/      _/
+           | _/    _/  _/    _/    _/  _/
+           |_/_/_/      _/_/    _/      _/
+           |
+           |===================================
+           |
+           |Box server started at http://$host:$port
+
+           |""".stripMargin)
+      binding.whenTerminationSignalIssued.map{ _ =>
+        println("Shutting down server...")
+        services.connection.close()
+        println("DB connections closed")
+      }
     }
 
 

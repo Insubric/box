@@ -27,6 +27,7 @@ object DropBox {
 
     DefaultModule.injector.build[Services] { services =>
       Await.result(fut(services.connection.dbConnection),10 seconds)
+      services.connection.close()
     }
   }
 

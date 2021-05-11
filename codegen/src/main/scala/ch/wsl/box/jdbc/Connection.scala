@@ -11,6 +11,8 @@ import slick.dbio.{DBIOAction, NoStream}
 import slick.jdbc.{ResultSetConcurrency, ResultSetType}
 import slick.sql.SqlAction
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import javax.sql.DataSource
+import org.postgresql.ds.PGSimpleDataSource
 
 import scala.concurrent.{Await, ExecutionContext}
 
@@ -24,7 +26,12 @@ trait Connection extends Logging {
   def adminUser:String
   def dbSchema:String
   def dbPath:String
+  def dataSource(): DataSource
   //val executor = AsyncExecutor("public-executor",50,50,10000,50)
+
+
+
+  def close():Unit
 
 
 
@@ -78,7 +85,18 @@ class ConnectionConfImpl extends Connection {
   }
 
 
+
+
   println(s"DB: $dbPath")
+
+  override def dataSource(): DataSource = {
+    val ds = new PGSimpleDataSource()
+    ds.setUrl(dbPath)
+    ds.setUser(adminUser)
+    ds.setPassword(dbPassword)
+    ds.setApplicationName("BOX Temp datasource")
+    ds
+  }
 
   /**
     * Admin DB connection, useful for quering the information Schema
@@ -95,5 +113,8 @@ class ConnectionConfImpl extends Connection {
     .withValue("numThreads", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("connectionPool", connectionPool)
+    .withValue("ApplicationName",ConfigValueFactory.fromAnyRef("BOX Connections"))
   )
+
+  override def close(): Unit = dbConnection.close()
 }

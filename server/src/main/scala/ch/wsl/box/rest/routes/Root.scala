@@ -33,7 +33,7 @@ import scala.util.{Failure, Success}
 /**
   * Created by andreaminetti on 15/03/16.
   */
-case class Root(appVersion:String,akkaConf:Config, restart: () => Unit, origins:Seq[String])(implicit materializer:Materializer,executionContext:ExecutionContext,system: ActorSystem,services: Services) extends Logging {
+case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit materializer:Materializer,executionContext:ExecutionContext,system: ActorSystem,services: Services) extends Logging {
 
   import ch.wsl.box.jdbc.Connection
 
@@ -62,16 +62,6 @@ case class Root(appVersion:String,akkaConf:Config, restart: () => Unit, origins:
     }
   }
 
-
-  def resetServer = pathPrefix("server") {
-    path("reset") {
-      restart()
-      complete(
-        HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,"restart server"))
-      )
-    }
-  }
-
   def resetCache = pathPrefix("cache") {
     path("reset") {
       Cache.reset()
@@ -84,7 +74,6 @@ case class Root(appVersion:String,akkaConf:Config, restart: () => Unit, origins:
   val route:Route = UI.clientFiles ~
     encodeResponseWith(Gzip.withLevel(6)) {
       status ~
-        resetServer ~
         resetCache ~
         cors.handle {
           ApiV1(appVersion).route

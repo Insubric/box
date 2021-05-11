@@ -152,7 +152,7 @@ object CustomizedCodeGenerator  {
 
     boxFiles.registry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","","GenRegistry.scala")
 
-
+    connection.close()
 
   }
 
