@@ -96,7 +96,7 @@ object FormUIDef {
   )
 
 
-  val page = JSONMetadata(
+  def page(users:Seq[BoxUser_row]) = JSONMetadata(
     objId = PAGE,
     name = "page",
     label = "Pages - Interface builder",
@@ -109,6 +109,12 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"entity",false,
         widget = Some(WidgetsNames.inputDisabled),
         default = Some(FormMetadataFactory.STATIC_PAGE)
+      ),
+      JSONField(JSONFieldTypes.STRING,"guest_user",true,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          users.map(x => JSONLookup(x.username,x.username))
+        ))
       ),
       JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
         widget = Some(WidgetsNames.hidden),
@@ -123,7 +129,7 @@ object FormUIDef {
         LayoutBlock(None,8,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description","show_navigation","props").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description","show_navigation","props","guest_user").map(Left(_)))
             ),
           ))
         ).map(Right(_))),

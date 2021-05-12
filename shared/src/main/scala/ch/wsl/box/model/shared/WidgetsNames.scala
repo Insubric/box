@@ -39,6 +39,7 @@ object WidgetsNames {
   val fileWithPreview = "fileWithPreview"
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
+  val langWidget = "langWidget"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -71,6 +72,7 @@ object WidgetsNames {
       popup,
       hidden,
       dynamicWidget,
+      langWidget
     ),
     CHILD -> Seq(
       simpleChild,

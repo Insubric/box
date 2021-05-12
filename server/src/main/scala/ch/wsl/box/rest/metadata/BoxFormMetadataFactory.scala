@@ -33,7 +33,7 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     users <- getUsers()
   } yield Seq(
     FormUIDef.main(tablesAndViews,users.sortBy(_.username)),
-    FormUIDef.page,
+    FormUIDef.page(users.sortBy(_.username)),
     FormUIDef.field(tablesAndViews),
     FormUIDef.field_childs(forms.sortBy(_.name)),
     FormUIDef.field_static(tablesAndViews),
