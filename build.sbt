@@ -146,6 +146,7 @@ lazy val client: Project = (project in file("client"))
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "ol-ext",
+    stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
     fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "dev.config.js"),
