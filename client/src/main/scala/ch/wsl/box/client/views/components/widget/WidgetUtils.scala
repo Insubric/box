@@ -6,7 +6,7 @@ import ch.wsl.box.model.shared.JSONField
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
-import io.udash.produce
+import io.udash.{ReadableProperty, produce}
 import io.udash.properties.single.Property
 import org.scalajs.dom
 import org.scalajs.dom.Element
@@ -21,7 +21,7 @@ object WidgetUtils extends Logging{
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
 
-  def showNotNull(prop:Property[Json])(f: Json => Seq[Element]):Binding = produce(prop, checkNull=false) {   //todo verify what changes with checkNull=false
+  def showNotNull(prop:ReadableProperty[Json])(f: Json => Seq[Element]):Binding = produce(prop, checkNull=false) {   //todo verify what changes with checkNull=false
     case Json.Null => Seq()
     case p:Json =>  f(p)
   }

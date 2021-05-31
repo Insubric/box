@@ -7,12 +7,11 @@ import ch.wsl
 import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.{Connection, FullDatabase, PostgresProfile}
-import io.circe._
+import io.circe.{Json, JsonNumber, _}
 import io.circe.syntax._
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.routes.enablers.CSVDownload
 import ch.wsl.box.rest.utils.{Timer, UserProfile}
-import io.circe.Json
 import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
@@ -21,6 +20,7 @@ import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.DateTimeFormatters
+import io.circe.Json.JNumber
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -82,12 +82,13 @@ case class FormActions(metadata:JSONMetadata,
 
       val format = field.params.flatMap(_.getOpt("format"))
 
-      field.`type` match {
-        case JSONFieldTypes.DATETIME if format.isDefined => DateTimeFormatters.timestamp.parse(json.get(field.name)) match {
+      (field.`type`,field.widget) match {
+        case (JSONFieldTypes.DATETIME,_) if format.isDefined => DateTimeFormatters.timestamp.parse(json.get(field.name)) match {
           case Some(value) => DateTimeFormatters.timestamp.format(value,format).asJson
           case None => json.js(field.name)
         }
-        case _ => json.js(field.name)
+        case (_,Some(WidgetsNames.integerDecimal2)) => json.js(field.name).withNumber(n => "%.2f".format((n.toDouble / 100.0)).asJson)
+        case (_,_) => json.js(field.name)
       }
     }
 

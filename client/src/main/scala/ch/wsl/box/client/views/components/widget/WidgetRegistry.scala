@@ -28,6 +28,7 @@ object WidgetRegistry extends Logging {
     LookupLabelWidget,
 
     InputWidgetFactory.Input,
+    InputWidgetFactory.IntegerDecimal2,
     InputWidgetFactory.InputDisabled,
     InputWidgetFactory.TwoLines,
     InputWidgetFactory.TextArea,

@@ -25,6 +25,11 @@ object InputWidgetFactory {
     override def create(params: WidgetParams): Widget = new InputWidget.Input(params.field, params.prop)
   }
 
+  object IntegerDecimal2 extends ComponentWidgetFactory {
+    override def name: String = WidgetsNames.integerDecimal2
+    override def create(params: WidgetParams): Widget = new InputWidget.IntegerDecimal2(params.field, params.prop)
+  }
+
   object InputDisabled extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.inputDisabled
     override def create(params: WidgetParams): Widget = new InputWidget.TextDisabled(params.field, params.prop)
@@ -53,7 +58,7 @@ object InputWidget extends Logging {
 
 
   //used in read-only mode
-  private def showMe(prop:Property[Json], field:JSONField, withLabel:Boolean, modifiers:Seq[Modifier] = Seq()):Binding = WidgetUtils.showNotNull(prop){ p =>
+  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean, modifiers:Seq[Modifier] = Seq()):Binding = WidgetUtils.showNotNull(prop){ p =>
 
     val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
 
@@ -162,6 +167,57 @@ object InputWidget extends Logging {
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
       TextInput(stringModel)(ClientConf.style.simpleInput).render
     }
+  }
+
+  class IntegerDecimal2(val field:JSONField, val data: Property[Json]) extends Widget with HasData {
+
+    val modifiers:Seq[Modifier] = Seq()
+
+    val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
+
+    def fromString(s:String) =   s match {
+      case "" => Json.Null
+      case _ => (s.toDouble * 100).toInt.asJson
+    }
+
+    def toString(js:Json):String = {
+      js.as[Int] match {
+        case Left(_) if js == Json.Null => ""
+        case Left(_) => {
+          logger.error(s"$js is not an integer")
+          ""
+        }
+        case Right(value) =>{
+          "%.2f".format(value / 100.0)
+        }
+      }
+    }
+
+    override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+      val stringModel = Property("")
+      autoRelease(data.sync[String](stringModel)(toString _,fromString _))
+      NumberInput(stringModel)((y ++ Seq(step := "0.01")):_*).render
+    })
+
+    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data.transform{ js =>
+      if(js.isNumber) {
+        js.as[Double].toOption.map(x => "%.2f".format(x / 100.0).asJson).getOrElse(Json.Null)
+      } else js
+    }, field, !noLabel))
+
+
+    override def editOnTable(): JsDom.all.Modifier = {
+      val stringModel = Property("")
+      autoRelease(data.sync[String](stringModel)(toString _,fromString _))
+      NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01").render
+    }
+
+    override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform{ js =>
+      if(js.isNumber) {
+        js.as[Double].toOption.map(x => "%.2f".format(x / 100.0)).getOrElse("")
+      } else ""
+    }))
+
   }
 
 }
