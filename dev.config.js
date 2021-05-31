@@ -6,7 +6,7 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const WebApp = Merge(ScalaJS, {
     mode: "development",
     output: {
-        filename: "box-app.js",
+        filename: "box-app-dev.js",
         publicPath: "bundle/"
     },
     module: {
