@@ -7,7 +7,7 @@ import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
+import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import com.avsystem.commons.BSeq
@@ -151,13 +151,14 @@ object EditableTable extends ChildRendererFactory {
         }
     }
 
-    def colContentWidget(childWidget:ChildRow, field:JSONField, metadata:JSONMetadata):Widget = {
+    def colContentWidget(childWidget:ChildRow, field:JSONField, metadata:JSONMetadata):(WidgetParams,Widget) = {
       val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
-      widgetFactory.create(WidgetParams(
+      val params = WidgetParams(
         id = childWidget.rowId.transform(_.map(_.asString)),
         prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
         field = field, metadata = metadata, _allData = childWidget.widget.data, children = Seq()
-      ))
+      )
+      (params,widgetFactory.create(params))
     }
 
     def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
@@ -175,7 +176,7 @@ object EditableTable extends ChildRendererFactory {
         entity.get.toSeq.map{ row =>
           val childWidget = childWidgets.find(_.id == row).get
           f.map { field =>
-            val widget = colContentWidget(childWidget, field, metadata)
+            val (_,widget) = colContentWidget(childWidget, field, metadata)
             val result = widget.text().get
             widget.killWidget()
             result
@@ -310,11 +311,14 @@ object EditableTable extends ChildRendererFactory {
 
                   tr(tableStyle.tr,
                     for (field <- f) yield {
-                      val widget = colContentWidget(childWidget,field,m)
+                      val (params,widget) = colContentWidget(childWidget,field,m)
 
 
                       showIfCondition(field) {
-                        td(if (field.readOnly) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
+                        td(if (
+                          field.readOnly ||
+                            WidgetUtils.isKeyNotEditable(m,field,params.id.get)
+                          ) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
                         )
                       }
                     },

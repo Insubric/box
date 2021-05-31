@@ -90,18 +90,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   private def widgetSelector(field: JSONField, id:Property[Option[String]], fieldData:Property[Json]): Widget = {
 
-    val isKeyNotEditable:Boolean = {
-      metadata.keys.contains(field.name) &&  //check if field is a key
-        (
-          id.get.isDefined ||                //if it's an existing record the key cannot be changed, it would be a new record
-          (
-            metadata.keyStrategy == SurrugateKey &&
-            !( ClientConf.manualEditKeyFields || ClientConf.manualEditSingleKeyFields.contains(metadata.entity + "." + field.name))
-          )
-        )
-    }
 
-    val _field:JSONField = isKeyNotEditable match {
+
+    val _field:JSONField = WidgetUtils.isKeyNotEditable(metadata,field,id.get) match {
       case true => field.copy(readOnly = true)
       case false => field
     }

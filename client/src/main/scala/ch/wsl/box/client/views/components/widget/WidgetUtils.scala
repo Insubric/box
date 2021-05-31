@@ -2,11 +2,11 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.GlobalStyles
-import ch.wsl.box.model.shared.JSONField
+import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SurrugateKey}
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
-import io.udash.{ReadableProperty, produce}
+import io.udash.{Property, ReadableProperty, produce}
 import io.udash.properties.single.Property
 import org.scalajs.dom
 import org.scalajs.dom.Element
@@ -66,6 +66,17 @@ object WidgetUtils extends Logging{
       case true => Seq.empty
       case false => Seq(required := "required",ClientConf.style.notNullable)
     }
+  }
+
+  def isKeyNotEditable(metadata:JSONMetadata,field:JSONField,id:Option[String]):Boolean = {
+    metadata.keys.contains(field.name) &&  //check if field is a key
+      (
+        id.isDefined ||                //if it's an existing record the key cannot be changed, it would be a new record
+          (
+            metadata.keyStrategy == SurrugateKey &&
+              !( ClientConf.manualEditKeyFields || ClientConf.manualEditSingleKeyFields.contains(metadata.entity + "." + field.name))
+            )
+        )
   }
 
 }
