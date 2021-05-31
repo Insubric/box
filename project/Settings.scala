@@ -156,7 +156,7 @@ object Settings {
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.apache.tika" % "tika-core" % "1.25",
-    "com.sksamuel.scrimage" % "scrimage-core" % "4.0.12",
+    "com.sksamuel.scrimage" % "scrimage-core" % "4.0.12"  exclude("ch.qos.logback","logback-classic"),
     "org.graalvm.js" % "js" % "20.2.0",
     "org.javadelight" % "delight-graaljs-sandbox" % "0.1.2",
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
