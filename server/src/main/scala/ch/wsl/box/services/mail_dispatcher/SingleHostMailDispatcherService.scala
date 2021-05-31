@@ -13,7 +13,9 @@ class SingleHostMailDispatcherService(actorSystem:ActorSystem,connection:Connect
 
   val dispatcher:ActorRef = actorSystem.actorOf(Props(classOf[SingleHostMailDispatcherActor],connection,mailService,executionContext),"box-mail-dispatcher")
 
-  val scheduler = actorSystem.scheduler.scheduleWithFixedDelay(Duration.Zero, 5.minutes, dispatcher, Messages.CheckNow)
+  override def start(): Unit = {
+    actorSystem.scheduler.scheduleWithFixedDelay(Duration.Zero, 5.minutes, dispatcher, Messages.CheckNow)
+  }
 
   override def dispatchNow(): Unit = dispatcher ! Messages.CheckNow
 

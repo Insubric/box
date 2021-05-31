@@ -56,7 +56,7 @@ object Settings {
     val circe = "0.13.0"
 
     //database
-    val postgres = "42.2.11"
+    val postgres = "42.2.20"
     val slick = "3.3.3"
     val slickPg = "0.19.3"
 
@@ -152,7 +152,7 @@ object Settings {
     "org.arakhne.afc.advanced" % "shapefile" % "16.0", // version 17 requires JDK 11
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
-    "org.flywaydb" % "flyway-core" % "7.1.1",
+    "org.flywaydb" % "flyway-core" % "7.9.1",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.apache.tika" % "tika-core" % "1.25",

@@ -20,8 +20,6 @@ object Migrate {
 
   def box(connection:Connection) = {
 
-
-
     val flyway = Flyway.configure()
       .baselineOnMigrate(true)
       .sqlMigrationPrefix("BOX_V")
@@ -31,10 +29,12 @@ object Migrate {
       .defaultSchema(BoxSchema.schema.get)
       .table("flyway_schema_history_box")
       .locations("migrations")
+      .ignoreMissingMigrations(true)
       .dataSource(connection.dataSource())
       .load()
 
-    flyway.migrate()
+    val result = flyway.migrate()
+    result
 
   }
 
@@ -49,7 +49,8 @@ object Migrate {
       .dataSource(connection.dataSource())
       .load()
 
-    flyway.migrate()
+    val result = flyway.migrate()
+    result
   }
 
   def all(connection:Connection) = {

@@ -38,6 +38,9 @@ class Box(name:String,version:String)(implicit services: Services) {
 
     BoxConfig.load(services.connection.adminDB)
 
+    services.mailDispatcher.start()
+    services.notificationChannels.start()
+
 
     val akkaConf: Config = BoxConfig.akkaHttpSession
 
@@ -116,10 +119,12 @@ object Boot extends App  {
       val server = new Box(name, app_version)(services)
       implicit val executionContext = services.executionContext
 
-      for{
-        _ <- Migrate.all(services.connection)
-        res <- server.start()
-      } yield res
+      {
+        for {
+          _ <- Migrate.all(services.connection)
+          res <- server.start()
+        } yield res
+      }.recover{ case t => t.printStackTrace() }
 
     }
   }
