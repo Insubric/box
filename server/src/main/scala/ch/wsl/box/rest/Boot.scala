@@ -71,28 +71,30 @@ class Box(name:String,version:String)(implicit services: Services) {
       //pl <- preloading
       //_ <- pl.terminate(1.seconds)
       binding <- Http().bindAndHandle(Root(s"$name $version",akkaConf, origins).route, host, port) //attach the root route
-    } yield {
-      println(
-        s"""
-           |===================================
-           |
-           |    _/_/_/      _/_/    _/      _/
-           |   _/    _/  _/    _/    _/  _/
-           |  _/_/_/    _/    _/      _/
-           | _/    _/  _/    _/    _/  _/
-           |_/_/_/      _/_/    _/      _/
-           |
-           |===================================
-           |
-           |Box server started at http://$host:$port
+      res <- {
+        println(
+          s"""
+             |===================================
+             |
+             |    _/_/_/      _/_/    _/      _/
+             |   _/    _/  _/    _/    _/  _/
+             |  _/_/_/    _/    _/      _/
+             | _/    _/  _/    _/    _/  _/
+             |_/_/_/      _/_/    _/      _/
+             |
+             |===================================
+             |
+             |Box server started at http://$host:$port
 
-           |""".stripMargin)
-      binding.whenTerminationSignalIssued.map{ _ =>
-        println("Shutting down server...")
-        services.connection.close()
-        println("DB connections closed")
+             |""".stripMargin)
+        binding.whenTerminationSignalIssued.map{ _ =>
+          println("Shutting down server...")
+          services.connection.close()
+          println("DB connections closed")
+          true
+        }
       }
-    }
+    } yield res
 
 
   }
@@ -111,9 +113,14 @@ object Boot extends App  {
 
 
     module.build[Services] { services =>
-      Migrate.all(services.connection)
       val server = new Box(name, app_version)(services)
-      server.start()
+      implicit val executionContext = services.executionContext
+
+      for{
+        _ <- Migrate.all(services.connection)
+        res <- server.start()
+      } yield res
+
     }
   }
 
