@@ -12,6 +12,7 @@ import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.ColType
+import slick.lifted.{OptionLift, Rep}
 
 import scala.util.{Failure, Try}
 
@@ -27,6 +28,8 @@ trait DbFilters {
   def in(c:Col,v:String):Rep[Option[Boolean]]
   def notin(c:Col,v:String):Rep[Option[Boolean]]
   def between(c:Col,v:String):Rep[Option[Boolean]]
+  def isNull[T,P](c:Col):Rep[Option[Boolean]]
+  def isNotNull[T,P](c:Col):Rep[Option[Boolean]]
 
   def operator(op:String)(c:Col,q:JSONQueryFilter) ={
 
@@ -43,6 +46,8 @@ trait DbFilters {
       case Filter.IN      => in(c, q.value)
       case Filter.NOTIN   => notin(c, q.value)
       case Filter.BETWEEN => between(c, q.value)
+      case Filter.IS_NULL => isNull(c)
+      case Filter.IS_NOT_NULL => isNotNull(c)
     }
   }
 
@@ -469,4 +474,35 @@ trait DBFiltersImpl extends DbFilters with Logging {
 
   }
 
+  override def isNull[T, P](c: Col): Rep[Option[Boolean]] = {
+    typ(c.`type`) match {
+      case `typOptSHORT` =>  c.rep.asInstanceOf[Rep[Option[Short]]].isEmpty
+      case `typOptDOUBLE` => c.rep.asInstanceOf[Rep[Option[Double]]].isEmpty
+      case `typOptBIGDECIMAL` => c.rep.asInstanceOf[Rep[Option[BigDecimal]]].isEmpty
+      case `typOptINT` => c.rep.asInstanceOf[Rep[Option[Int]]].isEmpty
+      case `typOptLONG` => c.rep.asInstanceOf[Rep[Option[Long]]].isEmpty
+      case `typOptSTRING` => c.rep.asInstanceOf[Rep[Option[String]]].isEmpty
+      case `typOptBOOLEAN` => c.rep.asInstanceOf[Rep[Option[Boolean]]].isEmpty
+      case `typOptTIMESTAMP` => c.rep.asInstanceOf[Rep[Option[java.time.LocalDateTime]]].isEmpty
+      case `typOptDATE` => c.rep.asInstanceOf[Rep[Option[java.time.LocalDate]]].isEmpty
+      case `typOptTIME` => c.rep.asInstanceOf[Rep[Option[java.time.LocalTime]]].isEmpty
+      case `typOptUUID` => c.rep.asInstanceOf[Rep[Option[java.util.UUID]]].isEmpty
+    }
+  }
+
+  override def isNotNull[T, P](c: Col): Rep[Option[Boolean]] = {
+    typ(c.`type`) match {
+      case `typOptSHORT` =>  c.rep.asInstanceOf[Rep[Option[Short]]].isDefined
+      case `typOptDOUBLE` => c.rep.asInstanceOf[Rep[Option[Double]]].isDefined
+      case `typOptBIGDECIMAL` => c.rep.asInstanceOf[Rep[Option[BigDecimal]]].isDefined
+      case `typOptINT` => c.rep.asInstanceOf[Rep[Option[Int]]].isDefined
+      case `typOptLONG` => c.rep.asInstanceOf[Rep[Option[Long]]].isDefined
+      case `typOptSTRING` => c.rep.asInstanceOf[Rep[Option[String]]].isDefined
+      case `typOptBOOLEAN` => c.rep.asInstanceOf[Rep[Option[Boolean]]].isDefined
+      case `typOptTIMESTAMP` => c.rep.asInstanceOf[Rep[Option[java.time.LocalDateTime]]].isDefined
+      case `typOptDATE` => c.rep.asInstanceOf[Rep[Option[java.time.LocalDate]]].isDefined
+      case `typOptTIME` => c.rep.asInstanceOf[Rep[Option[java.time.LocalTime]]].isDefined
+      case `typOptUUID` => c.rep.asInstanceOf[Rep[Option[java.util.UUID]]].isDefined
+    }
+  }
 }
