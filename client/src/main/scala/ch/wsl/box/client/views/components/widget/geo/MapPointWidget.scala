@@ -44,11 +44,19 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
   val x:Property[String] = Property("")
   val y:Property[String] = Property("")
 
+  val noLabel = field.params.exists(_.js("nolabel") == Json.True)
+  val useXY = field.params.exists(_.js("useXY") == Json.True)
+  val coordinateLabel = field.params.flatMap(_.getOpt("coordinateLabel")).map(x => s"[$x]").getOrElse("")
+
   val textPoint = x.combine(y){ case (x,y) =>
-    s"lat: $y lng: $x"
+    useXY match {
+      case true => s"x: $x y: $y $coordinateLabel"
+      case false => s"lat: $y lng: $x $coordinateLabel"
+    }
+
   }
 
-  val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
+
 
   autoRelease(data.sync(geometry)(js => js.as[Geometry].toOption,point => point.asJson))
 
@@ -147,12 +155,23 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
       }
     }
 
+    val xInput = NumberInput(x)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))
+    val yInput = NumberInput(y)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))
+
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       if(noLabel) frag() else WidgetUtils.toLabel(field)," ",
       div(
         display.`inline-block`,
-        " Lat: ",NumberInput(y)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable)),
-        " Lng: ",NumberInput(x)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))," ",
+        useXY match {
+          case false => Seq[Modifier](
+            s"$coordinateLabel Lat: ",yInput,
+            " Lng: ",xInput," "
+          )
+          case true => Seq[Modifier](
+            s"$coordinateLabel x: ",xInput,
+            s" y: ",yInput," "
+          )
+        },
         WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value,paddingTop := 0.px, paddingBottom := 0.px)(
           onclick :+= {(e: Event) =>
             dom.window.navigator.geolocation.getCurrentPosition{ position =>
