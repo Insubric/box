@@ -54,7 +54,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderStyle.solid,
       borderWidth(0 px,0 px,1 px,0 px),
       borderRadius.`0`,
-      borderColor(rgb(169, 169, 169)),
+      borderColor(Colors.GreySemi),
       height(23 px),
       backgroundColor.transparent,
       Font.regular,
@@ -76,7 +76,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderWidth(0 px,0 px,1 px,0 px),
       borderRadius.`0`,
       backgroundColor.white,
-      borderColor(rgb(169, 169, 169)),
+      borderColor(Colors.GreySemi),
       height(23 px),
       Font.regular,
       paddingLeft(5 px),
@@ -125,7 +125,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderWidth(1 px),
       borderRadius.`0`,
       backgroundColor.white,
-      borderColor(rgb(169, 169, 169)),
+      borderColor(Colors.GreySemi),
       resize.vertical,
       media.maxWidth(600 px)( //disable autozoom
         fontSize(16 px)
@@ -169,7 +169,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderWidth(1 px),
       borderRadius.`0`,
       backgroundColor.white,
-      borderColor(rgb(169, 169, 169))
+      borderColor(Colors.GreySemi)
     ),
 
     unsafeRoot(".modal") (
@@ -491,7 +491,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     borderStyle.solid,
     borderWidth(0 px,0 px,1 px,0 px),
     borderRadius.`0`,
-    borderColor(rgb(169, 169, 169)),
+    borderColor(Colors.GreySemi),
     minHeight(23 px),
     backgroundColor.transparent,
     cursor.pointer,
@@ -597,7 +597,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     borderStyle.solid,
     borderWidth(1 px),
     borderRadius.`0`,
-    borderColor(rgb(169, 169, 169)),
+    borderColor(Colors.GreySemi),
     marginBottom(10 px)
   )
 
@@ -662,6 +662,39 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginLeft.auto,
     marginTop(20 px),
     marginRight.auto,
+  )
+
+  val tristateCheckBox = style(
+    backgroundColor(c"#fff"),
+    borderStyle.solid,
+    borderWidth(1 px),
+    borderColor(Colors.GreySemi),
+    cursor.pointer,
+    display.inlineBlock,
+    height(20 px),
+    width(20 px),
+    marginLeft(10 px),
+    textAlign.center,
+    verticalAlign.middle,
+    unsafeChild("svg")(
+      marginTop(-4 px),
+      svgStroke(c"#fff")
+    )
+  )
+
+  val tristatePositive = style(
+    backgroundColor(c"#4aca65"),
+    borderColor(c"#43b45b")
+  )
+
+  val tristateNegative = style(
+    backgroundColor(c"#dc4e4e"),
+    borderColor(c"#c74545")
+  )
+
+  val label50 = style(
+    width(50 %%),
+    display.inlineBlock
   )
 
 //  val fixedHeader = style(
