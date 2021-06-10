@@ -14,6 +14,7 @@ object WidgetsNames {
   val datetimePicker = "datetimePicker"
   val select = "selectWidget"
   val checkbox = "checkbox"
+  val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
   val twoLines = "twoLines"
   val popup = "popup"
@@ -114,6 +115,7 @@ object WidgetsNames {
     ),
     BOOLEAN -> Seq(
       checkbox,
+      tristateCheckbox,
       hidden,
       dynamicWidget,
     ),
