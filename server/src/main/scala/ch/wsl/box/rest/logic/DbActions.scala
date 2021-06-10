@@ -20,6 +20,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
+import io.circe.Json
 
 /**
   * Created by andreaminetti on 15/03/16.
@@ -168,6 +169,14 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     resetMetadataCache()
     filter(id).update(e).transactionally
   }
+
+
+//  override def updateField(id: JSONID, fieldName: String, value: Json): Unit = {
+//    entity.baseTableRow.typ(fieldName).name match {
+//      case
+//    }
+//    filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Int]]).update(1)
+//  }
 
   def updateIfNeeded(id:JSONID, e:M) = {
     logger.info(s"UPDATE IF NEEDED BY ID $id")

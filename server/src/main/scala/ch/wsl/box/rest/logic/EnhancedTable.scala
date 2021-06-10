@@ -10,6 +10,7 @@ import ch.wsl.box.model.shared.{JSONSort, Sort}
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.rest.utils.UserProfile
+import slick.ast.ScalaBaseType
 
 import scala.concurrent.ExecutionContext
 
@@ -46,16 +47,19 @@ object EnhancedTable  extends Logging {
       }
 
 
-      private def rep(field: String) = rm.reflect(t).reflectMethod(accessor(field)).apply().asInstanceOf[ch.wsl.box.jdbc.PostgresProfile.api.Rep[_]]
+      private def rep(field: String,t:ColType) = {
+        rm.reflect(t).reflectMethod(accessor(field)).apply().asInstanceOf[ch.wsl.box.jdbc.PostgresProfile.api.Rep[t.ColT]]
+      }
 
-      def col(field: String)(implicit ec: ExecutionContext): Col = {
+      def col(field: String) = {
+        val t = typ(field)
         Col(
-          rep(field),
-          typ(field)
+          rep(field,t),
+          t
         )
       }
 
-      def typ(field: String) = {
+      def typ(field: String):ColType = {
         EntityMetadataFactory.fieldType(t.tableName, field)
       }
 

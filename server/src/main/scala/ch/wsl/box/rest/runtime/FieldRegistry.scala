@@ -1,6 +1,13 @@
 package ch.wsl.box.rest.runtime
 
-case class ColType(name:String,jsonType:String,nullable:Boolean)
+import slick.ast.{BaseTypedType, ScalaBaseType}
+import ch.wsl.box.jdbc.PostgresProfile.api._
+
+import scala.reflect.ClassTag
+
+case class ColType(name:String,jsonType:String,nullable:Boolean){
+    type ColT = String
+}
 
 trait FieldRegistry {
 
