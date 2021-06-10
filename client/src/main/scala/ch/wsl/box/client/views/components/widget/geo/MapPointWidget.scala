@@ -159,7 +159,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val yInput = NumberInput(y)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if(noLabel) frag() else WidgetUtils.toLabel(field)," ",
+      div(ClientConf.style.label50,if(noLabel) frag() else WidgetUtils.toLabel(field)),
       div(
         display.`inline-block`,
         useXY match {

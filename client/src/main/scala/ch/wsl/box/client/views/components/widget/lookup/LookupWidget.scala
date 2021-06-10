@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.Labels
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
-import ch.wsl.box.model.shared.{JSONField, JSONLookup}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONLookup}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
@@ -37,7 +37,7 @@ trait LookupWidget extends Widget with HasData {
   }
 
   field.`type` match {
-    case "number" =>  data.sync[JSONLookup](model)(
+    case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER  =>  data.sync[JSONLookup](model)(
       {json:Json =>
         val id = jsonToString(json)
         lookup.get.find(_.id == jsonToString(json)).getOrElse(JSONLookup(id,id + " NOT FOUND"))
