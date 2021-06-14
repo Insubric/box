@@ -31,6 +31,7 @@ object WidgetRegistry extends Logging {
     InputWidgetFactory.TextArea,
 
     CheckboxWidget,
+    TristateWidget,
 
     DateTimeWidget.Time,
     DateTimeWidget.Date,
