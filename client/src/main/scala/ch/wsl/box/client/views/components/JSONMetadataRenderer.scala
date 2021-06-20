@@ -20,6 +20,7 @@ import scalatags.JsDom.all._
 import io.udash.bindings.modifiers.Binding
 import scalacss.ScalatagsCss._
 import io.udash.css.CssView._
+import org.scalajs.dom.Event
 /**
   * Created by andre on 4/25/2017.
   */
@@ -218,7 +219,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
 
-    val blocks = metadata.layout.blocks.map { block =>
+    val blocks: Seq[(LayoutBlock, Widget)] = metadata.layout.blocks.map { block =>
       val hLayout = block.distribute.contains(true) match {
         case true => Right(true)
         case false => Left(Stream.continually(12))
@@ -254,12 +255,38 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
       ).render
     }
 
+    val hasTabs:Boolean = blocks.flatMap(_._1.tab).distinct.nonEmpty
+
+    def renderBlocks(b:Seq[(LayoutBlock,Widget)]) = b.map{ case (block,widget) =>
+      div(BootstrapCol.md(block.width), ClientConf.style.block)(
+        renderer(block,widget)
+      )
+    }
+
     div(
         Debug(data,autoRelease, "data"),
         div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
-          blocks.map{ case (block,widget) =>
-            div(BootstrapCol.md(block.width), ClientConf.style.block)(
-              renderer(block,widget)
+          renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined)),
+          blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (_,blks) =>
+            val tabs = blks.map(_._1.tab).distinct
+            val selectedTab = Property(tabs.headOption.flatten)
+            div(BootstrapCol.md(12),
+              ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
+                tabs.map { name =>
+                  val title = name.getOrElse("No title")
+
+                  li(BootstrapStyles.Navigation.item,
+                    a(BootstrapStyles.Navigation.link,
+                      BootstrapStyles.active.styleIf(selectedTab.transform(_ == name)),
+                      onclick :+= ((e: Event) => selectedTab.set(name)),
+                      title
+                    ).render
+                  ).render
+                }
+              ),
+              produce(selectedTab) { tabName =>
+                renderBlocks(blks.filter(_._1.tab == tabName)).render
+              }
             )
           }
         )

@@ -1,15 +1,18 @@
 package ch.wsl.box.client.views.components.widget.child
 
 import java.util.UUID
-
 import ch.wsl.box.client.Context._
-import ch.wsl.box.client.services.{BrowserConsole, ClientSession, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, ClientSession, Labels}
+import ch.wsl.box.client.styles.{BootstrapCol, Icons}
+import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.JSONMetadataRenderer
 import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared._
 import io.circe.Json
 import io.udash._
+import io.udash.bootstrap.BootstrapStyles
 import io.udash.properties.single.Property
+import org.scalajs.dom.Event
 import scalatags.JsDom
 import scribe.Logging
 
@@ -28,6 +31,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
 
   trait ChildRenderer extends Widget with Logging {
+
+    import io.udash.css.CssView._
+    import scalatags.JsDom.all._
+    import scalacss.ScalatagsCss._
+
 
     def widgetParam:WidgetParams
 
@@ -233,9 +241,42 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     registerListener(true)
 
 
+    def addButton(write:Boolean,m:JSONMetadata) = {
+      val name = widgetParam.field.label.getOrElse(widgetParam.field.name)
+      if (write && !disableAdd) {
+        autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
+          a(id := TestHooks.addChildId(m.objId),
+            ClientConf.style.childAddButton,
+            onclick :+= ((e: Event) => addItem(child,m)),
+            Icons.plusFill, name
+          ).render
+        })
+      } else frag()
+    }
+
+    def removeButton(write:Boolean,widget: ChildRow,m:JSONMetadata) = {
+      val name = widgetParam.field.label.getOrElse(widgetParam.field.name)
+      if (write && !disableRemove) {
+        autoRelease(showIf(entity.transform(_.length > min)) {
+          div(
+            BootstrapStyles.Grid.row,
+            div(BootstrapCol.md(12), ClientConf.style.block,
+              div(BootstrapStyles.Float.right(),
+                a(ClientConf.style.childRemoveButton,
+                  onclick :+= ((_: Event) => removeItem(widget)),
+                  Icons.minusFill, name,
+                  id.bind(widget.rowId.transform(x => TestHooks.deleteChildId(m.objId,x))))
+              )
+            )
+          ).render
+        })
+      } else frag()
+    }
 
 
   }
+
+
 
 
 }

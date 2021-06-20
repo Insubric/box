@@ -61,7 +61,9 @@ case class LayoutBlock(
                    title: Option[String],
                    width:Int,
                    distribute: Option[Boolean],
-                   fields:Seq[Either[String,SubLayoutBlock]]
+                   fields:Seq[Either[String,SubLayoutBlock]],
+                   tab: Option[String] = None,
+                   tabGroup:Option[String] = None
                  )
 
 

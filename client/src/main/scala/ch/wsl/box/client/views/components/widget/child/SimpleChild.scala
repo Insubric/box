@@ -38,26 +38,11 @@ object SimpleChildFactory extends ChildRendererFactory {
                 val widget = childWidgets.find(_.id == e.get)
                 div(ClientConf.style.subform,
                   widget.get.widget.render(write, Property(true)),
-                  if (write && !disableRemove) {
-                    autoRelease(showIf(entity.transform(_.length > min)) {
-                      div(
-                        BootstrapStyles.Grid.row,
-                        div(BootstrapCol.md(12), ClientConf.style.block,
-                          div(BootstrapStyles.Float.right(),
-                            a(onclick :+= ((_: Event) => removeItem(widget.get)), Labels.subform.remove)
-                          )
-                        )
-                      ).render
-                    })
-                  } else frag()
+                  removeButton(write,widget.get,f)
                 ).render
               })
             ).render,
-            if (write && !disableAdd) {
-              autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
-                a(onclick :+= ((e: Event) => addItem(child, f)), Labels.subform.add).render
-              })
-            } else frag()
+            addButton(write,f)
           )
 
         }

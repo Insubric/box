@@ -697,6 +697,28 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     display.inlineBlock
   )
 
+  val childAddButton = style(
+    lineHeight(32 px),
+    fontSize(14 px),
+    unsafeChild("svg")(
+      color(conf.colors.main),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
+  val childRemoveButton = style(
+    lineHeight(32 px),
+    fontSize(14 px),
+    unsafeChild("svg")(
+      color(conf.colors.danger),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
 //  val fixedHeader = style(
 //    unsafeRoot("tbody")(
 ////    display.block,
