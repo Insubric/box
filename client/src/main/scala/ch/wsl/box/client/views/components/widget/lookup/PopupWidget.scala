@@ -40,7 +40,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin)(
       label(field.title),
       div(BootstrapStyles.Float.right(), ClientConf.style.popupButton,
-        bind(selectModel)
+        bind(model.transform(_.value))
       ),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
@@ -130,7 +130,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
         modalStatus.set(Status.Open)
         true
-      }),bind(selectModel)).render),
+      }),bind(model.transform(_.value))).render),
       modal.render
 
     )

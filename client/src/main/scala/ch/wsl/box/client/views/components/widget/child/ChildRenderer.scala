@@ -260,7 +260,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         autoRelease(showIf(entity.transform(_.length > min)) {
           div(
             BootstrapStyles.Grid.row,
-            div(BootstrapCol.md(12), ClientConf.style.block,
+            div(BootstrapCol.md(12), ClientConf.style.block,ClientConf.style.withBorder,
               div(BootstrapStyles.Float.right(),
                 a(ClientConf.style.childRemoveButton,
                   onclick :+= ((_: Event) => removeItem(widget)),

@@ -308,6 +308,12 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     paddingLeft(20 px)
   )
 
+  val withBorder = style(
+    borderBottom(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
+    paddingBottom(5 px),
+    paddingTop(5 px)
+  )
+
   val field = style(
     padding.`0`
   )
@@ -384,13 +390,15 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginTop(conf.childProps.marginTopSize px),
     padding(conf.childProps.paddingSize px),
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
-    backgroundColor(conf.childProps.backgroundColor)
+    backgroundColor(conf.childProps.backgroundColor),
+    overflow.hidden
   )
 
   val childTable = style(
     backgroundColor(conf.childProps.backgroundColor),
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
-    width(100.%%)
+    width(100.%%),
+    overflow.hidden
   )
 
   val childTableTr = style(

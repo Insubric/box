@@ -23,6 +23,11 @@ object SimpleChildFactory extends ChildRendererFactory {
 
     def child = field.child.get
 
+    import ch.wsl.box.shared.utils.JSONUtils._
+
+    val childBackgroudColor = widgetParam.field.params.flatMap(_.getOpt("backgroudColor"))
+      .getOrElse(ClientConf.childBackgroundColor)
+
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
@@ -36,7 +41,7 @@ object SimpleChildFactory extends ChildRendererFactory {
             div(
               autoRelease(repeat(entity) { e =>
                 val widget = childWidgets.find(_.id == e.get)
-                div(ClientConf.style.subform,
+                div(ClientConf.style.subform,backgroundColor := childBackgroudColor,
                   widget.get.widget.render(write, Property(true)),
                   removeButton(write,widget.get,f)
                 ).render

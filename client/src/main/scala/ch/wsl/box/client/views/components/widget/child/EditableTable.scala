@@ -323,7 +323,9 @@ object EditableTable extends ChildRendererFactory {
                       }
                     },
                     if (write && !disableRemove) td(tableStyle.td, colWidth,
-                      a(onclick :+= ((_: Event) => removeItem(childWidget)), Labels.subform.remove)
+                      a(ClientConf.style.childRemoveButton,
+                        BootstrapStyles.Float.right(),
+                        onclick :+= ((_: Event) => removeItem(childWidget)), Icons.minusFill)
                     ) else frag()
                   ).render
                 },
@@ -331,10 +333,13 @@ object EditableTable extends ChildRendererFactory {
                   tr(tableStyle.tr,
                     td(tableStyle.td, colspan := cols),
                     td(tableStyle.td, colWidth,
-                      a(id := TestHooks.addChildId(m.objId), onclick :+= ((e: Event) => {
+                      a(id := TestHooks.addChildId(m.objId),
+                        ClientConf.style.childAddButton,
+                        BootstrapStyles.Float.right(),
+                        onclick :+= ((e: Event) => {
                         addItem(child, m)
                         true
-                      }), Labels.subform.add)
+                      }), Icons.plusFill)
                     ),
                   )
                 } else frag()
