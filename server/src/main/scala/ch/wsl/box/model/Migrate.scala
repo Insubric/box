@@ -30,7 +30,7 @@ object Migrate {
       .table("flyway_schema_history_box")
       .locations("migrations")
       .ignoreMissingMigrations(true)
-      .dataSource(connection.dataSource())
+      .dataSource(connection.dataSource("BOX Migration"))
       .load()
 
     val result = flyway.migrate()
@@ -46,7 +46,7 @@ object Migrate {
       .table("flyway_schema_history")
       .locations("migrations")
       .ignoreMissingMigrations(true)
-      .dataSource(connection.dataSource())
+      .dataSource(connection.dataSource("App migration"))
       .load()
 
     val result = flyway.migrate()
