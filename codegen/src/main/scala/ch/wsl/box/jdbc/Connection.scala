@@ -117,6 +117,10 @@ class ConnectionConfImpl extends Connection {
     .withValue("numThreads", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("connectionPool", connectionPool)
+    //https://github.com/brettwooldridge/HikariCP/issues/1237
+    //https://stackoverflow.com/questions/58098979/connections-not-being-closedhikaricp-postgres/58101472#58101472
+    .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(600000))
+    .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(300000))
     .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(10000))
     .withValue("properties",ConfigValueFactory.fromMap(Map(
       "ApplicationName" -> s"BOX Connections - Pool $randomId"
