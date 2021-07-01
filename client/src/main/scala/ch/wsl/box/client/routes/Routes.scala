@@ -1,6 +1,7 @@
 package ch.wsl.box.client.routes
 
 import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
+import ch.wsl.box.model.shared.JSONQuery
 import org.scalajs.dom
 
 /**
@@ -11,11 +12,15 @@ trait Routes{
   def add():RoutingState
   def edit(id:String):RoutingState
   def show(id:String):RoutingState
-  def entity():RoutingState
+  def entity(query:Option[JSONQuery]):RoutingState
   def entity(name:String):RoutingState
 }
 
 object Routes {
+
+  import io.circe._
+  import io.circe.syntax._
+  import io.circe.generic.auto._
 
   def apiV1(path:String = ""):String = {
     dom.window.location.port == "12345" match {
@@ -32,7 +37,7 @@ object Routes {
     def add() = EntityFormState(kind,entityName,"true",None,false)
     def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),false)
     def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),false)
-    def entity() = EntityTableState(kind,entityName,None)
+    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(_.asJson.noSpaces))
     def entity(name:String) = EntityTableState(kind,name,None)
   }
 

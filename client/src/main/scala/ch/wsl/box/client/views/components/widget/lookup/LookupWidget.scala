@@ -66,7 +66,9 @@ trait LookupWidget extends Widget with HasData {
   override def showOnTable(): JsDom.all.Modifier = {
     autoRelease(bind(model.combine(data)((a,b) => (a,b)).transform{
       case (notFound,js) if notFound.value == Labels.lookup.not_found => js.string
-      case (t,d) => t.value
+      case (t,d) => {
+        t.value
+      }
     }))
   }
   override def text() = model.transform(_.value)

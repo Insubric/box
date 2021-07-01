@@ -127,6 +127,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     state.query.foreach{q =>
 
 
+      logger.warn("AAAA" + emptyFieldsForm)
+
       parse(URIUtils.decodeURIComponent(q)) match {
         case Left(value) => {
           logger.warn(s"Failed to parse query ${value.message} \n $q")
@@ -134,8 +136,23 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         case Right(value) => {
           value.as[JSONQuery] match {
             case Left(value) => logger.warn(s"Failed to parse query ${value.message}")
-            case Right(value) => {
-              services.clientSession.setQuery(SessionQuery(value,state.entity))
+            case Right(query) => {
+              val filters = query.filter.map{ fil =>
+                emptyFieldsForm.fields.find(_.name == fil.column).flatMap(_.lookup) match {
+                  case Some(lookup) => {
+                    if(fil.operator.exists(_.startsWith("FK"))) {
+                      fil
+                    } else {
+                      lookup.lookup.find(_.id == fil.value) match {
+                        case Some(lk) => fil.copy(operator = Some(Filter.FK_LIKE),value = lk.value)
+                        case None => fil
+                      }
+                    }
+                  }
+                  case None => fil
+                }
+              }
+              services.clientSession.setQuery(SessionQuery(query.copy(filter = filters),state.entity))
             }
           }
         }

@@ -58,12 +58,16 @@ object LinkedFormWidget extends ComponentWidgetFactory {
         }
 
       }
-      case _ => Future.successful(navigate(_.entity()))
+      case _ => Future.successful(navigate(_.entity(field.query)))
     }
 
     override protected def show(): Modifier = linkRenderer(label,field.params,goto(false))
 
     override protected def edit(): Modifier = linkRenderer(label,field.params,goto(true))
+
+    override def showOnTable(): JsDom.all.Modifier = a(onclick :+= ((e:Event) => goto(false)),label)
+
+    override def editOnTable(): JsDom.all.Modifier = a(onclick :+= ((e:Event) => goto(true)),label)
   }
 
 }
