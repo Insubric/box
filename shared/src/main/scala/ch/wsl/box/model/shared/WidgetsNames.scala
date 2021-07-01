@@ -42,6 +42,7 @@ object WidgetsNames {
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
+  val executeFunction = "executeFunction"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -149,6 +150,7 @@ object WidgetsNames {
       lookupLabel,
       html,
       dynamicWidget,
+      executeFunction
     )
   )
 

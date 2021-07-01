@@ -321,7 +321,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def field_static(tables:Seq[String]) = JSONMetadata(
+  def field_static(tables:Seq[String],functions:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_STATIC,
     name = "Field builder static",
     label = "Field builder static",
@@ -351,7 +351,14 @@ object FormUIDef {
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
         child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,""))
-      )
+      ),
+      JSONField(JSONFieldTypes.STRING,"function",true,label=Some("Function"),
+        widget = Some(WidgetsNames.select),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
+        lookup = Some(JSONFieldLookup.prefilled(
+          functions.sorted.map(x => JSONLookup(x,x))
+        ))
+      ),
     ),
     layout = Layout(
       blocks = Seq(
@@ -361,6 +368,7 @@ object FormUIDef {
           "widget",
           "lookupEntity",
           "masterFields",
+          "function",
           "lookupValueField",
           "lookupQuery",
           "conditionFieldId",

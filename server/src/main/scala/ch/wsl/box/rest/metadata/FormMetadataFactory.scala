@@ -432,7 +432,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
             q <- field.childQuery.orElse(field.lookupQuery)
             js <- parse(q).toOption
             query <- js.as[JSONQuery].toOption
-          } yield query
+          } yield query,
+          function = field.function
         )
       }
 

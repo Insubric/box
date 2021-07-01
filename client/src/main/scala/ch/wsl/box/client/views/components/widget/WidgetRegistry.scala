@@ -60,6 +60,8 @@ object WidgetRegistry extends Logging {
 
     DynamicWidget,
 
+    ExecuteFunctionWidget
+
   )
 
   def forName(widgetName:String): ComponentWidgetFactory = widgets.find(_.name == widgetName) match {

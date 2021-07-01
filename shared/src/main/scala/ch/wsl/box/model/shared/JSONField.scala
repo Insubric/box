@@ -26,6 +26,7 @@ case class JSONField(
                       linked: Option[LinkedForm] = None,
                       lookupLabel: Option[LookupLabel] = None,
                       query: Option[JSONQuery] = None,
+                      function:Option[String] = None
                     ) {
   def title = label.getOrElse(name)
 
