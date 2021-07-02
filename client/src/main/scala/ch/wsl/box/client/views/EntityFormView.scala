@@ -484,9 +484,11 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
         )
       ),
-      div(BootstrapStyles.Float.right(),ClientConf.style.navigatorArea) (
-        recordNavigation
-      ),
+      showIf(model.transform(_.navigation.count > 1)) {
+        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
+          recordNavigation
+        ).render
+      } ,
       showIf(presenter.showNavigation) {
         div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
           produceWithNested(model.subProp(_.name)) { (m, release) =>
