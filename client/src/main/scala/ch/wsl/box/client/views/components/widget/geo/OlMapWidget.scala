@@ -22,6 +22,7 @@ import scalatags.JsDom.all._
 import scribe.Logging
 import typings.ol._
 import typings.ol.coordinateMod.Coordinate
+import typings.ol.igcMod.IGCZ.GPS
 import typings.ol.selectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
 import typings.ol.viewMod.FitOptions
@@ -560,6 +561,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
           parseCoordinates(search).foreach{ coord =>
             logger.info(s"Go to coords: $coord")
             map.getView().setCenter(coord)
+            map.getView().setZoom(9)
           }
         }
 
@@ -586,14 +588,14 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
           div(
             ClientConf.style.mapSearch
           )( //controls
-            TextInput(textField)(placeholder := "Go To"),
+            TextInput(textField)(placeholder := "Go To", onsubmit :+= ((e:Event) => e.preventDefault())),
             div(
               BootstrapStyles.Button.group,
               BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
             )(
               button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
-                onclick :+= ((e: Event) => dom.window.navigator.geolocation.getCurrentPosition{position =>
-                  val localCoords = projMod.transform(js.Array(position.coords.longitude,position.coords.latitude),wgs84Proj,defaultProjection)
+                onclick :+= ((e: Event) => ch.wsl.box.client.utils.GPS.coordinates().map{coords =>
+                  val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
                   textField.set(s"${localCoords(0)}, ${localCoords(1)}")
                 })
               )(Icons.location),

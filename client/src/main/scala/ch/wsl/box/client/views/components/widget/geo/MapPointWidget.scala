@@ -3,6 +3,7 @@ package ch.wsl.box.client.views.components.widget.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
+import ch.wsl.box.client.utils.GPS
 import ch.wsl.box.client.utils.GeoJson.{Coordinates, Geometry, Point}
 import ch.wsl.box.client.views.components.widget._
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
@@ -34,6 +35,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
 
 
   import ch.wsl.box.client.utils.GeoJson.Geometry._
+  import ch.wsl.box.client.Context._
 
   override def field: JSONField = params.field
 
@@ -174,8 +176,8 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
         },
         WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value,paddingTop := 0.px, paddingBottom := 0.px)(
           onclick :+= {(e: Event) =>
-            dom.window.navigator.geolocation.getCurrentPosition{ position =>
-              val localCoords = projMod.transform(js.Array(position.coords.longitude,position.coords.latitude),wgs84Proj,defaultProjection)
+            GPS.coordinates().map{ coords =>
+              val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
               geometry.set(Some(Point(Coordinates(localCoords(0),localCoords(1)))))
             }
             e.preventDefault() // needed in order to avoid triggering the form validation
