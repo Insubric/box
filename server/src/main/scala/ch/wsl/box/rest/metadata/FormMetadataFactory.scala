@@ -333,7 +333,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           for{
             (form,formI18n) <- BoxForm.BoxFormTable joinLeft BoxForm_i18nTable.filter(_.lang === lang) on (_.form_uuid === _.form_uuid) if form.form_uuid === subformId
           } yield (formI18n,form)
-        }.result.map{x => x.head._1.flatMap(_.label).getOrElse(x.head._2.name)}
+        }.result.map{x => fieldI18n.flatMap(_.label).orElse(x.head._1.flatMap(_.label)).getOrElse(x.head._2.name)}
       }
     }
   }

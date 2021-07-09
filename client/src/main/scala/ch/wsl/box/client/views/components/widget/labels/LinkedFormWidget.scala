@@ -40,7 +40,7 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
     def navigate(goTo: Routes => RoutingState) =  Navigate.to(goTo(Routes(EntityKind.FORM.kind, linkedFormName)))
 
-    val label = field.linked.flatMap(_.label).orElse(field.linked.map(_.name)).getOrElse("Open")
+    val label = field.label.orElse(field.linked.flatMap(_.label)).orElse(field.linked.map(_.name)).getOrElse("Open")
 
     def goto(edit:Boolean):Event => Any = (e: Event) => field.params.map(_.get("open")) match {
       case Some("first") => {
@@ -56,7 +56,11 @@ object LinkedFormWidget extends ComponentWidgetFactory {
             navigate(_.show(ids.ids.headOption.getOrElse("")))
           }
         }
-
+      }
+      case Some("new") => {
+        if(edit) {
+          navigate(_.add())
+        }
       }
       case _ => Future.successful(navigate(_.entity(field.query)))
     }
