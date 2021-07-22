@@ -96,6 +96,8 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 600.asJson))
   )
 
+  val params = JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code))
+
   val formFieldChild = JSONField(JSONFieldTypes.CHILD,"fields_child",true,
     child = Some(Child(FORM_FIELD_CHILDS,"fields_child","form_uuid","form_uuid",
       Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.CHILD))),

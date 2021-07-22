@@ -1,6 +1,7 @@
 package ch.wsl.box.model.boxentities
 
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import io.circe.Json
 import slick.model.ForeignKeyAction
 import slick.collection.heterogeneous._
 import slick.collection.heterogeneous.syntax._
@@ -32,12 +33,13 @@ object BoxForm {
                          guest_user:Option[String] = None,
                          edit_key_field:Option[String] = None,
                          show_navigation:Boolean,
-                         props:Option[String] = None
+                         props:Option[String] = None,
+                         params:Option[Json] = None
                         )
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
   class BoxForm(_tableTag: Tag) extends profile.api.Table[BoxForm_row](_tableTag,BoxSchema.schema, "form") {
-    def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportFields,guest_user,edit_key_field,show_navigation,props) <> (BoxForm_row.tupled, BoxForm_row.unapply)
+    def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportFields,guest_user,edit_key_field,show_navigation,props,params) <> (BoxForm_row.tupled, BoxForm_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid", O.AutoInc, O.PrimaryKey)
@@ -55,6 +57,7 @@ object BoxForm {
     val edit_key_field: Rep[Option[String]] = column[Option[String]]("edit_key_field", O.Default(None))
     val query: Rep[Option[String]] = column[Option[String]]("query", O.Default(None))
     val props: Rep[Option[String]] = column[Option[String]]("props", O.Default(None))
+    val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
 
   }
   /** Collection-like TableQuery object for table Form */

@@ -463,8 +463,25 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           ).render
     }
 
+    def actions = div(
+      produceWithNested(model.subProp(_.write)) { (w,realeser) =>
+        if(!w) Seq() else
+        div(BootstrapStyles.Float.left())(
+          realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
+            div(
+              realeser2(produce(model.subProp(_.id)) { _id =>
+                div(
+                  form.toSeq.flatMap(_.action.actions).map(actionRenderer(_id))
+                ).render
+              })
+            ).render
+          })
+        ).render
+      },
+      div(BootstrapStyles.Visibility.clearfix)
+    )
 
-    div(
+    val formHeader = div(
       div(BootstrapStyles.Float.left(),
         h3(
           ClientConf.style.noMargin,
@@ -499,21 +516,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         ).render
       },
       div(BootstrapStyles.Visibility.clearfix),
-      produceWithNested(model.subProp(_.write)) { (w,realeser) =>
-        if(!w) Seq() else
-        div(BootstrapStyles.Float.left())(
-          realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
-            div(
-              realeser2(produce(model.subProp(_.id)) { _id =>
-                div(
-                  form.toSeq.flatMap(_.action.actions).map(actionRenderer(_id))
-                ).render
-              })
-            ).render
-          })
-        ).render
-      },
-      div(BootstrapStyles.Visibility.clearfix),
+      actions,
       produce(model.subProp(_.error)){ error =>
         div(
           if(error.length > 0) {
@@ -523,7 +526,21 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           }
         ).render
       },
-      hr(ClientConf.style.hrThin),
+      hr(ClientConf.style.hrThin)
+    )
+
+    val formFooter = div(BootstrapCol.md(12),marginTop := 10.px,
+      actions
+    )
+
+    val showHeader = model.subProp(_.metadata).transform(_.flatMap(_.params).forall(_.js("hideHeader") != Json.True))
+
+    val showFooter = model.subProp(_.metadata).transform(_.flatMap(_.params).forall(_.js("hideFooter") != Json.True))
+
+    div(
+      showIf(showHeader) {
+        formHeader.render
+      },
       produce(model.subProp(_.metadata)){ _form =>
         div(BootstrapCol.md(12),ClientConf.style.fullHeightMax,
           _form match {
@@ -535,10 +552,12 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               presenter.setForm(mainForm)
               mainForm
             }
+          },
+          showIf(showFooter) {
+            formFooter.render
           }
         ).render
       },
-
       Debug(model.subProp(_.data),b => b, "data"),
       Debug(model.subProp(_.metadata),b => b, "metadata")
     )

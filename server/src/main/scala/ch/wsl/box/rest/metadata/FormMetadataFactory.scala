@@ -245,7 +245,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         formI18n.flatMap(_.view_table),
         formActions,
         static = form.entity == FormMetadataFactory.STATIC_PAGE,
-        dynamicLabel = formI18n.flatMap(_.dynamic_label)
+        dynamicLabel = formI18n.flatMap(_.dynamic_label),
+        params = form.params
       )//, form.entity)
       //println(s"resulting form: $result")
       result

@@ -37,6 +37,7 @@ case class JSONMetadata(
                          action:FormActionsMetadata,
                          static:Boolean = false,
                          dynamicLabel:Option[String] = None,
+                         params:Option[Json] = None
                        ) {
   def order:Ordering[JSONID] = new Ordering[JSONID] {
     override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>

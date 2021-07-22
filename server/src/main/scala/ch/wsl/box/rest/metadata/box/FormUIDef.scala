@@ -22,6 +22,7 @@ object FormUIDef {
       CommonField.formDescription,
       CommonField.formLayout,
       CommonField.formProps,
+      CommonField.params,
       JSONField(JSONFieldTypes.STRING,"entity",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
@@ -66,7 +67,7 @@ object FormUIDef {
         LayoutBlock(None,8,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props","params").map(Left(_)))
             ),
             Left(""),
             Right(
@@ -106,6 +107,7 @@ object FormUIDef {
       CommonField.formDescription,
       CommonField.formLayout,
       CommonField.formProps,
+      CommonField.params,
       JSONField(JSONFieldTypes.STRING,"entity",false,
         widget = Some(WidgetsNames.inputDisabled),
         default = Some(FormMetadataFactory.STATIC_PAGE)
@@ -129,7 +131,7 @@ object FormUIDef {
         LayoutBlock(None,8,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description","show_navigation","props","guest_user").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
             ),
           ))
         ).map(Right(_))),
@@ -186,7 +188,7 @@ object FormUIDef {
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,
-      JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
+      CommonField.params,
       JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.checkbox)),
     ),
     layout = Layout(
