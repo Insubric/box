@@ -79,16 +79,17 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
     }
   }
 
-  def csv() = {
+  val csv = (e:Event) => {
     logger.info()
     val url = Routes.apiV1(
       s"/${model.get.kind}/${model.get.metadata.get.name}/${services.clientSession.lang()}?q=${args.toString()}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)
+    e.preventDefault()
   }
 
-  def query() = {
+  val query = (e:Event) => {
 
     for{
       data <- services.rest.data(model.get.kind,model.get.metadata.get.name,args,services.clientSession.lang())
@@ -96,6 +97,7 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
       model.subProp(_.headers).set(data.headOption.getOrElse(Seq()))
       model.subProp(_.data).set(Try(data.tail).getOrElse(Seq()))
     }
+    e.preventDefault()
   }
 }
 
@@ -127,11 +129,11 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
     },
     br,
     JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keys).map(_.asString))).edit(),
-    showIf(table) { button(Labels.exports.load,onclick :+= ((e:Event) => presenter.query()),ClientConf.style.boxButton).render },
-    showIf(table) { button(Labels.exports.csv,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
-    showIf(pdf) { button(Labels.exports.pdf,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
-    showIf(html) { button(Labels.exports.html,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
-    showIf(shp) { button(Labels.exports.shp,onclick :+= ((e:Event) => presenter.csv()),ClientConf.style.boxButton).render },
+    showIf(table) { button(Labels.exports.load,onclick :+= presenter.query,ClientConf.style.boxButton).render },
+    showIf(table) { button(Labels.exports.csv,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
+    showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
+    showIf(html) { button(Labels.exports.html,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
+    showIf(shp) { button(Labels.exports.shp,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
       UdashTable(model.subSeq(_.data))(
         headerFactory = Some(_ => {
           tr(

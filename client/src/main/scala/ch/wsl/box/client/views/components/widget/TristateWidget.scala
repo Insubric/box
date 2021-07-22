@@ -56,6 +56,7 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
             case Some(false) => None
             case None =>Some(true)
           }}
+        e.preventDefault()
       }
     )
     checkbox

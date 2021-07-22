@@ -37,8 +37,9 @@ class AdminPresenter(viewModel:ModelProperty[AdminViewModel]) extends Presenter[
     }
   }
 
-  def generateStub(entity:String) = {
+  def generateStub(entity:String) = (e:Event) => {
     services.rest.generateStub(entity)
+    e.preventDefault()
   }
 }
 
@@ -65,7 +66,7 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
           div(
             p("Generate Form template for"),
             Select( entityForStub, viewModel.subSeq(_.entities))(Select.defaultLabel).render," ",
-            button(ClientConf.style.boxButtonImportant,"Generate", onclick :+= ((e:Event) => presenter.generateStub(entityForStub.get)))
+            button(ClientConf.style.boxButtonImportant,"Generate", onclick :+= presenter.generateStub(entityForStub.get))
           )
         )
       )

@@ -56,10 +56,11 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     }
   }
 
-  def downloadDefinition() = {
+  val downloadDefinition = (e:Event) => {
     val out = viewModel.get.currentDefinition.asJson.printWith(Printer.noSpaces)
     val blob = new Blob(js.Array(out),BlobPropertyBag("application/json"))
     typings.fileSaver.mod.saveAs(blob,"box-definition.json")
+    e.preventDefault()
   }
 
   def loadDefinition(file:File) = {
@@ -85,14 +86,16 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     }
   }
 
-  def acceptAll() = {
+  val acceptAll = (e:Event) => {
     viewModel.subProp(_.merge).set(viewModel.get.diff.get)
+    e.preventDefault()
   }
-  def rejectAll() = {
+  val rejectAll = (e:Event) => {
     viewModel.subProp(_.merge).set(BoxDef.empty)
+    e.preventDefault()
   }
 
-  def acceptAllTable(table:String,mode:BoxDef.Mode) = {
+  def acceptAllTable(table:String,mode:BoxDef.Mode) = (e:Event) => {
     val diffTable = viewModel.get.diff.get(table)
     val merge = viewModel.get.merge
     val mergedTable = mode match {
@@ -102,7 +105,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     }
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
-  def rejectAllTable(table:String,mode:BoxDef.Mode) = {
+  def rejectAllTable(table:String,mode:BoxDef.Mode) = (e:Event) => {
     val merge = viewModel.get.merge
     val mergedTable = mode match {
       case BoxDef.Insert => merge(table).copy(insert = Seq())
@@ -112,7 +115,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
 
-  def acceptField(table:String,mode:BoxDef.Mode,field:Json) = {
+  def acceptField(table:String,mode:BoxDef.Mode,field:Json) = (e:Event) => {
     val merge = viewModel.get.merge
     val mergedTable = mode match {
       case BoxDef.Insert => merge(table).copy(insert = (merge(table).insert ++ Seq(field)).distinct)
@@ -122,7 +125,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
 
-  def rejectField(table:String,mode:BoxDef.Mode,field:Json) = {
+  def rejectField(table:String,mode:BoxDef.Mode,field:Json) = (e:Event) => {
     val merge = viewModel.get.merge
     val mergedTable = mode match {
       case BoxDef.Insert => merge(table).copy(insert = merge(table).insert.filterNot(_ == field))
@@ -132,7 +135,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
 
-  def commit() = {
+  val commit = (e:Event) => {
     services.rest.definitionCommit(viewModel.get.merge).map{
       case true => {
         Notification.add(s"Definition saved")
@@ -140,6 +143,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
       }
       case false => Notification.add(s"Error on saving new definition")
     }
+    e.preventDefault()
   }
 
 
@@ -164,7 +168,7 @@ class BoxDefinitionView(viewModel:ModelProperty[BoxDefinitionViewModel], present
     def show(js:Json) = pre(js.toString().linesWithSeparators.filterNot(_.contains(": null")).mkString(""))
     div(
       h6(s"$name - ${list.size} - ",
-        a(bind(label), onclick :+= ((e:Event) => isOpen.toggle()))," - ",
+        a(bind(label), onclick :+= {(e:Event) => isOpen.toggle(); e.preventDefault()})," - ",
         actionAll
       ),
       showIf(isOpen) {
@@ -202,11 +206,11 @@ class BoxDefinitionView(viewModel:ModelProperty[BoxDefinitionViewModel], present
     }
   }
 
-  def rejectAll(table:String,mode:BoxDef.Mode) = a("RejectAll", onclick :+= ((e:Event) => presenter.rejectAllTable(table, mode)))
-  def reject(table:String,mode:BoxDef.Mode)(js:Json) = a("Reject", onclick :+= ((e:Event) => presenter.rejectField(table, mode, js)))
+  def rejectAll(table:String,mode:BoxDef.Mode) = a("RejectAll", onclick :+= presenter.rejectAllTable(table, mode))
+  def reject(table:String,mode:BoxDef.Mode)(js:Json) = a("Reject", onclick :+= presenter.rejectField(table, mode, js))
 
-  def acceptAll(table:String,mode:BoxDef.Mode) = a("AcceptAll", onclick :+= ((e:Event) => presenter.acceptAllTable(table, mode)))
-  def accept(table:String,mode:BoxDef.Mode)(js:Json) = a("Accept", onclick :+= ((e:Event) => presenter.acceptField(table, mode,js)))
+  def acceptAll(table:String,mode:BoxDef.Mode) = a("AcceptAll", onclick :+= presenter.acceptAllTable(table, mode))
+  def accept(table:String,mode:BoxDef.Mode)(js:Json) = a("Accept", onclick :+= presenter.acceptField(table, mode,js))
 
 
   def diffColumn = produce(viewModel.subProp(_.diff)) {
@@ -225,18 +229,18 @@ class BoxDefinitionView(viewModel:ModelProperty[BoxDefinitionViewModel], present
     div(BootstrapCol.md(12),h2("Box definition")),
     div(BootstrapCol.md(2),
       showIf(viewModel.transform(_.currentDefinition.isDefined)) {
-        button(ClientConf.style.boxButtonImportant, "Export", onclick :+= ((e: Event) => presenter.downloadDefinition())).render
+        button(ClientConf.style.boxButtonImportant, "Export", onclick :+= presenter.downloadDefinition).render
       },
-      button(ClientConf.style.boxButtonImportant, "Load", onclick :+= ((e: Event) => fileInput.click())),
+      button(ClientConf.style.boxButtonImportant, "Load", onclick :+= {(e: Event) => fileInput.click(); e.preventDefault()}),
       fileInput
     ),
     div(BootstrapCol.md(5),
-      button(ClientConf.style.boxButtonImportant, "Select All", onclick :+= ((e: Event) => presenter.acceptAll())),
+      button(ClientConf.style.boxButtonImportant, "Select All", onclick :+= presenter.acceptAll),
       diffColumn
     ),
     div(BootstrapCol.md(5),
-      button(ClientConf.style.boxButtonImportant, "Import", onclick :+= ((e: Event) => presenter.commit())),
-      button(ClientConf.style.boxButtonImportant, "Reject All", onclick :+= ((e: Event) => presenter.rejectAll())),
+      button(ClientConf.style.boxButtonImportant, "Import", onclick :+= presenter.commit),
+      button(ClientConf.style.boxButtonImportant, "Reject All", onclick :+= presenter.rejectAll),
       mergeColumn
     )
   )

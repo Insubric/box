@@ -29,6 +29,7 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
       services.rest.execute(field.function.get,services.clientSession.lang(),params.allData.get).foreach{ _ =>
         applicationInstance.reload()
       }
+      e.preventDefault()
     }
 
     override protected def show() = button(ClientConf.style.boxButton, onclick :+= clickHandler, _text)

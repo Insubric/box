@@ -278,7 +278,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
                   li(BootstrapStyles.Navigation.item,
                     a(BootstrapStyles.Navigation.link,
                       BootstrapStyles.active.styleIf(selectedTab.transform(_ == name)),
-                      onclick :+= ((e: Event) => selectedTab.set(name)),
+                      onclick :+= { (e: Event) => selectedTab.set(name); e.preventDefault() },
                       title
                     ).render
                   ).render

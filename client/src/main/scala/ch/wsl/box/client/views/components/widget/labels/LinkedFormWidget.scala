@@ -42,36 +42,39 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
     val label = field.label.orElse(field.linked.flatMap(_.label)).orElse(field.linked.map(_.name)).getOrElse("Open")
 
-    def goto(edit:Boolean):Event => Any = (e: Event) => field.params.map(_.get("open")) match {
-      case Some("first") => {
-        val query = field.query.getOrElse(JSONQuery.empty)
-        services.rest.ids(EntityKind.FORM.kind,services.clientSession.lang(),linkedFormName,query).map{ ids =>
-          services.clientSession.setIDs(ids)
-          if(edit) {
-            ids.ids.headOption match {
-              case Some(value) => navigate(_.edit(value))
-              case None => navigate(_.add())
+    def goto(edit:Boolean):Event => Any = (e: Event) => {
+      e.preventDefault()
+      field.params.map(_.get("open")) match {
+        case Some("first") => {
+          val query = field.query.getOrElse(JSONQuery.empty)
+          services.rest.ids(EntityKind.FORM.kind,services.clientSession.lang(),linkedFormName,query).map{ ids =>
+            services.clientSession.setIDs(ids)
+            if(edit) {
+              ids.ids.headOption match {
+                case Some(value) => navigate(_.edit(value))
+                case None => navigate(_.add())
+              }
+            } else {
+              navigate(_.show(ids.ids.headOption.getOrElse("")))
             }
-          } else {
-            navigate(_.show(ids.ids.headOption.getOrElse("")))
           }
         }
-      }
-      case Some("new") => {
-        if(edit) {
-          navigate(_.add())
+        case Some("new") => {
+          if(edit) {
+            navigate(_.add())
+          }
         }
+        case _ => Future.successful(navigate(_.entity(field.query)))
       }
-      case _ => Future.successful(navigate(_.entity(field.query)))
     }
 
     override protected def show(): Modifier = linkRenderer(label,field.params,goto(false))
 
     override protected def edit(): Modifier = linkRenderer(label,field.params,goto(true))
 
-    override def showOnTable(): JsDom.all.Modifier = a(onclick :+= ((e:Event) => goto(false)),label)
+    override def showOnTable(): JsDom.all.Modifier = a(onclick :+= goto(false),label)
 
-    override def editOnTable(): JsDom.all.Modifier = a(onclick :+= ((e:Event) => goto(true)),label)
+    override def editOnTable(): JsDom.all.Modifier = a(onclick :+= goto(true),label)
   }
 
 }

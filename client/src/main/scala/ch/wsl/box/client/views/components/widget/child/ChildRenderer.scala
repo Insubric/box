@@ -105,7 +105,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
 
-    def removeItem(itemToRemove: ChildRow) = {
+    def removeItem(itemToRemove: ChildRow) = (e:Event) => {
       logger.info("removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
         val childToDelete = childWidgets.zipWithIndex.find(x => x._1.rowId.get == itemToRemove.rowId.get && x._1.id == itemToRemove.id).get
@@ -115,8 +115,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
     }
 
-
-    def addItem(child: Child, metadata: JSONMetadata) = {
+    def addItemHandler(child: Child, metadata: JSONMetadata) = (e:Event) => {
+      addItem(child,metadata)
+      e.preventDefault()
+    }
+    def addItem(child: Child, metadata: JSONMetadata) =  {
       logger.info("adding item")
 
 
@@ -247,7 +250,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
           a(id := TestHooks.addChildId(m.objId),
             ClientConf.style.childAddButton,
-            onclick :+= ((e: Event) => addItem(child,m)),
+            onclick :+= addItemHandler(child,m),
             Icons.plusFill, name
           ).render
         })
@@ -263,7 +266,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
             div(BootstrapCol.md(12), ClientConf.style.block,ClientConf.style.withBorder,
               div(BootstrapStyles.Float.right(),
                 a(ClientConf.style.childRemoveButton,
-                  onclick :+= ((_: Event) => removeItem(widget)),
+                  onclick :+= removeItem(widget),
                   Icons.minusFill, name,
                   id.bind(widget.rowId.transform(x => TestHooks.deleteChildId(m.objId,x))))
               )

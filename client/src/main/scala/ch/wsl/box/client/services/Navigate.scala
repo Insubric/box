@@ -48,9 +48,15 @@ object Navigate extends Logging {
   import io.udash._
 
 
-  def event(state:RoutingState) = (e:Event) => to(state)
+  def event(state:RoutingState) = (e:Event) => {
+    to(state)
+    e.preventDefault()
+  }
 
   def click(state:RoutingState) = onclick :+= event(state)
 
-  def click(url:String) = onclick :+= ((e:Event) => toUrl(url))
+  def click(url:String) = onclick :+= { (e: Event) =>
+    toUrl(url)
+    e.preventDefault()
+  }
 }

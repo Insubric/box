@@ -70,6 +70,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
                   div(a(x.value, onclick :+= ((e: Event) => {
                     modalStatus.set(Status.Closed)
                     model.set(x)
+                    e.preventDefault()
                   })))
                 }
               ).render
@@ -84,7 +85,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     val header = (x:NestedInterceptor) => div(
       field.title,
       UdashButton()( _ => Seq[Modifier](
-        onclick :+= ((e:Event) => modalStatus.set(Status.Closed)),
+        onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
         BootstrapStyles.close, "×"
       )).render
     ).render
@@ -98,7 +99,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     val footer = (x:NestedInterceptor) => div(
       button(onclick :+= ((e:Event) => {
         modal.hide()
-        true
+        e.preventDefault()
       }), Labels.popup.close)
     ).render
 
@@ -129,7 +130,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       WidgetUtils.toLabel(field),
       tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
         modalStatus.set(Status.Open)
-        true
+        e.preventDefault()
       }),bind(model.transform(_.value))).render),
       modal.render
 

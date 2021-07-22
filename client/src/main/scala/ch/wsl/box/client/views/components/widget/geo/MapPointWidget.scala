@@ -113,7 +113,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val header = (x:NestedInterceptor) => div(
       field.title,
       UdashButton()( _ => Seq[Modifier](
-        onclick :+= ((e:Event) => modalStatus.set(Status.Closed)),
+        onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
         BootstrapStyles.close, "×"
       )).render
     ).render
@@ -132,7 +132,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val footer = (x:NestedInterceptor) => div(
       button(ClientConf.style.boxButton,onclick :+= ((e:Event) => {
         modal.hide()
-        true
+        e.preventDefault()
       }), Labels.form.save)
     ).render
 
@@ -185,7 +185,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
         )(Icons.target).render),
         WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
-          true
+          e.preventDefault()
         }),Icons.map).render),
         modal.render
       ),

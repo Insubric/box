@@ -48,20 +48,20 @@ object Header {
 
 
   def menuLinks(links:Seq[MenuLink]):Seq[generic.Frag[Element, Node]] =  links.map{link =>
-    frag(a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); Navigate.to(link.state)} ))(
+    frag(a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); Navigate.to(link.state); e.preventDefault()} ))(
       link.name
     ), ClientConf.menuSeparator)
   }
 
   def uiMenu = UI.menu.map{ link =>
-    frag(a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => {showMenu.set(false); Navigate.toUrl(link.url)} ))(
+    frag(a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => {showMenu.set(false); Navigate.toUrl(link.url); e.preventDefault()} ))(
       Labels(link.name)
     ), ClientConf.menuSeparator)
   }
 
   def otherMenu:Seq[Modifier] = Seq(
     showIf(services.clientSession.logged) {
-      frag(a(id := TestHooks.logoutButton, ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); services.clientSession.logout() } ),"Logout"), ClientConf.menuSeparator).render
+      frag(a(id := TestHooks.logoutButton, ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); services.clientSession.logout(); e.preventDefault() } ),"Logout"), ClientConf.menuSeparator).render
     },
     ClientConf.menuSeparator,
     if(ClientConf.langs.length > 1) {
@@ -70,6 +70,7 @@ object Header {
         ClientConf.langs.map { l =>
           span(a(id := TestHooks.langSwitch(l), ClientConf.style.linkHeaderFooter, onclick :+= ((e: Event) => {
             showMenu.set(false); services.clientSession.setLang(l)
+            e.preventDefault()
           }), l), " ")
         }
       )
@@ -94,7 +95,7 @@ object Header {
       div(BootstrapStyles.Float.right(),ClientConf.style.mobileOnly)(
         a(ClientConf.style.linkHeaderFooter,
           produce(showMenu){ if(_) span("❌").render else span("☰").render},
-          onclick :+= ((e:Event) => showMenu.set(!showMenu.get))
+          onclick :+= {(e:Event) => showMenu.set(!showMenu.get); e.preventDefault() }
         )
       ),
       showIf(showMenu) {

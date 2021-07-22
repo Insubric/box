@@ -439,7 +439,10 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
         BootstrapStyles.Button.btn,
         BootstrapStyles.Button.color()
       )(
-       onclick :+= ((e:Event) => activeControl.set(section) )
+       onclick :+= {(e:Event) =>
+         activeControl.set(section)
+         e.preventDefault()
+       }
       )(icon).render //modify
     }
   }
@@ -581,7 +584,10 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
             if (geometry.isDefined) controlButton(Icons.move, "Move", Control.MOVE) else frag(),
             if (geometry.isDefined) controlButton(Icons.trash, "Delete", Control.DELETE) else frag(),
             if (geometry.isDefined) button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
-              onclick :+= ((e: Event) => map.getView().fit(vectorSource.getExtent(), FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
+              onclick :+= { (e: Event) =>
+                map.getView().fit(vectorSource.getExtent(), FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5))
+                e.preventDefault()
+              }
             )(Icons.search).render else frag(),
             if(options.baseLayers.exists(_.length > 1)) Select(baseLayer,SeqProperty(options.baseLayers.toSeq.flatten.map(x => Some(x))))((x:Option[MapParamsLayers]) => StringFrag(x.map(_.name).getOrElse("")),ClientConf.style.mapLayerSelect) else frag()
           ),
@@ -594,17 +600,23 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
               BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
             )(
               button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
-                onclick :+= ((e: Event) => ch.wsl.box.client.utils.GPS.coordinates().map{coords =>
-                  val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
-                  textField.set(s"${localCoords(0)}, ${localCoords(1)}")
+                onclick :+= ((e: Event) => {
+                  ch.wsl.box.client.utils.GPS.coordinates().map{coords =>
+                    val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
+                    textField.set(s"${localCoords(0)}, ${localCoords(1)}")
+                  }
+                  e.preventDefault()
                 })
               )(Icons.location),
               if (enablePoint) {
                 showIf(textField.transform(x => parseCoordinates(x).isDefined)) {
                   button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
-                    onclick :+= ((e: Event) => parseCoordinates(textField.get).foreach { p =>
-                      val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
-                      vectorSource.addFeature(feature)
+                    onclick :+= ((e: Event) => {
+                      parseCoordinates(textField.get).foreach { p =>
+                        val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
+                        vectorSource.addFeature(feature)
+                      }
+                      e.preventDefault()
                     })
                   )(Icons.plus).render
                 }

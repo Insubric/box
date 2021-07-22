@@ -50,7 +50,10 @@ object LookupFormWidget extends ComponentWidgetFactory {
     }
 
 
-    def navigate(goTo: Routes => RoutingState) = (e: Event) => Navigate.to(goTo(Routes(EntityKind.FORM.kind, linked.name)))
+    def navigate(goTo: Routes => RoutingState) = (e: Event) => {
+      Navigate.to(goTo(Routes(EntityKind.FORM.kind, linked.name)))
+      e.preventDefault()
+    }
 
     override protected def show(): Modifier = produce(linkedData) { case id =>
       linkRenderer(lab.render(false,Property(true)),field.params,navigate(_.show(id.asString))).render

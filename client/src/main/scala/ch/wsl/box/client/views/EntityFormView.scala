@@ -418,7 +418,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         importance,
         onclick :+= ((ev: Event) => {
           confirm(callBack)
-          true
+          ev.preventDefault()
         })
       )(Labels(action.label)).render
     } else frag()

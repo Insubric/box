@@ -47,12 +47,15 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
     }
   }
 
-  def save() = {
+  val save = (e:Event) => {
 
     val keys:Seq[JSONID] = viewModel.get.entries.map(x => JSONID.fromMap(Map("key" -> x.key)))
     val data:Seq[Json] = viewModel.get.entries.map(_.asJson)
 
     services.rest.updateMany(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"conf",keys,data)
+
+    e.preventDefault()
+
   }
 
 }
@@ -225,11 +228,11 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
       hr,
       p("Box has native support for ", a(href := "https://imperavi.com/redactor/","redactor"),", since redactor is a commercial product it canno't be embedded in the box package, in order to take advantage of the redactor widget you need to upload here the minified JS/CSS. A restart of the service is needed for the change to have effect"),
       br,
-      button("redactor.min.js",ClientConf.style.boxButton, onclick :+= ((e:Event) => inputRedactorJs.click())),
+      button("redactor.min.js",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorJs.click(); e.preventDefault() }),
       inputRedactorJs,
       showIf(redactorJs.transform(_.nonEmpty))( span(" File loaded").render ),
       br,
-      button("redactor.min.css",ClientConf.style.boxButton, onclick :+= ((e:Event) => inputRedactorCss.click())),
+      button("redactor.min.css",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorCss.click(); e.preventDefault()}),
       inputRedactorCss,
       showIf(redactorCss.transform(_.nonEmpty))( span(" File loaded").render ),
       br,
@@ -248,7 +251,7 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
 
     div(BootstrapCol.md(12),
       hr,
-      button("Save",ClientConf.style.boxButtonImportant, onclick :+= ((e:Event) => presenter.save())),
+      button("Save",ClientConf.style.boxButtonImportant, onclick :+= presenter.save),
     ),
     br,
     br

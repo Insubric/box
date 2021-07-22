@@ -185,7 +185,7 @@ object EditableTable extends ChildRendererFactory {
       )
     }
 
-    def printTable(metadata:JSONMetadata) = {
+    def printTable(metadata:JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = PDFTable(title, header, rows)
@@ -199,9 +199,10 @@ object EditableTable extends ChildRendererFactory {
             .setStyle("@page { size: A4 landscape; }")
         )
       }
+      e.preventDefault()
     }
 
-    def exportCSV(metadata:JSONMetadata) = {
+    def exportCSV(metadata:JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = CSVTable(title, header, rows)
@@ -209,9 +210,10 @@ object EditableTable extends ChildRendererFactory {
       services.rest.exportCSV(table).foreach{ csv =>
         typings.fileSaver.mod.saveAs(csv,s"${metadata.label}.csv")
       }
+      e.preventDefault()
     }
 
-    def exportXLS(metadata:JSONMetadata) = {
+    def exportXLS(metadata:JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = XLSTable(title, header, rows)
@@ -219,6 +221,7 @@ object EditableTable extends ChildRendererFactory {
       services.rest.exportXLS(table).foreach{ xls =>
         typings.fileSaver.mod.saveAs(xls,s"${metadata.label}.xlsx")
       }
+      e.preventDefault()
     }
 
     def checkCondition(field: JSONField,e:Seq[String]) = {
@@ -325,7 +328,7 @@ object EditableTable extends ChildRendererFactory {
                     if (write && !disableRemove) td(tableStyle.td, colWidth,
                       a(ClientConf.style.childRemoveButton,
                         BootstrapStyles.Float.right(),
-                        onclick :+= ((_: Event) => removeItem(childWidget)), Icons.minusFill)
+                        onclick :+= removeItem(childWidget), Icons.minusFill)
                     ) else frag()
                   ).render
                 },
@@ -336,10 +339,7 @@ object EditableTable extends ChildRendererFactory {
                       a(id := TestHooks.addChildId(m.objId),
                         ClientConf.style.childAddButton,
                         BootstrapStyles.Float.right(),
-                        onclick :+= ((e: Event) => {
-                        addItem(child, m)
-                        true
-                      }), Icons.plusFill)
+                        onclick :+= addItemHandler(child, m), Icons.plusFill)
                     ),
                   )
                 } else frag()
@@ -347,9 +347,9 @@ object EditableTable extends ChildRendererFactory {
             ),
             if(!hideExporters) {
               Seq(
-                button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= ((e: Event) => printTable(m))),
-                button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= ((e: Event) => exportCSV(m))),
-                button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= ((e: Event) => exportXLS(m))),
+                button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= printTable(m)),
+                button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= exportCSV(m)),
+                button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= exportXLS(m)),
               )
             }
           ).render

@@ -51,7 +51,7 @@ object TableChildFactory extends ChildRendererFactory {
                   ent.map { e =>
                     val widget = childWidgets.find(_.id == e).get
 
-                    def toggleRow() = {
+                    val toggleRow = (e:Event) => {
                       val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId.get)
                       widget.open.toggle()
                       if (widget.open.get) {
@@ -69,7 +69,7 @@ object TableChildFactory extends ChildRendererFactory {
                               a(id.bind(widget.rowId.transform(i => TestHooks.tableChildButtonId(f.objId,i))), autoRelease(produce(widget.open) {
                                 case true => span(Icons.caretDown).render
                                 case false => span(Icons.caretRight).render
-                              }), onclick :+= ((e: Event) => toggleRow())).render
+                              }), onclick :+= toggleRow).render
 
                         ),
                         autoRelease(produce(widget.data) { data => fields.map{x =>
