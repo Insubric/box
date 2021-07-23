@@ -182,7 +182,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     val result = div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
-      tooltip(picker),
+      tooltip(picker)._1,
       div(BootstrapStyles.Visibility.clearfix)
     ).render
 

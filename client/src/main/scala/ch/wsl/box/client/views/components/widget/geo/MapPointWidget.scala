@@ -182,11 +182,11 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
             }
             e.preventDefault() // needed in order to avoid triggering the form validation
           }
-        )(Icons.target).render),
+        )(Icons.target).render)._1,
         WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
-        }),Icons.map).render),
+        }),Icons.map).render)._1,
         modal.render
       ),
       div(BootstrapStyles.Visibility.clearfix)

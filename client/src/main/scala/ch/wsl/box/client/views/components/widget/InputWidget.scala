@@ -102,9 +102,9 @@ object InputWidget extends Logging {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       if(reallyWithLabel) WidgetUtils.toLabel(field, skipRequiredInfo) else {},
       if(reallyWithLabel)
-        tooltip(inputRenderer(allModifiers))
+        tooltip(inputRenderer(allModifiers))._1
       else
-        tooltip(inputRenderer(allModifiers++Seq(width := 100.pct))),
+        tooltip(inputRenderer(allModifiers++Seq(width := 100.pct)))._1,
       div(BootstrapStyles.Visibility.clearfix)
     )
 

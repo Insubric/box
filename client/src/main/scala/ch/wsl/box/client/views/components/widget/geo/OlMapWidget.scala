@@ -13,6 +13,7 @@ import io.circe.generic.auto._
 import io.circe.scalajs._
 import io.circe.syntax._
 import io.udash._
+import io.udash.bootstrap.tooltip.UdashTooltip
 import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom
 import org.scalajs.dom.{Event, _}
@@ -437,12 +438,19 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
   val activeControl:Property[Control.Section] = Property(Control.VIEW)
 
   def controlButton(icon:Icon,labelKey:String,section:Control.Section) = {
+
+    var tooltip:Option[UdashTooltip] = None
+
     produce(activeControl) { c =>
+
+      tooltip.foreach(_.destroy())
+
       val isActive = if(c == section) "active" else "none"
 
       val label = field.params.flatMap(_.getOpt(labelKey)).getOrElse(Labels.apply(labelKey))
 
-      WidgetUtils.addTooltip(Some(label))(
+
+      val (el,tt) = WidgetUtils.addTooltip(Some(label))(
         button(
           cls := isActive,
           BootstrapStyles.Button.btn,
@@ -453,7 +461,11 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
            e.preventDefault()
          }
         )(icon).render
-      ).render //modify
+      )
+
+      tooltip = tt
+
+      el.render //modify
     }
   }
 

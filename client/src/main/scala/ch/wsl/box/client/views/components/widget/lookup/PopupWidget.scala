@@ -131,7 +131,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
         modalStatus.set(Status.Open)
         e.preventDefault()
-      }),bind(model.transform(_.value))).render),
+      }),bind(model.transform(_.value))).render)._1,
       modal.render
 
     )

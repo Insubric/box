@@ -92,7 +92,7 @@ class DataListView(model:ModelProperty[DataList], presenter: DataListPresenter) 
         ul(ClientConf.style.noBullet)(
           repeat(model.subSeq(_.filteredList)){m =>
             li(produce(m) { export =>
-              WidgetUtils.addTooltip(m.get.tooltip) (a(Navigate.click(DataState(model.get.kind,export.function)), m.get.label).render)
+              WidgetUtils.addTooltip(m.get.tooltip) (a(Navigate.click(DataState(model.get.kind,export.function)), m.get.label).render)._1
             }).render
           }
         ).render
