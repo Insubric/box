@@ -47,7 +47,7 @@ trait MailDispatcherUtils {
       sent <- mailService.send(mail)
       _ <- sent match {
         case true => connection.adminDB.run(BoxMailTable.filter(_.id === id).map(_.sent_at).update(Some(LocalDateTime.now())))
-        case false => Future.successful(false)
+        case false => connection.adminDB.run(BoxMailTable.filter(_.id === id).map(_.send_at).update(LocalDateTime.now().plusMinutes(5))) // reschedule in the future
       }
     } yield sent
   }
