@@ -9,6 +9,7 @@ import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.Widget
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, JsonNumber, JsonObject}
 import io.udash.bootstrap.badge.UdashBadge
@@ -187,6 +188,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }}.recover{ case e =>
         e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
         e.printStackTrace()
+//        e match {
+//          case sql:SQLExceptionReport
+//        }
       }
     }
   }
@@ -530,7 +534,14 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
     )
 
     val formFooter = div(BootstrapCol.md(12),marginTop := 10.px,
-      actions
+      actions,
+      ul(
+        produce(Notification.list){ notices =>
+          notices.map { notice =>
+            li(notice).render
+          }
+        }
+      )
     )
 
     val showHeader = model.subProp(_.metadata).transform(_.flatMap(_.params).forall(_.js("hideHeader") != Json.True))

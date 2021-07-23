@@ -706,7 +706,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val childAddButton = style(
-    lineHeight(32 px),
+    lineHeight(40 px),
     fontSize(14 px),
     unsafeChild("svg")(
       color(conf.colors.main),

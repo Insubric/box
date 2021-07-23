@@ -45,18 +45,20 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
   private val child: Element = div().render
 
 
-
+  private val notifications = div(ClientConf.style.notificationArea,
+    produce(Notification.list){ notices =>
+      notices.map { notice =>
+        div(ClientConf.style.notification, notice).render
+      }
+    }
+  )
 
 
   private def content = produce(viewModel.subProp(_.layout)) {
       case Layouts.std => {
         div(BootstrapStyles.containerFluid)(
           Header.navbar(UI.title),
-          div(ClientConf.style.notificationArea,
-            repeat(Notification.list){ notice =>
-              div(ClientConf.style.notification,bind(notice)).render
-            }
-          ),
+          notifications,
           main(ClientConf.style.fullHeight)(
             div()(
               child
@@ -66,7 +68,10 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
           LoginPopup.render
         ).render
       }
-      case Layouts.blank => div(BootstrapStyles.containerFluid,overflowX.hidden)( child ).render
+      case Layouts.blank => div(BootstrapStyles.containerFluid,overflowX.hidden)(
+        notifications,
+        child
+      ).render
     }
 
 

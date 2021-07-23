@@ -258,12 +258,16 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
     def removeButton(write:Boolean,widget: ChildRow,m:JSONMetadata) = {
+      val border = widgetParam.field.params.exists(_.js("noBorder") == Json.True) match {
+        case false => Seq(ClientConf.style.block,ClientConf.style.withBorder)
+        case true => Seq(ClientConf.style.block)
+      }
       val name = widgetParam.field.label.getOrElse(widgetParam.field.name)
       if (write && !disableRemove) {
         autoRelease(showIf(entity.transform(_.length > min)) {
           div(
             BootstrapStyles.Grid.row,
-            div(BootstrapCol.md(12), ClientConf.style.block,ClientConf.style.withBorder,
+            div(BootstrapCol.md(12), border,
               div(BootstrapStyles.Float.right(),
                 a(ClientConf.style.childRemoveButton,
                   onclick :+= removeItem(widget),
