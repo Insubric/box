@@ -95,7 +95,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     e.preventDefault()
   }
 
-  def acceptAllTable(table:String,mode:BoxDef.Mode) = (e:Event) => {
+  def acceptAllTable(table: => String,mode: => BoxDef.Mode) = (e:Event) => {
     val diffTable = viewModel.get.diff.get(table)
     val merge = viewModel.get.merge
     val mergedTable = mode match {
@@ -105,7 +105,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     }
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
-  def rejectAllTable(table:String,mode:BoxDef.Mode) = (e:Event) => {
+  def rejectAllTable(table: => String,mode: => BoxDef.Mode) = (e:Event) => {
     val merge = viewModel.get.merge
     val mergedTable = mode match {
       case BoxDef.Insert => merge(table).copy(insert = Seq())
@@ -115,7 +115,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
 
-  def acceptField(table:String,mode:BoxDef.Mode,field:Json) = (e:Event) => {
+  def acceptField(table: => String,mode: => BoxDef.Mode,field: => Json) = (e:Event) => {
     val merge = viewModel.get.merge
     val mergedTable = mode match {
       case BoxDef.Insert => merge(table).copy(insert = (merge(table).insert ++ Seq(field)).distinct)
@@ -125,7 +125,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     viewModel.subProp(_.merge).set(merge ++ Map(table -> mergedTable))
   }
 
-  def rejectField(table:String,mode:BoxDef.Mode,field:Json) = (e:Event) => {
+  def rejectField(table: => String,mode: => BoxDef.Mode,field: => Json) = (e:Event) => {
     val merge = viewModel.get.merge
     val mergedTable = mode match {
       case BoxDef.Insert => merge(table).copy(insert = merge(table).insert.filterNot(_ == field))

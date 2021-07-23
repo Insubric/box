@@ -185,7 +185,7 @@ object EditableTable extends ChildRendererFactory {
       )
     }
 
-    def printTable(metadata:JSONMetadata) = (e:Event) => {
+    def printTable(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = PDFTable(title, header, rows)
@@ -202,7 +202,7 @@ object EditableTable extends ChildRendererFactory {
       e.preventDefault()
     }
 
-    def exportCSV(metadata:JSONMetadata) = (e:Event) => {
+    def exportCSV(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = CSVTable(title, header, rows)
@@ -213,7 +213,7 @@ object EditableTable extends ChildRendererFactory {
       e.preventDefault()
     }
 
-    def exportXLS(metadata:JSONMetadata) = (e:Event) => {
+    def exportXLS(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = XLSTable(title, header, rows)

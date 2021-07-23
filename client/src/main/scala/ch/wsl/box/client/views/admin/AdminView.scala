@@ -37,7 +37,7 @@ class AdminPresenter(viewModel:ModelProperty[AdminViewModel]) extends Presenter[
     }
   }
 
-  def generateStub(entity:String) = (e:Event) => {
+  def generateStub(entity: => String) = (e:Event) => {
     services.rest.generateStub(entity)
     e.preventDefault()
   }

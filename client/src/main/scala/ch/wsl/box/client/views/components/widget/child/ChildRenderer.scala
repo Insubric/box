@@ -105,7 +105,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
 
-    def removeItem(itemToRemove: ChildRow) = (e:Event) => {
+    def removeItem(itemToRemove: => ChildRow) = (e:Event) => {
       logger.info("removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
         val childToDelete = childWidgets.zipWithIndex.find(x => x._1.rowId.get == itemToRemove.rowId.get && x._1.id == itemToRemove.id).get
@@ -115,7 +115,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
     }
 
-    def addItemHandler(child: Child, metadata: JSONMetadata) = (e:Event) => {
+    def addItemHandler(child: => Child, metadata: => JSONMetadata) = (e:Event) => {
       addItem(child,metadata)
       e.preventDefault()
     }

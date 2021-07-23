@@ -228,21 +228,21 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   def ids(el:Row): JSONID = extractID(el.data,model.subProp(_.metadata).get.toSeq.flatMap(_.tabularFields),model.subProp(_.metadata).get.toSeq.flatMap(_.keys))
 
-  def edit(el:Row) = (e:Event) => {
+  def edit(el: => Row) = (e:Event) => {
     val k = ids(el)
     val newState = routes.edit(k.asString)
     Navigate.to(newState)
     e.preventDefault()
   }
 
-  def show(el:Row) = (e:Event) => {
+  def show(el: => Row) = (e:Event) => {
     val k = ids(el)
     val newState = routes.show(k.asString)
     Navigate.to(newState)
     e.preventDefault()
   }
 
-  def delete(el:Row) = (e:Event) => {
+  def delete(el: => Row) = (e:Event) => {
     val k = ids(el)
     val confim = window.confirm(Labels.entity.confirmDelete)
     if(confim) {
@@ -353,7 +353,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     model.subProp(_.fieldQueries).set(newFieldQueries)
   }
 
-  def sort(fieldQuery: FieldQuery) = (e:Event) => {
+  def sort(fieldQuery: => FieldQuery) = (e:Event) => {
     e.preventDefault()
 
     val next = Sort.next(fieldQuery.sort)
@@ -387,7 +387,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     model.subProp(_.fieldQueries).set(newFieldQueries)
   }
 
-  def selected(row: Row) = (e:Event) => {
+  def selected(row: => Row) = (e:Event) => {
     onSelect(model.get.fieldQueries.map(_.field).zip(row.data))
     model.subProp(_.selectedRow).set(Some(row))
     e.preventDefault()
