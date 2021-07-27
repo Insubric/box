@@ -309,7 +309,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       override def onString(value: String): Json = Json.fromString(value)
       override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(removeNonDataFields))
       override def onObject(value: JsonObject): Json = Json.fromJsonObject{
-        value.filter(!_._1.startsWith("$"))
+        value.filter(!_._1.startsWith("$")).mapValues(removeNonDataFields)
       }
     }
 
@@ -320,7 +320,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   model.subProp(_.data).listen { d =>
     if(!currentData.equals(removeNonDataFields(d))) {
       logger.info(currentData.toString())
-      logger.info(d.toString())
+      logger.info(removeNonDataFields(d).toString())
       avoidGoAway
     } else {
       enableGoAway
