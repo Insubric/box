@@ -696,9 +696,11 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginRight.auto,
   )
 
+
   val margin0Auto = style(
     margin(`0`,auto)
   )
+
 
   val tristateCheckBox = style(
     backgroundColor(c"#fff"),
@@ -754,6 +756,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       marginRight(5 px)
     )
   )
+
 
 //  val fixedHeader = style(
 //    unsafeRoot("tbody")(
