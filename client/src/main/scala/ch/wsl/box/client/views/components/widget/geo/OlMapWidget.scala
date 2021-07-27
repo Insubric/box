@@ -447,7 +447,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
       val isActive = if(c == section) "active" else "none"
 
-      val label = field.params.flatMap(_.getOpt(labelKey)).getOrElse(Labels.apply(labelKey))
+      val label = field.params.flatMap(_.getOpt(labelKey)).map(x => Labels(x)).getOrElse(Labels.apply(labelKey))
 
 
       val (el,tt) = WidgetUtils.addTooltip(Some(label))(

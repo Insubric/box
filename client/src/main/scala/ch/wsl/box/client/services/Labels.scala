@@ -16,6 +16,7 @@ object Labels {
   }
 
   def apply(key:String):String = get(key)
+  def all:Map[String,String] = labels
 
   private def get(key:String):String = labels.lift(key).filterNot(_.trim == "").getOrElse(key)
 

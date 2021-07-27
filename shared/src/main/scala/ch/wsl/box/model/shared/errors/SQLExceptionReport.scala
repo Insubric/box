@@ -13,7 +13,7 @@ case class SQLExceptionReport(
                              ) extends ExceptionReport {
   override def humanReadable(labels: Map[String, String]) = {
     Seq(
-      message,
+      message.map(m => labels.getOrElse(m,m)),
       table.map(t => s"Table: $t"),
       column.map(c => s"Column: $c"),
       internalQuery.map(q => s"Query: $q"),
