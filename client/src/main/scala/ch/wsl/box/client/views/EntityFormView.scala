@@ -533,7 +533,8 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       hr(ClientConf.style.hrThin)
     )
 
-    val formFooter = div(BootstrapCol.md(12),marginTop := 10.px,
+    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,
+      _maxWidth.map(mw => maxWidth := mw),
       actions,
       ul(
         produce(Notification.list){ notices =>
@@ -544,33 +545,43 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       )
     )
 
-    val showHeader = model.subProp(_.metadata).transform(_.flatMap(_.params).forall(_.js("hideHeader") != Json.True))
 
-    val showFooter = model.subProp(_.metadata).transform(_.flatMap(_.params).forall(_.js("hideFooter") != Json.True))
 
     div(
-      showIf(showHeader) {
-        formHeader.render
-      },
       produce(model.subProp(_.metadata)){ _form =>
-        div(BootstrapCol.md(12),ClientConf.style.fullHeightMax,
-          _form match {
-            case None => p("Loading form")
-            case Some(f) => {
-              val mainForm = form(
-                presenter.loadWidgets(f).render(model.get.write,Property(true))
-              ).render
-              presenter.setForm(mainForm)
-              mainForm
-            }
+
+        val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
+        val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
+        val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
+
+        div(
+          if(showHeader) {
+            formHeader.render
           },
-          showIf(showFooter) {
-            formFooter.render
-          }
+          div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+            _form match {
+              case None => p("Loading form")
+              case Some(f) => {
+
+
+
+                val mainForm = form(
+                  ClientConf.style.margin0Auto,
+                  _maxWidth.map(mw => maxWidth := mw),
+                  presenter.loadWidgets(f).render(model.get.write,Property(true))
+                ).render
+                presenter.setForm(mainForm)
+                mainForm
+              }
+            },
+            if(showFooter) {
+              formFooter(_maxWidth).render
+            }
+          ).render,
+          Debug(model.subProp(_.data),b => b, "data"),
+          Debug(model.subProp(_.metadata),b => b, "metadata")
         ).render
-      },
-      Debug(model.subProp(_.data),b => b, "data"),
-      Debug(model.subProp(_.metadata),b => b, "metadata")
+      }
     )
   }
 }

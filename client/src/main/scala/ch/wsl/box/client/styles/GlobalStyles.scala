@@ -672,6 +672,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginRight.auto,
   )
 
+  val margin0Auto = style(
+    margin(`0`,auto)
+  )
+
   val tristateCheckBox = style(
     backgroundColor(c"#fff"),
     borderStyle.solid,
