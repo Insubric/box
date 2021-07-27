@@ -23,8 +23,14 @@ object Navigate extends Logging {
 
   def toUrl(url:String) = toAction{ () =>
     logger.debug(s"navigate to $url")
-    val state = Context.routingRegistry.matchUrl(Url(url))
-    Context.applicationInstance.goTo(state)
+    url match {
+      case "back" => Navigate.back()
+      case url:String => {
+        val state = Context.routingRegistry.matchUrl(Url(url))
+        Context.applicationInstance.goTo(state)
+      }
+    }
+
   }
 
   def back() = toAction{ () =>
