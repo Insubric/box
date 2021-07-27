@@ -16,6 +16,7 @@ object Labels {
   }
 
   def apply(key:String):String = get(key)
+  def all:Map[String,String] = labels
 
   private def get(key:String):String = labels.lift(key).filterNot(_.trim == "").getOrElse(key)
 
@@ -148,5 +149,17 @@ object Labels {
 
   object home {
     def title(uiTitle:Option[String]) = uiTitle.getOrElse(get(SharedLabels.home.title))
+  }
+
+  object map {
+    def panZoom = get(SharedLabels.map.panZoom)
+    def edit = get(SharedLabels.map.edit)
+    def addPoint = get(SharedLabels.map.addPoint)
+    def addLine = get(SharedLabels.map.addLine)
+    def addPolygon = get(SharedLabels.map.addPolygon)
+    def addPolygonHole = get(SharedLabels.map.addPolygonHole)
+    def move = get(SharedLabels.map.move)
+    def delete = get(SharedLabels.map.delete)
+    def goTo = get(SharedLabels.map.goTo)
   }
 }

@@ -59,6 +59,7 @@ class NotificationChannel(user:String,topic:String)(implicit mat: Materializer) 
 
 trait NotificationChannels {
   def add(user:String,topic: String)(implicit mat: Materializer):NotificationChannel
+  def start()
 }
 
 class NotificationChannelsImpl(connection:Connection) extends NotificationChannels with Logging {
@@ -90,6 +91,9 @@ class NotificationChannelsImpl(connection:Connection) extends NotificationChanne
     }
   }
 
-  NotificationsHandler.create("ui_feedback_channel",connection,handleNotification)
 
+
+
+
+  override def start(): Unit = NotificationsHandler.create("ui_feedback_channel",connection,handleNotification)
 }

@@ -2,11 +2,11 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.GlobalStyles
-import ch.wsl.box.model.shared.JSONField
+import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SurrugateKey}
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
-import io.udash.produce
+import io.udash.{Property, ReadableProperty, produce}
 import io.udash.properties.single.Property
 import org.scalajs.dom
 import org.scalajs.dom.Element
@@ -21,22 +21,21 @@ object WidgetUtils extends Logging{
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
 
-  def showNotNull(prop:Property[Json])(f: Json => Seq[Element]):Binding = produce(prop, checkNull=false) {   //todo verify what changes with checkNull=false
+  def showNotNull(prop:ReadableProperty[Json])(f: Json => Seq[Element]):Binding = produce(prop, checkNull=false) {   //todo verify what changes with checkNull=false
     case Json.Null => Seq()
     case p:Json =>  f(p)
   }
 
   def addTooltip(tooltip:Option[String],placement:UdashTooltip.Placement = UdashTooltip.Placement.Bottom)(el:dom.Node) = {
-    tooltip match {
-      case Some(tip) => UdashTooltip(
+    val tt = tooltip.map{ tip =>
+      UdashTooltip(
         trigger = Seq(UdashTooltip.Trigger.Hover),
-        delay = UdashTooltip.Delay(500 millis, 250 millis),
+        delay = UdashTooltip.Delay(250 millis, 0 millis),
         placement = placement,
         title = tip
       )(el)
-      case _ => {}
     }
-    el
+    (el,tt)
   }
 
   def toLabel(field:JSONField, skipRequiredInfo:Boolean=false) = {
@@ -66,6 +65,17 @@ object WidgetUtils extends Logging{
       case true => Seq.empty
       case false => Seq(required := "required",ClientConf.style.notNullable)
     }
+  }
+
+  def isKeyNotEditable(metadata:JSONMetadata,field:JSONField,id:Option[String]):Boolean = {
+    metadata.keys.contains(field.name) &&  //check if field is a key
+      (
+        id.isDefined ||                //if it's an existing record the key cannot be changed, it would be a new record
+          (
+            metadata.keyStrategy == SurrugateKey &&
+              !( ClientConf.manualEditKeyFields || ClientConf.manualEditSingleKeyFields.contains(metadata.entity + "." + field.name))
+            )
+        )
   }
 
 }

@@ -1,5 +1,7 @@
 package ch.wsl.box.rest.metadata
 
+import java.util.UUID
+
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema}
 import ch.wsl.box.model.shared._
@@ -151,7 +153,7 @@ object EntityMetadataFactory extends Logging {
 
           val fieldList = fields.map(_.name)
           JSONMetadata(
-            1,
+            UUID.randomUUID(),
             table,
             table,
             fields,

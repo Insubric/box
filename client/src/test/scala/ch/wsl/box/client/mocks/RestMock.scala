@@ -194,4 +194,6 @@ class RestMock(values:Values) extends REST with Logging {
   override def definitionDiff(definition: BoxDefinition): Future[BoxDefinitionMerge] = ???
 
   override def definitionCommit(merge: BoxDefinitionMerge): Future[Boolean] = ???
+
+  override def execute(functionName: String, lang: String, data:Json) = ???
 }

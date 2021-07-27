@@ -13,8 +13,8 @@ import scala.scalajs.js.timers.setTimeout
 case class NotificationMessage(body:String)
 
 object Notification {
-  private val _list:SeqProperty[String] = SeqProperty(Seq[String]())
-  def list:ReadableSeqProperty[String] = _list
+  private val _list:Property[Seq[String]] = Property(Seq[String]())
+  def list:ReadableProperty[Seq[String]] = _list
 
   private var socket:WebSocket = null
 
@@ -46,9 +46,9 @@ object Notification {
   }
 
   def add(notice:String) = {
-    _list.append(notice)
+    _list.set(_list.get ++ Seq(notice))
     setTimeout(ClientConf.notificationTimeOut seconds){
-      _list.remove(notice)
+      _list.set(_list.get.filterNot(_ == notice))
     }
   }
 }

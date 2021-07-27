@@ -39,6 +39,6 @@ class MailServiceCourier extends MailService {
       .to(mail.to.flatMap(InternetAddress.parse(_)):_*)
       .subject(mail.subject)
       .content(content)
-    ).map(_ => true )
+    ).map(_ => true ).recover{ case e => e.printStackTrace(); false}
   }
 }

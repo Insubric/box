@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.Labels
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
-import ch.wsl.box.model.shared.{JSONField, JSONLookup}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONLookup}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
@@ -37,17 +37,23 @@ trait LookupWidget extends Widget with HasData {
   }
 
   field.`type` match {
-    case "number" =>  data.sync[JSONLookup](model)(
+    case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER  =>  data.sync[JSONLookup](model)(
       {json:Json =>
         val id = jsonToString(json)
-        lookup.get.find(_.id == jsonToString(json)).getOrElse(JSONLookup(id,id + " NOT FOUND"))
+        lookup.get.find(_.id == jsonToString(json)).getOrElse{
+          logger.warn(s"Lookup for $id not found")
+          JSONLookup(id,id)
+        }
       },
       {jsonLookup:JSONLookup => strToNumericJson(jsonLookup.id)}
     )
     case _ => data.sync[JSONLookup](model)(
       {json:Json =>
         val id = jsonToString(json)
-        val result = lookup.get.find(_.id == id).getOrElse(JSONLookup(id,id + " NOT FOUND"))
+        val result = lookup.get.find(_.id == id).getOrElse{
+          logger.warn(s"Lookup for $id not found")
+          JSONLookup(id,id)
+        }
         result
       },
       {jsonLookup:JSONLookup => strToJson(field.nullable)(jsonLookup.id)}
@@ -55,16 +61,17 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
-  val selectModel = data.transform(value2Label)
 
 
   override def showOnTable(): JsDom.all.Modifier = {
-    autoRelease(bind(selectModel.combine(data)((a,b) => (a,b)).transform{
-      case (notFound,js) if notFound == Labels.lookup.not_found => js.string
-      case (t,_) => t
+    autoRelease(bind(model.combine(data)((a,b) => (a,b)).transform{
+      case (notFound,js) if notFound.value == Labels.lookup.not_found => js.string
+      case (t,d) => {
+        t.value
+      }
     }))
   }
-  override def text() = selectModel
+  override def text() = model.transform(_.value)
 
 
 

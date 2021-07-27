@@ -96,23 +96,25 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 600.asJson))
   )
 
+  val params = JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code))
+
   val formFieldChild = JSONField(JSONFieldTypes.CHILD,"fields_child",true,
-    child = Some(Child(FORM_FIELD_CHILDS,"fields_child","form_id","form_id",
-      Some(JSONQuery.sortByKeys(Seq("field_id")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.CHILD))),
+    child = Some(Child(FORM_FIELD_CHILDS,"fields_child","form_uuid","form_uuid",
+      Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.CHILD))),
       ""
     )),
     widget = Some(WidgetsNames.tableChild)
   )
   val formFieldStatic = JSONField(JSONFieldTypes.CHILD,"fields_static",true,
-    child = Some(Child(FORM_FIELD_STATIC,"fields_static","form_id","form_id",
-      Some(JSONQuery.sortByKeys(Seq("field_id")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.STATIC))),
+    child = Some(Child(FORM_FIELD_STATIC,"fields_static","form_uuid","form_uuid",
+      Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.STATIC))),
       ""
     )),
     widget = Some(WidgetsNames.tableChild)
   )
 
   val formi18n = JSONField(JSONFieldTypes.CHILD,"form_i18n",true,
-    child = Some(Child(FORM_I18N,"form_i18n","form_id","form_id",Some(JSONQuery.sortByKeys(Seq("lang"))),"")),
+    child = Some(Child(FORM_I18N,"form_i18n","form_uuid","form_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"")),
     widget = Some(WidgetsNames.tableChild)
   )
 

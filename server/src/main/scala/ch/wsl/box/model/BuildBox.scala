@@ -512,6 +512,7 @@ ALTER TABLE ONLY box.function_field
       val installShowError = install(services.connection.dbConnection,services.connection.adminUser).recover{ case t:Throwable => t.printStackTrace()}
 
       Await.result(installShowError, 30 seconds)
+      services.connection.close()
 
       println("Box schema ready")
     }

@@ -14,15 +14,15 @@ object BoxField {
 
 
   case class BoxField_row(
-                           field_id: Option[Int] = None,
-                           form_id: Int,
+                           field_uuid: Option[java.util.UUID] = None,
+                           form_uuid: java.util.UUID,
                            `type`: String,
                            name: String,
                            widget: Option[String] = None,
                            lookupEntity: Option[String] = None,
                            lookupValueField: Option[String] = None,
                            lookupQuery:Option[String] = None,
-                           child_form_id: Option[Int] = None,
+                           child_form_uuid: Option[java.util.UUID] = None,
                            masterFields:Option[String] = None,
                            childFields:Option[String] = None,
                            childQuery:Option[String] = None,
@@ -31,16 +31,17 @@ object BoxField {
                            conditionValues:Option[String] = None,
                            params:Option[Json] = None,
                            read_only:Boolean = false,
-                           required:Option[Boolean] = Some(false)
+                           required:Option[Boolean] = Some(false),
+                           function:Option[String] = None
                          )
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,BoxSchema.schema, "field") {
-    def * = (Rep.Some(field_id), form_id, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_id,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required) <> (BoxField_row.tupled, BoxField_row.unapply)
+    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function) <> (BoxField_row.tupled, BoxField_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
-    val field_id: Rep[Int] = column[Int]("field_id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
+    val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
     /** Database column form_id SqlType(int4) */
-    val form_id: Rep[Int] = column[Int]("form_id")
+    val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
     /** Database column type SqlType(text)
       *  NOTE: The name was escaped because it collided with a Scala keyword. */
     val `type`: Rep[String] = column[String]("type")
@@ -54,19 +55,20 @@ object BoxField {
     /** Database column refValueProperty SqlType(text), Default(None) */
     val lookupValueField: Rep[Option[String]] = column[Option[String]]("lookupValueField", O.Default(None))
     /** Database column subform SqlType(int4), Default(None) */
-    val child_form_id: Rep[Option[Int]] = column[Option[Int]]("child_form_id", O.Default(None))
+    val child_form_uuid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("child_form_uuid", O.Default(None))
     val masterFields: Rep[Option[String]] = column[Option[String]]("masterFields", O.Default(None))
     val childFields: Rep[Option[String]] = column[Option[String]]("childFields", O.Default(None))
     val childQuery: Rep[Option[String]] = column[Option[String]]("childQuery", O.Default(None))
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
     val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
     val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
+    val function: Rep[Option[String]] = column[Option[String]]("function", O.Default(None))
     val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
     val read_only: Rep[Boolean] = column[Boolean]("read_only")
     val required: Rep[Option[Boolean]] = column[Option[Boolean]]("required")
 
     /** Foreign key referencing Form (database name fkey_form) */
-    lazy val formFk = foreignKey("fkey_form", form_id, BoxForm.BoxFormTable)(r => r.form_id, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+    lazy val formFk = foreignKey("fkey_form", form_uuid, BoxForm.BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
   }
   /** Collection-like TableQuery object for table Field */
   lazy val BoxFieldTable = new TableQuery(tag => new BoxField(tag))
@@ -80,19 +82,19 @@ object BoxField {
     *  @param tooltip Database column tooltip SqlType(text), Default(None)
     *  @param hint Database column hint SqlType(text), Default(None)
     *  @param lookupTextField Database column refTextProperty SqlType(text), Default(None) */
-  case class BoxField_i18n_row(id: Option[Int] = None, field_id: Option[Int] = None, lang: Option[String] = None, label: Option[String] = None,
+  case class BoxField_i18n_row(uuid: Option[java.util.UUID] = None, field_uuid: Option[java.util.UUID] = None, lang: Option[String] = None, label: Option[String] = None,
                                placeholder: Option[String] = None, tooltip: Option[String] = None, hint: Option[String] = None,
                                lookupTextField: Option[String] = None)
   /** GetResult implicit for fetching Field_i18n_row objects using plain SQL queries */
 
   /** Table description of table field_i18n. Objects of this class serve as prototypes for rows in queries. */
   class BoxField_i18n(_tableTag: Tag) extends Table[BoxField_i18n_row](_tableTag,BoxSchema.schema, "field_i18n") {
-    def * = (Rep.Some(id), field_id, lang, label, placeholder, tooltip, hint, lookupTextField) <> (BoxField_i18n_row.tupled, BoxField_i18n_row.unapply)
+    def * = (Rep.Some(uuid), field_uuid, lang, label, placeholder, tooltip, hint, lookupTextField) <> (BoxField_i18n_row.tupled, BoxField_i18n_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
-    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
+    val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     /** Database column field_id SqlType(int4), Default(None) */
-    val field_id: Rep[Option[Int]] = column[Option[Int]]("field_id", O.Default(None))
+    val field_uuid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("field_uuid", O.Default(None))
     /** Database column lang SqlType(bpchar), Length(2,false), Default(None) */
     val lang: Rep[Option[String]] = column[Option[String]]("lang", O.Length(2,varying=false), O.Default(None))
     /** Database column title SqlType(text), Default(None) */
@@ -108,27 +110,27 @@ object BoxField {
 
 
     /** Foreign key referencing Field (database name fkey_field) */
-    lazy val fieldFk = foreignKey("fkey_field", field_id, BoxFieldTable)(r => Rep.Some(r.field_id), onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+    lazy val fieldFk = foreignKey("fkey_field", field_uuid, BoxFieldTable)(r => Rep.Some(r.field_uuid), onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
   }
   /** Collection-like TableQuery object for table Field_i18n */
   lazy val BoxField_i18nTable = new TableQuery(tag => new BoxField_i18n(tag))
 
 
 
-  case class BoxFieldFile_row(field_id: Int, file_field: String, thumbnail_field: Option[String] = None, name_field: String)
+  case class BoxFieldFile_row(field_uuid: java.util.UUID, file_field: String, thumbnail_field: Option[String] = None, name_field: String)
 
 
   class BoxFieldFile(_tableTag: Tag) extends Table[BoxFieldFile_row](_tableTag,BoxSchema.schema, "field_file") {
-    def * = (field_id,file_field,thumbnail_field,name_field) <> (BoxFieldFile_row.tupled, BoxFieldFile_row.unapply)
+    def * = (field_uuid,file_field,thumbnail_field,name_field) <> (BoxFieldFile_row.tupled, BoxFieldFile_row.unapply)
 
-    val field_id: Rep[Int] = column[Int]("field_id", O.PrimaryKey)
+    val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.PrimaryKey)
     val file_field: Rep[String] = column[String]("file_field")
     val thumbnail_field: Rep[Option[String]] = column[Option[String]]("thumbnail_field")
     val name_field: Rep[String] = column[String]("name_field")
 
 
     /** Foreign key referencing Form (database name fkey_form) */
-    lazy val formFk = foreignKey("field_file_fielf_id_fk", field_id, BoxFieldTable)(r => r.field_id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+    lazy val formFk = foreignKey("field_file_fielf_id_fk", field_uuid, BoxFieldTable)(r => r.field_uuid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table Field */
   lazy val BoxFieldFileTable = new TableQuery(tag => new BoxFieldFile(tag))

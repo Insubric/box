@@ -101,6 +101,9 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   override def exportCSV(table: CSVTable): Future[File] = httpClient.postFileResponse[CSVTable](Routes.apiV1(s"/exportCSV"),table)
   override def exportXLS(table: XLSTable): Future[File] = httpClient.postFileResponse[XLSTable](Routes.apiV1(s"/exportXLS"),table)
 
+
+  override def execute(functionName: String, lang: String, data:Json): Future[String] = httpClient.post[Json,String](Routes.apiV1(s"/function/$functionName/$lang"),data)
+
   //admin
   def generateStub(entity:String) = httpClient.get[Boolean](Routes.apiV1(s"/create-stub/$entity"))
   override def definition(): Future[BoxDefinition] = httpClient.get[BoxDefinition](Routes.apiV1(s"/box-definition"))

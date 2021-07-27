@@ -1,5 +1,7 @@
 package ch.wsl.box.rest.metadata
 
+import java.util.UUID
+
 import akka.stream.Materializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.boxentities.BoxExportField.{BoxExportField_i18n_row, BoxExportField_row}
@@ -40,7 +42,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
     def checkRole(roles:List[String], access_roles:List[String], accessLevel:Int) =  roles.intersect(access_roles).size>0 || access_roles.isEmpty || access_roles.contains(up.name) || accessLevel == 1000
 
     def query    = for {
-      (e, ei18) <- functions.BoxFunctionTable joinLeft(functions.BoxFunction_i18nTable.filter(_.lang === lang)) on(_.function_id === _.function_id)
+      (e, ei18) <- functions.BoxFunctionTable joinLeft(functions.BoxFunction_i18nTable.filter(_.lang === lang)) on(_.function_uuid === _.function_uuid)
 
     } yield (ei18.flatMap(_.label), e.name, e.order, ei18.flatMap(_.hint), ei18.flatMap(_.tooltip), e.access_role, e.mode)
 
@@ -63,7 +65,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
 
   def defOf(name:String, lang:String): Future[ExportDef] = {
     val query = for {
-      (e, ei18) <- functions.BoxFunctionTable joinLeft(functions.BoxFunction_i18nTable.filter(_.lang === lang)) on(_.function_id === _.function_id)
+      (e, ei18) <- functions.BoxFunctionTable joinLeft(functions.BoxFunction_i18nTable.filter(_.lang === lang)) on(_.function_uuid === _.function_uuid)
       if e.name === name
 
     } yield (ei18.flatMap(_.label), e.name, e.order, ei18.flatMap(_.hint), ei18.flatMap(_.tooltip),e.mode)
@@ -77,14 +79,14 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
 
   def of(schema:String,name:String, lang:String):Future[JSONMetadata]  = {
     val queryExport = for{
-      (func, functionI18n) <- functions.BoxFunctionTable joinLeft functions.BoxFunction_i18nTable.filter(_.lang === lang) on (_.function_id === _.function_id)
+      (func, functionI18n) <- functions.BoxFunctionTable joinLeft functions.BoxFunction_i18nTable.filter(_.lang === lang) on (_.function_uuid === _.function_uuid)
       if func.name === name
 
     } yield (func,functionI18n)
 
-    def queryField(functionId:Int) = for{
-      (f, fi18n) <- functions.BoxFunctionFieldTable joinLeft functions.BoxFunctionField_i18nTable.filter(_.lang === lang) on (_.field_id === _.field_id)
-      if f.function_id === functionId
+    def queryField(functionId:UUID) = for{
+      (f, fi18n) <- functions.BoxFunctionFieldTable joinLeft functions.BoxFunctionField_i18nTable.filter(_.lang === lang) on (_.field_uuid === _.field_uuid)
+      if f.function_uuid === functionId
     } yield (f, fi18n)
 
     for {
@@ -93,21 +95,21 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
       }.map(_.head)
 
       fields <- services.connection.adminDB.run {
-        queryField(func.function_id.get).sortBy(_._1.field_id).result
+        queryField(func.function_uuid.get).sortBy(_._1.field_uuid).result
       }
 
       jsonFields <- Future.sequence(fields.map(fieldsMetadata(schema,lang)))
 
     } yield {
 
-      if(functionI18n.isEmpty) logger.warn(s"Export ${func.name} (function_id: ${func.function_id}) has no translation to $lang")
+      if(functionI18n.isEmpty) logger.warn(s"Export ${func.name} (function_id: ${func.function_uuid}) has no translation to $lang")
 
 
       val layout = Layout.fromString(func.layout).getOrElse(Layout.fromFields(jsonFields))
 
 
       JSONMetadata(
-        func.function_id.get,
+        func.function_uuid.get,
         func.name,
         functionI18n.flatMap(_.label).getOrElse(name),
         jsonFields,
@@ -131,7 +133,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
 
     val (field,fieldI18n) = el
 
-    if(fieldI18n.isEmpty) logger.warn(s"Export field ${field.name} (export_id: ${field.field_id}) has no translation to $lang")
+    if(fieldI18n.isEmpty) logger.warn(s"Export field ${field.name} (export_id: ${field.field_uuid}) has no translation to $lang")
 
 
     val lookup: Future[Option[JSONFieldLookup]] = {for{

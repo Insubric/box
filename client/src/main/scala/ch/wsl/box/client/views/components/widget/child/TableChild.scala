@@ -51,7 +51,7 @@ object TableChildFactory extends ChildRendererFactory {
                   ent.map { e =>
                     val widget = childWidgets.find(_.id == e).get
 
-                    def toggleRow() = {
+                    val toggleRow = (e:Event) => {
                       val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId.get)
                       widget.open.toggle()
                       if (widget.open.get) {
@@ -69,7 +69,7 @@ object TableChildFactory extends ChildRendererFactory {
                               a(id.bind(widget.rowId.transform(i => TestHooks.tableChildButtonId(f.objId,i))), autoRelease(produce(widget.open) {
                                 case true => span(Icons.caretDown).render
                                 case false => span(Icons.caretRight).render
-                              }), onclick :+= ((e: Event) => toggleRow())).render
+                              }), onclick :+= toggleRow).render
 
                         ),
                         autoRelease(produce(widget.data) { data => fields.map{x =>
@@ -85,14 +85,7 @@ object TableChildFactory extends ChildRendererFactory {
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
                               div(
                                 widget.widget.render(write, Property(true)),
-                                if (write && !disableRemove) div(
-                                  BootstrapStyles.Grid.row,
-                                  div(BootstrapCol.md(12), ClientConf.style.block,
-                                    div(BootstrapStyles.Float.right(),
-                                      a(onclick :+= ((_: Event) => removeItem(widget)), Labels.subform.remove, id.bind(widget.rowId.transform(x => TestHooks.deleteChildId(f.objId,x))))
-                                    )
-                                  )
-                                ) else frag()
+                                removeButton(write,widget,f)
                               )
                             ).render
                         }
@@ -105,10 +98,7 @@ object TableChildFactory extends ChildRendererFactory {
               ),
               tr(ClientConf.style.childTableTr,
                 td(ClientConf.style.childTableTd,colspan := fields.length + 1,
-                  if (write && !disableAdd) a(id := TestHooks.addChildId(f.objId),onclick :+= ((e: Event) => {
-                    addItem(child, f)
-                    true
-                  }), Labels.subform.add) else frag()
+                  addButton(write,f)
                 )
               )
             ).render,

@@ -1,6 +1,7 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 
 val publishSettings = List(
+  Global / scalaJSStage := FullOptStage,
   organization := "com.boxframework",
   licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://www.boxframework.com/")),
@@ -79,7 +80,9 @@ lazy val server: Project  = project
     Assets / WebKeys.packagePrefix := "public/",
     //Comment this to avoid errors in importing project, i.e. when changing libraries
     Assets / pipelineStages := Seq(scalaJSPipeline),
+    Assets / scalaJSStage := FullOptStage,
     scalaJSProjects := Seq(client),
+    webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
         (nodeModules / p).allPaths
@@ -122,6 +125,7 @@ lazy val client: Project = (project in file("client"))
     packageJSDependencies / skip := false,
     // use Scala.js provided launcher code to start the client app
     scalaJSUseMainModuleInitializer := true,
+    scalaJSStage := FullOptStage,
     Compile / npmDependencies ++= Seq(
       "ol" -> "6.3.1",
       "@types/ol" -> "6.3.1",
@@ -273,6 +277,7 @@ lazy val publishAllTask = {
     (serverServices / clean),
     (codegen / clean),
     (client / Compile / fullOptJS / webpack),
+    (client / Compile / fullOptJS),
     (codegen / Compile / compile),
     (sharedJVM / publishSigned),
     (codegen / publishSigned),

@@ -5,6 +5,7 @@ import io.circe.syntax._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json.{Folder, JArray}
 import java.io
+import java.util.UUID
 
 import ch.wsl.box.shared.utils.JSONUtils
 import scribe.Logging
@@ -19,7 +20,7 @@ case object SurrugateKey extends KeyStrategy
   * Created by andre on 5/16/2017.
   */
 case class JSONMetadata(
-                         objId:Int,
+                         objId:java.util.UUID,
                          name:String,
                          label:String,
                          fields:Seq[JSONField],
@@ -36,6 +37,7 @@ case class JSONMetadata(
                          action:FormActionsMetadata,
                          static:Boolean = false,
                          dynamicLabel:Option[String] = None,
+                         params:Option[Json] = None
                        ) {
   def order:Ordering[JSONID] = new Ordering[JSONID] {
     override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>
@@ -91,7 +93,7 @@ object JSONMetadata extends Logging {
   }
 
 
-  def simple(id:Int,entity:String, lang:String,fields:Seq[JSONField],keys:Seq[String]):JSONMetadata = JSONMetadata(
+  def simple(id:UUID, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
     objId = id,
     name = entity,
     label = entity,

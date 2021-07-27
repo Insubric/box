@@ -7,6 +7,7 @@ import JSONFieldTypes._
 object WidgetsNames {
   val inputDisabled = "inputDisabled"
   val input = "input"
+  val integerDecimal2 = "integerDecimal2"
   val textarea = "textarea"
   val datepicker = "datepicker"
   val timepicker = "timepicker"
@@ -40,6 +41,8 @@ object WidgetsNames {
   val fileWithPreview = "fileWithPreview"
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
+  val langWidget = "langWidget"
+  val executeFunction = "executeFunction"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -53,6 +56,7 @@ object WidgetsNames {
     ),
     INTEGER -> Seq(
       input,
+      integerDecimal2,
       select,
       popup,
       checkbox,
@@ -72,6 +76,7 @@ object WidgetsNames {
       popup,
       hidden,
       dynamicWidget,
+      langWidget
     ),
     CHILD -> Seq(
       simpleChild,
@@ -145,6 +150,7 @@ object WidgetsNames {
       lookupLabel,
       html,
       dynamicWidget,
+      executeFunction
     )
   )
 

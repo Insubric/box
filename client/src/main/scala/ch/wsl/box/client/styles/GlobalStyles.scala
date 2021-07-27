@@ -308,6 +308,12 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     paddingLeft(20 px)
   )
 
+  val withBorder = style(
+    borderBottom(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
+    paddingBottom(5 px),
+    paddingTop(5 px)
+  )
+
   val field = style(
     padding.`0`
   )
@@ -384,13 +390,15 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginTop(conf.childProps.marginTopSize px),
     padding(conf.childProps.paddingSize px),
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
-    backgroundColor(conf.childProps.backgroundColor)
+    backgroundColor(conf.childProps.backgroundColor),
+    overflow.hidden
   )
 
   val childTable = style(
     backgroundColor(conf.childProps.backgroundColor),
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
-    width(100.%%)
+    width(100.%%),
+    overflow.hidden
   )
 
   val childTableTr = style(
@@ -664,6 +672,12 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginRight.auto,
   )
 
+
+  val margin0Auto = style(
+    margin(`0`,auto)
+  )
+
+
   val tristateCheckBox = style(
     backgroundColor(c"#fff"),
     borderStyle.solid,
@@ -696,6 +710,29 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     width(50 %%),
     display.inlineBlock
   )
+
+  val childAddButton = style(
+    lineHeight(40 px),
+    fontSize(14 px),
+    unsafeChild("svg")(
+      color(conf.colors.main),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
+  val childRemoveButton = style(
+    lineHeight(32 px),
+    fontSize(14 px),
+    unsafeChild("svg")(
+      color(conf.colors.danger),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
 
 //  val fixedHeader = style(
 //    unsafeRoot("tbody")(

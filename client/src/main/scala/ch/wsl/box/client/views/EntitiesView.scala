@@ -86,16 +86,20 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
 
   private def sidebar: Element = if(UI.showEntitiesSidebar) {
     div(sidebarGrid)(
-      div(Labels.entities.search),
-      TextInput(model.subProp(_.search))(onkeyup :+= ((ev: Event) => {
-        presenter.updateEntitiesList()
-        true
-      })),
-      produceWithNested(model.subProp(_.search)) { (q,releaser) =>
-        ul(ClientConf.style.noBullet,
-          releaser(repeat(model.subSeq(_.filteredList)){m =>
-            li(a(Navigate.click(routes.entity(m.get)),m.get)).render
-          })
+      showIf(model.transform(_.currentEntity.isDefined)) {
+        div(
+          div(Labels.entities.search),
+          TextInput(model.subProp(_.search))(onkeyup :+= ((ev: Event) => {
+            presenter.updateEntitiesList()
+            true
+          })),
+          produceWithNested(model.subProp(_.search)) { (q, releaser) =>
+            ul(ClientConf.style.noBullet,
+              releaser(repeat(model.subSeq(_.filteredList)) { m =>
+                li(a(Navigate.click(routes.entity(m.get)), m.get)).render
+              })
+            ).render
+          }
         ).render
       }
     ).render
@@ -108,7 +112,19 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
         m.currentEntity match {
           case None => div(
             h1(Labels.entities.title),
-            p(Labels.entities.select)
+            p(Labels.entities.select),
+            div(Labels.entities.search),
+            TextInput(model.subProp(_.search))(onkeyup :+= ((ev: Event) => {
+              presenter.updateEntitiesList()
+              true
+            })),
+            produceWithNested(model.subProp(_.search)) { (q,releaser) =>
+              ul(ClientConf.style.noBullet,
+                releaser(repeat(model.subSeq(_.filteredList)){m =>
+                  li(a(Navigate.click(routes.entity(m.get)),m.get)).render
+                })
+              ).render
+            }
           ).render
           case Some(model) => div().render
         }

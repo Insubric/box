@@ -24,8 +24,8 @@ case class BoxDefinition(
                           labels: Seq[Json] = Seq(),
                           news: Seq[Json] = Seq(),
                           news_i18n: Seq[Json] = Seq(),
-                          ui: Seq[Json] = Seq(),
-                          ui_src: Seq[Json] = Seq(),
+//                          ui: Seq[Json] = Seq(),
+//                          ui_src: Seq[Json] = Seq(),
                         )
 
 
@@ -64,8 +64,8 @@ object BoxDef {
     "labels" ->  MergeElement.empty(),
     "news" ->  MergeElement.empty(),
     "news_i18n" ->  MergeElement.empty(),
-    "ui" ->  MergeElement.empty(),
-    "ui_src" ->  MergeElement.empty(),
+//    "ui" ->  MergeElement.empty(),
+//    "ui_src" ->  MergeElement.empty(),
   )
 
 }

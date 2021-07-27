@@ -134,6 +134,8 @@ object Filter {
   final val IN = "in"
   final val NOTIN = "notin"
   final val BETWEEN = "between"
+  final val IS_NULL = "isNull"
+  final val IS_NOT_NULL = "isNotNull"
 //  final val TRUE = "true"
 //  final val FALSE = "false"
 
@@ -146,9 +148,10 @@ object Filter {
   }
 
   def options(field:JSONField):Seq[String] = {
+    val nullFilters = if(field.nullable) Seq(Filter.IS_NULL, Filter.IS_NOT_NULL) else Seq()
     field.lookup match {
-      case None => basicOptions(field.`type`)
-      case Some(lookup) => Seq(Filter.FK_LIKE, Filter.FK_DISLIKE, Filter.FK_EQUALS, Filter.FK_NOT)// ++ lookup.lookup.values.toSeq
+      case None => basicOptions(field.`type`) ++ nullFilters
+      case Some(lookup) => Seq(Filter.FK_LIKE, Filter.FK_DISLIKE, Filter.FK_EQUALS, Filter.FK_NOT) ++ nullFilters // ++ lookup.lookup.values.toSeq
     }
   }
 

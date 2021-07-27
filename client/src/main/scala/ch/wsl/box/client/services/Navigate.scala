@@ -23,8 +23,14 @@ object Navigate extends Logging {
 
   def toUrl(url:String) = toAction{ () =>
     logger.debug(s"navigate to $url")
-    val state = Context.routingRegistry.matchUrl(Url(url))
-    Context.applicationInstance.goTo(state)
+    url match {
+      case "back" => Navigate.back()
+      case url:String => {
+        val state = Context.routingRegistry.matchUrl(Url(url))
+        Context.applicationInstance.goTo(state)
+      }
+    }
+
   }
 
   def back() = toAction{ () =>
@@ -48,9 +54,11 @@ object Navigate extends Logging {
   import io.udash._
 
 
-  def event(state:RoutingState) = (e:Event) => to(state)
+  def event(state: => RoutingState) = (e:Event) => {
+    to(state)
+    e.preventDefault()
+  }
 
-  def click(state:RoutingState) = onclick :+= event(state)
+  def click(state: => RoutingState) = onclick :+= event(state)
 
-  def click(url:String) = onclick :+= ((e:Event) => toUrl(url))
 }

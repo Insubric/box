@@ -46,7 +46,7 @@ object Navigation extends HasModelPropertyCreator[Navigation] {
     pull(BootstrapStyles),ClientConf.style.boxButton,
     onclick :+= ((ev: Event) => {
       callback()
-      true
+      ev.preventDefault()
     }),
     label
   )

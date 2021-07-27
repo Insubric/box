@@ -49,7 +49,6 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "access_level" -> ColType("String", "string", false)
       ),
     "conf"-> Map(
-        "id" -> ColType("Int", "number", false),
         "key" -> ColType("String", "string", false),
         "value" -> ColType("String", "string", true)
       ),
@@ -59,7 +58,7 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "sql" -> ColType("String", "string", false)
       ),
     "export"-> Map(
-        "export_id" -> ColType("Int", "number", false),
+        "export_uuid" -> ColType("java.util.UUID", "string", false),
         "name" -> ColType("String", "string", false),
         "function" -> ColType("String", "string", false),
         "description" -> ColType("String", "string", true),
@@ -69,8 +68,8 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "access_role" -> ColType("scala.collection.Seq", "string", true)
       ),
     "export_field"-> Map(
-        "field_id" -> ColType("Int", "number", false),
-        "export_id" -> ColType("Int", "number", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", false),
+        "export_uuid" -> ColType("java.util.UUID", "string", false),
         "type" -> ColType("String", "string", false),
         "name" -> ColType("String", "string", false),
         "widget" -> ColType("String", "string", true),
@@ -82,8 +81,8 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "conditionValues" -> ColType("String", "string", true)
       ),
     "export_field_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
-        "field_id" -> ColType("Int", "number", true),
+        "uuid" -> ColType("java.util.UUID", "string", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", true),
         "lang" -> ColType("String", "string", true),
         "label" -> ColType("String", "string", true),
         "placeholder" -> ColType("String", "string", true),
@@ -92,14 +91,14 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "lookupTextField" -> ColType("String", "string", true)
       ),
     "export_header_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
+        "uuid" -> ColType("java.util.UUID", "string", false),
         "key" -> ColType("String", "string", false),
         "lang" -> ColType("String", "string", false),
         "label" -> ColType("String", "string", false)
       ),
     "export_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
-        "export_id" -> ColType("Int", "number", true),
+        "uuid" -> ColType("java.util.UUID", "string", false),
+        "export_uuid" -> ColType("java.util.UUID", "string", true),
         "lang" -> ColType("String", "string", true),
         "label" -> ColType("String", "string", true),
         "tooltip" -> ColType("String", "string", true),
@@ -107,15 +106,15 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "function" -> ColType("String", "string", true)
       ),
     "field"-> Map(
-        "field_id" -> ColType("Int", "number", false),
-        "form_id" -> ColType("Int", "number", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", false),
+        "form_uuid" -> ColType("java.util.UUID", "string", false),
         "type" -> ColType("String", "string", false),
         "name" -> ColType("String", "string", false),
         "widget" -> ColType("String", "string", true),
         "lookupEntity" -> ColType("String", "string", true),
         "lookupValueField" -> ColType("String", "string", true),
         "lookupQuery" -> ColType("String", "string", true),
-        "child_form_id" -> ColType("Int", "number", true),
+        "child_form_uuid" -> ColType("java.util.UUID", "string", true),
         "masterFields" -> ColType("String", "string", true),
         "childFields" -> ColType("String", "string", true),
         "childQuery" -> ColType("String", "string", true),
@@ -124,14 +123,14 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "conditionValues" -> ColType("String", "string", true)
       ),
     "field_file"-> Map(
-        "field_id" -> ColType("Int", "number", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", false),
         "file_field" -> ColType("String", "string", false),
         "thumbnail_field" -> ColType("String", "string", true),
         "name_field" -> ColType("String", "string", false)
       ),
     "field_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
-        "field_id" -> ColType("Int", "number", true),
+        "uuid" -> ColType("java.util.UUID", "string", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", true),
         "lang" -> ColType("String", "string", true),
         "label" -> ColType("String", "string", true),
         "placeholder" -> ColType("String", "string", true),
@@ -140,7 +139,7 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "lookupTextField" -> ColType("String", "string", true)
       ),
     "form"-> Map(
-        "form_id" -> ColType("Int", "number", false),
+        "form_uuid" -> ColType("java.util.UUID", "string", false),
         "name" -> ColType("String", "string", false),
         "entity" -> ColType("String", "string", false),
         "description" -> ColType("String", "string", true),
@@ -150,15 +149,15 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "exportfields" -> ColType("String", "string", true)
       ),
     "form_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
-        "form_id" -> ColType("Int", "number", true),
+        "uuid" -> ColType("java.util.UUID", "string", false),
+        "form_uuid" -> ColType("java.util.UUID", "string", true),
         "lang" -> ColType("String", "string", true),
         "label" -> ColType("String", "string", true),
         "tooltip" -> ColType("String", "string", true),
         "hint" -> ColType("String", "string", true)
       ),
     "function"-> Map(
-        "function_id" -> ColType("Int", "number", false),
+        "function_uuid" -> ColType("java.util.UUID", "string", false),
         "name" -> ColType("String", "string", false),
         "mode" -> ColType("String", "string", false),
         "function" -> ColType("String", "string", false),
@@ -169,8 +168,8 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "access_role" -> ColType("scala.collection.Seq", "string", true)
       ),
     "function_field"-> Map(
-        "field_id" -> ColType("Int", "number", false),
-        "function_id" -> ColType("Int", "number", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", false),
+        "function_uuid" -> ColType("java.util.UUID", "string", false),
         "type" -> ColType("String", "string", false),
         "name" -> ColType("String", "string", false),
         "widget" -> ColType("String", "string", true),
@@ -182,8 +181,8 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "conditionValues" -> ColType("String", "string", true)
       ),
     "function_field_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
-        "field_id" -> ColType("Int", "number", true),
+        "uuid" -> ColType("java.util.UUID", "string", false),
+        "field_uuid" -> ColType("java.util.UUID", "string", true),
         "lang" -> ColType("String", "string", true),
         "label" -> ColType("String", "string", true),
         "placeholder" -> ColType("String", "string", true),
@@ -192,8 +191,8 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "lookupTextField" -> ColType("String", "string", true)
       ),
     "function_i18n"-> Map(
-        "id" -> ColType("Int", "number", false),
-        "function_id" -> ColType("Int", "number", true),
+        "uuid" -> ColType("java.util.UUID", "string", false),
+        "function_uuid" -> ColType("java.util.UUID", "string", true),
         "lang" -> ColType("String", "string", true),
         "label" -> ColType("String", "string", true),
         "tooltip" -> ColType("String", "string", true),
@@ -201,7 +200,6 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "function" -> ColType("String", "string", true)
       ),
     "labels"-> Map(
-        "id" -> ColType("Int", "number", false),
         "lang" -> ColType("String", "string", false),
         "key" -> ColType("String", "string", false),
         "label" -> ColType("String", "string", true)
@@ -215,24 +213,23 @@ object BoxFieldAccessRegistry extends FieldRegistry {
         "timestamp" -> ColType("Int", "number", true)
       ),
     "news"-> Map(
-        "news_id" -> ColType("Int", "number", false),
+        "news_uuid" -> ColType("java.util.UUID", "string", false),
         "datetime" -> ColType("java.time.LocalDateTime", "datetime", true),
         "author" -> ColType("String", "string", true)
       ),
     "news_i18n"-> Map(
-        "news_id" -> ColType("Int", "number", false),
+        "news_uuid" -> ColType("java.util.UUID", "string", false),
         "lang" -> ColType("String", "string", true),
         "text" -> ColType("String", "string", true),
         "title" -> ColType("String", "string", true)
       ),
     "ui"-> Map(
-        "id" -> ColType("Int", "number", false),
         "key" -> ColType("String", "string", false),
         "value" -> ColType("String", "string", false),
         "access_level_id" -> ColType("Int", "number", false)
       ),
     "ui_src"-> Map(
-        "id" -> ColType("Int", "number", false),
+        "uuid" -> ColType("java.util.UUID", "string", false),
         "file" -> ColType("Array[Byte]", "file", true),
         "mime" -> ColType("String", "string", true),
         "name" -> ColType("String", "string", true),

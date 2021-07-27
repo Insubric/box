@@ -22,28 +22,14 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
 
-class Box(name:String,version:String)(implicit val executionContext: ExecutionContext, services: Services) {
-  private var server:Http.ServerBinding = null
+class Box(name:String,version:String)(implicit services: Services) {
 
-  implicit val system: ActorSystem = ActorSystem()
+  implicit val executionContext = services.executionContext
+  implicit val system: ActorSystem = services.actorSystem
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
 
 
-
-  def restart():Unit = {
-    if(server != null) {
-      server.terminate(5.seconds).map{ _ =>
-        start()
-      }
-    }
-  }
-
-  def stop() = {
-    if(server != null) {
-      server.unbind().onComplete(_ => system.terminate())
-    }
-  }
 
 
 
@@ -51,6 +37,9 @@ class Box(name:String,version:String)(implicit val executionContext: ExecutionCo
 
 
     BoxConfig.load(services.connection.adminDB)
+
+    services.mailDispatcher.start()
+    services.notificationChannels.start()
 
 
     val akkaConf: Config = BoxConfig.akkaHttpSession
@@ -76,7 +65,7 @@ class Box(name:String,version:String)(implicit val executionContext: ExecutionCo
 
 
     //Registring handlers
-    new MailHandler(services.mail).listen()
+    new MailHandler(services.mailDispatcher).listen()
 
     val scheduler = new CronScheduler(system)
     new BoxCronLoader(scheduler).load()
@@ -84,25 +73,31 @@ class Box(name:String,version:String)(implicit val executionContext: ExecutionCo
     for{
       //pl <- preloading
       //_ <- pl.terminate(1.seconds)
-      b <- Http().bindAndHandle(Root(s"$name $version",akkaConf,() => this.restart(), origins).route, host, port) //attach the root route
-    } yield {
-      println(
-        s"""
-          |===================================
-          |
-          |    _/_/_/      _/_/    _/      _/
-          |   _/    _/  _/    _/    _/  _/
-          |  _/_/_/    _/    _/      _/
-          | _/    _/  _/    _/    _/  _/
-          |_/_/_/      _/_/    _/      _/
-          |
-          |===================================
-          |
-          |Box server started at http://$host:$port
-          |
-          |""".stripMargin)
-      server = b
-    }
+      binding <- Http().bindAndHandle(Root(s"$name $version",akkaConf, origins).route, host, port) //attach the root route
+      res <- {
+        println(
+          s"""
+             |===================================
+             |
+             |    _/_/_/      _/_/    _/      _/
+             |   _/    _/  _/    _/    _/  _/
+             |  _/_/_/    _/    _/      _/
+             | _/    _/  _/    _/    _/  _/
+             |_/_/_/      _/_/    _/      _/
+             |
+             |===================================
+             |
+             |Box server started at http://$host:$port
+
+             |""".stripMargin)
+        binding.whenTerminationSignalIssued.map{ _ =>
+          println("Shutting down server...")
+          services.connection.close()
+          println("DB connections closed")
+          true
+        }
+      }
+    } yield res
 
 
   }
@@ -120,14 +115,17 @@ object Boot extends App  {
 
 
 
-    val executionContext = ExecutionContext.fromExecutor(
-      new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
-    )
-
     module.build[Services] { services =>
-      Migrate.all(services.connection)
-      val server = new Box(name, app_version)(executionContext, services)
-      server.start()
+      val server = new Box(name, app_version)(services)
+      implicit val executionContext = services.executionContext
+
+      {
+        for {
+          _ <- Migrate.all(services.connection)
+          res <- server.start()
+        } yield res
+      }.recover{ case t => t.printStackTrace() }
+
     }
   }
 

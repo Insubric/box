@@ -18,10 +18,10 @@ object NewsUIDef {
     name = "news",
     label = "News editor",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"news_id",false),
+      JSONField(JSONFieldTypes.STRING,"news_uuid",false),
       JSONField(JSONFieldTypes.DATETIME,"datetime",false, widget = Some(WidgetsNames.datetimePicker)),
       JSONField(JSONFieldTypes.STRING,"author",true, widget = Some(WidgetsNames.input)),
-      JSONField(JSONFieldTypes.CHILD,"news_i18n",true,child = Some(Child(NEWS_I18N,"news_i18n","news_id","news_id",None,"")), widget = Some(WidgetsNames.tableChild))
+      JSONField(JSONFieldTypes.CHILD,"news_i18n",true,child = Some(Child(NEWS_I18N,"news_i18n","news_uuid","news_uuid",None,"")), widget = Some(WidgetsNames.tableChild))
     ),
     layout = Layout(
       blocks = Seq(
@@ -33,9 +33,9 @@ object NewsUIDef {
 //        |""").toOption.flatMap(_.as[Layout].toOption).getOrElse(Layout(Seq())),
     entity = "news",
     lang = "it",
-    tabularFields = Seq("news_id","datetime","author"),
-    rawTabularFields = Seq("news_id","datetime","author"),
-    keys = Seq("news_id"),
+    tabularFields = Seq("news_uuid","datetime","author"),
+    rawTabularFields = Seq("news_uuid","datetime","author"),
+    keys = Seq("news_uuid"),
     keyStrategy = SurrugateKey,
     query = None,
     exportFields = Seq(),
@@ -48,7 +48,7 @@ object NewsUIDef {
     name = "newsI18n",
     label = "NewsI18n builder",
     fields = Seq(
-      JSONField(JSONFieldTypes.NUMBER,"news_id",false),
+      JSONField(JSONFieldTypes.STRING,"news_uuid",false),
       CommonField.lang,
       JSONField(JSONFieldTypes.STRING,"text",true, widget = Some(WidgetsNames.richTextEditor)),
       JSONField(JSONFieldTypes.STRING,"title",true, widget = Some(WidgetsNames.input))
@@ -61,9 +61,9 @@ object NewsUIDef {
     ),
     entity = "news_i18n",
     lang = "en",
-    tabularFields = Seq("news_id","lang","title","text"),
-    rawTabularFields = Seq("news_id","lang","title","text"),
-    keys = Seq("news_id","lang"),
+    tabularFields = Seq("news_uuid","lang","title","text"),
+    rawTabularFields = Seq("news_uuid","lang","title","text"),
+    keys = Seq("news_uuid","lang"),
     keyStrategy = NaturalKey,
     query = None,
     exportFields = Seq(),

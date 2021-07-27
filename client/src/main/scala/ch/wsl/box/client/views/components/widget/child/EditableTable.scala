@@ -7,7 +7,7 @@ import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
+import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import com.avsystem.commons.BSeq
@@ -45,7 +45,8 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
   val table = style(
     borderColor(Colors.GreySemi),
     borderCollapse.collapse,
-    minWidth(100.%%)
+    minWidth(100.%%),
+    marginBottom(20.px)
   )
 
   val td = style(
@@ -150,13 +151,14 @@ object EditableTable extends ChildRendererFactory {
         }
     }
 
-    def colContentWidget(childWidget:ChildRow, field:JSONField, metadata:JSONMetadata):Widget = {
+    def colContentWidget(childWidget:ChildRow, field:JSONField, metadata:JSONMetadata):(WidgetParams,Widget) = {
       val widgetFactory = field.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(field.`type`))
-      widgetFactory.create(WidgetParams(
+      val params = WidgetParams(
         id = childWidget.rowId.transform(_.map(_.asString)),
         prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
         field = field, metadata = metadata, _allData = childWidget.widget.data, children = Seq()
-      ))
+      )
+      (params,widgetFactory.create(params))
     }
 
     def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
@@ -174,7 +176,7 @@ object EditableTable extends ChildRendererFactory {
         entity.get.toSeq.map{ row =>
           val childWidget = childWidgets.find(_.id == row).get
           f.map { field =>
-            val widget = colContentWidget(childWidget, field, metadata)
+            val (_,widget) = colContentWidget(childWidget, field, metadata)
             val result = widget.text().get
             widget.killWidget()
             result
@@ -183,7 +185,7 @@ object EditableTable extends ChildRendererFactory {
       )
     }
 
-    def printTable(metadata:JSONMetadata) = {
+    def printTable(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = PDFTable(title, header, rows)
@@ -197,9 +199,10 @@ object EditableTable extends ChildRendererFactory {
             .setStyle("@page { size: A4 landscape; }")
         )
       }
+      e.preventDefault()
     }
 
-    def exportCSV(metadata:JSONMetadata) = {
+    def exportCSV(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = CSVTable(title, header, rows)
@@ -207,9 +210,10 @@ object EditableTable extends ChildRendererFactory {
       services.rest.exportCSV(table).foreach{ csv =>
         typings.fileSaver.mod.saveAs(csv,s"${metadata.label}.csv")
       }
+      e.preventDefault()
     }
 
-    def exportXLS(metadata:JSONMetadata) = {
+    def exportXLS(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
       val table = XLSTable(title, header, rows)
@@ -217,6 +221,7 @@ object EditableTable extends ChildRendererFactory {
       services.rest.exportXLS(table).foreach{ xls =>
         typings.fileSaver.mod.saveAs(xls,s"${metadata.label}.xlsx")
       }
+      e.preventDefault()
     }
 
     def checkCondition(field: JSONField,e:Seq[String]) = {
@@ -309,16 +314,21 @@ object EditableTable extends ChildRendererFactory {
 
                   tr(tableStyle.tr,
                     for (field <- f) yield {
-                      val widget = colContentWidget(childWidget,field,m)
+                      val (params,widget) = colContentWidget(childWidget,field,m)
 
 
                       showIfCondition(field) {
-                        td(if (field.readOnly) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
+                        td(if (
+                          field.readOnly ||
+                            WidgetUtils.isKeyNotEditable(m,field,params.id.get)
+                          ) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
                         )
                       }
                     },
                     if (write && !disableRemove) td(tableStyle.td, colWidth,
-                      a(onclick :+= ((_: Event) => removeItem(childWidget)), Labels.subform.remove)
+                      a(ClientConf.style.childRemoveButton,
+                        BootstrapStyles.Float.right(),
+                        onclick :+= removeItem(childWidget), Icons.minusFill)
                     ) else frag()
                   ).render
                 },
@@ -326,10 +336,10 @@ object EditableTable extends ChildRendererFactory {
                   tr(tableStyle.tr,
                     td(tableStyle.td, colspan := cols),
                     td(tableStyle.td, colWidth,
-                      a(id := TestHooks.addChildId(m.objId), onclick :+= ((e: Event) => {
-                        addItem(child, m)
-                        true
-                      }), Labels.subform.add)
+                      a(id := TestHooks.addChildId(m.objId),
+                        ClientConf.style.childAddButton,
+                        BootstrapStyles.Float.right(),
+                        onclick :+= addItemHandler(child, m), Icons.plusFill)
                     ),
                   )
                 } else frag()
@@ -337,9 +347,9 @@ object EditableTable extends ChildRendererFactory {
             ),
             if(!hideExporters) {
               Seq(
-                button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= ((e: Event) => printTable(m))),
-                button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= ((e: Event) => exportCSV(m))),
-                button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= ((e: Event) => exportXLS(m))),
+                button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= printTable(m)),
+                button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= exportCSV(m)),
+                button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= exportXLS(m)),
               )
             }
           ).render

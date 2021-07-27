@@ -87,7 +87,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
 
 
 
-    autoRelease(produce(_id) { _ =>
+    produce(_id) { _ =>
 
       val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).forall(x => x) // default true
 
@@ -110,7 +110,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
         div(BootstrapStyles.Visibility.clearfix)
       ).render
 
-    })
+    }
   }
 
 }
