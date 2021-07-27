@@ -453,8 +453,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
       val (el,tt) = WidgetUtils.addTooltip(Some(label))(
         button(
           cls := isActive,
-          BootstrapStyles.Button.btn,
-          BootstrapStyles.Button.color()
+          ClientConf.style.mapButton
         )(
          onclick :+= {(e:Event) =>
            activeControl.set(section)
@@ -517,7 +516,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
   override protected def edit(): JsDom.all.Modifier = {
 
-    val mapDiv: Div = div(height := 400).render
+    val mapDiv: Div = div(ClientConf.style.map).render
 
     val (map,vectorSource) = loadMap(mapDiv)
 
@@ -580,9 +579,9 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
         if(!enablePolygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
         if(geometry.isEmpty && Seq(Control.EDIT,Control.MOVE,Control.DELETE).contains(activeControl.get)) activeControl.set(Control.VIEW)
 
-        val textField = Property("")
+        val goToField = Property("")
 
-        textField.listen{ search =>
+        goToField.listen{ search =>
           parseCoordinates(search).foreach{ coord =>
             logger.info(s"Go to coords: $coord")
             map.getView().setCenter(coord)
@@ -590,11 +589,18 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
           }
         }
 
+        val insertCoordinateField = Property("")
+        val insertCoordinateHandler = ((e: Event) => {
+          parseCoordinates(insertCoordinateField.get).foreach { p =>
+            val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
+            vectorSource.addFeature(feature)
+          }
+          e.preventDefault()
+        })
+
         frag(
 
           div(
-            BootstrapStyles.Button.group,
-            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
             ClientConf.style.controlButtons
           )( //controls
             controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW),
@@ -605,7 +611,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
             if (enablePolygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE) else frag(),
             if (geometry.isDefined) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE) else frag(),
             if (geometry.isDefined) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE) else frag(),
-            if (geometry.isDefined) button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
+            if (geometry.isDefined) button(ClientConf.style.mapButton)(
               onclick :+= { (e: Event) =>
                 map.getView().fit(vectorSource.getExtent(), FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5))
                 e.preventDefault()
@@ -614,36 +620,46 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
             if(options.baseLayers.exists(_.length > 1)) Select(baseLayer,SeqProperty(options.baseLayers.toSeq.flatten.map(x => Some(x))))((x:Option[MapParamsLayers]) => StringFrag(x.map(_.name).getOrElse("")),ClientConf.style.mapLayerSelect) else frag()
           ),
           div(
-            ClientConf.style.mapSearch
-          )( //controls
-            TextInput(textField)(placeholder := Labels.map.goTo, onsubmit :+= ((e:Event) => e.preventDefault())),
-            div(
-              BootstrapStyles.Button.group,
-              BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
-            )(
-              button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
-                onclick :+= ((e: Event) => {
-                  ch.wsl.box.client.utils.GPS.coordinates().map{coords =>
-                    val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
-                    textField.set(s"${localCoords(0)}, ${localCoords(1)}")
-                  }
-                  e.preventDefault()
-                })
-              )(Icons.location),
-              if (enablePoint) {
-                showIf(textField.transform(x => parseCoordinates(x).isDefined)) {
-                  button(BootstrapStyles.Button.btn, BootstrapStyles.Button.color())(
+            showIf(activeControl.transform(c => Seq(Control.VIEW,Control.POINT).contains(c))) {
+              div(
+                ClientConf.style.mapSearch
+              )( //controls
+                showIf(activeControl.transform(_ == Control.VIEW)){
+                  TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())).render
+                },
+                showIf(activeControl.transform(_ == Control.POINT)){
+                  TextInput(insertCoordinateField)(placeholder := Labels.map.insertPoint, onsubmit :+= insertCoordinateHandler).render
+                },
+                div(
+                  BootstrapStyles.Button.group,
+                  BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
+                )(
+                  button(ClientConf.style.mapButton)(
                     onclick :+= ((e: Event) => {
-                      parseCoordinates(textField.get).foreach { p =>
-                        val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
-                        vectorSource.addFeature(feature)
+                      ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+                        val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
+                        activeControl.get match {
+                          case Control.VIEW => goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
+                          case Control.POINT => {
+                            insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
+                            insertCoordinateHandler(e)
+                          }
+                          case _ => {}
+                        }
                       }
                       e.preventDefault()
                     })
-                  )(Icons.plus).render
-                }
-              } else frag()
-            )
+                  )(Icons.target),
+                  if (enablePoint) {
+                    showIf(activeControl.transform(_ == Control.POINT)) {
+                      button(ClientConf.style.mapButton)(
+                        onclick :+= insertCoordinateHandler
+                      )(Icons.plusFill).render
+                    }
+                  } else frag()
+                )
+              ).render
+            }
           )
         ).render
       },

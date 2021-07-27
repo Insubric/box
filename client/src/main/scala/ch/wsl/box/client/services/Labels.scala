@@ -161,5 +161,6 @@ object Labels {
     def move = get(SharedLabels.map.move)
     def delete = get(SharedLabels.map.delete)
     def goTo = get(SharedLabels.map.goTo)
+    def insertPoint = get(SharedLabels.map.insertPoint)
   }
 }

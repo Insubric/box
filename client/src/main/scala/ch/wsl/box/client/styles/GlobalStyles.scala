@@ -181,8 +181,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     ),
 
     unsafeRoot("main")(
-      paddingLeft(30 px),
-      paddingRight(30 px),
+      media.minWidth(600 px)(
+        paddingLeft(30 px),
+        paddingRight(30 px)
+      ),
       backgroundColor.white
     ),
 
@@ -229,6 +231,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   val preformatted = style(
     whiteSpace.preLine
+  )
+
+  val formHeader = style(
+    margin(`0`, 20 px)
   )
 
   val dateTimePicker = style(
@@ -611,17 +617,25 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   val controlButtons = style(
     display.flex,
+    flexWrap.wrap,
     alignItems.center,
     width(100.%%),
-    backgroundColor(c"#6c757d"),
+    backgroundColor(Colors.GreyExtra),
     unsafeRoot("svg") (
       marginTop(-2.px)
     ),
   )
 
+  val map = style(
+    height(250 px),
+    media.minHeight(700 px)(
+      height(400 px)
+    )
+  )
+
   val mapSearch = style(
     display.flex,
-    backgroundColor(c"#6c757d"),
+    backgroundColor(Colors.GreyExtra),
     unsafeChild("input") (
       width(100.%%),
       margin(5 px),
@@ -629,10 +643,20 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     )
   )
 
+  val mapButton = style(
+    color(conf.colors.main),
+    backgroundColor(Colors.GreyExtra),
+    padding(5 px,10 px),
+    border.`0`,
+    unsafeRoot(".active")(
+      backgroundColor(conf.colors.main),
+      color(conf.colors.mainText)
+    )
+  )
+
   val mapLayerSelect = style(
     marginLeft(10 px),
     width.auto,
-    color.white,
     backgroundColor.transparent,
     &.hover(
       backgroundColor.transparent
