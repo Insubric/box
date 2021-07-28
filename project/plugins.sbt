@@ -6,7 +6,6 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.5.0")
 addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "4.0.2")
 
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.9.0")
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
@@ -21,7 +20,7 @@ addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
 
-addSbtPlugin("org.scalablytyped.converter" % "sbt-converter" % "1.0.0-beta35")
+addSbtPlugin("org.scalablytyped.converter" % "sbt-converter" % "1.0.0-beta32")
 addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.20.0")
 
 libraryDependencies += "org.scala-js" %% "scalajs-env-selenium" % "1.1.0"

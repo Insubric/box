@@ -45,7 +45,6 @@ publish / skip := true
 lazy val codegen  = (project in file("codegen")).settings(
   organization := "boxframework",
   name := "box-codegen",
-  publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.codegenDependecies.value,
@@ -53,26 +52,22 @@ lazy val codegen  = (project in file("codegen")).settings(
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
   resourceDirectory in Compile := baseDirectory.value / "../resources",
   unmanagedResourceDirectories in Compile += baseDirectory.value / "../db",
-  git.useGitDescribe := true
 ).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val serverServices  = (project in file("server-services")).settings(
   organization := "boxframework",
   name := "box-server-services",
-  publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  git.useGitDescribe := true
 ).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
   .settings(
     organization := "boxframework",
     name := "box-server",
-    publishMavenStyle := true,
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     scalaVersion := Settings.versions.scala212,
     scalaBinaryVersion := "2.12",
@@ -86,7 +81,6 @@ lazy val server: Project  = project
     mainClass in (Compile, packageBin) := Some("ch.wsl.box.rest.Boot"),
     mainClass in (Compile, run) := Some("ch.wsl.box.rest.Boot"),
     resourceDirectory in Compile := baseDirectory.value / "../resources",
-    git.useGitDescribe := true,
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := "boxInfo",
     buildInfoObject := "BoxBuildInfo",
@@ -124,13 +118,10 @@ lazy val server: Project  = project
 lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   organization := "boxframework",
   name := "box-server-cache-redis",
-  publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
-  resolvers += Resolver.bintrayRepo("waveinch","maven"),
-  git.useGitDescribe := true
 ).settings(publishSettings).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
@@ -166,6 +157,7 @@ lazy val client: Project = (project in file("client"))
     ),
     stIgnore += "typeface-clear-sans",
     stIgnore += "ol-ext",
+    stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
     webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / ".." / "dev.config.js"),
@@ -253,7 +245,6 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
-    git.useGitDescribe := true
   ).settings(publishSettings)
   .jsSettings(
     libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
