@@ -1,7 +1,7 @@
 
 //addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.1.0")
 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.2.0")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.5.0")
 
 addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "4.0.2")
 
