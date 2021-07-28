@@ -2,12 +2,49 @@ import org.openqa.selenium.remote.{DesiredCapabilities, RemoteWebDriver}
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.jsenv.selenium.SeleniumJSEnv
 
+import com.jsuereth.sbtpgp.PgpKeys.publishSigned
+
+val publishSettings = List(
+  Global / scalaJSStage := FullOptStage,
+  organization := "com.boxframework",
+  licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  homepage := Some(url("https://www.boxframework.com/")),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/Insubric/box"),
+      "scm:git@github.com:Insubric/box.git"
+    )
+  ),
+  developers := List(
+    Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
+    Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
+  ),
+  dynverSeparator := "-",
+  pomIncludeRepository := { _ => false },
+  publishTo := {
+    val nexus = "https://s01.oss.sonatype.org/"
+    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+  publishMavenStyle := true,
+  dynverSonatypeSnapshots := true,
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  credentials += Credentials(
+    "Sonatype Nexus Repository Manager",
+    "s01.oss.sonatype.org",
+    System.getenv("SONATYPE_USERNAME"),
+    System.getenv("SONATYPE_PASSWORD")
+  )
+)
+
+inThisBuild(publishSettings)
+
+publish / skip := true
+
 /** codegen project containing the customized code generator */
 lazy val codegen  = (project in file("codegen")).settings(
   organization := "boxframework",
   name := "box-codegen",
-  bintrayRepository := "maven",
-  bintrayOrganization := Some("waveinch"),
   publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
@@ -17,13 +54,11 @@ lazy val codegen  = (project in file("codegen")).settings(
   resourceDirectory in Compile := baseDirectory.value / "../resources",
   unmanagedResourceDirectories in Compile += baseDirectory.value / "../db",
   git.useGitDescribe := true
-).dependsOn(sharedJVM)
+).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val serverServices  = (project in file("server-services")).settings(
   organization := "boxframework",
   name := "box-server-services",
-  bintrayRepository := "maven",
-  bintrayOrganization := Some("waveinch"),
   publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
@@ -31,14 +66,12 @@ lazy val serverServices  = (project in file("server-services")).settings(
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
   git.useGitDescribe := true
-).dependsOn(sharedJVM)
+).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
   .settings(
     organization := "boxframework",
     name := "box-server",
-    bintrayRepository := "maven",
-    bintrayOrganization := Some("waveinch"),
     publishMavenStyle := true,
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     scalaVersion := Settings.versions.scala212,
@@ -75,6 +108,7 @@ lazy val server: Project  = project
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
     )
   )
+  .settings(publishSettings)
   .enablePlugins(
     GitVersioning,
     BuildInfoPlugin,
@@ -90,8 +124,6 @@ lazy val server: Project  = project
 lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   organization := "boxframework",
   name := "box-server-cache-redis",
-  bintrayRepository := "maven",
-  bintrayOrganization := Some("waveinch"),
   publishMavenStyle := true,
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
@@ -99,7 +131,7 @@ lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("waveinch","maven"),
   git.useGitDescribe := true
-).dependsOn(serverServices)
+).settings(publishSettings).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
   .settings(
@@ -200,7 +232,7 @@ lazy val client: Project = (project in file("client"))
 
     testFrameworks += new TestFramework("utest.runner.Framework"),
     requireJsDomEnv in Test := true,
-  )
+  ).settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
     ScalablyTypedConverterPlugin
@@ -217,14 +249,12 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
   .settings(
     organization := "boxframework",
     name := "box-shared",
-    bintrayRepository := "maven",
-    bintrayOrganization := Some("waveinch"),
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
     resolvers += Resolver.bintrayRepo("waveinch","maven"),
     git.useGitDescribe := true
-  )
+  ).settings(publishSettings)
   .jsSettings(
     libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.0.0"
   )

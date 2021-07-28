@@ -14,9 +14,12 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.5.0")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject"  % "1.0.0")
 
 
-addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.6")
 
-resolvers += Resolver.bintrayRepo("oyvindberg", "converter")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.7")
+addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
+addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
+
 
 addSbtPlugin("org.scalablytyped.converter" % "sbt-converter" % "1.0.0-beta35")
 addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.20.0")
