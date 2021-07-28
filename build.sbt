@@ -317,11 +317,11 @@ lazy val publishAllTask = {
     (clean in serverServices),
     (webpack in fullOptJS in Compile in client),
     (compile in Compile in codegen),
-    (publish in sharedJVM),
-    (publish in codegen),
-    (publish in server),
-    (publish in serverCacheRedis),
-    (publish in serverServices),
+    (publishSigned in sharedJVM),
+    (publishSigned in codegen),
+    (publishSigned in server),
+    (publishSigned in serverCacheRedis),
+    (publishSigned in serverServices),
   )
 }
 
