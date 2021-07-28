@@ -141,7 +141,7 @@ object Settings {
     "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion % "test",
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
-    "nz.co.rossphillips"       %% "scala-thumbnailer" % "0.5.SNAPSHOT",
+    "ch.wavein"                %% "scala-thumbnailer" % "0.7.1",
     "javax.servlet"            % "javax.servlet-api" % "3.1.0" % "provided",
     "org.mitre.dsmiley.httpproxy" % "smiley-http-proxy-servlet" % "1.10",
     "com.openhtmltopdf"        % "openhtmltopdf-pdfbox" % "1.0.0",
