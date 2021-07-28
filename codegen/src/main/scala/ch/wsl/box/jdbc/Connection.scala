@@ -54,6 +54,8 @@ object Connection extends Logging {
     .withValue("numThreads", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("connectionPool", connectionPool)
+    .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(600000))
+    .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(300000))
   )
 
   val adminDB = dbForUser(adminUser)
