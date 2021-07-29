@@ -651,6 +651,22 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     position.relative
   )
 
+  val mapInfo = style(
+    color(Colors.Grey),
+    padding.horizontal(10 px),
+    padding.vertical(5 px),
+    backgroundColor(Colors.GreyExtra),
+  )
+
+  val mapInfoChild = style(
+    display.flex,
+    unsafeChild("input") (
+      width(100.%%),
+      margin(5 px),
+      backgroundColor.white
+    )
+  )
+
   val mapButton = style(
     color(conf.colors.main),
     backgroundColor(Colors.GreyExtra),
@@ -746,6 +762,8 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   val childAddButton = style(
     lineHeight(40 px),
     fontSize(14 px),
+    marginRight(15 px),
+    display.inlineBlock,
     unsafeChild("svg")(
       color(conf.colors.main),
       height(20 px),

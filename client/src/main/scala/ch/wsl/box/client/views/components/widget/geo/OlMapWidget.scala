@@ -4,7 +4,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.utils.GeoJson
-import ch.wsl.box.client.utils.GeoJson.FeatureCollection
+import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, Geometry}
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
@@ -38,6 +38,9 @@ import typings.ol.formatMod.WKT
 import typings.ol.mod.Overlay
 import typings.ol.olStrings.singleclick
 
+import ch.wsl.box.client.utils.GeoJson.Geometry._
+import ch.wsl.box.client.utils.GeoJson._
+
 case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
   import dsl._
 
@@ -53,7 +56,7 @@ case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
 
 }
 
-case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json]) extends Widget with MapWidget with HasData with Logging {
+class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json]) extends Widget with MapWidget with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import io.udash.css.CssView._
@@ -77,7 +80,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
   override def afterRender(): Unit = {}
 
-  private def _afterRender(): Unit = {
+  protected def _afterRender(): Unit = {
     if(map != null && featuresLayer != null) {
       loadBase(baseLayer.get).map { _ =>
         map.addLayer(featuresLayer)
@@ -157,6 +160,86 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
     result.future
   }
 
+  var vectorSource: sourceMod.Vector[geometryMod.default] = null
+  var view: viewMod.default = null
+
+  var listener: Registration = null
+  var onAddFeature: js.Function1[VectorSourceEvent[typings.ol.geometryMod.default], Unit] = null
+
+  def registerListener(immediate: Boolean) = {
+    listener = data.listen({ geoData =>
+      vectorSource.removeEventListener("addfeature", onAddFeature.asInstanceOf[eventsMod.Listener])
+      vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
+
+      if (!geoData.isNull) {
+        val geom = new geoJSONMod.default().readFeature(convertJsonToJs(geoData).asInstanceOf[js.Object]).asInstanceOf[olFeatureMod.default[geometryMod.default]]
+        vectorSource.addFeature(geom)
+        view.fit(geom.getGeometry().getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
+      } else {
+        view.fit(defaultProjection.getExtent())
+      }
+
+      vectorSource.on_addfeature(olStrings.addfeature, onAddFeature)
+    }, immediate)
+  }
+
+  def changedFeatures() = {
+    listener.cancel()
+    val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+    convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
+      import ch.wsl.box.client.utils.GeoJson.Geometry._
+      import ch.wsl.box.client.utils.GeoJson._
+      val geometries = collection.features.map(_.geometry)
+      logger.info(s"$geometries")
+      geometries.length match {
+        case 0 => data.set(Json.Null)
+        case 1 => data.set(geometries.head.asJson)
+        case _ => {
+          val multiPoint = geometries.map {
+            case g: Point => Some(Seq(g.coordinates))
+            case g: MultiPoint => Some(g.coordinates)
+            case _ => None
+          }
+          val multiLine = geometries.map {
+            case g: LineString => Some(Seq(g.coordinates))
+            case g: MultiLineString => Some(g.coordinates)
+            case _ => None
+          }
+          val multiPolygon = geometries.map {
+            case g: Polygon => Some(Seq(g.coordinates))
+            case g: MultiPolygon => Some(g.coordinates)
+            case _ => None
+          }
+
+          val collection: Option[ch.wsl.box.client.utils.GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && options.features.multiPoint) {
+            Some(MultiPoint(multiPoint.flatMap(_.get)))
+          } else if (multiLine.forall(_.isDefined) && options.features.multiLine) {
+            Some(MultiLineString(multiLine.flatMap(_.get)))
+          } else if (multiPolygon.forall(_.isDefined) && options.features.multiPolygon) {
+            Some(MultiPolygon(multiPolygon.flatMap(_.get)))
+          } else if (options.features.geometryCollection) {
+            Some(GeometryCollection(geometries))
+          } else {
+            None
+          }
+          data.set(collection.asJson)
+
+
+        }
+      }
+    }
+    registerListener(false)
+
+    // when adding a point go back to view mode
+    if(
+      activeControl.get == Control.POINT ||
+        activeControl.get == Control.LINESTRING ||
+        activeControl.get == Control.POLYGON
+    ) {
+      activeControl.set(Control.VIEW)
+    }
+
+  }
 
   def loadMap(mapDiv:Div) = {
 
@@ -164,7 +247,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
 
 
-    val vectorSource = new sourceMod.Vector[geometryMod.default](sourceVectorMod.Options())
+     vectorSource = new sourceMod.Vector[geometryMod.default](sourceVectorMod.Options())
 
 
     //red #ed1c24
@@ -208,7 +291,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
     val controls = controlMod.defaults().extend(js.Array(mousePosition))//new controlMod.ScaleLine()))
 
 
-    val view = new viewMod.default(viewMod.ViewOptions()
+    view = new viewMod.default(viewMod.ViewOptions()
       .setZoom(3)
       .setProjection(defaultProjection)
       .setCenter(extentMod.getCenter(defaultProjection.getExtent()))
@@ -226,81 +309,14 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
     BrowserConsole.log(map)
     BrowserConsole.log(mapDiv)
 
-    var listener: Registration = null
-
-    var onAddFeature: js.Function1[VectorSourceEvent[typings.ol.geometryMod.default], Unit] = null
-
-    def registerListener(immediate: Boolean) = {
-      listener = data.listen({ geoData =>
-        vectorSource.removeEventListener("addfeature", onAddFeature.asInstanceOf[eventsMod.Listener])
-        vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
-
-        if (!geoData.isNull) {
-          val geom = new geoJSONMod.default().readFeature(convertJsonToJs(geoData).asInstanceOf[js.Object]).asInstanceOf[olFeatureMod.default[geometryMod.default]]
-          vectorSource.addFeature(geom)
-          view.fit(geom.getGeometry().getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
-        } else {
-          view.fit(defaultProjection.getExtent())
-        }
-
-        vectorSource.on_addfeature(olStrings.addfeature, onAddFeature)
-      }, immediate)
-    }
 
 
-    def changedFeatures() = {
-      listener.cancel()
-      val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-      convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
-        import ch.wsl.box.client.utils.GeoJson.Geometry._
-        import ch.wsl.box.client.utils.GeoJson._
-        val geometries = collection.features.map(_.geometry)
-        logger.info(s"$geometries")
-        geometries.length match {
-          case 0 => data.set(Json.Null)
-          case 1 => data.set(geometries.head.asJson)
-          case _ => {
-            val multiPoint = geometries.map {
-              case g: Point => Some(Seq(g.coordinates))
-              case g: MultiPoint => Some(g.coordinates)
-              case _ => None
-            }
-            val multiLine = geometries.map {
-              case g: LineString => Some(Seq(g.coordinates))
-              case g: MultiLineString => Some(g.coordinates)
-              case _ => None
-            }
-            val multiPolygon = geometries.map {
-              case g: Polygon => Some(Seq(g.coordinates))
-              case g: MultiPolygon => Some(g.coordinates)
-              case _ => None
-            }
-
-            val collection: Option[ch.wsl.box.client.utils.GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && options.features.multiPoint) {
-              Some(MultiPoint(multiPoint.flatMap(_.get)))
-            } else if (multiLine.forall(_.isDefined) && options.features.multiLine) {
-              Some(MultiLineString(multiLine.flatMap(_.get)))
-            } else if (multiPolygon.forall(_.isDefined) && options.features.multiPolygon) {
-              Some(MultiPolygon(multiPolygon.flatMap(_.get)))
-            } else if (options.features.geometryCollection) {
-              Some(GeometryCollection(geometries))
-            } else {
-              None
-            }
-            data.set(collection.asJson)
 
 
-          }
-        }
-      }
-      registerListener(false)
 
-      // when adding a point go back to view mode
-      if(activeControl.get == Control.POINT) {
-        activeControl.set(Control.VIEW)
-      }
 
-    }
+
+
 
     val infoOverlay = new Overlay(overlayMod.Options()
       .setElement(div().render)
@@ -311,7 +327,9 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
     registerListener(true)
 
 
-    vectorSource.on_changefeature(olStrings.changefeature, (e: VectorSourceEvent[geometryMod.default]) => changedFeatures())
+    vectorSource.on_changefeature(olStrings.changefeature, {(e: VectorSourceEvent[geometryMod.default]) =>
+      changedFeatures()
+    })
 
 
     val modify = new modifyMod.default(modifyMod.Options()
@@ -354,7 +372,7 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
     })
 
 
-    map.on_click(olStrings.click, (e: mapBrowserEventMod.default) => {
+    map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {
 
       val features:js.Array[typings.ol.olFeatureMod.default[typings.ol.geometryMod.default]] = map.getFeaturesAtPixel(e.pixel).flatMap{
         case x:typings.ol.olFeatureMod.default[typings.ol.geometryMod.default] => Some(x)
@@ -566,6 +584,44 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
   }
 
+  case class EnabledFeatures(geometry:Option[Geometry]) {
+    val point = {
+      options.features.point && geometry.isEmpty ||
+        options.features.multiPoint && geometry.forall{
+          case g: Point => true
+          case g: MultiPoint => true
+          case _ => false
+        } ||
+        options.features.geometryCollection
+    }
+
+    val line = {
+      options.features.line && geometry.isEmpty ||
+        options.features.multiLine && geometry.forall{
+          case g: LineString => true
+          case g: MultiLineString => true
+          case _ => false
+        } ||
+        options.features.geometryCollection
+    }
+
+    val polygon = {
+      options.features.polygon && geometry.isEmpty ||
+        options.features.multiPolygon && geometry.forall{
+          case g: Polygon => true
+          case g: MultiPolygon => true
+          case _ => false
+        } ||
+        options.features.geometryCollection
+    }
+
+    val polygonHole = geometry.exists{
+      case g: Polygon => true
+      case g: MultiPolygon => true
+      case _ => false
+    }
+  }
+
   override protected def edit(): JsDom.all.Modifier = {
 
     val mapStyle = MapStyle(field.params)
@@ -645,50 +701,15 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
       WidgetUtils.toLabel(field),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       produce(data) { geo =>
-        import ch.wsl.box.client.utils.GeoJson.Geometry._
-        import ch.wsl.box.client.utils.GeoJson._
+
         val geometry = geo.as[ch.wsl.box.client.utils.GeoJson.Geometry].toOption
 
-        val enablePoint = {
-          options.features.point && geometry.isEmpty ||
-          options.features.multiPoint && geometry.forall{
-            case g: Point => true
-            case g: MultiPoint => true
-            case _ => false
-          } ||
-          options.features.geometryCollection
-        }
+        val enable = EnabledFeatures(geometry)
 
-        val enableLine = {
-          options.features.line && geometry.isEmpty ||
-          options.features.multiLine && geometry.forall{
-            case g: LineString => true
-            case g: MultiLineString => true
-            case _ => false
-          } ||
-          options.features.geometryCollection
-        }
-
-        val enablePolygon = {
-          options.features.polygon && geometry.isEmpty ||
-          options.features.multiPolygon && geometry.forall{
-            case g: Polygon => true
-            case g: MultiPolygon => true
-            case _ => false
-          } ||
-          options.features.geometryCollection
-        }
-
-        val enablePolygonHole = geometry.exists{
-              case g: Polygon => true
-              case g: MultiPolygon => true
-              case _ => false
-          }
-
-        if(!enablePoint && activeControl.get == Control.POINT) activeControl.set(Control.VIEW)
-        if(!enableLine && activeControl.get == Control.LINESTRING) activeControl.set(Control.VIEW)
-        if(!enablePolygon && Seq(Control.POLYGON,Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
-        if(!enablePolygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
+        if(!enable.point && activeControl.get == Control.POINT) activeControl.set(Control.VIEW)
+        if(!enable.line && activeControl.get == Control.LINESTRING) activeControl.set(Control.VIEW)
+        if(!enable.polygon && Seq(Control.POLYGON,Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
+        if(!enable.polygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
         if(geometry.isEmpty && Seq(Control.EDIT,Control.MOVE,Control.DELETE).contains(activeControl.get)) activeControl.set(Control.VIEW)
 
         goToField.set("")
@@ -703,10 +724,10 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
           )( //controls
             controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW),
             if (geometry.isDefined) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT) else frag(),
-            if (enablePoint) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT) else frag(),
-            if (enableLine) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING) else frag(),
-            if (enablePolygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON) else frag(),
-            if (enablePolygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE) else frag(),
+            if (enable.point) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT) else frag(),
+            if (enable.line) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING) else frag(),
+            if (enable.polygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON) else frag(),
+            if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE) else frag(),
             if (geometry.isDefined) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE) else frag(),
             if (geometry.isDefined) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE) else frag(),
             if (geometry.isDefined) button(ClientConf.style.mapButton)(
@@ -732,13 +753,11 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
                   BootstrapStyles.Button.group,
                   BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
                 )(
-                  if (enablePoint) {
-                    showIf(activeControl.transform(_ == Control.POINT)) {
-                      button(ClientConf.style.mapButton)(
-                        onclick :+= insertCoordinateHandler
-                      )(Icons.plusFill).render
-                    }
-                  } else frag(),
+                  showIf(activeControl.transform(_ == Control.POINT)) {
+                    button(ClientConf.style.mapButton)(
+                      onclick :+= insertCoordinateHandler
+                    )(Icons.plusFill).render
+                  },
                   showIf(activeControl.transform(_ == Control.VIEW)){
                     gpsButtonGoTo
                   },
@@ -759,6 +778,6 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 object OlMapWidget extends ComponentWidgetFactory {
   override def name: String = WidgetsNames.map
 
-  override def create(params: WidgetParams): Widget = OlMapWidget(params.id,params.field,params.prop)
+  override def create(params: WidgetParams): Widget = new OlMapWidget(params.id,params.field,params.prop)
 
 }
