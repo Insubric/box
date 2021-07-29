@@ -626,13 +626,6 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     ),
   )
 
-  val map = style(
-    height(250 px),
-    media.minHeight(700 px)(
-      height(400 px)
-    )
-  )
-
   val mapSearch = style(
     display.flex,
     backgroundColor(Colors.GreyExtra),
@@ -640,7 +633,11 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       width(100.%%),
       margin(5 px),
       backgroundColor.white
-    )
+    ),
+    height(33 px),
+    marginBottom(-33 px),
+    zIndex(2),
+    position.relative
   )
 
   val mapButton = style(

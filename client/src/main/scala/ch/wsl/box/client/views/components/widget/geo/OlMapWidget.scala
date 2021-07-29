@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
-import ch.wsl.box.client.styles.Icons
+import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.utils.GeoJson.FeatureCollection
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
@@ -18,8 +18,8 @@ import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom
 import org.scalajs.dom.{Event, _}
 import org.scalajs.dom.html.Div
+import scalacss.internal.mutable.StyleSheet
 import scalatags.JsDom
-import scalatags.JsDom.all._
 import scribe.Logging
 import typings.ol._
 import typings.ol.coordinateMod.Coordinate
@@ -32,22 +32,30 @@ import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.util.Try
 
+import scalacss.ScalatagsCss._
+import scalacss.ProdDefaults._
 
+case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
+  import dsl._
 
+  private val mobileHeight = params.flatMap(_.js("mobileHeight").as[Int].toOption).getOrElse(250)
+  private val desktopHeight = params.flatMap(_.js("desktopHeight").as[Int].toOption).getOrElse(400)
 
+  val map = style(
+    height(mobileHeight px),
+    media.minHeight(700 px)(
+      height(desktopHeight px)
+    )
+  )
+
+}
 
 case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json]) extends Widget with MapWidget with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
-
-
-
-
-
-
-
+  import scalatags.JsDom.all._
 
   var map:mod.Map = null
   var featuresLayer: layerMod.Vector = null
@@ -516,7 +524,11 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
   override protected def edit(): JsDom.all.Modifier = {
 
-    val mapDiv: Div = div(ClientConf.style.map).render
+    val mapStyle = MapStyle(field.params)
+    val mapStyleElement = document.createElement("style")
+    mapStyleElement.innerText = mapStyle.render(cssStringRenderer, cssEnv)
+
+    val mapDiv: Div = div(mapStyle.map).render
 
     val (map,vectorSource) = loadMap(mapDiv)
 
@@ -527,9 +539,65 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
       }
     })
 
+    val goToField = Property("")
+
+    goToField.listen{ search =>
+      parseCoordinates(search).foreach{ coord =>
+        logger.info(s"Go to coords: $coord")
+        map.getView().setCenter(coord)
+        map.getView().setZoom(9)
+      }
+    }
+
+    val insertCoordinateField = Property("")
+    val insertCoordinateHandler = ((e: Event) => {
+      parseCoordinates(insertCoordinateField.get).foreach { p =>
+        val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
+        vectorSource.addFeature(feature)
+      }
+      e.preventDefault()
+    })
+
+    var ttgpsButtonGoTo:Option[UdashTooltip] = None
+    def gpsButtonGoTo = {
+      ttgpsButtonGoTo.foreach(_.destroy())
+      val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.goToGPS)){
+        button(ClientConf.style.mapButton)(
+          onclick :+= ((e: Event) => {
+            ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+              val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
+              goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
+            }
+            e.preventDefault()
+          })
+        )(Icons.target).render
+      }
+      ttgpsButtonGoTo = tt
+      el
+    }
+
+    var ttgpsButtonInsert:Option[UdashTooltip] = None
+    def gpsButtonInsert = {
+      val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.insertPointGPS)){
+        button(ClientConf.style.mapButton)(
+          onclick :+= ((e: Event) => {
+            ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+              val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
+              insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
+              insertCoordinateHandler(e)
+            }
+            e.preventDefault()
+          })
+        )(Icons.target).render
+      }
+      ttgpsButtonInsert = tt
+      el
+    }
+
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
     div(
+      mapStyleElement,
       WidgetUtils.toLabel(field),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       produce(data) { geo =>
@@ -579,24 +647,10 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
         if(!enablePolygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
         if(geometry.isEmpty && Seq(Control.EDIT,Control.MOVE,Control.DELETE).contains(activeControl.get)) activeControl.set(Control.VIEW)
 
-        val goToField = Property("")
+        goToField.set("")
+        insertCoordinateField.set("")
 
-        goToField.listen{ search =>
-          parseCoordinates(search).foreach{ coord =>
-            logger.info(s"Go to coords: $coord")
-            map.getView().setCenter(coord)
-            map.getView().setZoom(9)
-          }
-        }
 
-        val insertCoordinateField = Property("")
-        val insertCoordinateHandler = ((e: Event) => {
-          parseCoordinates(insertCoordinateField.get).foreach { p =>
-            val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
-            vectorSource.addFeature(feature)
-          }
-          e.preventDefault()
-        })
 
         frag(
 
@@ -634,29 +688,19 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
                   BootstrapStyles.Button.group,
                   BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
                 )(
-                  button(ClientConf.style.mapButton)(
-                    onclick :+= ((e: Event) => {
-                      ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
-                        val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
-                        activeControl.get match {
-                          case Control.VIEW => goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
-                          case Control.POINT => {
-                            insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
-                            insertCoordinateHandler(e)
-                          }
-                          case _ => {}
-                        }
-                      }
-                      e.preventDefault()
-                    })
-                  )(Icons.target),
                   if (enablePoint) {
                     showIf(activeControl.transform(_ == Control.POINT)) {
                       button(ClientConf.style.mapButton)(
                         onclick :+= insertCoordinateHandler
                       )(Icons.plusFill).render
                     }
-                  } else frag()
+                  } else frag(),
+                  showIf(activeControl.transform(_ == Control.VIEW)){
+                    gpsButtonGoTo
+                  },
+                  showIf(activeControl.transform(_ == Control.POINT)){
+                    gpsButtonInsert
+                  },
                 )
               ).render
             }
