@@ -15,7 +15,9 @@ object GeoJson {
     def decode(j:Json) = j.as[FeatureCollection]
   }
 
-  case class Coordinates(x: Double, y: Double)
+  case class Coordinates(x: Double, y: Double) {
+    override def toString: String = s"$x $y"
+  }
 
 
 
@@ -26,19 +28,33 @@ object GeoJson {
 
   sealed trait Geometry
 
-  case class Point(coordinates: Coordinates) extends Geometry
+  case class Point(coordinates: Coordinates) extends Geometry {
+    override def toString: String = s"POINT($coordinates)"
+  }
 
-  case class LineString(coordinates: Seq[Coordinates]) extends Geometry
+  case class LineString(coordinates: Seq[Coordinates]) extends Geometry {
+    override def toString: String = s"LINESTRING(${coordinates.mkString(",")})"
+  }
 
-  case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry
+  case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
+    override def toString: String = s"MULTIPOINT(${coordinates.mkString("(","),(",")")})"
+  }
 
-  case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry
+  case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
+    override def toString: String = s"MULTILINESTRING(${coordinates.map(_.mkString(",").mkString("(","),(",")"))})"
+  }
 
-  case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends Geometry
+  case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
+    override def toString: String = s"POLYGON(${coordinates.map(_.mkString(",").mkString("(","),(",")"))})"
+  }
 
-  case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry
+  case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
+    override def toString: String = s"MULTIPOLYGON(${coordinates.map(_.map(_.mkString(",").mkString("(","),(",")")).mkString("(","),(",")"))}"
+  }
 
-  case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry
+  case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry {
+    override def toString: String = s"GEOMETRYCOLLECTION(${geometries.mkString(",")})"
+  }
 
   object Geometry {
 

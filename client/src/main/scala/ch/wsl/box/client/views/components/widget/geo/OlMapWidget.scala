@@ -3,6 +3,7 @@ package ch.wsl.box.client.views.components.widget.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
+import ch.wsl.box.client.utils.GeoJson
 import ch.wsl.box.client.utils.GeoJson.FeatureCollection
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
@@ -22,7 +23,7 @@ import scalacss.internal.mutable.StyleSheet
 import scalatags.JsDom
 import scribe.Logging
 import typings.ol._
-import typings.ol.coordinateMod.Coordinate
+import typings.ol.coordinateMod.{Coordinate, createStringXY}
 import typings.ol.igcMod.IGCZ.GPS
 import typings.ol.selectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
@@ -31,9 +32,11 @@ import typings.ol.viewMod.FitOptions
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.util.Try
-
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
+import typings.ol.formatMod.WKT
+import typings.ol.mod.Overlay
+import typings.ol.olStrings.singleclick
 
 case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
   import dsl._
@@ -299,6 +302,10 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
     }
 
+    val infoOverlay = new Overlay(overlayMod.Options()
+      .setElement(div().render)
+    )
+
     onAddFeature = (e: VectorSourceEvent[geometryMod.default]) => changedFeatures()
 
     registerListener(true)
@@ -346,6 +353,37 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
       }
     })
 
+
+    map.on_click(olStrings.click, (e: mapBrowserEventMod.default) => {
+
+      val features:js.Array[typings.ol.olFeatureMod.default[typings.ol.geometryMod.default]] = map.getFeaturesAtPixel(e.pixel).flatMap{
+        case x:typings.ol.olFeatureMod.default[typings.ol.geometryMod.default] => Some(x)
+        case _ => None
+      }
+
+      features.nonEmpty && activeControl.get == Control.VIEW match {
+        case true => {
+          infoOverlay.element.innerHTML = ""
+          val geoJson = new geoJSONMod.default().writeFeaturesObject(features)
+          for{
+            json <- convertJsToJson(geoJson).toOption
+            collection <- FeatureCollection.decode(json).toOption
+            feature <- collection.features.headOption
+          } yield {
+            feature.geometry match {
+              case GeoJson.Point(coordinates) => {
+                infoOverlay.element.appendChild(div(ClientConf.style.mapPopup,coordinates.x,br,coordinates.y).render)
+                infoOverlay.setPosition(js.Array(coordinates.x,coordinates.y))
+              }
+              case _ => {}
+            }
+
+          }
+        }
+        case false => infoOverlay.setPosition()
+      }
+    })
+
     val drawHole = new DrawHole(DrawHoleOptions().setStyle(simpleStyle))
 
     val dynamicInteraction = Seq(
@@ -366,6 +404,9 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
     activeControl.listen({ section =>
       dynamicInteraction.foreach(x => x.setActive(false))
+
+
+      infoOverlay.setPosition()
 
       section match {
         case Control.EDIT => {
@@ -404,6 +445,9 @@ case class OlMapWidget(id: ReadableProperty[Option[String]], field: JSONField, d
 
     }, true)
 
+
+
+    map.addOverlay(infoOverlay)
 
     (map,vectorSource)
 

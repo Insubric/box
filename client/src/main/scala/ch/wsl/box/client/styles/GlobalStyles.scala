@@ -626,6 +626,17 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     ),
   )
 
+  val mapPopup = style(
+    backgroundColor.white,
+    borderStyle.solid,
+    borderWidth(1 px),
+    borderColor(conf.colors.main),
+    padding.vertical(5 px),
+    padding.horizontal(10 px),
+    marginLeft(5 px),
+    marginTop(5 px),
+  )
+
   val mapSearch = style(
     display.flex,
     backgroundColor(Colors.GreyExtra),
