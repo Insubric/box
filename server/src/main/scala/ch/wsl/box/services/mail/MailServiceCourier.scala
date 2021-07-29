@@ -2,16 +2,35 @@ package ch.wsl.box.services.mail
 
 import com.typesafe.config.{Config, ConfigFactory}
 import courier._
+
 import javax.mail.internet.InternetAddress
 import net.ceedubs.ficus.Ficus._
 
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 class MailServiceCourier extends MailService {
 
+  val sendQueue:mutable.Queue[Mail] = mutable.Queue()
+  var sending:Boolean = false
 
 
-  override def send(mail: Mail)(implicit ec: ExecutionContext): Future[Boolean] = {
+  override def send(mail: Mail)(implicit ec: ExecutionContext): Future[Boolean] = this.synchronized{
+    sendQueue += mail
+    if(!sending) {
+      sending = true
+      _send
+    } else {
+      Future.successful(true)
+    }
+  }
+
+  def _send(implicit ec: ExecutionContext): Future[Boolean] = {
+    if(sendQueue.isEmpty) {
+      sending = false
+      return Future.successful(true)
+    }
+    val mail = sendQueue.dequeue()
 
     val mailConf: Config = ConfigFactory.load().as[Config]("mail")
     val mailHost:String = mailConf.as[String]("host")
@@ -39,6 +58,6 @@ class MailServiceCourier extends MailService {
       .to(mail.to.flatMap(InternetAddress.parse(_)):_*)
       .subject(mail.subject)
       .content(content)
-    ).map(_ => true )
+    ).flatMap(_ => _send )
   }
 }
