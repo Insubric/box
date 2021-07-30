@@ -526,7 +526,11 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
           ClientConf.style.mapButton
         )(
          onclick :+= {(e:Event) =>
-           activeControl.set(section)
+           if(activeControl.get == section) {
+             activeControl.set(Control.VIEW)
+           } else {
+             activeControl.set(section)
+           }
            e.preventDefault()
          }
         )(icon).render

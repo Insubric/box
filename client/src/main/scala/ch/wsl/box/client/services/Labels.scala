@@ -164,5 +164,7 @@ object Labels {
     def goToGPS = get(SharedLabels.map.goToGPS)
     def insertPoint = get(SharedLabels.map.insertPoint)
     def insertPointGPS = get(SharedLabels.map.insertPointGPS)
+    def drawOnMap = get(SharedLabels.map.drawOnMap)
+    def drawOrEnter = get(SharedLabels.map.drawOrEnter)
   }
 }

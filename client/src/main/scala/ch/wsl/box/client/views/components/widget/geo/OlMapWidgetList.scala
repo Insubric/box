@@ -153,12 +153,16 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,
             span(geom.toString),
-            controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),
-            controlButton(Icons.move, SharedLabels.map.move, Control.MOVE),
-            button(ClientConf.style.mapButton,onclick :+= { (e: Event) =>
-              deleteGeometry(geom)
-              e.preventDefault()
-            },Icons.trash ),
+            div(ClientConf.style.mapGeomAction,
+              if(!geom.isInstanceOf[Point])
+                controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),
+              controlButton(Icons.move, SharedLabels.map.move, Control.MOVE),
+              if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE),
+              button(ClientConf.style.mapButton,onclick :+= { (e: Event) =>
+                deleteGeometry(geom)
+                e.preventDefault()
+              },Icons.trash ),
+            )
           )
         }
 
@@ -167,11 +171,11 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
             showGeometries
           ),
           showIf(activeControl.transform(_ == Control.POLYGON)){
-            div(ClientConf.style.mapInfo,"Draw on map").render
+            div(ClientConf.style.mapInfo,Labels.map.drawOnMap).render
           },
           showIf(activeControl.transform(_ == Control.POINT)){
             div(ClientConf.style.mapInfo,
-              div(ClientConf.style.mapInfoChild,"Draw on map or enter coordinates"),
+              div(ClientConf.style.mapInfoChild,Labels.map.drawOrEnter),
 
               div(ClientConf.style.mapInfoChild,
                 TextInput(insertCoordinateField)(placeholder := Labels.map.insertPoint, onsubmit :+= insertCoordinateHandler),

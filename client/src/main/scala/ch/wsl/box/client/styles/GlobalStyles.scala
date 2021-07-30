@@ -667,6 +667,11 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     )
   )
 
+  val mapGeomAction = style(
+    display.flex,
+    flexDirection.column
+  )
+
   val mapButton = style(
     color(conf.colors.main),
     backgroundColor(Colors.GreyExtra),
