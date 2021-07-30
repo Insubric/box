@@ -485,7 +485,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       div(BootstrapStyles.Visibility.clearfix)
     )
 
-    val formHeader = div(
+    val formHeader = div(ClientConf.style.formHeader,
       div(BootstrapStyles.Float.left(),
         h3(
           ClientConf.style.noMargin,

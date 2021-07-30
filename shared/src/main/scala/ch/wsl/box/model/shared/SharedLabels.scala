@@ -254,14 +254,20 @@ object SharedLabels extends LabelsCollection {
     def panZoom = "ui.map.panZoom"
     def edit = "ui.map.edit"
     def addPoint = "ui.map.addPoint"
+    def addPointGPS = "ui.map.addPointGPS"
     def addLine = "ui.map.addLine"
     def addPolygon = "ui.map.addPolygon"
     def addPolygonHole = "ui.map.addPolygonHole"
     def move = "ui.map.move"
     def delete = "ui.map.delete"
     def goTo = "ui.map.goTo"
+    def goToGPS = "ui.map.goToGPS"
+    def insertPoint = "ui.map.insertPoint"
+    def insertPointGPS = "ui.map.insertPointGPS"
+    def drawOnMap = "ui.map.drawOnMap"
+    def drawOrEnter = "ui.map.drawOrEnter"
 
-    override def all: Seq[String] = Seq(panZoom,edit,addPoint,addLine,addPolygon,addPolygonHole,move,delete,goTo)
+    override def all: Seq[String] = Seq(panZoom,edit,addPoint,addLine,addPolygon,addPolygonHole,move,delete,goTo,insertPoint,goToGPS,insertPointGPS,addPointGPS,drawOnMap,drawOrEnter)
   }
 
   def all = Seq(messages,subform,error,login,navigation,filter,sort,form,lookup,entities,exports,entity,header,popup,home,map).flatMap(_.all)

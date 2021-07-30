@@ -15,7 +15,10 @@ object GeoJson {
     def decode(j:Json) = j.as[FeatureCollection]
   }
 
-  case class Coordinates(x: Double, y: Double)
+  case class Coordinates(x: Double, y: Double) {
+    override def toString: String = s"$x $y"
+    def flatten = Seq(x,y)
+  }
 
 
 
@@ -24,21 +27,60 @@ object GeoJson {
 
 
 
-  sealed trait Geometry
+  sealed trait SingleGeometry extends Geometry {
+    override def toSingle: Seq[SingleGeometry] = Seq(this)
 
-  case class Point(coordinates: Coordinates) extends Geometry
+    def equalsToFlattenCoords(flatCoords:Seq[Double]):Boolean = flattenCoordinates == flatCoords
 
-  case class LineString(coordinates: Seq[Coordinates]) extends Geometry
+    def flattenCoordinates:Seq[Double]
+  }
 
-  case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry
+  sealed trait Geometry {
+    def toSingle:Seq[SingleGeometry]
+  }
 
-  case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry
+  case class Point(coordinates: Coordinates) extends SingleGeometry {
+    override def toString: String = s"POINT($coordinates)"
 
-  case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends Geometry
+    override def flattenCoordinates: Seq[Double] = coordinates.flatten
+  }
 
-  case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry
+  case class LineString(coordinates: Seq[Coordinates]) extends SingleGeometry {
+    override def toString: String = s"LINESTRING(${coordinates.mkString(",")})"
 
-  case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry
+    override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatten)
+  }
+
+  case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
+    override def toString: String = s"MULTIPOINT(${coordinates.mkString("(","),(",")")})"
+
+    override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Point(c))
+  }
+
+  case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
+    override def toString: String = s"MULTILINESTRING(${coordinates.map(_.mkString(",")).mkString("(","),(",")")})"
+
+    override def toSingle: Seq[SingleGeometry] = coordinates.map(c => LineString(c))
+  }
+
+  case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends SingleGeometry {
+    override def toString: String = s"POLYGON(${coordinates.map(_.mkString(",")).mkString("(","),(",")")})"
+
+    override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatMap(_.flatten))
+  }
+
+  case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
+    override def toString: String = s"MULTIPOLYGON(${coordinates.map(_.map(_.mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
+
+    override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Polygon(c))
+  }
+
+  case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry {
+
+    override def toSingle: Seq[SingleGeometry] = geometries.flatMap(_.toSingle)
+
+    override def toString: String = s"GEOMETRYCOLLECTION(${geometries.mkString(",")})"
+  }
 
   object Geometry {
 
