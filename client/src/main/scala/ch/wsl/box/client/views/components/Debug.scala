@@ -24,10 +24,10 @@ object Debug {
         a(""),
         releaser(produce(show) {
             case true => div(
-              a("Hide debug " + name, onclick :+= ((e: Event) => show.set(false))),
+              a("Hide debug " + name, onclick :+= {(e: Event) => show.set(false); e.preventDefault() }),
               pre(bind(out))
             ).render
-            case false => a("Show debug " + name, onclick :+= ((e: Event) => show.set(true))).render
+            case false => a("Show debug " + name, onclick :+= {(e: Event) => show.set(true); e.preventDefault()}).render
         }
       ))
     } else frag()

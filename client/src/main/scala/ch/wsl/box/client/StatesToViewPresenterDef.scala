@@ -7,13 +7,13 @@ import ch.wsl.box.client.views.admin.{AdminViewPresenter, BoxDefinitionViewPrese
 
 class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
   def matchStateToResolver(state: RoutingState): ViewFactory[_ <: RoutingState] = state match {
-    case RootState => RootViewPresenter
+    case RootState(layout) => RootViewPresenter
     case IndexState => IndexViewPresenter
     case l:LoginStateAbstract => LoginViewPresenter
-    case EntitiesState(kind,currentEntity) => EntitiesViewPresenter(kind,currentEntity,2)
+    case EntitiesState(kind,currentEntity,layout) => EntitiesViewPresenter(kind,currentEntity,2)
     case EntityTableState(kind,entity,query) => EntityTableViewPresenter(Routes(kind,entity))
-    case EntityFormState(kind,entity,write,id,public) => EntityFormViewPresenter
-    case FormPageState(kind,entity,write,public) => EntityFormViewPresenter
+    case EntityFormState(kind,entity,write,id,public,layout) => EntityFormViewPresenter
+    case FormPageState(kind,entity,write,public,layout) => EntityFormViewPresenter
     //case MasterChildState(_,master,child) => MasterChildViewPresenter(master,child)
     case DataState(_,_) => DataViewPresenter
     case DataListState(_,currentExport) => DataListViewPresenter(currentExport)

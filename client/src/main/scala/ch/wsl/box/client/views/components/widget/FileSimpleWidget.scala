@@ -118,7 +118,10 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   val acceptMultipleFiles = Property(false)
   val selectedFiles = SeqProperty.blank[File]
-  val fileInput = FileInput(selectedFiles, acceptMultipleFiles)("files",display.none).render
+  val fileInput = FileInput(selectedFiles, acceptMultipleFiles)("files",display.none,onfocus :+= {(e:Event) =>
+    println("äaaaaa")
+    e.preventDefault()
+  }).render
 
 
   selectedFiles.listen{ _.headOption.map{ file =>
@@ -141,9 +144,16 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   private def upload = {
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding)(
-      button("Upload",ClientConf.style.boxButton, onclick :+= ((e:Event) => fileInput.click()) ),
+      fileInput,
+      button("Upload",ClientConf.style.boxButton, onclick :+= {(e:Event) =>
+        fileInput.click()
+        e.preventDefault()
+      } ),
       showIf(source.transform(_.isDefined)){
-        button("Delete",ClientConf.style.boxButtonDanger, onclick :+= ((e:Event) => if(window.confirm(Labels.form.removeMap)) data.set(Json.Null)) ).render
+        button("Delete",ClientConf.style.boxButtonDanger, onclick :+= { (e:Event) =>
+          if(window.confirm(Labels.form.removeMap)) data.set(Json.Null)
+          e.preventDefault()
+        } ).render
       },
       div(BootstrapStyles.Visibility.clearfix)
     )

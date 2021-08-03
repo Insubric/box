@@ -31,11 +31,12 @@ object BoxField {
                            conditionValues:Option[String] = None,
                            params:Option[Json] = None,
                            read_only:Boolean = false,
-                           required:Option[Boolean] = Some(false)
+                           required:Option[Boolean] = Some(false),
+                           function:Option[String] = None
                          )
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,BoxSchema.schema, "field") {
-    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required) <> (BoxField_row.tupled, BoxField_row.unapply)
+    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function) <> (BoxField_row.tupled, BoxField_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
@@ -61,6 +62,7 @@ object BoxField {
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
     val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
     val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
+    val function: Rep[Option[String]] = column[Option[String]]("function", O.Default(None))
     val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
     val read_only: Rep[Boolean] = column[Boolean]("read_only")
     val required: Rep[Option[Boolean]] = column[Option[Boolean]]("required")

@@ -27,16 +27,15 @@ object WidgetUtils extends Logging{
   }
 
   def addTooltip(tooltip:Option[String],placement:UdashTooltip.Placement = UdashTooltip.Placement.Bottom)(el:dom.Node) = {
-    tooltip match {
-      case Some(tip) => UdashTooltip(
+    val tt = tooltip.map{ tip =>
+      UdashTooltip(
         trigger = Seq(UdashTooltip.Trigger.Hover),
-        delay = UdashTooltip.Delay(500 millis, 250 millis),
+        delay = UdashTooltip.Delay(250 millis, 0 millis),
         placement = placement,
         title = tip
       )(el)
-      case _ => {}
     }
-    el
+    (el,tt)
   }
 
   def toLabel(field:JSONField, skipRequiredInfo:Boolean=false) = {

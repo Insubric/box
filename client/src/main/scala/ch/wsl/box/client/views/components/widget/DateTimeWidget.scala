@@ -149,7 +149,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     val picker = input(
       style,WidgetUtils.toNullable(field.nullable),
       onkeydown := { (e: KeyboardEvent) =>
-        e.stopPropagation()
+        e.preventDefault()
         e.keyCode match {
           case 13 => {
             handleDate(e.target.asInstanceOf[HTMLInputElement].value.asJson, true)
@@ -164,7 +164,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
         }
       },
       onblur := { (e: Event) =>
-        e.stopPropagation()
+        e.preventDefault()
         handleDate(e.target.asInstanceOf[HTMLInputElement].value.asJson, true)
       },
     ).render
@@ -182,7 +182,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     val result = div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
-      tooltip(picker),
+      tooltip(picker)._1,
       div(BootstrapStyles.Visibility.clearfix)
     ).render
 

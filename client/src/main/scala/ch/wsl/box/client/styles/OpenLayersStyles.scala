@@ -31,5 +31,9 @@ object OpenLayersStyles extends StyleSheet.Inline {
       backgroundColor(c"rgba(255,255,255,0.8)"),
       borderTopRightRadius(4.px)
     )
+    ,
+    unsafeRoot(".ol-zoom")(
+      top(40.px)
+    )
   )
 }

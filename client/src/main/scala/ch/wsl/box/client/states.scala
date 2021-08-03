@@ -8,6 +8,10 @@ import scala.scalajs.js.URIUtils
 import scala.util.Try
 
 
+object Layouts{
+  val std = "std"
+  val blank = "blank"
+}
 
 sealed abstract class RoutingState(val parentState: Option[ContainerRoutingState]) extends State {
   type HierarchyRoot = RoutingState
@@ -21,25 +25,25 @@ sealed abstract class FinalRoutingState(parentState: Option[ContainerRoutingStat
 
 
 sealed abstract class LoginStateAbstract(parentState: Option[ContainerRoutingState]) extends FinalRoutingState(parentState)
-case class LoginState(url:String) extends LoginStateAbstract(Some(RootState))
-case object LogoutState extends LoginStateAbstract(Some(RootState))
-case class LoginState1param(url:String,p1:String) extends LoginStateAbstract(Some(RootState))
-case class LoginState2params(url:String,p1:String,p2:String) extends LoginStateAbstract(Some(RootState))
-case class LoginState3params(url:String,p1:String,p2:String,p3:String) extends LoginStateAbstract(Some(RootState))
-case class LoginState4params(url:String,p1:String,p2:String,p3:String,p4:String) extends LoginStateAbstract(Some(RootState))
+case class LoginState(url:String) extends LoginStateAbstract(Some(RootState()))
+case object LogoutState extends LoginStateAbstract(Some(RootState()))
+case class LoginState1param(url:String,p1:String) extends LoginStateAbstract(Some(RootState()))
+case class LoginState2params(url:String,p1:String,p2:String) extends LoginStateAbstract(Some(RootState()))
+case class LoginState3params(url:String,p1:String,p2:String,p3:String) extends LoginStateAbstract(Some(RootState()))
+case class LoginState4params(url:String,p1:String,p2:String,p3:String,p4:String) extends LoginStateAbstract(Some(RootState()))
 
-case object RootState extends ContainerRoutingState(None)
+case class RootState(layout:String = Layouts.std) extends ContainerRoutingState(None)
 
-case object ErrorState extends FinalRoutingState(Some(RootState))
+case object ErrorState extends FinalRoutingState(Some(RootState()))
 
-case object AdminState extends FinalRoutingState(Some(RootState))
-case object AdminConfState extends FinalRoutingState(Some(RootState))
-case object AdminUiConfState extends FinalRoutingState(Some(RootState))
-case object AdminBoxDefinitionState extends FinalRoutingState(Some(RootState))
+case object AdminState extends FinalRoutingState(Some(RootState()))
+case object AdminConfState extends FinalRoutingState(Some(RootState()))
+case object AdminUiConfState extends FinalRoutingState(Some(RootState()))
+case object AdminBoxDefinitionState extends FinalRoutingState(Some(RootState()))
 
-case object IndexState extends FinalRoutingState(Some(RootState))
+case object IndexState extends FinalRoutingState(Some(RootState()))
 
-case class EntitiesState(kind:String, currentEntity:String) extends ContainerRoutingState(Some(RootState))
+case class EntitiesState(kind:String, currentEntity:String, layout:String = Layouts.std) extends ContainerRoutingState(Some(RootState(layout)))
 
 case class EntityTableState(kind:String, entity:String,query:Option[String]) extends FinalRoutingState(Some(EntitiesState(kind,entity)))
 
@@ -48,8 +52,9 @@ abstract class FormState(
                           val entity:String,
                           val write:String,
                           _id:Option[String],
-                          val public:Boolean
-                        ) extends FinalRoutingState(Some(EntitiesState(kind,entity))) {
+                          val public:Boolean,
+                          val layout: String
+                        ) extends FinalRoutingState(Some(EntitiesState(kind,entity,layout))) {
   def id:Option[String] = _id
   def writeable:Boolean = write == "true"
 }
@@ -59,8 +64,9 @@ case class EntityFormState(
                             override val entity:String,
                             override val write:String,
                             _id:Option[String],
-                            override val public:Boolean
-                          ) extends FormState(kind, entity, write, _id, public) {
+                            override val public:Boolean,
+                            override val layout: String = Layouts.std
+                          ) extends FormState(kind, entity, write, _id, public,layout) {
   override def id = {
     val t = _id.map(URIUtils.decodeURI)
     t
@@ -73,8 +79,9 @@ case class FormPageState(
                           override val kind:String,
                           override val entity:String,
                           override val write:String,
-                          override val public:Boolean
-                          ) extends FormState(kind,entity,write,Some("static::page"),public)
+                          override val public:Boolean,
+                          override val layout: String = Layouts.std
+                          ) extends FormState(kind,entity,write,Some("static::page"),public,layout)
 
 case class MasterChildState(kind:String,
                             masterEntity:String,
@@ -88,5 +95,5 @@ object DataKind{
   final val PDF = "pdf"
 }
 
-case class DataListState(kind:String,currentExport:String) extends ContainerRoutingState(Some(RootState))
+case class DataListState(kind:String,currentExport:String) extends ContainerRoutingState(Some(RootState()))
 case class DataState(kind:String,export:String) extends FinalRoutingState(Some(DataListState(kind,export)))

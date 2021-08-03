@@ -14,10 +14,12 @@ object WidgetsNames {
   val datetimePicker = "datetimePicker"
   val select = "selectWidget"
   val checkbox = "checkbox"
+  val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
   val twoLines = "twoLines"
   val popup = "popup"
   val map = "map"
+  val mapList = "mapList"
   val mapPoint = "mapPoint"
   val code = "code"
   val richTextEditor = "richTextEditor"
@@ -41,6 +43,7 @@ object WidgetsNames {
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
+  val executeFunction = "executeFunction"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -114,6 +117,7 @@ object WidgetsNames {
     ),
     BOOLEAN -> Seq(
       checkbox,
+      tristateCheckbox,
       hidden,
       dynamicWidget,
     ),
@@ -130,6 +134,7 @@ object WidgetsNames {
     GEOMETRY -> Seq(
       map,
       mapPoint,
+      mapList,
       hidden,
       dynamicWidget,
     ),
@@ -147,6 +152,7 @@ object WidgetsNames {
       lookupLabel,
       html,
       dynamicWidget,
+      executeFunction
     )
   )
 

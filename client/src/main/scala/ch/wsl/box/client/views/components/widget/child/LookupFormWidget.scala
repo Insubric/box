@@ -42,13 +42,18 @@ object LookupFormWidget extends ComponentWidgetFactory {
         override protected def show(): JsDom.all.Modifier = widget().showOnTable()
 
         override protected def edit(): JsDom.all.Modifier = show()
+
+
       }
       case (_,Some(label)) => Widget.forString(params.field,label)
       case (_,_) => Widget.forString(params.field,"Open")
     }
 
 
-    def navigate(goTo: Routes => RoutingState) = (e: Event) => Navigate.to(goTo(Routes(EntityKind.FORM.kind, linked.name)))
+    def navigate(goTo: Routes => RoutingState) = (e: Event) => {
+      Navigate.to(goTo(Routes(EntityKind.FORM.kind, linked.name)))
+      e.preventDefault()
+    }
 
     override protected def show(): Modifier = produce(linkedData) { case id =>
       linkRenderer(lab.render(false,Property(true)),field.params,navigate(_.show(id.asString))).render
@@ -56,6 +61,14 @@ object LookupFormWidget extends ComponentWidgetFactory {
 
     override protected def edit(): Modifier = produce(linkedData) { case id =>
       linkRenderer(lab.render(false,Property(true)),field.params,navigate(_.edit(id.asString))).render
+    }
+
+    override def showOnTable(): JsDom.all.Modifier =  produce(linkedData) { case id =>
+      a(onclick :+= navigate(_.show(id.asString)),lab.render(false,Property(true))).render
+    }
+
+    override def editOnTable(): JsDom.all.Modifier =  produce(linkedData) { case id =>
+      a(onclick :+= navigate(_.edit(id.asString)),lab.render(false,Property(true))).render
     }
   }
 

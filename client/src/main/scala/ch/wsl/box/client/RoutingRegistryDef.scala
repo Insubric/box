@@ -32,17 +32,17 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
 
   private val (loggedInUrl2State, loggedInState2Url) = bidirectional {
     case "" => IndexState
-    case "/entities" => EntitiesState("entity","")
-    case "/tables" => EntitiesState("table","")
-    case "/views" => EntitiesState("view","")
-    case "/forms" => EntitiesState("form","")
+    case "/entities" => EntitiesState("entity","",Layouts.std)
+    case "/tables" => EntitiesState("table","",Layouts.std)
+    case "/views" => EntitiesState("view","",Layouts.std)
+    case "/forms" => EntitiesState("form","",Layouts.std)
     case "/functions"  => DataListState(DataKind.FUNCTION,"")
     case "/exports"  => DataListState(DataKind.EXPORT,"")
     case "/box" / "export" / exportFunction  => DataState(DataKind.EXPORT,exportFunction)
     case "/box" / "function" / exportFunction  => DataState(DataKind.FUNCTION,exportFunction)
-    case "/box" / kind / entity / "page" => FormPageState(kind,entity,"true",false)
-    case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false)
-    case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false)
+    case "/box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
+    case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std)
+    case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std)
     case "/box" / kind / entity / "child" / childEntity => MasterChildState(kind,entity,childEntity)
     case "/box" / kind / entity => EntityTableState(kind,entity,None)
     case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query))
@@ -55,7 +55,8 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   private val (loggedOutUrl2State, loggedOutState2Url) = bidirectional {
     case "" => LoginState("")
     case "/logout" => LogoutState
-    case "/public" / "box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,true)
+    case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank)
+    case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std)
     case "/entities" => LoginState("/entities")
     case "/tables" => LoginState("/tables")
     case "/views" => LoginState("/views" )

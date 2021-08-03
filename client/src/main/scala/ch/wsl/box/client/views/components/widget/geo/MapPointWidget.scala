@@ -3,6 +3,7 @@ package ch.wsl.box.client.views.components.widget.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
+import ch.wsl.box.client.utils.GPS
 import ch.wsl.box.client.utils.GeoJson.{Coordinates, Geometry, Point}
 import ch.wsl.box.client.views.components.widget._
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
@@ -34,6 +35,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
 
 
   import ch.wsl.box.client.utils.GeoJson.Geometry._
+  import ch.wsl.box.client.Context._
 
   override def field: JSONField = params.field
 
@@ -111,7 +113,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val header = (x:NestedInterceptor) => div(
       field.title,
       UdashButton()( _ => Seq[Modifier](
-        onclick :+= ((e:Event) => modalStatus.set(Status.Closed)),
+        onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
         BootstrapStyles.close, "×"
       )).render
     ).render
@@ -130,7 +132,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val footer = (x:NestedInterceptor) => div(
       button(ClientConf.style.boxButton,onclick :+= ((e:Event) => {
         modal.hide()
-        true
+        e.preventDefault()
       }), Labels.form.save)
     ).render
 
@@ -159,7 +161,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val yInput = NumberInput(y)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if(noLabel) frag() else WidgetUtils.toLabel(field)," ",
+      div(ClientConf.style.label50,if(noLabel) frag() else WidgetUtils.toLabel(field)),
       div(
         display.`inline-block`,
         useXY match {
@@ -174,17 +176,17 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
         },
         WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value,paddingTop := 0.px, paddingBottom := 0.px)(
           onclick :+= {(e: Event) =>
-            dom.window.navigator.geolocation.getCurrentPosition{ position =>
-              val localCoords = projMod.transform(js.Array(position.coords.longitude,position.coords.latitude),wgs84Proj,defaultProjection)
+            GPS.coordinates().map{ coords =>
+              val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
               geometry.set(Some(Point(Coordinates(localCoords(0),localCoords(1)))))
             }
             e.preventDefault() // needed in order to avoid triggering the form validation
           }
-        )(Icons.target).render),
+        )(Icons.target).render)._1,
         WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
-          true
-        }),Icons.map).render),
+          e.preventDefault()
+        }),Icons.map).render)._1,
         modal.render
       ),
       div(BootstrapStyles.Visibility.clearfix)

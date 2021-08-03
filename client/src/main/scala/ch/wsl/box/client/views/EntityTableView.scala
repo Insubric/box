@@ -127,6 +127,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     state.query.foreach{q =>
 
 
+      logger.warn("AAAA" + emptyFieldsForm)
+
       parse(URIUtils.decodeURIComponent(q)) match {
         case Left(value) => {
           logger.warn(s"Failed to parse query ${value.message} \n $q")
@@ -134,8 +136,23 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         case Right(value) => {
           value.as[JSONQuery] match {
             case Left(value) => logger.warn(s"Failed to parse query ${value.message}")
-            case Right(value) => {
-              services.clientSession.setQuery(SessionQuery(value,state.entity))
+            case Right(query) => {
+              val filters = query.filter.map{ fil =>
+                emptyFieldsForm.fields.find(_.name == fil.column).flatMap(_.lookup) match {
+                  case Some(lookup) => {
+                    if(fil.operator.exists(_.startsWith("FK"))) {
+                      fil
+                    } else {
+                      lookup.lookup.find(_.id == fil.value) match {
+                        case Some(lk) => fil.copy(operator = Some(Filter.FK_LIKE),value = lk.value)
+                        case None => fil
+                      }
+                    }
+                  }
+                  case None => fil
+                }
+              }
+              services.clientSession.setQuery(SessionQuery(query.copy(filter = filters),state.entity))
             }
           }
         }
@@ -211,19 +228,21 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   def ids(el:Row): JSONID = extractID(el.data,model.subProp(_.metadata).get.toSeq.flatMap(_.tabularFields),model.subProp(_.metadata).get.toSeq.flatMap(_.keys))
 
-  def edit(el:Row) = {
+  def edit(el: => Row) = (e:Event) => {
     val k = ids(el)
     val newState = routes.edit(k.asString)
     Navigate.to(newState)
+    e.preventDefault()
   }
 
-  def show(el:Row) = {
+  def show(el: => Row) = (e:Event) => {
     val k = ids(el)
     val newState = routes.show(k.asString)
     Navigate.to(newState)
+    e.preventDefault()
   }
 
-  def delete(el:Row) = {
+  def delete(el: => Row) = (e:Event) => {
     val k = ids(el)
     val confim = window.confirm(Labels.entity.confirmDelete)
     if(confim) {
@@ -234,6 +253,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         }
       }
     }
+    e.preventDefault()
   }
 
   def saveIds(ids: IDs, query:JSONQuery) = {
@@ -333,7 +353,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     model.subProp(_.fieldQueries).set(newFieldQueries)
   }
 
-  def sort(fieldQuery: FieldQuery) = {
+  def sort(fieldQuery: => FieldQuery) = (e:Event) => {
+    e.preventDefault()
 
     val next = Sort.next(fieldQuery.sort)
 
@@ -366,25 +387,34 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     model.subProp(_.fieldQueries).set(newFieldQueries)
   }
 
-  def selected(row: Row) = {
+  def selected(row: => Row) = (e:Event) => {
     onSelect(model.get.fieldQueries.map(_.field).zip(row.data))
     model.subProp(_.selectedRow).set(Some(row))
+    e.preventDefault()
   }
 
-  def nextPage() = {
+  def nextPage() = (e:Event) => {
     if(!model.subProp(_.ids.isLastPage).get) {
       reloadRows(model.subProp(_.ids.currentPage).get + 1)
     }
+    e.preventDefault()
   }
-  def prevPage() = {
+  def prevPage() = (e:Event) => {
     if(model.subProp(_.ids.currentPage).get > 1) {
       reloadRows(model.subProp(_.ids.currentPage).get - 1)
     }
+    e.preventDefault()
   }
 
 
-  def downloadCSV() = download("csv")
-  def downloadXLS() = download("xlsx")
+  val downloadCSV = (e:Event) => {
+    download("csv")
+    e.preventDefault()
+  }
+  val downloadXLS = (e:Event) => {
+    download("xlsx")
+    e.preventDefault()
+  }
 
   private def download(format:String) = {
 
@@ -525,10 +555,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
                   td(ClientConf.style.smallCells)(
                     a(
-                      onclick :+= ((ev: Event) => {
-                        presenter.sort(fieldQuery.get)
-                        true
-                      }),
+                      onclick :+= presenter.sort(fieldQuery.get),
                       span(title, ClientConf.style.tableHeader), " ",
                       Labels(Sort.label(sort.get)), " ", order
                     )
@@ -558,34 +585,22 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
             def show = a(
                 cls := "primary action",
-                onclick :+= ((ev: Event) => {
-                  presenter.show(el.get)
-                  true
-                })
+                onclick :+= presenter.show(el.get)
               )(Labels.entity.show)
 
             def edit = a(
                 cls := "primary action",
-                onclick :+= ((ev: Event) => {
-                  presenter.edit(el.get)
-                  true
-                })
+                onclick :+= presenter.edit(el.get)
               )(Labels.entity.edit)
 
             def delete = a(
               cls := "danger action",
-              onclick :+= ((ev: Event) => {
-                presenter.delete(el.get)
-                true
-              })
+              onclick :+= presenter.delete(el.get)
             )(Labels.entity.delete)
 
             def noAction = p(color := "grey")(Labels.entity.no_action)
 
-            tr((`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= ((e:Event) => {
-              presenter.selected(el.get)
-              true
-            }),
+            tr((`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= presenter.selected(el.get),
               td(ClientConf.style.smallCells)(
                 (hasKey, model.get.access.update, model.get.access.delete) match{
                   case (false, _, _) => noAction
@@ -611,8 +626,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           }
         ).render,
 
-        button(`type` := "button", onclick :+= ((e:Event) => presenter.downloadCSV()),ClientConf.style.boxButton, Labels.entity.csv),
-        button(`type` := "button", onclick :+= ((e:Event) => presenter.downloadXLS()),ClientConf.style.boxButton, Labels.entity.xls),
+        button(`type` := "button", onclick :+= presenter.downloadCSV,ClientConf.style.boxButton, Labels.entity.csv),
+        button(`type` := "button", onclick :+= presenter.downloadXLS,ClientConf.style.boxButton, Labels.entity.xls),
         showIf(model.subProp(_.fieldQueries).transform(_.size == 0)){ p("loading...").render },
         br,br
       ),

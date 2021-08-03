@@ -39,13 +39,13 @@ class Listener(connection:Connection,channel:String,callback: (String) => Future
   }
 
   private def reloadConnection() = {
-    conn = connection.dbConnection.source.createConnection()
+    conn = connection.dataSource(s"Notification $channel").getConnection()
     val stmt = conn.createStatement
     val listenQuery = s"""SET ROLE "$user"; LISTEN $channel"""
     logger.info(listenQuery)
     stmt.execute(listenQuery)
     stmt.close
-    pgconn = conn.unwrap(classOf[PGConnection])
+    pgconn = conn.asInstanceOf[PGConnection]
   }
 
   def select1() = {
@@ -68,6 +68,7 @@ class Listener(connection:Connection,channel:String,callback: (String) => Future
             case Success(value) => value
             case Failure(exception) => {
               Thread.sleep(1000)
+              Try(conn.close())
               reloadConnection()
               select1()
             }

@@ -1,7 +1,7 @@
 package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.services.HttpClient.Response
-import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Notification}
+import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Labels, Notification}
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
 import org.scalajs.dom
 import org.scalajs.dom.{File, FormData, XMLHttpRequest}
@@ -120,7 +120,7 @@ class HttpClientImpl extends HttpClient with Logging {
   private def httpCallWithNoticeInterceptor[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T]):Future[T] = httpCall(method,url,json,file,Some(decoder))(send).map{
     case Right(result) => result
     case Left(error) => {
-      Notification.add(error.humanReadable(Map()))
+      Notification.add(error.humanReadable(Labels.all))
       throw new Exception(error.toString)
     }
   }
@@ -142,7 +142,7 @@ class HttpClientImpl extends HttpClient with Logging {
   }.map{
     case Right(result) => result
     case Left(error) => {
-      Notification.add(error.humanReadable(Map()))
+      Notification.add(error.humanReadable(Labels.all))
       throw new Exception(error.toString)
     }
   }

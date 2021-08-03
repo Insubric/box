@@ -1,9 +1,8 @@
 package ch.wsl.box.rest.metadata
 
 import java.util.UUID
-
 import akka.stream.Materializer
-import ch.wsl.box.model.boxentities.{BoxForm, BoxUser}
+import ch.wsl.box.model.boxentities.{BoxForm, BoxFunction, BoxUser}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.routes.{Table, View}
 import ch.wsl.box.rest.runtime.Registry
@@ -31,12 +30,13 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
   def registry = for{
     forms <- getForms()
     users <- getUsers()
+    functions <- getFunctions()
   } yield Seq(
     FormUIDef.main(tablesAndViews,users.sortBy(_.username)),
     FormUIDef.page(users.sortBy(_.username)),
     FormUIDef.field(tablesAndViews),
     FormUIDef.field_childs(forms.sortBy(_.name)),
-    FormUIDef.field_static(tablesAndViews),
+    FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
     FormUIDef.fieldI18n,
     FormUIDef.formI18n(viewsOnly),
     FormUIDef.fieldFile,
@@ -52,6 +52,10 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
 
   def getForms():DBIO[Seq[BoxForm.BoxForm_row]] = {
       BoxForm.BoxFormTable.result
+  }
+
+  def getFunctions():DBIO[Seq[BoxFunction.BoxFunction_row]] = {
+    BoxFunction.BoxFunctionTable.result
   }
 
   def getUsers():DBIO[Seq[BoxUser.BoxUser_row]] = {
@@ -70,10 +74,13 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
 
   override def of(id: UUID, lang: String): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
 
-  override def children(form: JSONMetadata): DBIO[Seq[JSONMetadata]] = getForms().map{ forms =>
+  override def children(form: JSONMetadata): DBIO[Seq[JSONMetadata]] = for{
+    forms <- getForms()
+    functions <- getFunctions()
+  } yield {
     form match {
-      case f if f.objId == FORM => Seq(FormUIDef.field(tablesAndViews),FormUIDef.field_static(tablesAndViews),FormUIDef.field_childs(forms),FormUIDef.fieldI18n,FormUIDef.formI18n(viewsOnly),FormUIDef.fieldFile)
-      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews),FormUIDef.field_childs(forms),FormUIDef.fieldI18n,FormUIDef.formI18n(viewsOnly),FormUIDef.fieldFile)
+      case f if f.objId == FORM => Seq(FormUIDef.field(tablesAndViews),FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n,FormUIDef.formI18n(viewsOnly),FormUIDef.fieldFile)
+      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n,FormUIDef.formI18n(viewsOnly),FormUIDef.fieldFile)
       case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n,FormUIDef.fieldFile)
       case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n)
       case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n)

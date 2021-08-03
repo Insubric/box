@@ -104,7 +104,7 @@ class UiConfPresenter(viewModel:ModelProperty[UiConfViewModel]) extends Presente
 
   }
 
-  def save() = {
+  val save = (e:Event) => {
 
     updateEntries()
 
@@ -255,7 +255,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
     ),
     div(BootstrapCol.md(12),
       hr,
-      button("Save",ClientConf.style.boxButtonImportant, onclick :+= ((e:Event) => presenter.save())),
+      button("Save",ClientConf.style.boxButtonImportant, onclick :+= presenter.save),
     ),
     br,
     br

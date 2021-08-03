@@ -54,7 +54,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderStyle.solid,
       borderWidth(0 px,0 px,1 px,0 px),
       borderRadius.`0`,
-      borderColor(rgb(169, 169, 169)),
+      borderColor(Colors.GreySemi),
       height(23 px),
       backgroundColor.transparent,
       Font.regular,
@@ -76,7 +76,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderWidth(0 px,0 px,1 px,0 px),
       borderRadius.`0`,
       backgroundColor.white,
-      borderColor(rgb(169, 169, 169)),
+      borderColor(Colors.GreySemi),
       height(23 px),
       Font.regular,
       paddingLeft(5 px),
@@ -125,7 +125,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderWidth(1 px),
       borderRadius.`0`,
       backgroundColor.white,
-      borderColor(rgb(169, 169, 169)),
+      borderColor(Colors.GreySemi),
       resize.vertical,
       media.maxWidth(600 px)( //disable autozoom
         fontSize(16 px)
@@ -169,7 +169,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderWidth(1 px),
       borderRadius.`0`,
       backgroundColor.white,
-      borderColor(rgb(169, 169, 169))
+      borderColor(Colors.GreySemi)
     ),
 
     unsafeRoot(".modal") (
@@ -181,8 +181,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     ),
 
     unsafeRoot("main")(
-      paddingLeft(30 px),
-      paddingRight(30 px),
+      media.minWidth(600 px)(
+        paddingLeft(30 px),
+        paddingRight(30 px)
+      ),
       backgroundColor.white
     ),
 
@@ -229,6 +231,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   val preformatted = style(
     whiteSpace.preLine
+  )
+
+  val formHeader = style(
+    margin(`0`, 20 px)
   )
 
   val dateTimePicker = style(
@@ -308,6 +314,12 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     paddingLeft(20 px)
   )
 
+  val withBorder = style(
+    borderBottom(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
+    paddingBottom(5 px),
+    paddingTop(5 px)
+  )
+
   val field = style(
     padding.`0`
   )
@@ -384,13 +396,15 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginTop(conf.childProps.marginTopSize px),
     padding(conf.childProps.paddingSize px),
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
-    backgroundColor(conf.childProps.backgroundColor)
+    backgroundColor(conf.childProps.backgroundColor),
+    overflow.hidden
   )
 
   val childTable = style(
     backgroundColor(conf.childProps.backgroundColor),
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
-    width(100.%%)
+    width(100.%%),
+    overflow.hidden
   )
 
   val childTableTr = style(
@@ -491,7 +505,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     borderStyle.solid,
     borderWidth(0 px,0 px,1 px,0 px),
     borderRadius.`0`,
-    borderColor(rgb(169, 169, 169)),
+    borderColor(Colors.GreySemi),
     minHeight(23 px),
     backgroundColor.transparent,
     cursor.pointer,
@@ -597,23 +611,55 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     borderStyle.solid,
     borderWidth(1 px),
     borderRadius.`0`,
-    borderColor(rgb(169, 169, 169)),
+    borderColor(Colors.GreySemi),
     marginBottom(10 px)
   )
 
   val controlButtons = style(
     display.flex,
+    flexWrap.wrap,
     alignItems.center,
     width(100.%%),
-    backgroundColor(c"#6c757d"),
+    backgroundColor(Colors.GreyExtra),
     unsafeRoot("svg") (
       marginTop(-2.px)
     ),
   )
 
+  val mapPopup = style(
+    backgroundColor.white,
+    borderStyle.solid,
+    borderWidth(1 px),
+    borderColor(conf.colors.main),
+    padding.vertical(5 px),
+    padding.horizontal(10 px),
+    marginLeft(5 px),
+    marginTop(5 px),
+  )
+
   val mapSearch = style(
     display.flex,
-    backgroundColor(c"#6c757d"),
+    backgroundColor(Colors.GreyExtra),
+    unsafeChild("input") (
+      width(100.%%),
+      margin(5 px),
+      backgroundColor.white
+    ),
+    height(33 px),
+    marginBottom(-33 px),
+    zIndex(2),
+    position.relative
+  )
+
+  val mapInfo = style(
+    color(Colors.Grey),
+    padding.horizontal(10 px),
+    padding.vertical(5 px),
+    backgroundColor(Colors.GreyExtra),
+  )
+
+  val mapInfoChild = style(
+    display.flex,
     unsafeChild("input") (
       width(100.%%),
       margin(5 px),
@@ -621,10 +667,25 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     )
   )
 
+  val mapGeomAction = style(
+    display.flex,
+    flexDirection.column
+  )
+
+  val mapButton = style(
+    color(conf.colors.main),
+    backgroundColor(Colors.GreyExtra),
+    padding(5 px,10 px),
+    border.`0`,
+    unsafeRoot(".active")(
+      backgroundColor(conf.colors.main),
+      color(conf.colors.mainText)
+    )
+  )
+
   val mapLayerSelect = style(
     marginLeft(10 px),
     width.auto,
-    color.white,
     backgroundColor.transparent,
     &.hover(
       backgroundColor.transparent
@@ -663,6 +724,70 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginTop(20 px),
     marginRight.auto,
   )
+
+
+  val margin0Auto = style(
+    margin(`0`,auto)
+  )
+
+
+  val tristateCheckBox = style(
+    backgroundColor(c"#fff"),
+    borderStyle.solid,
+    borderWidth(1 px),
+    borderColor(Colors.GreySemi),
+    cursor.pointer,
+    display.inlineBlock,
+    height(20 px),
+    width(20 px),
+    marginLeft(10 px),
+    textAlign.center,
+    verticalAlign.middle,
+    unsafeChild("svg")(
+      marginTop(-4 px),
+      svgStroke(c"#fff")
+    )
+  )
+
+  val tristatePositive = style(
+    backgroundColor(c"#4aca65"),
+    borderColor(c"#43b45b")
+  )
+
+  val tristateNegative = style(
+    backgroundColor(c"#dc4e4e"),
+    borderColor(c"#c74545")
+  )
+
+  val label50 = style(
+    width(50 %%),
+    display.inlineBlock
+  )
+
+  val childAddButton = style(
+    lineHeight(40 px),
+    fontSize(14 px),
+    marginRight(15 px),
+    display.inlineBlock,
+    unsafeChild("svg")(
+      color(conf.colors.main),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
+  val childRemoveButton = style(
+    lineHeight(32 px),
+    fontSize(14 px),
+    unsafeChild("svg")(
+      color(conf.colors.danger),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
 
 //  val fixedHeader = style(
 //    unsafeRoot("tbody")(

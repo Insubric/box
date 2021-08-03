@@ -9,6 +9,7 @@ import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.Widget
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, JsonNumber, JsonObject}
 import io.udash.bootstrap.badge.UdashBadge
@@ -187,6 +188,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }}.recover{ case e =>
         e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
         e.printStackTrace()
+//        e match {
+//          case sql:SQLExceptionReport
+//        }
       }
     }
   }
@@ -305,7 +309,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       override def onString(value: String): Json = Json.fromString(value)
       override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(removeNonDataFields))
       override def onObject(value: JsonObject): Json = Json.fromJsonObject{
-        value.filter(!_._1.startsWith("$"))
+        value.filter(!_._1.startsWith("$")).mapValues(removeNonDataFields)
       }
     }
 
@@ -316,7 +320,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   model.subProp(_.data).listen { d =>
     if(!currentData.equals(removeNonDataFields(d))) {
       logger.info(currentData.toString())
-      logger.info(d.toString())
+      logger.info(removeNonDataFields(d).toString())
       avoidGoAway
     } else {
       enableGoAway
@@ -418,7 +422,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         importance,
         onclick :+= ((ev: Event) => {
           confirm(callBack)
-          true
+          ev.preventDefault()
         })
       )(Labels(action.label)).render
     } else frag()
@@ -463,8 +467,25 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           ).render
     }
 
+    def actions = div(
+      produceWithNested(model.subProp(_.write)) { (w,realeser) =>
+        if(!w) Seq() else
+        div(BootstrapStyles.Float.left())(
+          realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
+            div(
+              realeser2(produce(model.subProp(_.id)) { _id =>
+                div(
+                  form.toSeq.flatMap(_.action.actions).map(actionRenderer(_id))
+                ).render
+              })
+            ).render
+          })
+        ).render
+      },
+      div(BootstrapStyles.Visibility.clearfix)
+    )
 
-    div(
+    val formHeader = div(ClientConf.style.formHeader,
       div(BootstrapStyles.Float.left(),
         h3(
           ClientConf.style.noMargin,
@@ -484,9 +505,11 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
         )
       ),
-      div(BootstrapStyles.Float.right(),ClientConf.style.navigatorArea) (
-        recordNavigation
-      ),
+      showIf(model.transform(_.navigation.count > 1)) {
+        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
+          recordNavigation
+        ).render
+      } ,
       showIf(presenter.showNavigation) {
         div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
           produceWithNested(model.subProp(_.name)) { (m, release) =>
@@ -497,21 +520,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         ).render
       },
       div(BootstrapStyles.Visibility.clearfix),
-      produceWithNested(model.subProp(_.write)) { (w,realeser) =>
-        if(!w) Seq() else
-        div(BootstrapStyles.Float.left())(
-          realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
-            div(
-              realeser2(produce(model.subProp(_.id)) { _id =>
-                div(
-                  form.toSeq.flatMap(_.action.actions).map(actionRenderer(_id))
-                ).render
-              })
-            ).render
-          })
-        ).render
-      },
-      div(BootstrapStyles.Visibility.clearfix),
+      actions,
       produce(model.subProp(_.error)){ error =>
         div(
           if(error.length > 0) {
@@ -521,24 +530,58 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           }
         ).render
       },
-      hr(ClientConf.style.hrThin),
-      produce(model.subProp(_.metadata)){ _form =>
-        div(BootstrapCol.md(12),ClientConf.style.fullHeightMax,
-          _form match {
-            case None => p("Loading form")
-            case Some(f) => {
-              val mainForm = form(
-                presenter.loadWidgets(f).render(model.get.write,Property(true))
-              ).render
-              presenter.setForm(mainForm)
-              mainForm
-            }
-          }
-        ).render
-      },
+      hr(ClientConf.style.hrThin)
+    )
 
-      Debug(model.subProp(_.data),b => b, "data"),
-      Debug(model.subProp(_.metadata),b => b, "metadata")
+    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,
+      _maxWidth.map(mw => maxWidth := mw),
+      actions,
+      ul(
+        produce(Notification.list){ notices =>
+          notices.map { notice =>
+            li(notice).render
+          }
+        }
+      )
+    )
+
+
+
+    div(
+      produce(model.subProp(_.metadata)){ _form =>
+
+        val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
+        val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
+        val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
+
+        div(
+          if(showHeader) {
+            formHeader.render
+          },
+          div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+            _form match {
+              case None => p("Loading form")
+              case Some(f) => {
+
+
+
+                val mainForm = form(
+                  ClientConf.style.margin0Auto,
+                  _maxWidth.map(mw => maxWidth := mw),
+                  presenter.loadWidgets(f).render(model.get.write,Property(true))
+                ).render
+                presenter.setForm(mainForm)
+                mainForm
+              }
+            },
+            if(showFooter) {
+              formFooter(_maxWidth).render
+            }
+          ).render,
+          Debug(model.subProp(_.data),b => b, "data"),
+          Debug(model.subProp(_.metadata),b => b, "metadata")
+        ).render
+      }
     )
   }
 }
