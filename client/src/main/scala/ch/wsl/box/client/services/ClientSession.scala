@@ -1,12 +1,12 @@
 package ch.wsl.box.client.services
 
 import java.util.UUID
-
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
 import ch.wsl.box.model.shared.{IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
 import org.scalajs.dom
+import org.scalajs.dom.experimental.URLSearchParams
 import scribe.Logging
 
 import scala.concurrent.Future
@@ -49,6 +49,19 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   logger.info("Loading session")
+
+  val parameters = new URLSearchParams(dom.window.location.search)
+  Try(parameters.get("lang")).toOption.foreach { l =>
+    if(l.nonEmpty && l != "null" && l != null) {
+
+      if(l.length > 1) {
+        logger.info(s"Setting language session $l")
+        dom.window.sessionStorage.setItem(LANG, l)
+      }
+      parameters.delete("lang")
+      dom.window.location.href = dom.window.location.href.replace(dom.window.location.search, parameters.toString)
+    }
+  }
 
 
 
