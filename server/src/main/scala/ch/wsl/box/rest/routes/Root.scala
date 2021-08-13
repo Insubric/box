@@ -16,6 +16,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import com.softwaremill.session.SessionDirectives._
 import com.softwaremill.session.SessionOptions._
 import ch.wsl.box.model.shared.{EntityKind, LoginRequest}
+import ch.wsl.box.rest.io.map.MapImageExporter
 import ch.wsl.box.rest.jdbc.JdbcConnect
 import ch.wsl.box.rest.logic.functions.RuntimeFunction
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, EntityMetadataFactory, FormMetadataFactory, StubMetadataFactory}
@@ -62,6 +63,14 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
     }
   }
 
+  def test = path("test") {
+    get {
+      onSuccess(MapImageExporter.render()) { f =>
+        File.completeFile(File.BoxFile(Some(f), None, "test.jpg"))
+      }
+    }
+  }
+
   def resetCache = pathPrefix("cache") {
     path("reset") {
       Cache.reset()
@@ -74,6 +83,7 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
   val route:Route = UI.clientFiles ~
     encodeResponseWith(Gzip.withLevel(6)) {
       status ~
+        test ~
         resetCache ~
         cors.handle {
           ApiV1(appVersion).route
