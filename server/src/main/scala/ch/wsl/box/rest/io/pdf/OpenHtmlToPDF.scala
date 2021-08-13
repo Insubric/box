@@ -12,7 +12,9 @@ class OpenHtmlToPDF extends Pdf {
   override def render(html: String):  Array[Byte] = {
     val os = new ByteArrayOutputStream();
     val pdfRenderer = new PdfRendererBuilder
-    pdfRenderer.withW3cDocument(html5ParseDocument(html), "/")
+    val htmlDocument = html5ParseDocument(html)
+    pdfRenderer.withW3cDocument(htmlDocument, "http://localhost:8080/")
+    //pdfRenderer.withHtmlContent(html, "/")
     pdfRenderer.toStream(os)
     pdfRenderer.run()
     os.close()
@@ -20,7 +22,7 @@ class OpenHtmlToPDF extends Pdf {
     os.toByteArray
   }
 
-  def html5ParseDocument(html:String):org.w3c.dom.Document = {
+  private def html5ParseDocument(html:String):org.w3c.dom.Document = {
     new W3CDom().fromJsoup(Jsoup.parse(html))
   }
 

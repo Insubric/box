@@ -37,7 +37,7 @@ trait BaseCodeGenerator {
        |""".stripMargin)
 
   val enabledTables = Await.result(db.run{
-    MTable.getTables(None, None, None, Some(Seq("TABLE")))   //slick method to retrieve db structure
+    MTable.getTables(None, Some(dbSchema), None, Some(Seq("TABLE")))   //slick method to retrieve db structure
   }, 200.seconds)
     .filter { t =>
       if(excludes.exists(e => t.name.name matches e)) {
