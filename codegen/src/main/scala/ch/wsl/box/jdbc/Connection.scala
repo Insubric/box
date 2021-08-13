@@ -121,6 +121,7 @@ class ConnectionConfImpl extends Connection {
     //https://stackoverflow.com/questions/58098979/connections-not-being-closedhikaricp-postgres/58101472#58101472
     .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(600000))
     .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(300000))
+    .withValue("autoCommit", ConfigValueFactory.fromAnyRef(false))
     .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(10000))
     .withValue("properties",ConfigValueFactory.fromMap(Map(
       "ApplicationName" -> s"BOX Connections - Pool $randomId"

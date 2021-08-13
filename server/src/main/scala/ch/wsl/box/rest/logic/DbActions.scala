@@ -11,7 +11,7 @@ import slick.ast.Node
 import slick.basic.DatabasePublisher
 import slick.dbio.{DBIOAction, Effect}
 import slick.jdbc.{ResultSetConcurrency, ResultSetType}
-import slick.lifted.{ColumnOrdered, TableQuery}
+import slick.lifted.{ColumnOrdered, FlatShapeLevel, Shape, TableQuery}
 import slick.sql.FixedSqlStreamingAction
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -20,7 +20,8 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
-import io.circe.Json
+import io.circe.{Decoder, Json}
+import org.locationtech.jts.geom.Geometry
 
 /**
   * Created by andreaminetti on 15/03/16.
@@ -171,12 +172,32 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   }
 
 
-//  override def updateField(id: JSONID, fieldName: String, value: Json): Unit = {
-//    entity.baseTableRow.typ(fieldName).name match {
-//      case
-//    }
-//    filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Int]]).update(1)
-//  }
+  override def updateField(id: JSONID, fieldName: String, value: Json): Unit = {
+
+    def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
+      case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)
+      case (_,Right(v)) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(Some(v))
+      case (_,Left(value)) => throw value
+    }
+
+    import ch.wsl.box.rest.utils.JSONSupport._
+
+    entity.baseTableRow.typ(fieldName).name match {-
+      case "String" => update[String]()
+      case "Int" => update[Int]()
+      case "Double" => update[Double]()
+      case "BigDecimal" => update[BigDecimal]()
+      case "java.time.LocalDate" => update[java.time.LocalDate]()
+      case "java.time.LocalTime" => update[java.time.LocalTime]()
+      case "java.time.LocalDateTime" => update[java.time.LocalDateTime]()
+      case "io.circe.Json" => update[Json]()
+      case "Array[Byte]" => update[Array[Byte]]()
+      case "org.locationtech.jts.geom.Geometry" => update[Geometry]()
+      case "java.util.UUID" => update[java.util.UUID]()
+      case t:String => throw new Exception(s"$t is not supported for single field update")
+    }
+
+  }
 
   def updateIfNeeded(id:JSONID, e:M) = {
     logger.info(s"UPDATE IF NEEDED BY ID $id")

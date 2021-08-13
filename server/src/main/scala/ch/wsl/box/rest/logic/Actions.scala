@@ -47,7 +47,7 @@ trait TableActions[T] extends ViewActions[T] {
 
   def upsertIfNeeded(id:Option[JSONID], obj: T): DBIO[JSONID]
 
-//  def updateField(id:JSONID,fieldName:String,value:Json)
+  def updateField(id:JSONID,fieldName:String,value:Json)
 
 }
 

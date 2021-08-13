@@ -2,12 +2,11 @@ package ch.wsl.box.rest.runtime
 
 import slick.ast.{BaseTypedType, ScalaBaseType}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import slick.lifted.RepShape
 
 import scala.reflect.ClassTag
 
-case class ColType(name:String,jsonType:String,nullable:Boolean){
-    type ColT = String
-}
+case class ColType(name:String,jsonType:String,nullable:Boolean)
 
 trait FieldRegistry {
 
