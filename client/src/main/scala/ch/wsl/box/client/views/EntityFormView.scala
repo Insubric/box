@@ -211,7 +211,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       model.subProp(_.id).set(Some(id.asString), true)
       enableGoAway
       widget.afterRender()
-      services.clientSession.loading.set(true)
+      services.clientSession.loading.set(false)
     }
   }
 
