@@ -59,7 +59,7 @@ trait Data extends Logging {
             import kantan.csv._
             import kantan.csv.ops._
 
-            val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows).asCsv(rfc)
+            val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows.map(_.map(_.string))).asCsv(rfc)
             complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`,ByteString(csv)))
           }
         }

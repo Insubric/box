@@ -26,8 +26,10 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
     val _text:String = field.label.getOrElse(field.name)
 
     val clickHandler = { (e: Event) =>
-      services.rest.execute(field.function.get,services.clientSession.lang(),params.allData.get).foreach{ _ =>
-        applicationInstance.reload()
+      params.actions.saveAndThen { _ =>
+        services.rest.execute(field.function.get, services.clientSession.lang(), params.allData.get).foreach { _ =>
+          applicationInstance.reload()
+        }
       }
       e.preventDefault()
     }

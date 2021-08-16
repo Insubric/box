@@ -26,7 +26,7 @@ import org.scalajs.dom.Event
   */
 
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]]) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -105,7 +105,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
     logger.debug(s"Selected widget for ${field.name}: ${widg}")
 
-    widg.create(WidgetParams(id,fieldData,_field,metadata,data,children))
+    widg.create(WidgetParams(id,fieldData,_field,metadata,data,children,actions))
 
   }
 

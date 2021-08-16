@@ -6,7 +6,7 @@ import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Nav
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
-import ch.wsl.box.client.views.components.widget.Widget
+import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
@@ -36,11 +36,11 @@ import scala.language.reflectiveCalls
   */
 
 case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, loading:Boolean, changed:Boolean, write:Boolean, public:Boolean)
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
   implicit val blank: Blank[EntityFormModel] =
-    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,true,false, true, false))
+    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false))
 }
 
 object EntityFormViewPresenter extends ViewFactory[FormState] {
@@ -59,6 +59,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   private var currentData:Json = Json.Null
 
   override def handleState(state: FormState): Unit = {
+
+    services.clientSession.loading.set(true)
 
     val reloadMetadata = {
       val currentModel = model.get
@@ -95,7 +97,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         "",
         children,
         Navigation.empty1,
-        true,
         false,
         state.writeable,
         state.public
@@ -111,7 +112,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       widget.afterRender()
 
-      model.subProp(_.loading).set(false)
+      services.clientSession.loading.set(false)
 
       TestHooks.loaded()
 
@@ -127,6 +128,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def setForm(form:HTMLFormElement)= { _form = form }
 
   def save(action:JSONID => Unit):Unit  = {
+
+    services.clientSession.loading.set(true)
 
     if(!_form.reportValidity()) {
       val errors = document.querySelectorAll("*:invalid")
@@ -181,6 +184,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         logger.debug(afterSaveResult.toString())
 
         enableGoAway
+        services.clientSession.loading.set(false)
 
         action(newId)
 
@@ -188,6 +192,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }}.recover{ case e =>
         e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
         e.printStackTrace()
+        services.clientSession.loading.set(false)
 //        e match {
 //          case sql:SQLExceptionReport
 //        }
@@ -196,6 +201,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def reload(id:JSONID): Unit = {
+    services.clientSession.loading.set(true)
     for{
       resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id)
     } yield {
@@ -205,6 +211,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       model.subProp(_.id).set(Some(id.asString), true)
       enableGoAway
       widget.afterRender()
+      services.clientSession.loading.set(false)
     }
   }
 
@@ -264,7 +271,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id))
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(save))
     widget
   }
 
@@ -288,7 +295,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def nav = navigator.For(model.get.id, model.get.kind,model.get.name)
 
   def goTo(id:String) = {
-    model.subProp(_.loading).set(true)
     val m = model.get
     val r = Routes(m.kind,m.name)
     val newState = if(model.get.write) {
@@ -495,9 +501,6 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               val subTitle = id.map(" - " + _).getOrElse("")
               span(subTitle).render
             }).render
-          },
-          showIf(model.subProp(_.loading)) {
-            small(" - " + Labels.navigation.loading).render
           },
           showIf(model.subProp(_.changed)) {
             small(id := TestHooks.dataChanged,style := "color: red"," - " + Labels.form.changed).render
