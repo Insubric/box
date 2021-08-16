@@ -388,6 +388,20 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     width(100.%%)
   )
 
+  val loading = style(
+    position.fixed,
+    top.`0`,
+    left.`0`,
+    width(100.%%),
+    height(100.%%),
+    backgroundColor(rgba(0,0,0,0.5)),
+    paddingTop(200 px),
+    textAlign.center,
+    color.white,
+    fontSize(20 px),
+    zIndex(9999)
+  )
+
   val noMargin = style(
     margin.`0`
   )

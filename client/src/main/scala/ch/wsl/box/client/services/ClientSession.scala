@@ -48,6 +48,8 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     Property(false)
   }
 
+  val loading = Property(false)
+
   logger.info("Loading session")
 
 
