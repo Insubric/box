@@ -91,7 +91,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         registerListener(false)
       }
 
-      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId)
+      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,widgetParam.actions)
 
       val childRow = ChildRow(widget,id,propData,Property(open),metadata)
       childWidgets += childRow
