@@ -41,7 +41,7 @@ object PSQLImpl extends RuntimePSQL {
         DataResultTable(
           headers = firstRow.asObject.get.keys.toSeq,
           rows = rows.map{ row =>
-            row.asObject.get.values.toSeq.map(_.string)
+            row.asObject.get.values.toSeq
           },
           geometry = geomColumn.map{ case (n,_) =>
             n -> rows.flatMap{ row => row.js(n).as[Geometry].toOption }
