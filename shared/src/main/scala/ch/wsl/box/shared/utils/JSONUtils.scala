@@ -76,7 +76,7 @@ object JSONUtils extends Logging {
 
     def diff(metadata:JSONMetadata, children:Seq[JSONMetadata], other:Json):JsonDiff = {
 
-      def currentId:Option[JSONID] = JSONID.fromData(el,metadata)
+      def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el)
 
       def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JsonDiffField] = {
         (t.keys ++ o.keys).toSeq.distinct.map{ k =>
@@ -95,8 +95,8 @@ object JSONUtils extends Logging {
           def handleArray(newArray:Vector[Json]):Seq[JsonDiffField] = currentValue.flatMap(_.asArray) match {
             case Some(currentArray) => {
               val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId).get
-              val c = currentArray.map(js => (JSONID.fromData(js,childMetadata).map(_.asString),js)).toMap
-              val n = newArray.map(js => (JSONID.fromData(js,childMetadata).map(_.asString),js)).toMap
+              val c = currentArray.map(js => (JSONID.fromBoxObjectId(js).map(_.asString),js)).toMap
+              val n = newArray.map(js => (JSONID.fromBoxObjectId(js).map(_.asString),js)).toMap
               (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
                 c.get(jsonId).asJson.diff(childMetadata,children,n.get(jsonId).asJson).fields
               }

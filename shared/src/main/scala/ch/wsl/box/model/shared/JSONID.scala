@@ -24,6 +24,9 @@ case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
 }
 
 object JSONID {
+
+  val BOX_OBJECT_ID = "_box_object_id"
+
   def empty = JSONID(Vector())
 
   def toMultiString(ids:Seq[JSONID]) = ids.map(_.asString).mkString("&&")
@@ -59,6 +62,21 @@ object JSONID {
       case false => None
     }
 
+  }
+
+  def fromData(js:Json,keys:Seq[String]) = {
+    fromMap(keys.map{ k =>
+      (k,js.js(k))
+    })
+  }
+
+  def fromBoxObjectId(js:Json):Option[JSONID] = js.getOpt(BOX_OBJECT_ID).flatMap(fromString)
+
+  def attachBoxObjectId(json:Json,keys:Seq[String]):Json = {
+    json.asObject match {
+      case Some(_) => json.deepMerge(Json.obj(JSONID.BOX_OBJECT_ID -> Json.fromString(fromData(json,keys).asString)))
+      case None => json
+    }
   }
 
 }

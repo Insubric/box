@@ -157,7 +157,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     post {
       entity(as[JSONQuery]) { query =>
         logger.info("list")
-        complete(db.run(dbActions.find(query)))
+        complete(db.run(jsonActions.find(query)))
       }
     }
   }
@@ -203,7 +203,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   }
 
   def getById(id:JSONID):Route = get {
-    onComplete(db.run(dbActions.getById(id))) {
+    onComplete(db.run(jsonActions.getById(id))) {
       case Success(data) => {
         complete(data)
       }

@@ -29,34 +29,23 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Pro
   protected val dbActions = new DbActions[T,M](entity)
 
 
-  def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
-  override def find(query: JSONQuery) = findQuery(query).result
 
-  override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = dbActions.getById(id).map(_.map(_.asJson))
+  def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
+  override def find(query: JSONQuery) = for {
+    keys <- dbActions.keys()
+    result <- findQuery(query).result
+  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
+
+  override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = for{
+    keys <- dbActions.keys()
+    result <- dbActions.getById(id)
+  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
 
   override def count() = dbActions.count()
   override def count(query: JSONQuery) = dbActions.count(query)
 
-  override def ids(query:JSONQuery):DBIO[IDs] = {
-    for{
-      data <- dbActions.find(query)
-      keys <- dbActions.keys()   // JSONMetadataFactory.keysOf(table.baseTableRow.tableName)
-      n <- dbActions.count(query)
-    } yield {
+  override def ids(query:JSONQuery):DBIO[IDs] = dbActions.ids(query)
 
-      val last = query.paging match {
-        case None => true
-        case Some(paging) =>  (paging.currentPage * paging.pageLength) >= n
-      }
-      import ch.wsl.box.shared.utils.JSONUtils._
-      IDs(
-        last,
-        query.paging.map(_.currentPage).getOrElse(1),
-        data.flatMap{_.asJson.ID(keys).map(_.asString)},
-        n
-      )
-    }
-  }
 
 }
 

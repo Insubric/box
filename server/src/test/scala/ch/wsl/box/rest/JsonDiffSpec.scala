@@ -56,24 +56,28 @@ class JsonDiffSpec extends BaseSpec {
   val json1 = parse(
     """
       |{
+      |    "_box_object_id": "id1::1,id2::test",
       |    "id1": 1,
       |    "id2": "test",
       |    "field1": 11,
       |    "field2": "test field",
       |    "child1": [
       |        {
+      |            "_box_object_id": "cid1::21,cid2::ctest",
       |            "cid1": 21,
       |            "cid2": "ctest",
       |            "cfield1": 211,
       |            "cfield2": "2test field",
       |            "cchild1": [
       |                {
-      |                    "id": "test-id",
-      |                    "field": "change-me"
+      |                    "_box_object_id": "id::change-me",
+      |                    "id": "change-me",
+      |                    "field": "test"
       |                }
       |            ]
       |        },
       |        {
+      |            "_box_object_id": "cid1::221,cid2::c2test",
       |            "cid1": 221,
       |            "cid2": "c2test",
       |            "cfield1": 2211,
@@ -89,24 +93,28 @@ class JsonDiffSpec extends BaseSpec {
   val json2 = parse(
     """
       |{
+      |    "_box_object_id": "id1::1,id2::test",
       |    "id1": 1,
       |    "id2": "test",
       |    "field1": 11,
       |    "field2": "test field",
       |    "child1": [
       |        {
+      |            "_box_object_id": "cid1::21,cid2::ctest",
       |            "cid1": 21,
       |            "cid2": "ctest",
       |            "cfield1": 211,
       |            "cfield2": "2test field",
       |            "cchild1": [
       |                {
-      |                    "id": "test-id",
-      |                    "field": "changed"
+      |                    "_box_object_id": "id::change-me",
+      |                    "id": "changed",
+      |                    "field": "test"
       |                }
       |            ]
       |        },
       |        {
+      |            "_box_object_id": "cid1::221,cid2::c2test",
       |            "cid1": 221,
       |            "cid2": "c2test",
       |            "cfield1": 2211,
@@ -122,8 +130,8 @@ class JsonDiffSpec extends BaseSpec {
   val jsonDiff = JsonDiff(fields = Seq(
     JsonDiffField(
       changedModel = "child2",
-      field = Some("field"),
-      id = Some(JSONID.fromMap(Map("id" -> "test-id"))),
+      field = Some("id"),
+      id = Some(JSONID.fromMap(Map("id" -> "change-me"))),
       old = Some(Json.fromString("change-me")),
       value = Some(Json.fromString("changed"))
     )

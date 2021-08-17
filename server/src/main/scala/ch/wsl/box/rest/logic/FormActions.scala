@@ -299,7 +299,7 @@ case class FormActions(metadata:JSONMetadata,
         }
       }}
     }
-    DBIO.sequence(values).map(_.toMap.asJson)
+    DBIO.sequence(values).map(x => JSONID.attachBoxObjectId(x.toMap.asJson,metadata.keys))
   }
 
 
