@@ -2,6 +2,8 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
+import io.circe.Json
 import org.scalajs.dom.Event
 import scalatags.JsDom
 import scalatags.JsDom.all._
@@ -23,11 +25,22 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
 
     override def field: JSONField = params.field
 
+    val saveBefore = params.field.params.exists(_.js("saveBefore") == Json.True)
+
     val _text:String = field.label.getOrElse(field.name)
 
     val clickHandler = { (e: Event) =>
-      services.rest.execute(field.function.get,services.clientSession.lang(),params.allData.get).foreach{ _ =>
-        applicationInstance.reload()
+
+      def exec() = {
+        services.clientSession.loading.set(true)
+        services.rest.execute(field.function.get, services.clientSession.lang(), params.allData.get).foreach { _ =>
+          services.clientSession.loading.set(false)
+          applicationInstance.reload()
+        }
+      }
+      saveBefore match {
+        case true => params.actions.saveAndThen { _ => exec() }
+        case false => exec()
       }
       e.preventDefault()
     }

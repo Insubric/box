@@ -156,7 +156,7 @@ object EditableTable extends ChildRendererFactory {
       val params = WidgetParams(
         id = childWidget.rowId.transform(_.map(_.asString)),
         prop = childWidget.data.bitransform(child => child.js(field.name))(el => childWidget.data.get.deepMerge(Json.obj(field.name -> el))),
-        field = field, metadata = metadata, _allData = childWidget.widget.data, children = Seq()
+        field = field, metadata = metadata, _allData = childWidget.widget.data, children = Seq(), actions = widgetParam.actions
       )
       (params,widgetFactory.create(params))
     }

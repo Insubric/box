@@ -1,10 +1,9 @@
 package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
-
 import ch.wsl.box.client.services.{Labels, REST}
 import ch.wsl.box.client.styles.GlobalStyles
-import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONLookup, JSONMetadata}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONID, JSONLookup, JSONMetadata}
 import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.shared.utils.JSONUtils._
@@ -123,7 +122,11 @@ trait HasData extends Widget {
 
 }
 
+case class WidgetCallbackActions(saveAndThen: (JSONID => Unit) => Unit)
 
+object WidgetCallbackActions{
+  def noAction = new WidgetCallbackActions(_ => ())
+}
 
 case class WidgetParams(
                          id:ReadableProperty[Option[String]],
@@ -131,7 +134,8 @@ case class WidgetParams(
                          field:JSONField,
                          metadata: JSONMetadata,
                          _allData:Property[Json],
-                         children:Seq[JSONMetadata]
+                         children:Seq[JSONMetadata],
+                         actions:WidgetCallbackActions
                        ) extends Logging {
   def allData:ReadableProperty[Json] = _allData
 
@@ -149,7 +153,8 @@ object WidgetParams{
     field = field,
     metadata = metadata,
     _allData = prop,
-    children = Seq()
+    children = Seq(),
+    actions = WidgetCallbackActions.noAction
   )
 }
 

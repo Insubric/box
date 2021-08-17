@@ -7,7 +7,7 @@ import ch.wsl.box.client.{DataKind, DataState, EntityFormState, EntityTableState
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, REST}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.utils._
-import ch.wsl.box.client.views.components.widget.Widget
+import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, TableFieldsRenderer}
 import ch.wsl.box.model.shared._
 import io.circe.Json
@@ -128,7 +128,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
       div(ClientConf.style.global)(ed.map(_.description.getOrElse[String]("")).getOrElse[String]("")).render
     },
     br,
-    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keys).map(_.asString))).edit(),
+    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keys).map(_.asString)),WidgetCallbackActions.noAction).edit(),
     showIf(table) { button(Labels.exports.load,onclick :+= presenter.query,ClientConf.style.boxButton).render },
     showIf(table) { button(Labels.exports.csv,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },

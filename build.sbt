@@ -83,7 +83,7 @@ lazy val server: Project  = project
     Assets / scalaJSStage := FullOptStage,
     scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
         (nodeModules / p).allPaths
       }.value
@@ -141,14 +141,14 @@ lazy val client: Project = (project in file("client"))
       "monaco-editor" -> "0.21.1",
       "quill" -> "1.3.7",
       "@types/quill" -> "1.3.10",
-      "@fontsource/open-sans" -> "4.2.1",
+      "open-sans-all" -> "0.1.3",
       "file-saver" -> "2.0.5",
       "@types/file-saver" -> "2.0.1",
       "js-md5" -> "0.7.3",
       "@types/js-md5" -> "0.4.2",
       "print-js" -> "1.6.0"
     ),
-    stIgnore += "@fontsource/open-sans",
+    stIgnore += "open-sans-all",
     stIgnore += "ol-ext",
     stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
