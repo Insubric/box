@@ -1,7 +1,7 @@
 package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONMetadata, JSONQuery}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import slick.basic.DatabasePublisher
 
@@ -43,11 +43,7 @@ trait TableActions[T] extends ViewActions[T] {
 
   def update(id:JSONID, obj: T): DBIO[Int]
 
-  def updateIfNeeded(id:JSONID, obj: T): DBIO[Int]
-
-  def upsertIfNeeded(id:Option[JSONID], obj: T): DBIO[JSONID]
-
-  //def updateDiff(diff:JsonDiff):DBIO[Int]
+  def updateDiff(diff:JSONDiff):DBIO[Seq[JSONID]]
 
   def updateField(id:JSONID, fieldName:String, value:Json): DBIO[(JSONID,Int)]
 

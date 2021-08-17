@@ -159,7 +159,7 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[_]),alwaysApply:Boolean = false): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).filter { field =>
+  def subAction[T](e:Json, action: FormActions => ((JSONID,Json) => DBIO[_]),alwaysApply:Boolean = false): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).filter { field =>
     field.condition match {
       case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
       case None => true
@@ -173,7 +173,7 @@ case class FormActions(metadata:JSONMetadata,
       subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
       deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
       result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
-          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json).map(x => Some(x))
+          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys).get,json).map(x => Some(x))
       }).map(_.flatten)
     } yield result
   }
@@ -204,7 +204,7 @@ case class FormActions(metadata:JSONMetadata,
   def delete(id:JSONID) = {
     for{
       json <- getById(id)
-      subs <- DBIO.sequence(subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true))
+      subs <- DBIO.sequence(subAction(json.get,x => (id,json) => x.deleteSingle(id,json),true))
       current <- deleteSingle(id,json.get)
     } yield current + subs.size
   }
@@ -232,7 +232,7 @@ case class FormActions(metadata:JSONMetadata,
 
   def update(id:JSONID, e:Json) = {
     for{
-      _ <- DBIO.sequence(subAction(e,_.upsertIfNeeded))  //need upsert to add new child records
+      _ <- DBIO.sequence(subAction(e,_.update))  //need upsert to add new child records
       result <- jsonAction.update(id,e)
     } yield result
   }
@@ -240,30 +240,8 @@ case class FormActions(metadata:JSONMetadata,
 
   override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = jsonAction.updateField(id, fieldName, value)
 
-  def updateIfNeeded(id:JSONID, e:Json) = {
 
-    for{
-      _ <- DBIO.sequence(subAction(e,_.upsertIfNeeded))  //need upsert to add new child records
-      result <- jsonAction.updateIfNeeded(id,e)
-    } yield result
-  }
-
-  def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[JSONID] = {
-    for {
-      current <- id match {
-        case Some(id) => getById(id)
-        case None => DBIO.successful(None)
-      } //retrieve values in db
-      result <- if (current.isDefined) { //if exists, check if we have to skip the update (if row is the same)
-        update(id.get, current.get.deepMerge(json)).map(_ => id.get)
-      } else {
-        insert(json)
-      }
-    } yield {
-      logger.info(s"Inserted $result")
-      result
-    }
-  }
+  override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???
 
   private def createQuery(entity:Json, child: Child):JSONQuery = {
     val parentFilter = for{

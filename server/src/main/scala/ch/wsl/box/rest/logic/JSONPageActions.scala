@@ -1,8 +1,9 @@
 package ch.wsl.box.rest.logic
 
+import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.PostgresProfile
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONKeyValue, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONQuery}
 import io.circe.Json
 import slick.dbio.DBIO
 
@@ -17,9 +18,7 @@ object JSONPageActions extends TableActions[Json] {
 
   override def update(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
 
-  override def updateIfNeeded(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
-
-  override def upsertIfNeeded(id: Option[JSONID], obj: Json): PostgresProfile.api.DBIO[JSONID] = DBIO.successful(responseId)
+  override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = DBIO.successful(Seq(responseId))
 
   override def find(query: JSONQuery) = DBIO.successful(Seq())
 

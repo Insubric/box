@@ -2,6 +2,7 @@ package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
+import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.{Connection, FullDatabase, PostgresProfile}
 import ch.wsl.box.model.shared._
@@ -205,44 +206,5 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
   }
 
-  def updateIfNeeded(id:JSONID, e:M) = {
-    logger.info(s"UPDATE IF NEEDED BY ID $id")
-    resetMetadataCache()
-    for {
-      current <- getById(id)
-      updated <- if (current.get != e) {
-        update(id,e).transactionally
-      } else {
-        DBIO.successful(0)
-      }
-    } yield updated
-  }
-
-
-  def upsertIfNeeded(id:Option[JSONID], e:M) = {
-    logger.info(s"UPSERT IF NEEDED BY ID $id")
-    resetMetadataCache()
-    for {
-      current <- id match {
-        case Some(id) => getById(id)
-        case None => DBIO.successful(None)
-      }
-      upserted <- if (current.isDefined) {
-        if (current.get != e) {
-
-          val result = update(id.get,e).transactionally
-          logger.info(s"UPSERTED (UPDATED) IF NEEDED BY ID $id")
-          result.map(_ => id.get)
-        } else {
-          DBIO.successful(id.get)
-        }
-      }else{
-        val result = insert(e)
-        logger.info(s"UPSERTED (INSERTED) IF NEEDED BY ID $id")
-        result.transactionally
-      }
-    } yield upserted
-  }
-
-
+  override def updateDiff(diff: JSONDiff): DBIO[Seq[JSONID]]= ???
 }

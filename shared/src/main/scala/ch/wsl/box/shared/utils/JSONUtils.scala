@@ -1,6 +1,6 @@
 package ch.wsl.box.shared.utils
 
-import ch.wsl.box.model.shared.{JSONID, JSONMetadata, JsonDiff, JsonDiffField}
+import ch.wsl.box.model.shared.{JSONDiff, JSONDiffField, JSONDiffModel, JSONID, JSONMetadata}
 import io.circe._
 import io.circe.syntax._
 import scribe.Logging
@@ -74,54 +74,54 @@ object JSONUtils extends Logging {
     }
 
 
-    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata], other:Json):JsonDiff = {
+    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata], other:Json):JSONDiff = {
 
       def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el)
 
-      def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JsonDiffField] = {
+      def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JSONDiffModel] = {
         (t.keys ++ o.keys).toSeq.distinct.map{ k =>
           (k,t.get(k),o.get(k))
         }.filterNot(x => x._2 == x._3).flatMap{ case (key,currentValue,newValue) =>
 
-          def handleObject(obj:JsonObject):Seq[JsonDiffField] = currentValue.flatMap(_.asObject) match {
+          def handleObject(obj:JsonObject):Seq[JSONDiffModel] = currentValue.flatMap(_.asObject) match {
             case Some(value) => {
               val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId)
-              value.asJson.diff(childMetadata.get,children,obj.asJson).fields
+              value.asJson.diff(childMetadata.get,children,obj.asJson).models
             }
-            case None => Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,newValue,insert = true))
+            case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue,insert = true))))
           }
 
 
-          def handleArray(newArray:Vector[Json]):Seq[JsonDiffField] = currentValue.flatMap(_.asArray) match {
+          def handleArray(newArray:Vector[Json]):Seq[JSONDiffModel] = currentValue.flatMap(_.asArray) match {
             case Some(currentArray) => {
               val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId).get
               val c = currentArray.map(js => (JSONID.fromBoxObjectId(js).map(_.asString),js)).toMap
               val n = newArray.map(js => (JSONID.fromBoxObjectId(js).map(_.asString),js)).toMap
               (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
-                c.get(jsonId).asJson.diff(childMetadata,children,n.get(jsonId).asJson).fields
+                c.get(jsonId).asJson.diff(childMetadata,children,n.get(jsonId).asJson).models
               }
             }
-            case None => Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,newValue,insert = true))
+            case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue,insert = true))))
           }
 
 
           newValue.map{_.fold(
-            Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,newValue)),
-            bool => Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,newValue)),
-            num => Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,newValue)),
-            str => Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,newValue)),
+            Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue)))),
+            bool => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue)))),
+            num => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue)))),
+            str => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue)))),
             handleArray,
             handleObject
-          )}.getOrElse(Seq(JsonDiffField(metadata.name,Some(key),currentId,currentValue,None)))
+          )}.getOrElse(Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue)))))
 
 
         }
       }
 
       (el.asObject,other.asObject) match {
-        case (Some(t),Some(o)) => JsonDiff(_diff(t.toMap,o.toMap))
-        case (None,Some(_)) => JsonDiff(fields = Seq(JsonDiffField(metadata.name,None,None,None,Some(other),insert = true)))
-        case (Some(_),None) => JsonDiff(fields = Seq(JsonDiffField(metadata.name,None,None,Some(el),None,delete = true)))
+        case (Some(t),Some(o)) => JSONDiff(_diff(t.toMap,o.toMap))
+        case (None,Some(_)) => JSONDiff(Seq(JSONDiffModel(metadata.name,None,Seq(JSONDiffField(None,None,Some(other),insert = true)))))
+        case (Some(_),None) => JSONDiff(Seq(JSONDiffModel(metadata.name,None,Seq(JSONDiffField(None,Some(el),None,delete = true)))))
         case _ => throw new Exception("Cannot compare non-object json")
       }
     }

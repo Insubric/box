@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayOutputStream
-
 import akka.http.scaladsl.common.EntityStreamingSupport
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling, ToEntityMarshaller, ToResponseMarshaller}
 import akka.http.scaladsl.model.HttpEntity
@@ -14,7 +13,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
 import ch.wsl.box.rest.utils.{BoxConfig, JSONSupport, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -212,11 +211,10 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   }
 
   def update(ids:Seq[JSONID]):Route = put {
-    entity(as[Json]) { e =>
-      val rows = e.as[M].toOption.map(Seq(_)).orElse(e.as[Seq[M]].toOption).get
-      onComplete(db.run(DBIO.sequence(rows.zip(ids).map{case (x,id) => dbActions.upsertIfNeeded(Some(id), x)}).transactionally)) {
-        case Success(entities) => complete{
-          if(entities.length == 1) entities.head.asJson else entities.asJson
+    entity(as[JSONDiff]) { e =>
+      onComplete(db.run(dbActions.updateDiff(e).transactionally)) {
+        case Success(rows) => complete{
+          if(rows.length == 1) rows.head.asJson else rows.asJson
         }
         case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
       }

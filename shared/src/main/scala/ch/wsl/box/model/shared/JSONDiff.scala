@@ -2,15 +2,15 @@ package ch.wsl.box.model.shared
 
 import io.circe.Json
 
-case class JsonDiffField(
-                          changedModel: String,
+case class JSONDiffField(
                           field:Option[String],
-                          id:Option[JSONID],
                           old:Option[Json],
                           value:Option[Json],
                           insert: Boolean = false,
                           delete: Boolean = false
                         )
 
-case class JsonDiff(fields:Seq[JsonDiffField])
+case class JSONDiffModel(model:String,id:Option[JSONID],fields:Seq[JSONDiffField])
+
+case class JSONDiff(models:Seq[JSONDiffModel])
 

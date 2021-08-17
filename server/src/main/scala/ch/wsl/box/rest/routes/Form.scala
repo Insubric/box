@@ -187,13 +187,12 @@ case class Form(
             } ~
               put {
                 privateOnly {
-                  entity(as[Json]) { e =>
+                  entity(as[JSONDiff]) { e =>
                     complete {
                       actions { fs =>
-                        val values = e.as[Seq[Json]].getOrElse(Seq(e))
                         for {
                           jsonId <- db.run{
-                            DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.upsertIfNeeded(Some(id), x)}).transactionally
+                            fs.updateDiff(e).transactionally
                           }
                         } yield {
                           if(schema == BoxSchema.schema) {

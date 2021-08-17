@@ -78,46 +78,11 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
 
   override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = dbActions.updateField(id, fieldName, value)
 
-  override def updateIfNeeded(id:JSONID, json: Json):DBIO[Int] = {
-    for{
-      current <- getById(id) //retrieve values in db
-      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updateCount <- if (toM(current.get) != toM(merged)) {  //check if same
-        dbActions.update(id, toM(merged))            //could also use updateIfNeeded and no check
-      } else DBIO.successful(0)
-    } yield {
-      updateCount
-    }
-  }
+
+  override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???
 
   override def insert(json: Json):DBIO[JSONID] = dbActions.insert(toM(json))
   override def insertReturningModel(json: Json)= dbActions.insertReturningModel(toM(json)).map(_.asJson)
-
-  override def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[JSONID] = {
-    for{
-      current <- id match {
-        case Some(id) => getById(id)
-        case None => DBIO.successful(None)
-      } //retrieve values in db
-      result <- if (current.isDefined){   //if exists, check if we have to skip the update (if row is the same)
-
-        for{
-          merged <- DBIO.from(mergeCurrent(id.get,current.get,json)) //merge old and new json
-          model = toM(merged)
-          result <- if (toM(current.get) != model) {
-            dbActions.update(id.get, toM(merged)).map(_ => id.get)        //could also use updateIfNeeded and no check
-          } else DBIO.successful(id.get)
-        } yield result
-
-
-      } else{
-        insert(json)
-      }
-    } yield {
-      logger.info(s"Inserted $result")
-      result
-    }
-  }
 
   override def delete(id: JSONID):DBIO[Int] = dbActions.delete(id)
 
