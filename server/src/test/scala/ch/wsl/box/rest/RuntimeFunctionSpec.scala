@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class RuntimeFunctionSpec extends BaseSpec {
 
 
-  val dr = DataResultTable(Seq("aa"),Seq(Seq("aa","bb")))
+  val dr = DataResultTable(Seq("aa"),Seq(Seq(Json.fromString("aa"),Json.fromString("bb"))))
 
   val context = Context(
       Json.Null,

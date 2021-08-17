@@ -16,6 +16,11 @@ case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
 
   def query:JSONQuery = JSONQuery.empty.copy(filter=id.map(_.filter).toList)
 
+  def update(field:String,value:Json):JSONID = this.copy(id = id.map{ keyField =>
+    if(keyField.key == field) JSONKeyValue(field,value.string)
+    else keyField
+  })
+
 }
 
 object JSONID {

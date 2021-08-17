@@ -86,6 +86,9 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
     } yield updatedCount
   }
 
+
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = dbActions.updateField(id, fieldName, value)
+
   override def updateIfNeeded(id:JSONID, json: Json):DBIO[Int] = {
     for{
       current <- getById(id) //retrieve values in db

@@ -4,6 +4,8 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{Connection, PostgresProfile}
 import com.dimafeng.testcontainers.PostgreSQLContainer
 
+import javax.sql.DataSource
+
 class TestContainerConnection(container: PostgreSQLContainer) extends Connection {
 
   private val executor = AsyncExecutor("public-executor",50,50,1000,50)
@@ -25,6 +27,7 @@ class TestContainerConnection(container: PostgreSQLContainer) extends Connection
     executor = executor
   )
 
+  override def dataSource(name: String): DataSource = ???
 
-
+  override def close(): Unit = {}
 }

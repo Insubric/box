@@ -45,12 +45,7 @@ object BoxFieldAccessRegistry extends FieldRegistry {
 
     val tableFields: Map[String,Map[String, ColType]] = Map(
     "access_level"-> Map(
-        "access_level_id" -> new ColType {
-          override type ColT = this.type
-          override val name: String = _
-          override val jsonType: String = _
-          override val nullable: Boolean = _
-        },
+        "access_level_id" -> ColType("Int", "integer", false),
         "access_level" -> ColType("String", "string", false)
       ),
     "conf"-> Map(

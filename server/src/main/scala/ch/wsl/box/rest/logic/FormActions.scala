@@ -237,6 +237,9 @@ case class FormActions(metadata:JSONMetadata,
     } yield result
   }
 
+
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = jsonAction.updateField(id, fieldName, value)
+
   def updateIfNeeded(id:JSONID, e:Json) = {
 
     for{

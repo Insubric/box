@@ -92,6 +92,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 
+
+  // TODO fetch only keys
   override def ids(query: JSONQuery): DBIO[IDs] = {
     for{
       data <- find(query)
@@ -172,7 +174,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   }
 
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): Unit = {
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = {
 
     def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
       case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)
@@ -182,7 +184,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
     import ch.wsl.box.rest.utils.JSONSupport._
 
-    entity.baseTableRow.typ(fieldName).name match {-
+    val updateDbIO = entity.baseTableRow.typ(fieldName).name match {
       case "String" => update[String]()
       case "Int" => update[Int]()
       case "Double" => update[Double]()
@@ -196,6 +198,10 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
       case "java.util.UUID" => update[java.util.UUID]()
       case t:String => throw new Exception(s"$t is not supported for single field update")
     }
+
+    for{
+      updateCount <- updateDbIO
+    } yield (id.update(fieldName,value),updateCount)
 
   }
 
