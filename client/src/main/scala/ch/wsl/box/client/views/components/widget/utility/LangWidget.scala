@@ -1,9 +1,5 @@
 package ch.wsl.box.client.views.components.widget.utility
 
-class LangWidget {
-
-}
-
 
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}

@@ -43,6 +43,7 @@ object WidgetsNames {
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
+  val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
 
   val mapping= Map(
@@ -77,7 +78,8 @@ object WidgetsNames {
       popup,
       hidden,
       dynamicWidget,
-      langWidget
+      langWidget,
+      dropdownLangWidget
     ),
     CHILD -> Seq(
       simpleChild,

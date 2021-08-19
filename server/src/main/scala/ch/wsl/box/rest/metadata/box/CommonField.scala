@@ -15,7 +15,7 @@ object CommonField {
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.withExtractor(
       "type",
-      WidgetsNames.mapping.map{ case (k,v) => k.asJson -> v.map(x => JSONLookup(x,x))}
+      WidgetsNames.mapping.map{ case (k,v) => k.asJson -> v.map(x => JSONLookup(x.asJson,x))}
     )
   ))
 
@@ -25,14 +25,14 @@ object CommonField {
       JSONFieldTypes.ALL
         .filter(x => child || x != JSONFieldTypes.CHILD)
         .filter(x => static || x != JSONFieldTypes.STATIC)
-        .sorted.map(x => JSONLookup(x,x))
+        .sorted.map(x => JSONLookup(x.asJson,x))
     )
   ))
 
   def lookupEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupEntity",true,
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      tables.map(x => JSONLookup(x,x))
+      tables.map(x => JSONLookup(x.asJson,x))
     )),
     condition = Some(ConditionalField("widget",Seq(WidgetsNames.select.asJson,WidgetsNames.popup.asJson,WidgetsNames.lookupLabel.asJson)))
   )
@@ -62,7 +62,7 @@ object CommonField {
 
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      BoxConfig.langs.map(x => JSONLookup(x,x))
+      BoxConfig.langs.map(x => JSONLookup(x.asJson,x))
     ))
   )
 

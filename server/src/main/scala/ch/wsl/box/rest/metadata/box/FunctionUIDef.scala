@@ -41,7 +41,7 @@ object FunctionUIDef {
       ),
       JSONField(JSONFieldTypes.STRING,"description",true),
       JSONField(JSONFieldTypes.STRING,"mode",false,widget = Some(WidgetsNames.select), lookup = Some(JSONFieldLookup.prefilled(
-        FunctionKind.Modes.all.map(x => JSONLookup(x,x))
+        FunctionKind.Modes.all.map(x => JSONLookup(x.asJson,x))
       ))),
       JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.textarea),label = Some("")),
       JSONField(JSONFieldTypes.NUMBER,"order",true),

@@ -40,7 +40,7 @@ object Lookup {
   def values(entity:String,value:String,text:String,query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Seq[JSONLookup]] = {
     Registry().actions(entity).find(query).map{ _.map{ row =>
       val label = text.split(",").map(x => row.get(x.trim)).mkString(" - ")
-      JSONLookup(row.get(value),label)
+      JSONLookup(row.js(value),label)
     }}
   }
 }

@@ -29,34 +29,34 @@ object ClientConf {
     _appVersion = appVersion
   }
 
-  def version = _version
-  def appVersion = _appVersion
+  def version: String = _version
+  def appVersion: String = _appVersion
 
-  def pageLength  = Try(conf("page_length").toInt).getOrElse(30)
+  def pageLength: Int = Try(conf("page_length").toInt).getOrElse(30)
 //  def lookupMaxRows  = Try(conf("fk_rows").toInt).getOrElse(30)
 
-  def manualEditKeyFields = Try(conf("pks.edit").toBoolean).getOrElse(false)
-  def manualEditSingleKeyFields = Try(conf("pks.edit.single").trim().replace(' ',',').split(",").toSeq).getOrElse(Seq[String]())
+  def manualEditKeyFields: Boolean = Try(conf("pks.edit").toBoolean).getOrElse(false)
+  def manualEditSingleKeyFields: Seq[String] = Try(conf("pks.edit.single").trim().replace(' ',',').split(",").toSeq).getOrElse(Seq[String]())
 
-  def displayIndexNews = Try(conf("display.index.news").toBoolean).getOrElse(false)
-  def displayIndexHtml = Try(conf("display.index.html").toBoolean).getOrElse(false)
+  def displayIndexNews: Boolean = Try(conf("display.index.news").toBoolean).getOrElse(false)
+  def displayIndexHtml: Boolean = Try(conf("display.index.html").toBoolean).getOrElse(false)
 
-  def menuSeparator = Try(conf("menu.separator")).getOrElse(" ")
+  def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
 
-  def colorMain = Try(conf("color.main")).getOrElse("#006268")
-  def colorMainText = Try(conf("color.main.text")).getOrElse("#ffffff")
-  def colorMainLink = Try(conf("color.main.link")).getOrElse(colorMain)
-  def colorLink = Try(conf("color.link")).getOrElse("#fbf0b2")
-  def colorDanger = Try(conf("color.danger")).getOrElse("#4c1c24")
-  def colorWarning = Try(conf("color.warning")).getOrElse("#ffa500")
+  def colorMain: String = Try(conf("color.main")).getOrElse("#006268")
+  def colorMainText: String = Try(conf("color.main.text")).getOrElse("#ffffff")
+  def colorMainLink: String = Try(conf("color.main.link")).getOrElse(colorMain)
+  def colorLink: String = Try(conf("color.link")).getOrElse("#fbf0b2")
+  def colorDanger: String = Try(conf("color.danger")).getOrElse("#4c1c24")
+  def colorWarning: String = Try(conf("color.warning")).getOrElse("#ffa500")
 
-  def tableFontSize = Try(conf("table.fontSize").toInt).getOrElse(10)
+  def tableFontSize: Int = Try(conf("table.fontSize").toInt).getOrElse(10)
 
-  def childBorderSize = Try(conf("child.border.size").toInt).getOrElse(1)
-  def childBorderColor = Try(conf("child.border.color")).getOrElse(StyleConstants.Colors.GreySemi.value)
-  def childPaddingSize = Try(conf("child.padding.size").toInt).getOrElse(10)
-  def childMarginTopSize = Try(conf("child.marginTop.size").toInt).getOrElse(-1)
-  def childBackgroundColor = Try(conf("child.backgroundColor")).getOrElse(StyleConstants.Colors.GreyExtra.value)
+  def childBorderSize: Int = Try(conf("child.border.size").toInt).getOrElse(1)
+  def childBorderColor: String = Try(conf("child.border.color")).getOrElse(StyleConstants.Colors.GreySemi.value)
+  def childPaddingSize: Int = Try(conf("child.padding.size").toInt).getOrElse(10)
+  def childMarginTopSize: Int = Try(conf("child.marginTop.size").toInt).getOrElse(-1)
+  def childBackgroundColor: String = Try(conf("child.backgroundColor")).getOrElse(StyleConstants.Colors.GreyExtra.value)
 
   lazy val styleConf = StyleConf(
     colors = Colors(colorMain,colorMainText,colorMainLink,colorLink,colorDanger,colorWarning),
@@ -66,17 +66,17 @@ object ClientConf {
 
   lazy val style = GlobalStyles(styleConf)
 
-  def filterPrecisionDatetime = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
+  def filterPrecisionDatetime: String = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
       case Some("DATE") => JSONFieldTypes.DATE
       case Some("DATETIME") => JSONFieldTypes.DATETIME
       case _ => JSONFieldTypes.DATETIME     //for None or wrong values
     }
 
 
-  def langs = Try(conf("langs")).getOrElse("en").split(",").toSeq.map(_.trim)
+  def langs: Seq[String] = Try(conf("langs")).getOrElse("en").split(",").toSeq.map(_.trim)
 
-  def notificationTimeOut = Try(conf("notification.timeout").toInt).getOrElse(6)
+  def notificationTimeOut: Int = Try(conf("notification.timeout").toInt).getOrElse(6)
 
-  def mapOptions = Try(parse(conf("map.options")).right.get).getOrElse(Json.Null)
+  def mapOptions: Json = Try(parse(conf("map.options")).right.get).getOrElse(Json.Null)
 
 }
