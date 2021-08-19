@@ -26,7 +26,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"entity",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          tables.map(x => JSONLookup(x,x))
+          tables.map(x => JSONLookup(x.asJson,x))
         ))
       ),
       JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
@@ -41,7 +41,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"guest_user",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          users.map(x => JSONLookup(x.username,x.username))
+          users.map(x => JSONLookup(x.username.asJson,x.username))
         ))
       ),
       JSONField(JSONFieldTypes.STRING,"edit_key_field",true,
@@ -115,7 +115,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"guest_user",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          users.map(x => JSONLookup(x.username,x.username))
+          users.map(x => JSONLookup(x.username.asJson,x.username))
         ))
       ),
       JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
@@ -236,7 +236,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          WidgetsNames.mapping(JSONFieldTypes.CHILD).map(x => JSONLookup(x,x))
+          WidgetsNames.mapping(JSONFieldTypes.CHILD).map(x => JSONLookup(x.asJson,x))
         )
       )),
       JSONField(JSONFieldTypes.STRING,"type",false,
@@ -248,7 +248,7 @@ object FormUIDef {
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          forms.map{ form => JSONLookup(form.form_uuid.get.toString,form.name) }.sortBy(_.value)
+          forms.map{ form => JSONLookup(form.form_uuid.get.asJson,form.name) }.sortBy(_.value)
         ))
       ),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,
@@ -334,7 +334,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          WidgetsNames.mapping(JSONFieldTypes.STATIC).map(x => JSONLookup(x,x))
+          WidgetsNames.mapping(JSONFieldTypes.STATIC).map(x => JSONLookup(x.asJson,x))
         )
       )),
       JSONField(JSONFieldTypes.STRING,"type",false,
@@ -358,7 +358,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.select),
         condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
         lookup = Some(JSONFieldLookup.prefilled(
-          functions.sorted.map(x => JSONLookup(x,x))
+          functions.sorted.map(x => JSONLookup(x.asJson,x))
         ))
       ),
     ),
@@ -442,7 +442,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"view_table",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          views.map(x => JSONLookup(x,x))
+          views.map(x => JSONLookup(x.asJson,x))
         ))
       ),
     ),

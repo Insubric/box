@@ -109,7 +109,7 @@ object EntityMetadataFactory extends Logging {
                       lookupData <- Registry().actions(model).find()
                     } yield {
                       val options = lookupData.map { lookupRow =>
-                        JSONLookup(lookupRow.get(value), lookupRow.get(text))
+                        JSONLookup(lookupRow.js(value), lookupRow.get(text))
                       }
 
                       JSONField(

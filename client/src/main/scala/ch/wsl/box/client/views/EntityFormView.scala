@@ -132,6 +132,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     services.clientSession.loading.set(true)
 
     if(!_form.reportValidity()) {
+      services.clientSession.loading.set(false)
       val errors = document.querySelectorAll("*:invalid")
       for(i <- 0 to errors.length) {
         errors.item(i) match {
@@ -140,6 +141,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         }
       }
       logger.warn(s"Form validation failed")
+
       return
     }
 
@@ -325,8 +327,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   model.subProp(_.data).listen { d =>
     if(!currentData.equals(removeNonDataFields(d))) {
-      logger.info(currentData.toString())
-      logger.info(removeNonDataFields(d).toString())
       avoidGoAway
     } else {
       enableGoAway

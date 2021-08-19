@@ -56,13 +56,13 @@ object JSONMetadata extends Logging {
   def jsonPlaceholder(form:JSONMetadata, subforms:Seq[JSONMetadata] = Seq()):Map[String,Json] = {
     form.fields.flatMap{ field =>
 
-      val defaultFirstForLookup: Option[String] = field.nullable match {
+      val defaultFirstForLookup: Option[Json] = field.nullable match {
         case false => field.lookup.flatMap(_.lookup.headOption).map(_.id) //get first element
         case true => field.lookup.flatMap(_.lookup.lift(1)).map(_.id)     //get second element (first should be null)
       }
 
       val default = (field.default) match{
-        case Some(JSONUtils.FIRST) => defaultFirstForLookup
+        case Some(JSONUtils.FIRST) => defaultFirstForLookup.map(_.string)
         case _ => field.default
       }
 
@@ -70,6 +70,7 @@ object JSONMetadata extends Logging {
         case (Some("arrayIndex"),_) => None
         case (Some("auto"),_) => None
         case (Some(d),JSONFieldTypes.NUMBER) => Some(d.toDouble.asJson)
+        case (Some(d),JSONFieldTypes.INTEGER) => Some(d.toInt.asJson)
         case (Some(d),JSONFieldTypes.BOOLEAN) => Some(d.toBoolean.asJson)
         case (Some(d),_) => Some(d.asJson)
         case (None,JSONFieldTypes.NUMBER) => None

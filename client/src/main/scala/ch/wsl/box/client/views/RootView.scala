@@ -58,7 +58,7 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
   private val loading = showIf(services.clientSession.loading) {
     div(ClientConf.style.loading,
       raw(
-        """
+        s"""
           |<div class="loadingio-spinner-ripple-70e2hrz6twv"><div class="ldio-yj9u9ya1q5l">
           |<div></div><div></div>
           |</div></div>
@@ -90,7 +90,7 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
           |  animation-delay: 0s;
           |}
           |.ldio-yj9u9ya1q5l div:nth-child(2) {
-          |  border-color: #f1f1f1;
+          |  border-color: ${ClientConf.colorMain};
           |  animation-delay: -0.5s;
           |}
           |.loadingio-spinner-ripple-70e2hrz6twv {

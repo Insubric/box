@@ -78,7 +78,7 @@ object JSONFieldLookup {
 
       val label = mapping.textProperty.split(",").map(_.trim).map(k => lookupRow.get(k)).mkString(" - ")
 
-      JSONLookup(lookupRow.get(mapping.valueProperty),label)
+      JSONLookup(lookupRow.js(mapping.valueProperty),label)
     }
     JSONFieldLookup(lookupEntity, mapping, options,lookupQuery)
   }
@@ -94,7 +94,7 @@ object JSONFieldLookup {
   }
 }
 
-case class JSONLookup(id:String, value:String)
+case class JSONLookup(id:Json, value:String)
 
 case class FileReference(name_field:String, file_field:String, thumbnail_field:Option[String])
 

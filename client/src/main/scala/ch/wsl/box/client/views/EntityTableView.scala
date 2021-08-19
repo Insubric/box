@@ -8,6 +8,7 @@ import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.{JSONQuery, _}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -283,13 +284,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
           val id = getFieldLookup(field.column)
             .find(_.value == field.value)
             .map(_.id)
-          JSONQueryFilter(field.column,Some(Filter.IN),id.getOrElse(""))  //fails with EQUALS when id = ""
+          JSONQueryFilter(field.column,Some(Filter.IN),id.map(_.string).getOrElse(""))  //fails with EQUALS when id = ""
         }
         case Some(Filter.FK_NOT) => {
           val id = getFieldLookup(field.column)
             .find(_.value == field.value)
             .map(_.id)
-          JSONQueryFilter(field.column,Some(Filter.NOTIN),id.getOrElse("")) //fails with NOT when id = ""
+          JSONQueryFilter(field.column,Some(Filter.NOTIN),id.map(_.string).getOrElse("")) //fails with NOT when id = ""
         }
         case _ => field
       }
