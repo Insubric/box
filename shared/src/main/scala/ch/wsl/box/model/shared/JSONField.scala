@@ -1,7 +1,8 @@
 package ch.wsl.box.model.shared
 
-import java.util.UUID
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 
+import java.util.UUID
 import io.circe.Json
 
 /**
@@ -112,6 +113,10 @@ object Child{
     val mapping = parent.zip(child).filterNot(x => x._1 == "#all" || x._2 == "#all").map{ case (p,c) => ChildMapping(p,c)}
     new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim))
   }
+
+  def min(field:JSONField):Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)
+  def max(field:JSONField):Option[Int] = field.params.flatMap(_.js("max").as[Int].toOption)
+
 }
 
 case class ConditionalField(conditionFieldId:String,conditionValues:Seq[Json])

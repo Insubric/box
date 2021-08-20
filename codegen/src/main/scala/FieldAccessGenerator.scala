@@ -3,7 +3,6 @@ package ch.wsl.box.codegen
 import ch.wsl.box.information_schema.PgInformationSchema
 import ch.wsl.box.jdbc.{Connection, TypeMapping}
 import ch.wsl.box.model.shared.JSONFieldTypes
-import com.avsystem.commons.serialization.json.JsonType
 import slick.model.Model
 
 import scala.concurrent.Await

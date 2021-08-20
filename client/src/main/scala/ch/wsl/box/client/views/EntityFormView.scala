@@ -56,7 +56,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.client.Context._
 
-  private var currentData:Json = Json.Null
+  private val currentData:Property[Json] = Property(Json.Null)
+
+  def getCurrentData():ReadableProperty[Json] = currentData
 
   override def handleState(state: FormState): Unit = {
 
@@ -102,7 +104,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         state.public
       ))
 
-      currentData = Json.Null.deepMerge(data)
+      currentData.set(Json.Null.deepMerge(data))
 
 
       //need to be called after setting data because we are listening for data changes
@@ -208,7 +210,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id)
     } yield {
       reset()
-      currentData = Json.Null.deepMerge(resultSaved)
+      currentData.set(Json.Null.deepMerge(resultSaved))
       model.subProp(_.data).set(resultSaved)
       model.subProp(_.id).set(Some(id.asString), true)
       enableGoAway
@@ -218,7 +220,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def revert() = {
-      model.subProp(_.data).set(Json.Null.deepMerge(currentData))
+      model.subProp(_.data).set(Json.Null.deepMerge(currentData.get))
       model.subProp(_.id).touch() //re-render childs
   }
 
@@ -326,7 +328,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   model.subProp(_.data).listen { d =>
-    if(!currentData.equals(removeNonDataFields(d))) {
+    if(!currentData.get.equals(removeNonDataFields(d))) {
       avoidGoAway
     } else {
       enableGoAway
@@ -581,6 +583,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               formFooter(_maxWidth).render
             }
           ).render,
+          Debug(presenter.getCurrentData(),b => b, "current data"),
           Debug(model.subProp(_.data),b => b, "data"),
           Debug(model.subProp(_.metadata),b => b, "metadata")
         ).render

@@ -8,6 +8,7 @@ import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.JSONMetadataRenderer
 import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
@@ -54,8 +55,8 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def prop: Property[Json] = widgetParam.prop
     def field:JSONField = widgetParam.field
 
-    val min:Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)
-    val max:Option[Int] = field.params.flatMap(_.js("max").as[Int].toOption)
+    val min:Int = Child.min(field)
+    val max:Option[Int] = Child.max(field)
 
     val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
