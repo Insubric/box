@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.metadata
 
 import java.util.UUID
-
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema}
 import ch.wsl.box.model.shared._
@@ -17,9 +16,9 @@ import ch.wsl.box.jdbc.{FullDatabase, Managed, TypeMapping}
 import ch.wsl.box.model.BoxFieldAccessRegistry
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.services.Services
-import com.avsystem.commons.Try
 
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Try
 
 
 object EntityMetadataFactory extends Logging {

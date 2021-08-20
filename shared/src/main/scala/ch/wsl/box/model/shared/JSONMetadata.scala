@@ -53,7 +53,18 @@ case class JSONMetadata(
 
 object JSONMetadata extends Logging {
 
+  def childPlaceholder(field:JSONField,childMetadata:JSONMetadata, subforms:Seq[JSONMetadata]):Option[Json] = {
+    if(Child.min(field) > 0) {
+      val subs = for (i <- 1 to Child.min(field)) yield {
+        jsonPlaceholder(childMetadata, subforms).asJson
+      }
+      Some(subs.asJson)
+    } else None
+
+  }
+
   def jsonPlaceholder(form:JSONMetadata, subforms:Seq[JSONMetadata] = Seq()):Map[String,Json] = {
+
     form.fields.flatMap{ field =>
 
       val defaultFirstForLookup: Option[Json] = field.nullable match {
@@ -79,7 +90,8 @@ object JSONMetadata extends Logging {
           for{
             child <- field.child
             sub <- subforms.find(_.objId == child.objId)
-          } yield jsonPlaceholder(sub,subforms).asJson
+            result <- childPlaceholder(field,sub,subforms)
+          } yield result
         }
         case (None,_) => None
       }).toOption.flatten

@@ -27,7 +27,11 @@ object Navigate extends Logging {
       case "back" => Navigate.back()
       case url:String => {
         val state = Context.routingRegistry.matchUrl(Url(url))
-        Context.applicationInstance.goTo(state)
+        if(Context.applicationInstance.currentState == state) {
+          Context.applicationInstance.reload()
+        } else {
+          Context.applicationInstance.goTo(state)
+        }
       }
     }
 

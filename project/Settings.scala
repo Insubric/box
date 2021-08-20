@@ -66,7 +66,7 @@ object Settings {
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M10"
+    val udash = "0.9.0-M15"
     val udashJQuery = "3.0.4"
 
     val scribe = "2.7.12"
@@ -82,7 +82,7 @@ object Settings {
     * the special %%% function selects the correct version for each project
     */
   val sharedJVMJSDependencies = Def.setting(Seq(
-    "io.udash" %%% "udash-core" % versions.udash,
+    //"io.udash" %%% "udash-core" % versions.udash,
     "io.circe" %%% "circe-core" % versions.circe,
     "io.circe" %%% "circe-generic" % versions.circe,
     "io.circe" %%% "circe-parser" % versions.circe,
@@ -129,7 +129,6 @@ object Settings {
     "io.circe"                 %% "circe-core"       % versions.circe,
     "io.circe"                 %% "circe-generic"    % versions.circe,
     "io.circe"                 %% "circe-parser"     % versions.circe,
-    "io.udash"                 %% "udash-rpc"        % versions.udash,
     "org.webjars"               % "webjars-locator-core" % "0.44",
     "org.webjars"              % "webjars-locator"   % "0.39",
     //"org.specs2"               %% "specs2-core"      % versions.specs2    % "test",
