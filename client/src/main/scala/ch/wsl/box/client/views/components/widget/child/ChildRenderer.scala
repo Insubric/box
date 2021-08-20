@@ -18,14 +18,19 @@ import scalatags.JsDom
 import scribe.Logging
 
 import scala.concurrent.Future
+import scala.scalajs.js.timers.setTimeout
 
 /**
   * Created by andre on 6/1/2017.
   */
 
-case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], deleted:Boolean=false) {
+case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], changed:Property[Boolean], changedListener:Registration, deleted:Boolean=false) {
   def rowId:ReadableProperty[Option[JSONID]] = data.transform(js => metadata.flatMap(m => JSONID.fromData(js,m)))
   def rowIdStr:ReadableProperty[String] = rowId.transform(_.map(_.asString).getOrElse("noid"))
+}
+
+object ChildRenderer{
+  val CHANGED_KEY = "$changed"
 }
 
 trait ChildRendererFactory extends ComponentWidgetFactory {
@@ -65,7 +70,27 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val entity: SeqProperty[String] = SeqProperty(Seq())
     val metadata = children.find(_.objId == child.objId)
 
-    val changedField = widgetParam.otherField("$changed")
+    val changedField = widgetParam.otherField(ChildRenderer.CHANGED_KEY)
+    var countChilds = 0
+
+
+    override def resetChangeAlert(): Unit = {
+      countChilds = childWidgets.filterNot(_.deleted).length
+      changedField.set(Json.False)
+    }
+
+    def checkChanges() = setTimeout(0) {
+      if(countChilds != childWidgets.filterNot(_.deleted).length) {
+        logger.info(s"Set $$changed on ${metadata.map(_.name).getOrElse("")} because of length $countChilds !=  ${childWidgets.filterNot(_.deleted).length}")
+        changedField.set(Json.True)
+      } else if(childWidgets.exists(_.changed.get)) {
+        logger.info(s"Set $$changed on ${metadata.map(_.name).getOrElse("")} because of changes in ${childWidgets.filter(_.changed.get).map(x => x.metadata.map(_.name).getOrElse("No name"))}")
+        changedField.set(Json.True)
+      } else {
+        logger.info(s"Set $$changed false on ${metadata.map(_.name).getOrElse("")}")
+        changedField.set(Json.False)
+      }
+    }
 
     protected def render(write: Boolean): JsDom.all.Modifier
 
@@ -92,9 +117,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         registerListener(false)
       }
 
-      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,widgetParam.actions)
+      val changed = Property(false)
+      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,widgetParam.actions,changed)
 
-      val childRow = ChildRow(widget,id,propData,Property(open),metadata)
+      val changeListener = changed.listen(_ => checkChanges())
+
+      val childRow = ChildRow(widget,id,propData,Property(open),metadata,changed,changeListener)
       childWidgets += childRow
       entity.append(id)
       logger.debug(s"Added row ${childRow.rowId.get.map(_.asString).getOrElse("No ID")} of childForm ${metadata.get.name}")
@@ -112,7 +140,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         val childToDelete = childWidgets.zipWithIndex.find(x => x._1.rowId.get == itemToRemove.rowId.get && x._1.id == itemToRemove.id).get
         entity.remove(childToDelete._1.id)
         childWidgets.update(childToDelete._2, childToDelete._1.copy(deleted = true))
-        changedField.set(true.asJson)
+        checkChanges()
       }
     }
 
@@ -137,6 +165,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
 
       add(placeholder.asJson,true)
+      checkChanges()
     }
 
 
@@ -219,9 +248,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def registerListener(immediate:Boolean) {
       propListener = prop.listen(i => {
         childWidgets.foreach(_.widget.killWidget())
+        childWidgets.foreach(_.changedListener.cancel())
         childWidgets.clear()
         entity.clear()
         val entityData = splitJson(prop.get)
+
+
 
 
         entityData.foreach { x =>
@@ -239,6 +271,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
             addItem(child, m)
           }
         }
+
+        resetChangeAlert()
+
       }, immediate)
     }
 

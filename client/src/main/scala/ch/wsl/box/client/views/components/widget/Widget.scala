@@ -28,6 +28,8 @@ trait Widget extends Logging {
 
   def jsonToString(json:Json):String = json.string
 
+  def resetChangeAlert():Unit = {}
+
   def strToJson(nullable:Boolean = false)(str:String):Json = (str, nullable) match {
     case ("", true) => Json.Null
     case _ => str.asJson

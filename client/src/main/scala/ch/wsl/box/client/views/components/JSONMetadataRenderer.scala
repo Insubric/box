@@ -5,6 +5,7 @@ import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.views.components
 import ch.wsl.box.client.views.components.widget._
+import ch.wsl.box.client.views.components.widget.child.ChildRenderer
 import ch.wsl.box.client.views.components.widget.labels.{StaticTextWidget, TitleWidget}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils._
@@ -26,7 +27,7 @@ import org.scalajs.dom.Event
   */
 
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean]) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -35,6 +36,37 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
+
+  private val currentData:Property[Json] = Property(data.get)
+
+  def resetChanges() = {
+    logger.info(s"${metadata.name} resetChanges")
+    blocks.foreach(_._2.resetChangeAlert())
+    currentData.set(data.get)
+  }
+
+  data.listen { d =>
+    logger.info(s"changed ${d.js(ChildRenderer.CHANGED_KEY)} on ${metadata.name}")
+    if(d.js(ChildRenderer.CHANGED_KEY) == Json.True) {
+      changed.set(true,true)
+      logger.info(s"${metadata.name} has changes in child")
+    } else if(!currentData.get.removeNonDataFields.equals(d.removeNonDataFields)) {
+      changed.set(true,true)
+      logger.info(s"""
+                ${metadata.name} has changes
+
+                original:
+                ${currentData.get.removeNonDataFields}
+
+                new:
+                ${d.removeNonDataFields}
+
+                """)
+
+    } else {
+      changed.set(false,true)
+    }
+  }
 
 
   override def field: JSONField = JSONField("metadataRenderer","metadataRenderer",false)
@@ -264,7 +296,6 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     }
 
     div(
-        Debug(data,autoRelease, "data"),
         div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
           renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined)),
           blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (_,blks) =>
@@ -289,7 +320,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
               }
             )
           }
-        )
+        ),
+        Debug(currentData,b => b, s"original data ${metadata.name}"),
+        Debug(data,b => b, s"data ${metadata.name}")
     )
   }
 

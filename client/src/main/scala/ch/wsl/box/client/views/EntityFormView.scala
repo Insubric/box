@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views
 
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.client.{Context, FormState}
+import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
@@ -56,10 +56,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.client.Context._
 
-  private val currentData:Property[Json] = Property(Json.Null)
-
-  def getCurrentData():ReadableProperty[Json] = currentData
-
   override def handleState(state: FormState): Unit = {
 
     services.clientSession.loading.set(true)
@@ -104,7 +100,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         state.public
       ))
 
-      currentData.set(Json.Null.deepMerge(data))
+      resetChanges()
 
 
       //need to be called after setting data because we are listening for data changes
@@ -210,8 +206,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id)
     } yield {
       reset()
-      currentData.set(Json.Null.deepMerge(resultSaved))
       model.subProp(_.data).set(resultSaved)
+      resetChanges()
       model.subProp(_.id).set(Some(id.asString), true)
       enableGoAway
       widget.afterRender()
@@ -220,8 +216,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def revert() = {
-      model.subProp(_.data).set(Json.Null.deepMerge(currentData.get))
-      model.subProp(_.id).touch() //re-render childs
+    model.subProp(_.id).get.flatMap(JSONID.fromString) match {
+      case Some(id) => reload(id)
+      case None => logger.warn("Cannot revert with no ID")
+    }
   }
 
   def delete() = {
@@ -274,9 +272,24 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     override protected def edit(): JsDom.all.Modifier = div()
   }
 
+  private val changed:Property[Boolean] = Property(false)
+
+  changed.listen { hasChanges =>
+    if(hasChanges) {
+      avoidGoAway
+    } else {
+      enableGoAway
+    }
+  }
+
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(save))
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(save),changed)
     widget
+  }
+
+  def resetChanges() = widget match {
+    case jmr:JSONMetadataRenderer => jmr.resetChanges()
+    case _ => {}
   }
 
 
@@ -309,39 +322,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     Navigate.to(newState)
   }
 
-
-  def removeNonDataFields(js:Json):Json = {
-
-    val folder = new Json.Folder[Json] {
-      override def onNull: Json = Json.Null
-      override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
-      override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
-      override def onString(value: String): Json = Json.fromString(value)
-      override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(removeNonDataFields))
-      override def onObject(value: JsonObject): Json = Json.fromJsonObject{
-        value.filter(!_._1.startsWith("$")).mapValues(removeNonDataFields)
-      }
-    }
-
-    Json.Null.deepMerge(js).foldWith(folder).deepDropNullValues
-
-  }
-
-  model.subProp(_.data).listen { d =>
-    if(!currentData.get.equals(removeNonDataFields(d))) {
-      avoidGoAway
-    } else {
-      enableGoAway
-    }
-  }
-
   def avoidGoAway = {
     Navigate.disable{ () =>
       window.confirm(Labels.navigation.goAway)
     }
     model.subProp(_.changed).set(true)
     window.onbeforeunload = { (e:BeforeUnloadEvent) =>
-      Labels.navigation.goAway
+      if(Context.applicationInstance.currentState.isInstanceOf[EntityFormState] || Context.applicationInstance.currentState.isInstanceOf[EntityTableState]) {
+        Labels.navigation.goAway
+      }
     }
   }
   def enableGoAway = {
@@ -583,8 +572,6 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               formFooter(_maxWidth).render
             }
           ).render,
-          Debug(presenter.getCurrentData(),b => b, "current data"),
-          Debug(model.subProp(_.data),b => b, "data"),
           Debug(model.subProp(_.metadata),b => b, "metadata")
         ).render
       }

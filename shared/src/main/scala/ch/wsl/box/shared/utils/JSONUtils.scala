@@ -71,5 +71,24 @@ object JSONUtils extends Logging {
         Some(JSONID.fromMap(values.toMap))
       } else None
     }
+
+
+    def removeNonDataFields:Json = {
+
+      val folder = new Json.Folder[Json] {
+        override def onNull: Json = Json.Null
+        override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
+        override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
+        override def onString(value: String): Json = Json.fromString(value)
+        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields))
+        override def onObject(value: JsonObject): Json = Json.fromJsonObject{
+          value.filter(!_._1.startsWith("$")).mapValues(_.removeNonDataFields)
+        }
+      }
+
+      Json.Null.deepMerge(el).foldWith(folder).deepDropNullValues
+
+    }
+
   }
 }
