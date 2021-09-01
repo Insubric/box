@@ -125,7 +125,8 @@ object SharedLabels extends LabelsCollection {
     def removeDate = "form.remove_date"
     def changed = "form.changed"
     def removeMap = "form.remove-map"
-    def removeImage = "form.remove-image"
+    def removeFile = "form.remove-image"
+    def drop = "form.drop"
     def print = "form.print"
     def all = Seq(
       required,
@@ -136,7 +137,8 @@ object SharedLabels extends LabelsCollection {
       removeDate,
       changed,
       removeMap,
-      removeImage,
+      removeFile,
+      drop,
       print
     )
   }

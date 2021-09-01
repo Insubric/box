@@ -2,7 +2,6 @@ package ch.wsl.box.client.views.components.widget
 
 
 import java.util.UUID
-
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels, REST}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
@@ -13,7 +12,7 @@ import io.udash._
 import io.udash.bindings.Bindings
 import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLAnchorElement
+import org.scalajs.dom.raw.{DragEvent, HTMLAnchorElement}
 import org.scalajs.dom.{Event, File, FileReader, window}
 import scalatags.JsDom
 import scribe.Logging
@@ -159,15 +158,44 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     )
   }
 
+  private val dropHandler = (e:DragEvent) => {
+    e.preventDefault()
+
+    if(e.dataTransfer.files.length > 0) {
+      val files = for(i <- 0 until e.dataTransfer.files.length) yield e.dataTransfer.files(i)
+      selectedFiles.set(files)
+    }
+
+    dragging.set(false)
+
+  }
+
   override protected def show(): JsDom.all.Modifier = div(BootstrapCol.md(12),ClientConf.style.noPadding,
     showFile,
     div(BootstrapStyles.Visibility.clearfix),
   ).render
 
+  val dragging:Property[Boolean] = Property(false)
+
+  val dropZone = div(
+    ClientConf.style.dropFileZone,
+    ondrop :+= dropHandler,
+    ondragover :+= {(e:Event) => dragging.set(true); e.preventDefault()},
+    ondragenter :+= ((_:Event) => dragging.set(true)),
+    ondragleave :+= ((_:Event) => dragging.set(false)),
+    p(Labels.form.drop),
+  ).render
+
+  dragging.listen{
+    case true => dropZone.classList.add(ClientConf.style.dropFileZoneDropping.htmlClass)
+    case false => dropZone.classList.remove(ClientConf.style.dropFileZoneDropping.htmlClass)
+  }
+
   override def edit() = {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,
       if(noLabel) frag() else WidgetUtils.toLabel(field),
       showFile,
+      dropZone,
       upload,
       //autoRelease(produce(id) { _ => div(FileInput(selectedFile, Property(false))("file")).render }),
       div(BootstrapStyles.Visibility.clearfix)

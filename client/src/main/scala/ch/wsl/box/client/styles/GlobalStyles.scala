@@ -802,6 +802,31 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     )
   )
 
+  val dropFileZone = style(
+    height(50 px),
+    width(100 %%),
+    borderStyle.dashed,
+    borderColor(Colors.Grey),
+    borderWidth(1 px),
+    display.flex,
+    justifyContent.center,
+    alignItems.center,
+    margin.vertical(10 px),
+    unsafeChild("p")(
+      color(Colors.Grey),
+      fontSize(11 px),
+      Font.bold
+    )
+  )
+
+  val dropFileZoneDropping = style(
+    borderColor(conf.colors.main),
+    backgroundColor.rgba(0,0,0,0.3),
+    unsafeChild("p")(
+      color(conf.colors.main)
+    )
+  )
+
 
 //  val fixedHeader = style(
 //    unsafeRoot("tbody")(
