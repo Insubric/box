@@ -147,7 +147,7 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.2.0",
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0",
     "org.arakhne.afc.advanced" % "shapefile" % "16.0", // version 17 requires JDK 11
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
@@ -161,18 +161,7 @@ object Settings {
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
     "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
-    "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
-    "org.geotools" % "gt-main" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-shapefile" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-swing" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-wms" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-wmts" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-tile-client" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-epsg-hsql" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-image" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-render" % "25.2" exclude("javax.media","jai_core"),
-    // Workaround: need to use a non existing version in order to use the explicit URL https://www.scala-sbt.org/1.x/docs/Library-Management.html#Explicit+URL
-    "javax.media" % "jai_core" % "1.1.3-explicit-resolve" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar"
+    "com.github.daddykotex" %% "courier" % "3.0.0-M3a"
 //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
 //    "com.github.andyglow" %% "scala-jsonschema-circe-json" % versions.scalaJsonSchema
   ))

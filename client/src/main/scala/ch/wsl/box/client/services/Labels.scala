@@ -89,7 +89,8 @@ object Labels {
     def removeDate = get(SharedLabels.form.removeDate)
     def changed = get(SharedLabels.form.changed)
     def removeMap = get(SharedLabels.form.removeMap)
-    def removeImage = get(SharedLabels.form.removeImage)
+    def removeFile = get(SharedLabels.form.removeFile)
+    def drop = get(SharedLabels.form.drop)
     def print = get(SharedLabels.form.print)
   }
 
