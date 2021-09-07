@@ -136,7 +136,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
     val urlQuery:Option[JSONQuery] = URLQuery(state.query,emptyFieldsForm)
-    logger.info(s"urlQuery: $urlQuery")
     services.clientSession.setURLQuery(urlQuery)
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
@@ -148,7 +147,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       case Some(jsonquery) => jsonquery      //in case a query is already stored in Session
       case _ => urlQuery.getOrElse(defaultQuery)
     }
-    logger.info(s"query: $urlQuery")
 
     {for{
       access <- services.rest.tableAccess(form.entity,state.kind)
@@ -182,7 +180,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
       saveIds(IDs(true,1,Seq(),0),query)
 
-      logger.info(s"fields: ${m.fieldQueries.map(fq => fq.field.name + " " + fq.filterValue).mkString("\n")}")
 
       model.set(m)
       model.subProp(_.name).set(state.entity)  //it is not set by the above line
@@ -251,13 +248,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         case Some(Filter.FK_LIKE) => {
           val ids = getFieldLookup(field.column)
             .filter(_.value.toLowerCase.contains(field.value.toLowerCase()))
-            .map(_.id)
+            .map(_.id.string)
           JSONQueryFilter(field.column,Some(Filter.IN),ids.mkString(","))
         }
         case Some(Filter.FK_DISLIKE) => {
           val ids = getFieldLookup(field.column)
             .filter(_.value.toLowerCase.contains(field.value.toLowerCase()))
-            .map(_.id)
+            .map(_.id.string)
           JSONQueryFilter(field.column,Some(Filter.NOTIN),ids.mkString(","))
         }
         case Some(Filter.FK_EQUALS) => {
@@ -288,6 +285,9 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val filter = fieldQueries.filter(_.filterValue != "").map{ f =>
       JSONQueryFilter(f.field.name,Some(f.filterOperator),f.filterValue)
     }.toList
+
+    logger.info(s"$filter")
+    logger.info(s"$fieldQueries")
 
     JSONQuery(filter, sort, None, Some(services.clientSession.lang()))
   }
