@@ -286,9 +286,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       JSONQueryFilter(f.field.name,Some(f.filterOperator),f.filterValue)
     }.toList
 
-    logger.info(s"$filter")
-    logger.info(s"$fieldQueries")
-
     JSONQuery(filter, sort, None, Some(services.clientSession.lang()))
   }
 
