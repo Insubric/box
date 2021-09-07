@@ -35,10 +35,10 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(showIf(model.transform(_.value.nonEmpty)){
+  override protected def show(): JsDom.all.Modifier = autoRelease(showIf(model.transform(_.isDefined)){
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       lab(field.title),
-      div(BootstrapStyles.Float.right(), bind(model.transform(_.value))),
+      div(BootstrapStyles.Float.right(), bind(model.transform(_.map(_.value).getOrElse("")))),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   })
@@ -51,7 +51,7 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       WidgetUtils.toLabel(field),
       produce(lookup) { l =>
-        tooltip(Select[JSONLookup](model, SeqProperty(l))((s: JSONLookup) => StringFrag(s.value), m: _*).render)._1
+        tooltip(Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*).render)._1
       },
       div(BootstrapStyles.Visibility.clearfix)
     )
@@ -59,7 +59,7 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
 
   override def editOnTable(): JsDom.all.Modifier = {
     produce(lookup) { l =>
-      Select[JSONLookup](model, SeqProperty(l))((s: JSONLookup) => StringFrag(s.value), ClientConf.style.simpleInput).render
+      Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), ClientConf.style.simpleInput).render
     }
   }
 }
