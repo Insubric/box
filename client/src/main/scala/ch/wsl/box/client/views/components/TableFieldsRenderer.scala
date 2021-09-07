@@ -5,6 +5,7 @@ import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.styles.GlobalStyles
 import ch.wsl.box.client.{EntityFormState, EntityTableState}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, WidgetsNames}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.scalajs.dom
 import scalacss.ScalatagsCss._
@@ -34,7 +35,7 @@ object TableFieldsRenderer extends Logging{
 
     val contentFixed = (field.lookup,field.widget) match {
       case (Some(opts),_) => {
-        val label: String = opts.lookup.find(_.id == value).map(_.value).getOrElse(value)
+        val label: String = opts.lookup.find(_.id.string == value).map(_.value).getOrElse(value)
         val finalLabel = if(label.trim.length > 0) label else value
         p(finalLabel)
 //        a(href := routes.edit(JSONKeys.fromMap(Map(field.key -> value)).asString).url,finalLabel)

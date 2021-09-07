@@ -16,18 +16,17 @@ import scala.util.Try
   * Created by andre on 5/24/2017.
   */
 
-case class SessionQuery(query:JSONQuery, entity:String)
-object SessionQuery{
-  def empty = SessionQuery(JSONQuery.empty,"")
-}
+
 
 object ClientSession {
   final val QUERY = "query"
+  final val TABS = "tabs"
   final val IDS = "ids"
   final val USER = "user"
   final val LANG = "lang"
   final val LABELS = "labels"
   final val TABLECHILD_OPEN = "tablechild_open"
+  final val URL_QUERY = "urlQuery"
 
   case class TableChildElement(field:String, childFormId:UUID, id:Option[JSONID])
 }
@@ -175,9 +174,35 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  def getQuery():Option[SessionQuery] = get[SessionQuery](QUERY)
-  def setQuery(query: SessionQuery) = set(QUERY,query)
-  def resetQuery() = set(QUERY, None)
+  private def queryKey(kind:String,form:String,urlQuery:Option[JSONQuery]):String = s"$kind-$form-${urlQuery.getOrElse("nourlquery")}"
+
+  def getQueryFor(kind:String,form:String,urlQuery:Option[JSONQuery]):Option[JSONQuery] = {
+    logger.info(s"getQueryFor kind: $kind, form: $form")
+    for {
+      all <- get[Map[String,JSONQuery]](QUERY)
+      q <- all.get(queryKey(kind,form,urlQuery))
+    } yield q
+  }
+
+  def setQueryFor(kind:String,form:String,urlQuery:Option[JSONQuery],query: JSONQuery):Unit = {
+    val newQ = Map(queryKey(kind,form,urlQuery) -> query)
+    val queries:Map[String, JSONQuery] = get[Map[String, JSONQuery]](QUERY) match {
+      case Some(value) => value ++ newQ
+      case None => newQ
+    }
+    set(QUERY, queries)
+  }
+
+  def resetQuery(kind:String,form:String,urlQuery:Option[JSONQuery]):Unit = {
+    val queries:Map[String, JSONQuery] = get[Map[String, JSONQuery]](QUERY) match {
+      case Some(value) => value.view.filterKeys(_ != queryKey(kind,form,urlQuery)).toMap
+      case None => Map()
+    }
+    set(QUERY, queries)
+  }
+
+  def getURLQuery():Option[JSONQuery] = get[Option[JSONQuery]](URL_QUERY).flatten
+  def setURLQuery(q: Option[JSONQuery]) = set(URL_QUERY,q)
 
   def getBaseLayer():Option[String] = get[String](BASE_LAYER)
   def setBaseLayer(bl: String) = set(BASE_LAYER,bl)

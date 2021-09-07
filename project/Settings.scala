@@ -66,7 +66,7 @@ object Settings {
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M15"
+    val udash = "0.9.0-M18"
     val udashJQuery = "3.0.4"
 
     val scribe = "2.7.12"

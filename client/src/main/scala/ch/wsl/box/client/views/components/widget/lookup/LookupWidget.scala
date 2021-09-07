@@ -32,7 +32,7 @@ trait LookupWidget extends Widget with HasData {
     Property(toSeq(field.lookup.toSeq.flatMap(_.lookup)))
   }
 
-  val model:Property[JSONLookup] = Property(JSONLookup(Json.Null,""))
+  val model:Property[Option[JSONLookup]] = Property(None)
 
   field.lookup.get.lookupExtractor.foreach{case extractor =>
     allData.listen({ all =>
@@ -41,14 +41,15 @@ trait LookupWidget extends Widget with HasData {
     },true)
   }
 
-  data.sync[JSONLookup](model)(
+  data.sync[Option[JSONLookup]](model)(
     {json:Json =>
-      lookup.get.find(_.id == json).getOrElse{
+      val result = lookup.get.find(_.id == json).getOrElse{
         logger.warn(s"Lookup for $json not found")
         JSONLookup(json,json.string)
       }
+      Some(result)
     },
-    {jsonLookup:JSONLookup => jsonLookup.id}
+    {jsonLookup:Option[JSONLookup] => jsonLookup.map(_.id).asJson}
   )
 
 
@@ -56,18 +57,18 @@ trait LookupWidget extends Widget with HasData {
 
   override def showOnTable(): JsDom.all.Modifier = {
     autoRelease(bind(model.combine(data)((a,b) => (a,b)).transform{
-      case (notFound,js) if notFound.value == Labels.lookup.not_found => js.string
+      case (Some(notFound),js) if notFound.value == Labels.lookup.not_found => js.string
       case (t,d) => {
-        t.value
+        t.map(_.value).getOrElse("")
       }
     }))
   }
-  override def text() = model.transform(_.value)
+  override def text() = model.transform(_.map(_.value).getOrElse(""))
 
 
 
 
-  private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = Seq(JSONLookup(Json.Null,"")) ++ s
+  private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = s
 
 
   private def setNewLookup(newLookup:Seq[JSONLookup],_data:Option[Json]) = {
@@ -75,7 +76,7 @@ trait LookupWidget extends Widget with HasData {
       _lookup.set(newLookup, true)
       _data.foreach{ d =>
         newLookup.find(_.id == d).foreach{ newModel =>
-          model.set(newModel)
+          model.set(Some(newModel))
         }
       }
 //      if(!newLookup.exists(_.id == data.get)) {
