@@ -1,5 +1,7 @@
 package ch.wsl.box.model.shared
 
+import scribe.Logging
+
 //import ch.wsl.box.model.shared.JSONQuery.empty
 
 /**
@@ -117,7 +119,7 @@ object Sort{
 }
 
 
-object Filter {
+object Filter extends Logging {
   final val NONE = "none"
   final val EQUALS = "="
   final val NOT = "not"

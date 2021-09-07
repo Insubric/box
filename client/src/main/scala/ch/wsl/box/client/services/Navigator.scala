@@ -1,6 +1,7 @@
 package ch.wsl.box.client.services
 
 import ch.wsl.box.client.Context
+import ch.wsl.box.model.shared.JSONQuery
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.css.CssStyleName
 import io.udash.properties.HasModelPropertyCreator
@@ -64,20 +65,20 @@ class Navigator(session:ClientSession,rest:REST) {
     def navigation(): Option[Navigation] = for {
       id <- currentId
       ids <- session.getIDs()
-      session <- session.getQuery()
+      query <- session.getQueryFor(kind,model,session.getURLQuery())
       (_, indexInPage_0based) <- ids.ids.zipWithIndex.find(_._1 == id)
     } yield {
 
       Navigation(
         hasNext = !(indexInPage_0based == ids.ids.size - 1 && ids.isLastPage),
-        hasPrevious = !(indexInPage_0based == 0 && session.query.currentPage == 1),
+        hasPrevious = !(indexInPage_0based == 0 && query.currentPage == 1),
         count = ids.count,
-        currentIndex = (session.query.currentPage - 1) * session.query.pageLength(ids.ids.size) + indexInPage_0based + 1,
+        currentIndex = (query.currentPage - 1) * query.pageLength(ids.ids.size) + indexInPage_0based + 1,
         hasNextPage = !ids.isLastPage,
         hasPreviousPage = ids.currentPage > 1,
         pages = Navigation.pageCount(ids.count),
-        currentPage = session.query.currentPage,
-        pageLength = session.query.paging.map(_.pageLength).getOrElse(ids.ids.size),
+        currentPage = query.currentPage,
+        pageLength = query.paging.map(_.pageLength).getOrElse(ids.ids.size),
         pageIDs = ids.ids
       )
     }
@@ -116,9 +117,9 @@ class Navigator(session:ClientSession,rest:REST) {
       (hasNext(), hasNextPage()) match {
         case (false, _) => Future.successful(None)
         case (true, true) => {
-          val newQuery: SessionQuery = session.getQuery().map(q => q.copy(query = q.query.copy(paging = q.query.paging.map(p => p.copy(currentPage = navigation().map(_.pages).getOrElse(0)))))).getOrElse(SessionQuery.empty)
-          rest.ids(kind, session.lang(), model, newQuery.query).map { ids =>
-            session.setQuery(newQuery)
+          val newQuery: JSONQuery = session.getQueryFor(kind,model,session.getURLQuery()).map(q => q.copy(paging = q.paging.map(p => p.copy(currentPage = navigation().map(_.pages).getOrElse(0))))).getOrElse(JSONQuery.empty)
+          rest.ids(kind, session.lang(), model, newQuery).map { ids =>
+            session.setQueryFor(kind,model,session.getURLQuery(),newQuery)
             session.setIDs(ids)
             ids.ids.lastOption
           }
@@ -131,9 +132,9 @@ class Navigator(session:ClientSession,rest:REST) {
       if (!hasPreviousPage()) {
         Future.successful(None)
       } else {
-        val newQuery: SessionQuery = session.getQuery().map(q => q.copy(query = q.query.copy(paging = q.query.paging.map(p => p.copy(currentPage = 1))))).getOrElse(SessionQuery.empty)
-        rest.ids(kind, session.lang(), model, newQuery.query).map { ids =>
-          session.setQuery(newQuery)
+        val newQuery: JSONQuery = session.getQueryFor(kind,model,session.getURLQuery()).map(q => q.copy(paging = q.paging.map(p => p.copy(currentPage = 1)))).getOrElse(JSONQuery.empty)
+        rest.ids(kind, session.lang(), model, newQuery).map { ids =>
+          session.setQueryFor(kind,model,session.getURLQuery(),newQuery)
           session.setIDs(ids)
           ids.ids.headOption
         }
@@ -143,9 +144,9 @@ class Navigator(session:ClientSession,rest:REST) {
       if (!hasNextPage()) {
         Future.successful(None)
       } else {
-        val newQuery: SessionQuery = session.getQuery().map(q => q.copy(query = q.query.copy(paging = q.query.paging.map(p => p.copy(currentPage = navigation().map(_.pages).getOrElse(0)))))).getOrElse(SessionQuery.empty)
-        rest.ids(kind, session.lang(), model, newQuery.query).map { ids =>
-          session.setQuery(newQuery)
+        val newQuery: JSONQuery = session.getQueryFor(kind,model,session.getURLQuery()).map(q => q.copy(paging = q.paging.map(p => p.copy(currentPage = navigation().map(_.pages).getOrElse(0))))).getOrElse(JSONQuery.empty)
+        rest.ids(kind, session.lang(), model, newQuery).map { ids =>
+          session.setQueryFor(kind,model,session.getURLQuery(),newQuery)
           session.setIDs(ids)
           ids.ids.headOption
         }
@@ -155,9 +156,9 @@ class Navigator(session:ClientSession,rest:REST) {
       if (!hasPreviousPage()) {
         Future.successful(None)
       } else {
-        val newQuery: SessionQuery = session.getQuery().map(q => q.copy(query = q.query.copy(paging = q.query.paging.map(p => p.copy(currentPage = p.currentPage - 1))))).getOrElse(SessionQuery.empty)
-        rest.ids(kind, session.lang(), model, newQuery.query).map { ids =>
-          session.setQuery(newQuery)
+        val newQuery: JSONQuery = session.getQueryFor(kind,model,session.getURLQuery()).map(q => q.copy(paging = q.paging.map(p => p.copy(currentPage = p.currentPage - 1)))).getOrElse(JSONQuery.empty)
+        rest.ids(kind, session.lang(), model, newQuery).map { ids =>
+          session.setQueryFor(kind,model,session.getURLQuery(),newQuery)
           session.setIDs(ids)
           ids.ids.lastOption
         }
@@ -167,9 +168,9 @@ class Navigator(session:ClientSession,rest:REST) {
       if (!hasNextPage()) {
         Future.successful(None)
       } else {
-        val newQuery: SessionQuery = session.getQuery().map(q => q.copy(query = q.query.copy(paging = q.query.paging.map(p => p.copy(currentPage = p.currentPage + 1))))).getOrElse(SessionQuery.empty)
-        rest.ids(kind, session.lang(), model, newQuery.query).map { ids =>
-          session.setQuery(newQuery)
+        val newQuery: JSONQuery = session.getQueryFor(kind,model,session.getURLQuery()).map(q => q.copy(paging = q.paging.map(p => p.copy(currentPage = p.currentPage + 1)))).getOrElse(JSONQuery.empty)
+        rest.ids(kind, session.lang(), model, newQuery).map { ids =>
+          session.setQueryFor(kind,model,session.getURLQuery(),newQuery)
           session.setIDs(ids)
           ids.ids.headOption
         }
