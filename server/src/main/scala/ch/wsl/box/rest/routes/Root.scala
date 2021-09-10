@@ -62,19 +62,11 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
     }
   }
 
-  def resetCache = pathPrefix("cache") {
-    path("reset") {
-      Cache.reset()
-      complete(
-        HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,"reset cache"))
-      )
-    }
-  }
 
   val route:Route = UI.clientFiles ~
     encodeResponseWith(Gzip.withLevel(6)) {
       status ~
-        resetCache ~
+        Cache.resetRoute() ~
         cors.handle {
           ApiV1(appVersion).route
         }

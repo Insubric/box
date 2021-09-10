@@ -16,7 +16,6 @@ trait REST{
   def appVersion():Future[String]
   def validSession():Future[Boolean]
   def cacheReset():Future[String]
-  def serverReset():Future[String]
   def entities(kind:String):Future[Seq[String]]
 
   //for entities and forms

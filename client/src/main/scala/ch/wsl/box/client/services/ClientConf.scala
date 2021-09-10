@@ -51,6 +51,7 @@ object ClientConf {
   def colorWarning: String = Try(conf("color.warning")).getOrElse("#ffa500")
 
   def tableFontSize: Int = Try(conf("table.fontSize").toInt).getOrElse(10)
+  def requiredFontSize: Int = Try(conf("form.requiredFontSize").toInt).getOrElse(8)
 
   def childBorderSize: Int = Try(conf("child.border.size").toInt).getOrElse(1)
   def childBorderColor: String = Try(conf("child.border.color")).getOrElse(StyleConstants.Colors.GreySemi.value)
@@ -61,7 +62,8 @@ object ClientConf {
   lazy val styleConf = StyleConf(
     colors = Colors(colorMain,colorMainText,colorMainLink,colorLink,colorDanger,colorWarning),
     tableFontSize,
-    ChildProperties(childBorderSize, childBorderColor, childPaddingSize, childMarginTopSize, childBackgroundColor)
+    ChildProperties(childBorderSize, childBorderColor, childPaddingSize, childMarginTopSize, childBackgroundColor),
+    requiredFontSize
   )
 
   lazy val style = GlobalStyles(styleConf)

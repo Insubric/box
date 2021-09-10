@@ -27,7 +27,6 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def appVersion() = httpClient.get[String](Routes.apiV1("/app_version"))
   def validSession() = httpClient.get[Boolean](Routes.apiV1("/validSession"))
   def cacheReset() = httpClient.get[String](Routes.apiV1("/cache/reset"))
-  def serverReset() = httpClient.get[String](Routes.apiV1("/server/reset"))
 
   def entities(kind:String):Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/${EntityKind(kind).plural}"))
 

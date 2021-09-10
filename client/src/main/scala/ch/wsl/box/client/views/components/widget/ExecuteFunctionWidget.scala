@@ -29,18 +29,20 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
 
     val _text:String = field.label.getOrElse(field.name)
 
+
     val clickHandler = { (e: Event) =>
 
-      def exec() = {
+      def exec(allData:Json) = {
         services.clientSession.loading.set(true)
-        services.rest.execute(field.function.get, services.clientSession.lang(), params.allData.get).foreach { _ =>
+        logger.info(s"Exec with params $allData")
+        services.rest.execute(field.function.get, services.clientSession.lang(), allData).foreach { _ =>
           services.clientSession.loading.set(false)
           applicationInstance.reload()
         }
       }
       saveBefore match {
-        case true => params.actions.saveAndThen { _ => exec() }
-        case false => exec()
+        case true => params.actions.saveAndThen(data => exec(data))
+        case false => exec(params.allData.get)
       }
       e.preventDefault()
     }

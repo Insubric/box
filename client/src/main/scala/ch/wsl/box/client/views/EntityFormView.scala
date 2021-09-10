@@ -23,24 +23,26 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement}
 import scribe.Logging
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scalatags.JsDom
 import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
 
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
+import scala.scalajs.js.timers.setTimeout
+import scala.util.Try
 
 /**
   * Created by andre on 4/24/2017.
   */
 
 case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean)
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
   implicit val blank: Blank[EntityFormModel] =
-    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false))
+    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true))
 }
 
 object EntityFormViewPresenter extends ViewFactory[FormState] {
@@ -71,6 +73,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     model.subProp(_.kind).set(state.kind)
     model.subProp(_.name).set(state.entity)
     model.subProp(_.id).set(state.id)
+    model.subProp(_.insert).set(state.id.isEmpty)
 
 
     val jsonId = state.id.flatMap(JSONID.fromString)
@@ -97,7 +100,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         Navigation.empty1,
         false,
         state.writeable,
-        state.public
+        state.public,
+        state.id.isEmpty
       ))
 
       resetChanges()
@@ -124,6 +128,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   private var _form:HTMLFormElement = scalatags.JsDom.all.form().render
 
   def setForm(form:HTMLFormElement)= { _form = form }
+
+  def saveAndReload(action:Json => Unit):Unit = {
+    save{ id =>
+      reload(id).map{ data =>
+        action(data)
+        if(!model.subProp(_.id).get.flatMap(JSONID.fromString).contains(id)) {
+          goTo(id.asString)
+        }
+      }
+    }
+  }
 
   def save(action:JSONID => Unit):Unit  = {
 
@@ -154,11 +169,12 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       val data:Json = m.data
 
       def saveAction(data:Json) = {
+
         logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
         for {
           id <- JSONID.fromString(m.id.getOrElse("")) match {
-            case Some (id) => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data)
-            case None => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
+            case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data)
+            case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
           }
           result <- m.public match {
             case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id)
@@ -200,19 +216,25 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
   }
 
-  def reload(id:JSONID): Unit = {
+  def reload(id:JSONID): Future[Json] = {
     services.clientSession.loading.set(true)
     for{
       resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id)
-    } yield {
-      reset()
-      model.subProp(_.data).set(resultSaved)
-      resetChanges()
-      model.subProp(_.id).set(Some(id.asString), true)
-      enableGoAway
-      widget.afterRender()
-      services.clientSession.loading.set(false)
-    }
+      result <- {
+        val promise = Promise[Json]()
+        reset()
+        model.subProp(_.data).set(resultSaved)
+        resetChanges()
+        model.subProp(_.id).set(Some(id.asString), true)
+        enableGoAway
+        widget.afterRender().foreach{ _ =>
+          services.clientSession.loading.set(false)
+          logger.info("AAAAAAAAAAAAA")
+          promise.success(model.subProp(_.data).get)
+        }
+        promise.future
+      }
+    } yield result
   }
 
   def revert() = {
@@ -283,7 +305,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(save),changed)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload),changed)
     widget
   }
 
@@ -413,7 +435,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       case None => cb()
     }
 
-    if((action.updateOnly && _id.isDefined) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
+    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
       button(
         id := TestHooks.actionButton(action.label),
         importance,

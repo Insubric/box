@@ -16,7 +16,7 @@ import scalatags.JsDom
 import scalatags.generic.Attr
 
 
-case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties)
+case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int)
 
 
 case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
@@ -611,7 +611,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val smallLabelRequired = style(
-    fontSize(8.px),
+    fontSize(conf.requiredFontSize.px),
     color(conf.colors.danger)
   )
 

@@ -115,7 +115,7 @@ case class Form(
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, jsonActions, metadataFactory)
             fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-            data <- formActions.list(query, fkValues)
+            data <- formActions.list(query, fkValues, true)
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),

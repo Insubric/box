@@ -78,8 +78,6 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   baseLayer.listen(loadBase,false)
 
-  override def afterRender(): Unit = {}
-
   protected def _afterRender(): Unit = {
     if(map != null && featuresLayer != null) {
       loadBase(baseLayer.get).map { _ =>
