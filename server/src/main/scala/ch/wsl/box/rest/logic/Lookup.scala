@@ -25,15 +25,19 @@ object Lookup {
 
   }
 
-  def valueExtractor(lookupElements:Option[Map[String,Seq[Json]]],metadata:JSONMetadata)(field:String, value:String):Option[String] = {
+  def valueExtractor(lookupElements:Option[Map[String,Seq[Json]]],metadata:JSONMetadata)(field:String, value:Json):Option[Json] = {
 
     for{
       elements <- lookupElements
       field <- metadata.fields.find(_.name == field)
       lookup <- field.lookup
       foreignEntity <- elements.get(lookup.lookupEntity)
-      foreignRow <- foreignEntity.find(_.get(lookup.map.valueProperty) == value)
-    } yield foreignRow.get(lookup.map.textProperty)
+      foreignRow <- foreignEntity.find(_.js(lookup.map.valueProperty) == value)
+    } yield {
+      Json.fromString(lookup.map.textProperty.split(",").map(_.trim).map{ key =>
+        foreignRow.get(key)
+      }.mkString(" - "))
+    }
 
   }
 

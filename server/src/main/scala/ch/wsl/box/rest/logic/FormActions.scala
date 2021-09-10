@@ -16,6 +16,7 @@ import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
@@ -76,7 +77,7 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  private def listRenderer(json:Json,lookupElements:Option[Map[String,Seq[Json]]])(name:String):Json = {
+  private def listRenderer(json:Json,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false)(name:String):Json = {
 
     def jsonCSVRenderer(json:Json,field:JSONField):Json = {
 
@@ -88,22 +89,23 @@ case class FormActions(metadata:JSONMetadata,
           case None => json.js(field.name)
         }
         case (_,Some(WidgetsNames.integerDecimal2)) => json.js(field.name).withNumber(n => "%.2f".format((n.toDouble / 100.0)).asJson)
+        case (_,Some(WidgetsNames.richTextEditorFull)) | (_,Some(WidgetsNames.richTextEditor)) | (_,Some(WidgetsNames.redactor)) if dropHtml => Html.stripTags(json.get(field.name)).asJson
         case (_,_) => json.js(field.name)
       }
     }
 
-    Lookup.valueExtractor(lookupElements, metadata)(name, json.get(name)).map(_.asJson)
+    Lookup.valueExtractor(lookupElements, metadata)(name, json.js(name)).map(_.asJson)
       .orElse(metadata.fields.find(_.name == name).map(jsonCSVRenderer(json,_)))
       .getOrElse(json.js(name))
   }
 
 
 
-  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]]):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
+  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
 
 
     val columns = metadata.tabularFields.map{f =>
-      (f, listRenderer(row,lookupElements)(f))
+      (f, listRenderer(row,lookupElements,dropHtml)(f))
     }
     Json.obj(columns:_*)
   }}
