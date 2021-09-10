@@ -2,19 +2,22 @@ package ch.wsl.box.model
 
 import java.io.PrintWriter
 import java.sql.{DriverManager, SQLException, SQLFeatureNotSupportedException}
-
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.boxentities.BoxSchema
 import org.flywaydb.core.Flyway
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.DefaultModule
 import ch.wsl.box.services.Services
+import org.flywaydb.core.api.exception.FlywayValidateException
+import org.flywaydb.core.api.output.MigrateResult
+
 import javax.sql.DataSource
 import schemagen.SchemaGenerator
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.Try
 
 object Migrate {
 
@@ -33,7 +36,24 @@ object Migrate {
       .dataSource(connection.dataSource("BOX Migration"))
       .load()
 
-    val result = flyway.migrate()
+    val result:Future[MigrateResult] = Future {
+      flyway.migrate()
+    }.recoverWith{ case e:FlywayValidateException =>
+      if( // Add exception for manually modified Migration 27
+        e.getMessage.contains("Migration checksum mismatch for migration version 27") &&
+        e.getMessage.contains("-2039720488")
+      ) {
+        connection.dbConnection.run {
+          sqlu"""
+            update box.flyway_schema_history_box set checksum=-2039720488 where version='27';
+            """
+        }.map{ _ =>
+          flyway.migrate()
+        }
+      } else {
+        Future.failed(e)
+      }
+    }
     result
 
   }
@@ -55,7 +75,7 @@ object Migrate {
 
   def all(connection:Connection) = {
     for {
-     _ <- Future{ box(connection) }
+     _ <- box(connection)
      _ <- Future{ app(connection) }
      _ <- new SchemaGenerator(connection).run()
      _ <- LabelsUpdate.run(connection.dbConnection)
