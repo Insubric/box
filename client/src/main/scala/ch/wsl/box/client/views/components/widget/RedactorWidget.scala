@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
-
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils._
@@ -16,6 +15,7 @@ import io.circe._
 import io.circe.scalajs.convertJsonToJs
 
 import scala.collection.mutable
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSGlobalScope, JSName}
 import scala.util.Try
@@ -90,7 +90,7 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
 
   var started = false;
 
-  override def afterRender(): Unit = {
+  override def afterRender() = Future.successful{
     val opts:Json = field.params.map(_.js("editorOptions")).getOrElse(Map[String,Json]().asJson)
     logger.debug(s"started: $started, redactor isStarted: ${redactor.isStarted()}")
     if(!started || !redactor.isStarted()) {
@@ -100,6 +100,7 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
     } else {
       redactor.redraw() // need to call it when toggling the table
     }
+    true
   }
 
   override protected def edit(): JsDom.all.Modifier = {

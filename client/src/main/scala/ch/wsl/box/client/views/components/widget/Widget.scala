@@ -62,7 +62,7 @@ trait Widget extends Logging {
 
   def beforeSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
   def afterSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
-  def afterRender():Unit = {}
+  def afterRender():Future[Boolean] = Future.successful(true)
 
   def reload() = {} //recover autoreleased resources
 
@@ -124,7 +124,7 @@ trait HasData extends Widget {
 
 }
 
-case class WidgetCallbackActions(saveAndThen: (JSONID => Unit) => Unit)
+case class WidgetCallbackActions(saveAndThen: (Json => Unit) => Unit)
 
 object WidgetCallbackActions{
   def noAction = new WidgetCallbackActions(_ => ())

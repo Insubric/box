@@ -6,10 +6,11 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, ClientSession, La
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.JSONMetadataRenderer
-import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetParams}
+import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetCallbackActions, WidgetParams}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
+import io.circe.generic.auto._
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.properties.single.Property
@@ -94,6 +95,26 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     protected def render(write: Boolean): JsDom.all.Modifier
 
+    def saveAndThen(id:ReadableProperty[Option[String]])(action:Json => Unit) = {
+      val existingKeys:Seq[String] = childWidgets.toSeq.flatMap(_.data.get.ID(metadata.get.keys).map(_.asString))
+      widgetParam.actions.saveAndThen{ data =>
+        val newRows:Seq[Json] = data.js(field.name).as[Seq[Json]].toOption.getOrElse(Seq())
+        val row = id.get match {
+          case Some(value) => newRows.find( row => row.ID(metadata.get.keys).exists(_.asString == value))
+          case None => {
+
+            val newKeys:Seq[String] = newRows.flatMap(_.ID(metadata.get.keys).map(_.asString))
+            val generatedKeys = newKeys.diff(existingKeys)
+            if(generatedKeys.length == 1) {
+              newRows.find( row => row.ID(metadata.get.keys).exists(_.asString == generatedKeys.head))
+            } else throw new Exception("Unable to find the corresponding child")
+          }
+        }
+
+        row.foreach(action)
+      }
+    }
+
     private def add(data:Json,open:Boolean): Unit = {
 
       val props:ReadableProperty[Json] = masterData.transform{js =>
@@ -118,7 +139,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
 
       val changed = Property(false)
-      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,widgetParam.actions,changed)
+      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,WidgetCallbackActions(saveAndThen(childId)),changed)
 
       val changeListener = changed.listen(_ => checkChanges())
 
@@ -234,7 +255,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
 
-    override def afterRender(): Unit = childWidgets.foreach(_.widget.afterRender())
+    override def afterRender() = Future.sequence(childWidgets.map(_.widget.afterRender())).map(_.forall(x => x))
 
 
     override protected def show(): JsDom.all.Modifier = render(false)

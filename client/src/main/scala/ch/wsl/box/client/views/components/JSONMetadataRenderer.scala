@@ -164,7 +164,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
     override def field: JSONField = JSONField("block","block",false)
 
-    override def afterRender(): Unit = widget.afterRender()
+    override def afterRender() = widget.afterRender()
 
     override protected def show(): JsDom.all.Modifier = render(false)
 
@@ -215,7 +215,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     override def killWidget(): Unit = widgets.foreach(_.widget.killWidget())
 
 
-    override def afterRender(): Unit = widgets.foreach(_.widget.afterRender())
+    override def afterRender() = Future.sequence(widgets.map(_.widget.afterRender())).map(_.forall(x => x))
 
     override def field: JSONField = JSONField("fieldsRenderer","fieldsRenderer",false)
 
@@ -268,7 +268,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   override def killWidget(): Unit = blocks.foreach(_._2.killWidget())
 
 
-  override def afterRender(): Unit = blocks.foreach(_._2.afterRender())
+  override def afterRender() = Future.sequence(blocks.map(_._2.afterRender())).map(_.forall(x => x))
 
   override protected def show(): JsDom.all.Modifier = render(false)
 
