@@ -1,5 +1,6 @@
 package ch.wsl.box.client.utils
 
+import ch.wsl.box.client.services.ClientConf
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -16,12 +17,14 @@ object GeoJson {
   }
 
   case class Coordinates(x: Double, y: Double) {
-    private val precision = 0.01
-    private def precisionFactor = 1/precision
-    private def approx(i:Double) = if(precision > 0.0) (i * precisionFactor).toInt / precisionFactor else i
-    def approxX = approx(x)
-    def approxY = approx(y)
-    override def toString: String = s"$approxX $approxY"
+
+    private def approx(precision:Double,i:Double) = {
+      if(precision > 0.0) {
+        val precisionFactor =  1/precision
+        (i * precisionFactor).toInt / precisionFactor
+      } else i
+    }
+    def toString(precision:Double): String = s"${approx(precision,x)} ${approx(precision,y)}"
     def flatten = Seq(x,y)
   }
 
@@ -60,22 +63,24 @@ object GeoJson {
         }
       }
     }
+
+    def toString(precision:Double):String
   }
 
   case class Point(coordinates: Coordinates) extends SingleGeometry {
-    override def toString: String = s"POINT($coordinates)"
+    override def toString(precision:Double): String = s"POINT(${coordinates.toString(precision)})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatten
   }
 
   case class LineString(coordinates: Seq[Coordinates]) extends SingleGeometry {
-    override def toString: String = s"LINESTRING(${coordinates.mkString(",")})"
+    override def toString(precision:Double): String = s"LINESTRING(${coordinates.map(_.toString(precision)).mkString(",")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatten)
   }
 
   case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
-    override def toString: String = s"MULTIPOINT(${coordinates.mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"MULTIPOINT(${coordinates.map(_.toString(precision)).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Point(c))
 
@@ -84,7 +89,7 @@ object GeoJson {
   }
 
   case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
-    override def toString: String = s"MULTILINESTRING(${coordinates.map(_.mkString(",")).mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"MULTILINESTRING(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => LineString(c))
 
@@ -94,13 +99,13 @@ object GeoJson {
   }
 
   case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends SingleGeometry {
-    override def toString: String = s"POLYGON(${coordinates.map(_.mkString(",")).mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"POLYGON(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatMap(_.flatten))
   }
 
   case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
-    override def toString: String = s"MULTIPOLYGON(${coordinates.map(_.map(_.mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
+    override def toString(precision:Double): String = s"MULTIPOLYGON(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Polygon(c))
 
@@ -113,7 +118,7 @@ object GeoJson {
 
     override def toSingle: Seq[SingleGeometry] = geometries.flatMap(_.toSingle)
 
-    override def toString: String = s"GEOMETRYCOLLECTION(${geometries.mkString(",")})"
+    override def toString(precision:Double): String = s"GEOMETRYCOLLECTION(${geometries.map(_.toString(precision)).mkString(",")})"
 
 
     override protected def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(GeometryCollection(singleGeometries))

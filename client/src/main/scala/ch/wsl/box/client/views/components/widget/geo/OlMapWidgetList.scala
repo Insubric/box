@@ -3,6 +3,7 @@ package ch.wsl.box.client.views.components.widget.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
+import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.utils.GeoJson
 import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
@@ -168,6 +169,14 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
           )
         )
       ),
+      (
+        if(options.baseLayers.exists(_.length > 1))
+        div(width := 100.pct,marginTop := 33.px, marginBottom := -33.px, zIndex := 2, position.relative, padding := 5.px, backgroundColor := Colors.GreyExtra.value,
+          Select(baseLayer,SeqProperty(options.baseLayers.toSeq.flatten.map(x => Some(x))))((x:Option[MapParamsLayers]) => StringFrag(x.map(_.name).getOrElse("")),ClientConf.style.mapLayerSelect, width := 100.pct, marginLeft := 0)
+        )
+      else
+        frag()
+      ),
       mapDiv,
       produce(data) { geo =>
         import ch.wsl.box.client.utils.GeoJson.Geometry._
@@ -178,7 +187,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,
-            span(geom.toString),
+            span(geom.toString(options.precision.getOrElse(0))),
             div(ClientConf.style.mapGeomAction,
               if(!geom.isInstanceOf[Point])
                 controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),
