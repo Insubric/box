@@ -3,10 +3,14 @@ package ch.wsl.box.client.views.components.widget.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
-import ch.wsl.box.client.utils.GeoJson.{Geometry, SingleGeometry}
+import ch.wsl.box.client.styles.constants.StyleConstants.Colors
+import ch.wsl.box.client.utils.GeoJson
+import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import io.circe.Json
+import io.circe.syntax._
+import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
 import io.udash._
 import io.udash.bootstrap.tooltip.UdashTooltip
 import io.udash.bootstrap.utils.BootstrapStyles
@@ -17,7 +21,7 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logger
 import typings.ol.viewMod.FitOptions
-import typings.ol.{geomMod, geometryMod, olFeatureMod, projMod}
+import typings.ol.{geoJSONMod, geomMod, geometryMod, multiPointMod, olFeatureMod, projMod}
 
 import scala.scalajs.js
 import scala.util.Try
@@ -46,14 +50,37 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
   }
 
   def deleteGeometry(geom:SingleGeometry) = if (window.confirm(Labels.form.removeMap)) {
-    val toDelete = vectorSource.getFeatures().toSeq.find{f =>
-      val coords = Try(f.getGeometry().asInstanceOf[js.Dynamic].flatCoordinates.asInstanceOf[js.Array[Double]]).toOption
-      coords.exists(c => geom.equalsToFlattenCoords(c.toSeq))
+
+
+    val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+    convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
+      import ch.wsl.box.client.utils.GeoJson.Geometry._
+      import ch.wsl.box.client.utils.GeoJson._
+      val geometries = collection.features.map(_.geometry)
+      logger.info(s"$geometries")
+
+      geometries.find(_.toSingle.contains(geom)).foreach { contanierFeature =>
+        val toInsert = contanierFeature.removeSimple(geom)
+
+        val toDelete = vectorSource.getFeatures().toSeq.find{f =>
+          val coords = Try(f.getGeometry().asInstanceOf[js.Dynamic].flatCoordinates.asInstanceOf[js.Array[Double]]).toOption
+          coords.exists(c => contanierFeature.equalsToFlattenCoords(c.toSeq))
+        }
+        toDelete.foreach { f =>
+          vectorSource.removeFeature(f)
+        }
+
+        toInsert.foreach{ f =>
+          val geom = new geoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[olFeatureMod.default[geometryMod.default]]
+          vectorSource.addFeature(geom)
+        }
+
+        changedFeatures()
+      }
     }
-    toDelete.foreach { f =>
-      vectorSource.removeFeature(f)
-      changedFeatures()
-    }
+
+
+
   }
 
   override protected def edit(): JsDom.all.Modifier = {
@@ -142,6 +169,14 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
           )
         )
       ),
+      (
+        if(options.baseLayers.exists(_.length > 1))
+        div(width := 100.pct,marginTop := 33.px, marginBottom := -33.px, zIndex := 2, position.relative, padding := 5.px, backgroundColor := Colors.GreyExtra.value,
+          Select(baseLayer,SeqProperty(options.baseLayers.toSeq.flatten.map(x => Some(x))))((x:Option[MapParamsLayers]) => StringFrag(x.map(_.name).getOrElse("")),ClientConf.style.mapLayerSelect, width := 100.pct, marginLeft := 0)
+        )
+      else
+        frag()
+      ),
       mapDiv,
       produce(data) { geo =>
         import ch.wsl.box.client.utils.GeoJson.Geometry._
@@ -152,7 +187,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,
-            span(geom.toString),
+            span(geom.toString(options.precision.getOrElse(0))),
             div(ClientConf.style.mapGeomAction,
               if(!geom.isInstanceOf[Point])
                 controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),

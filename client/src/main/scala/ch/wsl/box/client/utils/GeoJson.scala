@@ -1,5 +1,6 @@
 package ch.wsl.box.client.utils
 
+import ch.wsl.box.client.services.ClientConf
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -16,7 +17,14 @@ object GeoJson {
   }
 
   case class Coordinates(x: Double, y: Double) {
-    override def toString: String = s"$x $y"
+
+    private def approx(precision:Double,i:Double) = {
+      if(precision > 0.0) {
+        val precisionFactor =  1/precision
+        (i * precisionFactor).toInt / precisionFactor
+      } else i
+    }
+    def toString(precision:Double): String = s"${approx(precision,x)} ${approx(precision,y)}"
     def flatten = Seq(x,y)
   }
 
@@ -30,56 +38,95 @@ object GeoJson {
   sealed trait SingleGeometry extends Geometry {
     override def toSingle: Seq[SingleGeometry] = Seq(this)
 
-    def equalsToFlattenCoords(flatCoords:Seq[Double]):Boolean = flattenCoordinates == flatCoords
+    override def _toGeom(singleGeometry: Seq[SingleGeometry]): Option[Geometry] = singleGeometry.headOption
 
-    def flattenCoordinates:Seq[Double]
+    override def removeSimple(toDelete: SingleGeometry): Option[Geometry] = if(toDelete == this) None else Some(this)
   }
+
 
   sealed trait Geometry {
     def toSingle:Seq[SingleGeometry]
+
+    def equalsToFlattenCoords(flatCoords:Seq[Double]):Boolean = flattenCoordinates == flatCoords
+
+    def flattenCoordinates:Seq[Double] = toSingle.flatMap(_.flattenCoordinates)
+
+    def toGeom(singleGeometries: Seq[SingleGeometry]):Option[Geometry] = if(singleGeometries.nonEmpty) _toGeom(singleGeometries) else None
+    protected def _toGeom(singleGeometries: Seq[SingleGeometry]):Option[Geometry]
+
+    def removeSimple(toDelete:SingleGeometry) = {
+      val geoms = toSingle.zipWithIndex
+      geoms.find(_._1 == toDelete).flatMap{ case (_,i) =>
+        geoms.filterNot(_._2 == i).map(_._1).toList match {
+          case Nil => None
+          case gs => toGeom(gs)
+        }
+      }
+    }
+
+    def toString(precision:Double):String
   }
 
   case class Point(coordinates: Coordinates) extends SingleGeometry {
-    override def toString: String = s"POINT($coordinates)"
+    override def toString(precision:Double): String = s"POINT(${coordinates.toString(precision)})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatten
   }
 
   case class LineString(coordinates: Seq[Coordinates]) extends SingleGeometry {
-    override def toString: String = s"LINESTRING(${coordinates.mkString(",")})"
+    override def toString(precision:Double): String = s"LINESTRING(${coordinates.map(_.toString(precision)).mkString(",")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatten)
   }
 
   case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
-    override def toString: String = s"MULTIPOINT(${coordinates.mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"MULTIPOINT(${coordinates.map(_.toString(precision)).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Point(c))
+
+    override def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(MultiPoint(singleGeometries.map{case Point(coordinates) => coordinates }))
+
   }
 
   case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
-    override def toString: String = s"MULTILINESTRING(${coordinates.map(_.mkString(",")).mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"MULTILINESTRING(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => LineString(c))
+
+
+    override def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(MultiLineString(singleGeometries.map{case LineString(coordinates) => coordinates }))
+
   }
 
   case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends SingleGeometry {
-    override def toString: String = s"POLYGON(${coordinates.map(_.mkString(",")).mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"POLYGON(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatMap(_.flatten))
   }
 
   case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
-    override def toString: String = s"MULTIPOLYGON(${coordinates.map(_.map(_.mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
+    override def toString(precision:Double): String = s"MULTIPOLYGON(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Polygon(c))
+
+
+    override protected def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(MultiPolygon(singleGeometries.map{case Polygon(coordinates) => coordinates }))
+
   }
 
   case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry {
 
     override def toSingle: Seq[SingleGeometry] = geometries.flatMap(_.toSingle)
 
-    override def toString: String = s"GEOMETRYCOLLECTION(${geometries.mkString(",")})"
+    override def toString(precision:Double): String = s"GEOMETRYCOLLECTION(${geometries.map(_.toString(precision)).mkString(",")})"
+
+
+    override protected def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(GeometryCollection(singleGeometries))
+
+    override def removeSimple(toDelete: SingleGeometry): Option[Geometry] = {
+      val newGeometries = geometries.flatMap(_.removeSimple(toDelete))
+      if(newGeometries.nonEmpty) Some(GeometryCollection(newGeometries)) else None
+    }
   }
 
   object Geometry {

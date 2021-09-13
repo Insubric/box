@@ -1,6 +1,7 @@
 package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.utils.GeoJson
 import ch.wsl.box.model.shared.JSONField
 import io.circe._
 import io.circe.syntax._
@@ -54,7 +55,8 @@ case class MapParams(
                       features: MapParamsFeatures,
                       defaultProjection: String,
                       projections: Seq[MapParamsProjection],
-                      baseLayers: Option[Seq[MapParamsLayers]]
+                      baseLayers: Option[Seq[MapParamsLayers]],
+                      precision: Option[Double]
                     )
 
 trait MapWidget extends Logging {
@@ -70,6 +72,7 @@ trait MapWidget extends Logging {
       extent = Seq(-20026376.39, -20048966.10, 20026376.39, 20048966.10),
       unit = "m"
     )),
+    None,
     None
   )
 
