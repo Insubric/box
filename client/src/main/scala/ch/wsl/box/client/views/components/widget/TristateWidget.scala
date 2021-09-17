@@ -13,7 +13,7 @@ import scalacss.ScalatagsCss._
 import io.udash.css._
 import org.scalajs.dom.Event
 
-case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget with HasData {
+case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget with IsCheckBoxWithData {
 
   val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
 
@@ -85,14 +85,6 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
     tristateCheckbox(booleanModel).render
   }
 
-  override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
-    div(
-      if(
-        p.as[Boolean].right.toOption.contains(true) ||
-          p.as[Int].right.toOption.contains(1)
-      ) raw("&#10003;") else raw("&#10005;"), " ", field.title
-    ).render
-  }
 }
 
 object TristateWidget extends ComponentWidgetFactory {
