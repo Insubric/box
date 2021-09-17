@@ -722,7 +722,8 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val simpleCheckbox = style(
-    height(100.%%).important,
+    width(13 px),
+    height(13 px),
     float.none.important,
     borderWidth.`0`,
     border.`0`,
