@@ -92,10 +92,12 @@ trait Widget extends Logging {
 
 
   protected def saveAll(data:Json, metadata:JSONMetadata, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json])(implicit ec: ExecutionContext):Future[Json] = {
-    widgets.foldRight(Future.successful(data)){ (widget,result) =>
+    // start to empty and populate
+    widgets.foldRight(Future.successful(Json.Null)){ (widget,result) =>
       for{
         r <- result
-        newResult <- widgetAction(widget)(r,metadata)
+        // always pass the full data to the sub widget
+        newResult <- widgetAction(widget)(data,metadata)
       } yield {
         r.deepMerge(newResult)
       }

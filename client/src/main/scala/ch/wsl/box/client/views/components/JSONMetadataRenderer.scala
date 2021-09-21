@@ -183,19 +183,6 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
     val fieldData = data.bitransform(_.js(field.name))((fd:Json) => data.get.deepMerge(Json.obj((field.name,fd))))
 
-//    data.listen({ d =>
-//      val newJs = d.js(field.name)
-//      if( newJs != fieldData.get) {
-//        fieldData.set(newJs)
-//      }
-//    },true)
-//
-//    fieldData.listen{ fd =>
-//      if(data.get.js(field.name) != fd) {
-//        data.set(data.get.deepMerge(Json.obj((field.name,fd))))
-//      }
-//    }
-
     WidgetVisibility(widgetSelector(field, id, fieldData),checkCondition(field))
 
   }}.getOrElse(WidgetVisibility(HiddenWidget.HiddenWidgetImpl(JSONField.empty)))
@@ -210,7 +197,11 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     import io.circe.syntax._
 
     override def afterSave(value:Json,metadata:JSONMetadata): Future[Json] = saveAll(value,metadata,widgets.map(_.widget),_.afterSave)
-    override def beforeSave(value:Json,metadata:JSONMetadata) = saveAll(value,metadata,widgets.map(_.widget),_.beforeSave)
+    override def beforeSave(value:Json,metadata:JSONMetadata) = {
+      // WSS-228 when a field is hidden ignore it for persistence
+      logger.info(s"All: ${widgets.map(_.widget.field.name)}, visible only: ${widgets.filter(_.visibility.get).map(_.widget.field.name)}")
+      saveAll(value,metadata,widgets.filter(_.visibility.get).map(_.widget),_.beforeSave)
+    }
 
     override def killWidget(): Unit = widgets.foreach(_.widget.killWidget())
 
