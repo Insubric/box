@@ -126,6 +126,35 @@ trait HasData extends Widget {
 
 }
 
+
+trait IsCheckBoxWithData extends Widget {
+  def data:Property[Json]
+
+  private def checkbox2string(p: Json):JsDom.all.Modifier = {
+    p.as[Boolean].right.toOption match {
+      case Some(true) => raw("&#10003;")
+      case Some(false) => raw("&#10005;")
+      case _ => "-"
+    }
+  }
+
+  override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+    div(
+      checkbox2string(p) , " ", field.title
+    ).render
+  }
+  override def showOnTable(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+    div(
+      checkbox2string(p)
+    ).render
+  }
+
+  override def text(): ReadableProperty[String] = data.transform(_.string)
+
+}
+
+
+
 case class WidgetCallbackActions(saveAndThen: (Json => Unit) => Unit)
 
 object WidgetCallbackActions{
