@@ -293,7 +293,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     services.clientSession.loading.set(true)
 
-    logger.info("reloading rows")
+    logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
 
     val q = query().copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
