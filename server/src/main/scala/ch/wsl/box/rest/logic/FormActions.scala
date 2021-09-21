@@ -56,7 +56,7 @@ case class FormActions(metadata:JSONMetadata,
     JSONQuery(
       filter = defaultQuery.filter ++ query.filter,
       sort = query.sort ++ defaultQuery.sort,
-      paging = defaultQuery.paging.orElse(query.paging),
+      paging = query.paging.orElse(defaultQuery.paging),
       lang = defaultQuery.lang
     )
   }.getOrElse(query)

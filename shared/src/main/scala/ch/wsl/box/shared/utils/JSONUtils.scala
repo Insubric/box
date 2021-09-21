@@ -80,7 +80,11 @@ object JSONUtils extends Logging {
         override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
         override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
         override def onString(value: String): Json = Json.fromString(value)
-        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields))
+        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields).filterNot{ //remove empty array elements
+          _.as[JsonObject] match {
+            case Left(_) => false
+            case Right(value) => value.keys.isEmpty
+          }})
         override def onObject(value: JsonObject): Json = Json.fromJsonObject{
           value.filter(!_._1.startsWith("$")).mapValues(_.removeNonDataFields)
         }
