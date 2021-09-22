@@ -93,7 +93,7 @@ trait Widget extends Logging {
 
   protected def saveAll(data:Json, metadata:JSONMetadata, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json])(implicit ec: ExecutionContext):Future[Json] = {
     // start to empty and populate
-    widgets.foldRight(Future.successful(Json.Null)){ (widget,result) =>
+    widgets.foldLeft(Future.successful(Json.Null)){ (result,widget) =>
       for{
         r <- result
         // always pass the full data to the sub widget

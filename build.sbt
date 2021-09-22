@@ -1,4 +1,5 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
+import org.scalajs.jsenv.Input.Script
 
 val publishSettings = List(
   Global / scalaJSStage := FullOptStage,
@@ -132,9 +133,9 @@ lazy val client: Project = (project in file("client"))
       "proj4" -> "2.5.0",
       "@types/proj4" -> "2.5.0",
       "ol-ext" -> "3.1.14",
-      "jquery" -> "3.3.1",
+      "jquery" -> "3.4.1",
+      "@types/jquery" -> "3.5.6",
       "popper.js" -> "1.16.1",
-      "@types/jquery" -> "3.3.1",
       "bootstrap" -> "4.1.3",
       "@types/bootstrap" -> "4.1.3",
       "flatpickr" -> "4.6.3",
@@ -175,19 +176,19 @@ lazy val client: Project = (project in file("client"))
 
 
     //To use jsdom headless browser uncomment the following lines
-//    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
-//    Test / jsEnvInput := Def.task{
-//      val targetDir = (npmUpdate in Test).value
-//      println(targetDir)
-//      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
-//      println(r)
-//      r
-//    }.value,
+    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / jsEnvInput := Def.task{
+      val targetDir = (npmUpdate in Test).value
+      println(targetDir)
+      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
+      println(r)
+      r
+    }.value,
+    Test / scalaJSStage := FastOptStage,
 
     //To use Selenium uncomment the following line
-    Test / scalaJSStage := FullOptStage,
-    Test / jsEnv := BrowserStackRunner.load(),
-
+//    Test / scalaJSStage := FullOptStage,
+//    Test / jsEnv := BrowserStackRunner.load(),
 
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
