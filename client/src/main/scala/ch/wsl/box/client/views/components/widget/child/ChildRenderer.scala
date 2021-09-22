@@ -194,8 +194,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     private def propagate[T](data: Json,f: (Widget => ((Json, JSONMetadata) => Future[T]))): Future[Seq[T]] = {
 
-      val childMetadata = children.find(_.objId == child.objId).get
-
       val rows = data.seq(child.key)
       BrowserConsole.log(io.circe.scalajs.convertJsonToJs(rows.asJson))
 
@@ -204,15 +202,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
         val oldData = cw.data.get
         val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m) == cw.rowId.get )).getOrElse(Json.obj())
-
-        logger.debug(s"olddata: $oldData")
-        logger.debug(s"newdata: $newData")
-
         val d = oldData.deepMerge(newData)
 
-        logger.debug(s"result: $newData")
+        logger.debug(s"olddata: \n $oldData \n\n newdata: \n $newData \n\n result: \n $d")
 
-        f(cw.widget)(d, childMetadata).map{ r =>
+        f(cw.widget)(d, metadata.get).map{ r =>
           r
         }
       }.toSeq)
