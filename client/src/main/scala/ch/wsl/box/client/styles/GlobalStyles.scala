@@ -249,6 +249,14 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     float.right
   )
 
+  val tableHeaderFixed = style(
+    unsafeRoot("thead") (
+      position.sticky,
+      top.`0`,
+      backgroundColor.white
+    )
+  )
+
   val smallCells = style(
     padding.horizontal(3 px),
     padding.vertical(15 px),
