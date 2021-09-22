@@ -510,7 +510,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           else Seq()
         },
         div(BootstrapStyles.Visibility.clearfix),
-        div(id := "box-table", ClientConf.style.fullHeightMax,
+        div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
           UdashTable(model.subSeq(_.rows))(
 
             headerFactory = Some(_ => {

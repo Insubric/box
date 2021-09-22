@@ -86,6 +86,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   httpClient.setHandleAuthFailure(() => {
     if(logged.get) {
       logger.info("Authentication failure, trying to get a new valid session")
+      services.clientSession.loading.set(false)
       LoginPopup.show()
     }
   })
