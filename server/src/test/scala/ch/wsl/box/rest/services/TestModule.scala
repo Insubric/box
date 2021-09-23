@@ -1,5 +1,6 @@
 package ch.wsl.box.rest.services
 
+import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.rest.Module
 import ch.wsl.box.rest.routes.v1.NotificationChannels
@@ -17,6 +18,14 @@ import scala.concurrent.ExecutionContext
 case class TestModule(container: PostgreSQLContainer) extends Module {
 
   val injector = newDesign
+    .bind[ExecutionContext].toInstance{
+      ExecutionContext.fromExecutor(
+        new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
+      )
+    }
+    .bind[ActorSystem].toInstance{
+      ActorSystem()
+    }
     .bind[ImageCacheStorage].to[PgImageCacheStorage]
     .bind[MailService].to[MailServiceCourier]
     .bind[PostgreSQLContainer].toInstance(container)
