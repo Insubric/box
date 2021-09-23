@@ -4,6 +4,8 @@ import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JS
 import io.circe._
 import io.circe.syntax._
 
+import java.util.UUID
+
 class Values {
   val headerLangEn = "test header en"
   val headerLangIt = "test header it"
@@ -13,7 +15,8 @@ class Values {
 
   val uiConf = Map(
     "title" -> "Test Title",
-    "index.html" -> s"""<div id="$titleId">$titleText</div>"""
+    "index.html" -> s"""<div id="$titleId">$titleText</div>""",
+    "debug" -> "true"
   )
 
   val conf = Map(
@@ -33,8 +36,12 @@ class Values {
   val readOnlyField = "read_only_test"
   val readOnlyValue = "read_only_test_value"
 
-  val metadata = JSONMetadata(
-    1,
+  val id1 = UUID.fromString("e4f47af2-28a0-4732-8bcc-107d430f4ea3")
+  val id2 = UUID.fromString("c8fc2910-a111-46a9-bdf5-c289f2f3199f")
+  val id3 = UUID.fromString("6c5c0149-2aca-4a8f-b2bb-ede770529989")
+
+  def metadata = JSONMetadata(
+    id1,
     testFormName,
     testFormTitle,
     fields = Seq(
@@ -66,7 +73,7 @@ class Values {
         widget = Some(WidgetsNames.tableChild),
         nullable = false,
         child = Some(Child(
-          objId = 2,
+          objId = id2,
           key = "child",
           masterFields = "id",
           childFields = "parent_id",
@@ -94,8 +101,8 @@ class Values {
     static = false
   )
 
-  val childMetadata = JSONMetadata(
-    2,
+  def childMetadata = JSONMetadata(
+    id2,
     "child",
     "Child form",
     fields = Seq(
@@ -120,7 +127,7 @@ class Values {
         widget = Some(WidgetsNames.tableChild),
         nullable = false,
         child = Some(Child(
-          objId = 3,
+          objId = id3,
           key = "subchild",
           masterFields = "id",
           childFields = "child_id",
@@ -143,7 +150,7 @@ class Values {
   )
 
   val subchildMetadata = JSONMetadata(
-    3,
+    id3,
     "subchild",
     "SubChild form",
     fields = Seq(
@@ -204,6 +211,10 @@ class Values {
         ).asJson
       ).asJson
     }
+  }
+
+  def insert(data:Json):JSONID = {
+    JSONID(id = Vector(JSONKeyValue("id","1")))
   }
 
   def update(id:JSONID,obj:Json):JSONID = {

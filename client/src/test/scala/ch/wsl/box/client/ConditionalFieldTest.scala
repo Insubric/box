@@ -24,20 +24,20 @@ class ConditionalFieldTest extends TestBase {
         _ <- Future {
           Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", "1"))).asString), false))
         }
-        _ <- waitElement(() => document.querySelector(s".${TestHooks.formField(values.conditionerField)}"))
+        _ <- waitElement(() => document.querySelector(s".${TestHooks.formField(values.conditionerField)}"),s".${TestHooks.formField(values.conditionerField)}")
         conditioner = document.querySelector(s".${TestHooks.formField(values.conditionerField)}").asInstanceOf[HTMLInputElement]
         _ <- Future {
           assert(!condidionalVisible())
           conditioner.value = values.conditionalValue
           conditioner.onchange(new Event("change"))
         }
-        _ <- waitElement(conditionalField)
+        _ <- waitElement(conditionalField,"conditional field")
         _ <- Future {
           assert(condidionalVisible())
           conditioner.value = "something else"
           conditioner.onchange(new Event("change"))
         }
-        _ <- waitNotElement(conditionalField)
+        _ <- waitNotElement(conditionalField,"should be null")
         _ <- Future {
           assert(!condidionalVisible())
         }

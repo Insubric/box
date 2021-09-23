@@ -10,6 +10,7 @@ import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLDivElement, HTMLElement}
 import typings.std.HTMLButtonElement
 
+import java.util.UUID
 import scala.concurrent.Future
 
 class MiddleChildDeletion extends TestBase {
@@ -60,11 +61,12 @@ class MiddleChildDeletion extends TestBase {
     var firstGet = true
 
     override def get(id: JSONID): Json = {
-      if(firstGet) {
+      if(firstGet == true) {
         firstGet = false
         data
-      } else
+      } else {
         expectedData
+      }
     }
 
 
@@ -74,14 +76,14 @@ class MiddleChildDeletion extends TestBase {
       JSONID.fromMap(Map("id" -> "1"))
     }
 
-    override val metadata: JSONMetadata = JSONMetadata.simple(1,parentName,"it",Seq(
+    override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,parentName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.string("parent_text"),
-      JSONField.child(childName,2,"id","parent_id").withWidget(WidgetsNames.tableChild)
+      JSONField.child(childName,values.id2,"id","parent_id").withWidget(WidgetsNames.tableChild)
     ),Seq("id"))
 
 
-    override val childMetadata: JSONMetadata = JSONMetadata.simple(2,childName,"it",Seq(
+    override def childMetadata: JSONMetadata = JSONMetadata.simple(values.id2,childName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.number("parent_id",nullable = false),
       JSONField.string("text")
@@ -89,19 +91,16 @@ class MiddleChildDeletion extends TestBase {
 
     override def children(entity: String): Seq[JSONMetadata] = Seq(childMetadata)
 
-
-
-
   }
 
   override def values: Values = new MCDValues
 
-  def countChilds(id:Int) = document.querySelectorAll(s"#${TestHooks.tableChildId(id)} .${TestHooks.tableChildRow}").length
+  def countChilds(id:UUID) = document.querySelectorAll(s"#${TestHooks.tableChildId(id)} .${TestHooks.tableChildRow}").length
 
   "Middle child" should "be deleted" in {
 
-    val secondChildOpenButton = TestHooks.tableChildButtonId(2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
-    val secondChildDeleteButton = TestHooks.deleteChildId(2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
+    val secondChildOpenButton = TestHooks.tableChildButtonId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
+    val secondChildDeleteButton = TestHooks.deleteChildId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
 
     for {
       _ <- Main.setupUI()
@@ -110,7 +109,7 @@ class MiddleChildDeletion extends TestBase {
       _ <- Future {
         Context.applicationInstance.goTo(EntityFormState("form", parentName, "true", Some("id::1"), false))
       }
-      _ <- waitId(secondChildOpenButton,"Open child button")
+      _ <- waitId(secondChildOpenButton,s"Open child button $secondChildOpenButton")
       _ <- Future.successful{
         document.getElementById(secondChildOpenButton).asInstanceOf[HTMLButtonElement].click()
       }
@@ -120,7 +119,7 @@ class MiddleChildDeletion extends TestBase {
       }
       _ <- formChanged
       _ <- Future.successful{
-        countChilds(2) shouldBe 2
+        countChilds(values.id2) shouldBe 2
         document.getElementById(TestHooks.actionButton(SharedLabels.form.save)).asInstanceOf[HTMLElement].click()
       }
       _ <- formUnchanged

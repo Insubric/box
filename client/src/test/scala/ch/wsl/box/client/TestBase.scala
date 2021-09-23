@@ -7,6 +7,7 @@ import ch.wsl.box.client.utils.TestHooks
 import scala.util.Try
 import scalajs.js
 import org.scalajs.dom.{Element, MutationObserver, MutationObserverInit, document, window}
+import org.scalatest.Assertion
 import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
 import org.scalatest.matchers.should
 import scribe.{Level, Logger, Logging}
@@ -40,15 +41,15 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     promise.future
   }
 
-  def login = Context.services.clientSession.login("test", "test")
+  def login: Future[Boolean] = Context.services.clientSession.login("test", "test")
 
-  def waitLoggedIn = waitElement{() => document.getElementById(TestHooks.logoutButton)}
+  def waitLoggedIn: Future[Boolean] = waitElement({ () => document.getElementById(TestHooks.logoutButton)},"Logout button")
 
   private def waiter(w:() => Boolean,name:String = ""):Future[Boolean] = {
     val promise = Promise[Boolean]()
     logger.info("Waiter")
     val timeout = window.setTimeout({() =>
-      println(document.body.innerHTML)
+      println(s"Errored html: \n ${document.body.innerHTML}")
       promise.failure(new TimeoutException(s"Element $name not found after 10 seconds"))
     },10000)
     val observer = new MutationObserver({(mutations,observer) =>
@@ -68,26 +69,26 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     promise.future
   }
 
-  def waitId(id:String,name:String = "") = waitElement({() =>
+  def waitId(id:String,name:String = ""): Future[Boolean] = waitElement({ () =>
     document.getElementById(id)
-  },name)
+  },if(name.isEmpty) s"Wait for id: $id" else name)
 
-  def waitNotId(id:String,name:String = "") = waitNotElement({() =>
+  def waitNotId(id:String,name:String = ""): Future[Boolean] = waitNotElement({ () =>
     document.getElementById(id)
-  },name)
+  },if(name.isEmpty) s"Wait for not id: $id" else name)
 
-  def waitElement(elementExtractor:() => Element,name:String = "") = waiter( () => document.contains(elementExtractor()),name)
+  def waitElement(elementExtractor:() => Element,name:String): Future[Boolean] = waiter(() => document.contains(elementExtractor()),name)
 
-  def waitNotElement(elementExtractor:() => Element,name:String = "") = waiter( () => !document.contains(elementExtractor()),name)
+  def waitNotElement(elementExtractor:() => Element,name:String): Future[Boolean] = waiter(() => !document.contains(elementExtractor()),name)
 
-  def shouldBe(condition: Boolean) = {
+  def shouldBe(condition: Boolean): Assertion = {
     if(!condition) {
       println(document.documentElement.outerHTML)
     }
     condition shouldBe true
   }
 
-  def formChanged = waitId(TestHooks.dataChanged,"Data changed")
-  def formUnchanged = waitNotId(TestHooks.dataChanged,"Data unchanged")
+  def formChanged: Future[Boolean] = waitId(TestHooks.dataChanged)
+  def formUnchanged: Future[Boolean] = waitNotId(TestHooks.dataChanged)
 
 }
