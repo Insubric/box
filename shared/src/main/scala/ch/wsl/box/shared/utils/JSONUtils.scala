@@ -72,6 +72,19 @@ object JSONUtils extends Logging {
       } else None
     }
 
+    def removeEmptyArray:Json = {
+
+      el.asObject match {
+        case Some(obj) => Json.fromFields(obj.toIterable.flatMap{ case (k,js) =>
+          js.asArray match {
+            case Some(value) => if(value.nonEmpty) Some(k -> js) else None
+            case None => Some(k -> js)
+          }
+        })
+        case None => el
+      }
+
+    }
 
     def removeNonDataFields:Json = {
 

@@ -86,24 +86,6 @@ trait Widget extends Logging {
   }
 
 
-  import scalacss.ScalatagsCss._
-  import scalatags.JsDom.all._
-  import io.udash.css.CssView._
-
-
-  protected def saveAll(data:Json, metadata:JSONMetadata, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json])(implicit ec: ExecutionContext):Future[Json] = {
-    // start to empty and populate
-    widgets.foldLeft(Future.successful(Json.Null)){ (result,widget) =>
-      for{
-        r <- result
-        // always pass the full data to the sub widget
-        newResult <- widgetAction(widget)(data,metadata)
-      } yield {
-        r.deepMerge(newResult)
-      }
-    }
-  }
-
 }
 
 object Widget{

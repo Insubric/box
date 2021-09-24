@@ -49,7 +49,7 @@ object Settings {
     val junit = "4.12"
     val scalatest = "3.2.2"
     val selenium = "3.14.0"
-    val testcontainersScalaVersion = "0.39.3"
+    val testcontainersScalaVersion = "0.39.8"
 
 
     //json parsers

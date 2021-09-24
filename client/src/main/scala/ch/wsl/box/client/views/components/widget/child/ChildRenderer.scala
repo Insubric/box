@@ -204,7 +204,18 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m) == cw.rowId.get )).getOrElse(Json.obj())
         val d = oldData.deepMerge(newData)
 
-        logger.debug(s"olddata: \n $oldData \n\n newdata: \n $newData \n\n result: \n $d")
+        logger.debug(
+          s"""
+             |propagate
+             |field: ${field.name}
+             |olddata:
+             |$oldData
+             |
+             |newdata:
+             |$newData
+             |
+             |result:
+             | $d""".stripMargin)
 
         f(cw.widget)(d, metadata.get).map{ r =>
           r
@@ -214,9 +225,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       out
     }
 
-    def collectData(jsChilds:Seq[Json]) = {
+    def collectData(data:Json)(jsChilds:Seq[Json]) = {
       logger.debug(Map(child.key -> jsChilds.asJson).asJson.toString())
-      Map(child.key -> jsChilds.asJson).asJson
+      data.deepMerge(Map(child.key -> jsChilds.asJson).asJson)
     }
 
     override def afterSave(data: Json, m: JSONMetadata): Future[Json] = {
@@ -235,12 +246,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
 
       logger.debug("After save")
-      propagate(data, _.afterSave).map(collectData)
+      propagate(data, _.afterSave).map(collectData(data))
     }
 
     override def beforeSave(data: Json, metadata: JSONMetadata) = {
       logger.debug("Before save")
-      propagate(data, _.beforeSave).map(collectData)
+      propagate(data, _.beforeSave).map(collectData(data))
     }
 
     override def killWidget(): Unit = {

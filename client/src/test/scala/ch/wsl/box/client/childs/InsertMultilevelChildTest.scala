@@ -31,6 +31,7 @@ class InsertMultilevelChildTest extends TestBase {
     }
   }
 
+
   override def rest: REST = new ExpectingMock
 
 
@@ -43,15 +44,15 @@ class InsertMultilevelChildTest extends TestBase {
         _ <- Future {
           Context.applicationInstance.goTo(EntityFormState("form", values.testFormName, "true", None,false))
         }
-        _ <- waitElement(() => document.getElementById(TestHooks.addChildId(2)))
+        _ <- waitElement(() => document.getElementById(TestHooks.addChildId(values.id2)),s"Add child 2 button - ${TestHooks.addChildId(values.id2)}")
         _ <- Future {
-          document.getElementById(TestHooks.addChildId(2)).asInstanceOf[HTMLElement].click()
+          document.getElementById(TestHooks.addChildId(values.id2)).asInstanceOf[HTMLElement].click()
         }
-        _ <- waitElement(() => document.getElementById(TestHooks.addChildId(3)))
+        _ <- waitElement(() => document.getElementById(TestHooks.addChildId(values.id3)),s"Add child 3 button - ${TestHooks.addChildId(values.id3)}")
         _ <- Future {
-          document.getElementById(TestHooks.addChildId(3)).asInstanceOf[HTMLElement].click()
+          document.getElementById(TestHooks.addChildId(values.id3)).asInstanceOf[HTMLElement].click()
         }
-        _ <- waitElement(() => document.querySelector(s".${TestHooks.formField("text")}"))
+        _ <- waitElement(() => document.querySelector(s".${TestHooks.formField("text")}"),s"FormField - ${TestHooks.formField("text")}")
         _ <- Future {
 
           val inputChild = document.querySelector(s".${TestHooks.formField("text")}").asInstanceOf[HTMLInputElement]
@@ -62,7 +63,7 @@ class InsertMultilevelChildTest extends TestBase {
           inputSubChild.value = subchildText
           inputSubChild.onchange(new Event("change"))
         }
-        _ <- waitElement(() => document.getElementById(TestHooks.dataChanged))
+        _ <- waitElement(() => document.getElementById(TestHooks.dataChanged),"Data changed")
         _ <- Future {
           assert(document.getElementById(TestHooks.dataChanged) != null)
           document.getElementById(TestHooks.actionButton(SharedLabels.form.save)).asInstanceOf[HTMLElement].click()
