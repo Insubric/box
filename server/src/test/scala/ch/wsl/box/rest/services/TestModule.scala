@@ -9,6 +9,7 @@ import ch.wsl.box.services.config.{Config, DummyConfigImpl}
 import ch.wsl.box.services.file.ImageCacheStorage
 import ch.wsl.box.services.files.PgImageCacheStorage
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier}
+import ch.wsl.box.services.mail_dispatcher.{DummyMailDispatcherService, MailDispatcherService}
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import wvlet.airframe.newDesign
 
@@ -32,6 +33,7 @@ case class TestModule(container: PostgreSQLContainer) extends Module {
     .bind[Connection].to[TestContainerConnection]
     .bind[NotificationChannels].to[DummyNotificationChannels]
     .bind[Config].to[DummyConfigImpl]
+    .bind[MailDispatcherService].to[DummyMailDispatcherService]
     .bind[Services].toEagerSingleton
 
 }
