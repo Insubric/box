@@ -8,7 +8,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.UserDatabase
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
 
@@ -101,7 +101,7 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
   )
 
 
-  def insertForm(implicit db:UserDatabase) = for{
+  def insertForm(implicit db:UserDatabase): Future[(String, UUID, UUID, UUID)] = for{
     _ <- db.run(BoxFormTable.filter(x => x.name === parentName || x.name === childName ).delete)
     parentId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_uuid)) += parentForm)
     childId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_uuid)) += childForm)
@@ -110,6 +110,6 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
     _ <- db.run(DBIO.sequence(childFormFields(childId,subchildId).map(x => BoxFieldTable += x)))
     _ <- db.run(DBIO.sequence(subchildFormFields(subchildId).map(x => BoxFieldTable += x)))
   } yield {
-    parentForm.name
+    (parentForm.name,parentId,childId,subchildId)
   }
 }

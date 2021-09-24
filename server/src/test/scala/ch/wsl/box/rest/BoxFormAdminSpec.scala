@@ -22,10 +22,10 @@ class BoxFormAdminSpec extends BaseSpec {
     implicit val bdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      _ <- new FormFixtures("db_").insertForm(services.connection.adminDB)
+      (_,mainId,_,_) <- new FormFixtures("db_").insertForm(services.connection.adminDB)
       form <- services.connection.adminDB.run(BoxFormMetadataFactory().of("form","it"))
       actions = FormActions(form,BoxActionsRegistry.apply.tableActions,BoxFormMetadataFactory())
-      f <- services.connection.adminDB.run(actions.getById(JSONID.fromMap(Map("form_id" -> "1" ))))
+      f <- services.connection.adminDB.run(actions.getById(JSONID.fromMap(Map("form_uuid" -> mainId.toString ))))
       fieldsBefore <- services.connection.adminDB.run(BoxField.BoxFieldTable.length.result)
       updatedForm = f.get.hcursor.downField("fields").set(f.get.seq("fields").tail.asJson).top.get
       _ <- services.connection.adminDB.run(actions.updateIfNeeded(JSONID.fromData(f.get,form).get,updatedForm))
