@@ -16,7 +16,7 @@ nav_order: 1
 ## What is BOX
 BOX is a framework that aims allowing also non developers to quickly create and modify complete and complex web applications on top of postgres databases, minimizing development and management costs.
 
-This open source project is the result of a fruitful collaboration between the Swiss federal institute of forest, snow and landscape research WSL ([https://www.wsl.ch](www.wsl.ch)) and Wavein.ch Sagl ([https://wavein.ch](wavein.ch)). It has originally been developed to allow environmental researchers with basic database skills to manage their own research data, building web applications on top of it to access and modify data, visualize or export results.
+This open source project is the result of a fruitful collaboration between the Swiss federal institute of forest, snow and landscape research WSL ([www.wsl.ch](https://www.wsl.ch)) and Wavein.ch Sagl ([wavein.ch](https://wavein.ch)). It has originally been developed to allow environmental researchers with basic database skills to manage their own research data, building web applications on top of it to access and modify data, visualize or export results.
 
 It is now becoming more and more feature rich and is moving outside the academic world, finding application in many other fields like logistics, event organization, content management system (CMS), customer relationship manager (CRM) and others.
 
