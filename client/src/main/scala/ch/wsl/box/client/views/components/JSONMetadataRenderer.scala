@@ -91,21 +91,25 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     // start to empty and populate
 
     def extractFields(fields:Either[String,SubLayoutBlock]):Seq[String] = fields match {
-      case Left(value) => Seq(value)
+      case Left(value) if metadata.fields.exists(_.name == value) => Seq(value)
+      case Left(_) => Seq()
       case Right(value) => value.fields.flatMap(extractFields)
     }
 
     val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
       widgetAction(b._2)(data,metadata).map { intermediateResult =>
         val fields:Seq[String] = b._1.fields.flatMap(extractFields)
+        logger.info(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n $fields")
         Json.fromFields(fields.flatMap{k =>
           intermediateResult.jsOpt(k).map(v => k -> v)
         })
       }
     })
 
-    blocksResult.map{ js =>
 
+
+    blocksResult.map{ js =>
+      logger.info(s"metadata: ${metadata.name} blocksResult: $js \n\n data: $data")
       val defaults:Seq[(String,Json)] = metadata.fields.filter(_.default.isDefined).flatMap{f =>
         data.jsOpt(f.name)
             .orElse(JSONUtils.toJs(f.default.get,f.`type`))
@@ -115,7 +119,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
       val keys = metadata.keys.map(k => k -> data.js(k))
 
       val base:Json = Json.fromFields(defaults ++ keys)
-      js.foldLeft(base){ (acc,n) => acc.deepMerge(n)}
+      val result = js.foldLeft(base){ (acc,n) => acc.deepMerge(n)}
+      logger.info(s"metadata: ${metadata.name} merge: $result")
+      result
     }
 
 
