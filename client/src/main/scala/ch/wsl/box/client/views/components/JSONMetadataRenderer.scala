@@ -8,6 +8,7 @@ import ch.wsl.box.client.views.components.widget._
 import ch.wsl.box.client.views.components.widget.child.ChildRenderer
 import ch.wsl.box.client.views.components.widget.labels.{StaticTextWidget, TitleWidget}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.syntax.EncoderOps
@@ -97,20 +98,29 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
       widgetAction(b._2)(data,metadata).map { intermediateResult =>
         val fields:Seq[String] = b._1.fields.flatMap(extractFields)
-        Json.fromFields(fields.map(k => k -> intermediateResult.js(k)))
+        Json.fromFields(fields.flatMap{k =>
+          intermediateResult.jsOpt(k).map(v => k -> v)
+        })
       }
     })
 
     blocksResult.map{ js =>
-      js.foldLeft(Json.Null){ (acc,n) => acc.deepMerge(n)}
+
+      val defaults:Seq[(String,Json)] = metadata.fields.filter(_.default.isDefined).flatMap{f =>
+        data.jsOpt(f.name)
+            .orElse(JSONUtils.toJs(f.default.get,f.`type`))
+            .map(v => f.name -> v)
+      }
+
+      val keys = metadata.keys.map(k => k -> data.js(k))
+
+      val base:Json = Json.fromFields(defaults ++ keys)
+      js.foldLeft(base){ (acc,n) => acc.deepMerge(n)}
     }
 
 
 
   }
-
-
-
 
   val blocks: Seq[(LayoutBlock, Widget)] = metadata.layout.blocks.map { block =>
     val hLayout = block.distribute.contains(true) match {
