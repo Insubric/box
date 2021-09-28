@@ -193,13 +193,12 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         updatedData <- widget.beforeSave(data,metadata)
         (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields)
         afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
-
-
       } yield {
 
         logger.debug(afterSaveResult.toString())
 
         enableGoAway
+        model.subProp(_.insert).set(false)
         services.clientSession.loading.set(false)
 
         action(newId)
