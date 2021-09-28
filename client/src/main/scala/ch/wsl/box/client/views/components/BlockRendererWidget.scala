@@ -18,7 +18,7 @@ object WidgetVisibility{
   def apply(widget: Widget): WidgetVisibility = WidgetVisibility(widget, Property(true))
 }
 
-class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, SubLayoutBlock]], horizontal: Either[Stream[Int],Boolean]) extends Widget with HasData {
+class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, SubLayoutBlock]], horizontal: Either[Stream[Int],Boolean], titleSub:Option[String] = None) extends Widget with HasData {
 
 
   import ch.wsl.box.client.Context._
@@ -104,28 +104,9 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
   }
   import io.circe.syntax._
 
-  private def subBlock(block: SubLayoutBlock):WidgetVisibility = WidgetVisibility(new Widget {
-
-    val widget = new BlockRendererWidget(widgetParams,block.fields, Left(Stream.continually(block.fieldsWidth.toStream).flatten))
-
-    override def afterSave(data:Json,form:JSONMetadata): Future[Json] = widget.afterSave(data,form)
-    override def beforeSave(data:Json,form:JSONMetadata): Future[Json] = widget.beforeSave(data,form)
-
-    override def killWidget(): Unit = widget.killWidget()
-
-    override def field: JSONField = JSONField("block","block",false)
-
-    override def afterRender() = widget.afterRender()
-
-    override protected def show(): JsDom.all.Modifier = render(false)
-
-    override protected def edit(): JsDom.all.Modifier = render(true)
-
-    private def render(write:Boolean): JsDom.all.Modifier = div(BootstrapCol.md(12), ClientConf.style.subBlock)(
-      block.title.map( t => h3(minHeight := 20.px, Labels(t))),  //renders title in subblocks
-      widget.render(write,Property(true))
-    )
-  })
+  private def subBlock(block: SubLayoutBlock):WidgetVisibility = WidgetVisibility(
+    new BlockRendererWidget(widgetParams,block.fields, Left(Stream.continually(block.fieldsWidth.toStream).flatten),block.title.orElse(Some("")))
+  )
 
 
   private def saveAll(data:Json, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
@@ -139,7 +120,10 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
         val k = widget.field.name
 
-        val result = r.deepMerge(Map(k -> newResult.js(k)).asJson)
+        val result = widget match {
+          case blockRendererWidget: BlockRendererWidget => r.deepMerge(newResult)
+          case _ => r.deepMerge(Map(k -> newResult.js(k)).asJson)
+        }
 
         logger.debug(
           s"""
@@ -161,7 +145,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
   override def afterSave(value:Json,metadata:JSONMetadata): Future[Json] = saveAll(value,widgets.map(_.widget),_.afterSave)
   override def beforeSave(value:Json,metadata:JSONMetadata) = {
     // WSS-228 when a field is hidden ignore it for persistence
-    logger.info(s"All: ${widgets.map(_.widget.field.name)}, visible only: ${widgets.filter(_.visibility.get).map(_.widget.field.name)}")
+    logger.info(s"metadata: ${metadata.name} All: ${widgets.map(_.widget.field.name)}, visible only: ${widgets.filter(_.visibility.get).map(_.widget.field.name)}")
     saveAll(value,widgets.filter(_.visibility.get).map(_.widget),_.beforeSave)
   }
 
@@ -194,10 +178,23 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
     }
   )
 
+
   private def render(write:Boolean): JsDom.all.Modifier = {
-    horizontal match {
-      case Left(widths) => fixedWidth(widths,write)
+
+    def ren() = horizontal match {
+      case Left(widths) => fixedWidth(widths, write)
       case Right(_) => distribute(write)
     }
+
+    titleSub match {
+      case None => ren()
+      case Some(title) => {
+        div(BootstrapCol.md(12), ClientConf.style.subBlock)(
+          if(title != "") h3(minHeight := 20.px, Labels(title)),  //renders title in subblocks
+          ren()
+        )
+      }
+    }
+
   }
 }
