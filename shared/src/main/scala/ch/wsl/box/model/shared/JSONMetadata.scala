@@ -80,12 +80,6 @@ object JSONMetadata extends Logging {
       val value:Option[Json] = Try((default, field.`type`) match {
         case (Some("arrayIndex"),_) => None
         case (Some("auto"),_) => None
-        case (Some(d),JSONFieldTypes.NUMBER) => Some(d.toDouble.asJson)
-        case (Some(d),JSONFieldTypes.INTEGER) => Some(d.toInt.asJson)
-        case (Some(d),JSONFieldTypes.BOOLEAN) => Some(d.toBoolean.asJson)
-        case (Some(d),_) => Some(d.asJson)
-        case (None,JSONFieldTypes.NUMBER) => None
-        case (None,JSONFieldTypes.BOOLEAN) => None
         case (None,JSONFieldTypes.CHILD) => {
           for{
             child <- field.child
@@ -93,6 +87,7 @@ object JSONMetadata extends Logging {
             result <- childPlaceholder(field,sub,subforms)
           } yield result
         }
+        case (Some(d),typ) => JSONUtils.toJs(d,typ)
         case (None,_) => None
       }).toOption.flatten
 

@@ -6,7 +6,7 @@ nav_order: 7
 
 # Contacts
 
-Andrea Minetti
+### Andrea Minetti
 
 [wavein.ch](https://wavein.ch)
 
@@ -15,3 +15,10 @@ Andrea Minetti
 [![Linkedin](https://i.stack.imgur.com/gVE0j.png) LinkedIn](https://www.linkedin.com/in/minettiandrea/)
 &nbsp;
 [![GitHub](https://i.stack.imgur.com/tskMh.png) GitHub](https://github.com/minettiandrea/)
+
+### Gianni Boris Pezzatti
+
+[Personal page](https://www.wsl.ch/en/employees/pezzatti.html)
+
+[boris.pezzatti@wsl.ch](mailto:boris.pezzatti@wsl.ch)
+

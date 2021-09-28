@@ -1,9 +1,13 @@
 package ch.wsl.box.shared.utils
 
-import ch.wsl.box.model.shared.JSONID
+import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
+import ch.wsl.box.model.shared.{JSONFieldTypes, JSONID}
 import io.circe._
+import io.circe.syntax.EncoderOps
 import scribe.Logging
 import yamusca.imports._
+
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andre on 5/22/2017.
@@ -12,6 +16,24 @@ object JSONUtils extends Logging {
 
   val LANG = "::lang"
   val FIRST = "::first"
+
+  def toJs(value:String,typ:String):Option[Json] = {
+    Try {
+      val json:Json = typ match {
+        case JSONFieldTypes.NUMBER => value.toDouble.asJson
+        case JSONFieldTypes.INTEGER => value.toInt.asJson
+        case JSONFieldTypes.BOOLEAN => Json.fromBoolean(value.toBoolean)
+        case _ => Json.fromString(value)
+      }
+      json
+    } match {
+      case Failure(exception) => {
+        logger.warn(exception.getMessage)
+        None
+      }
+      case Success(value) => Some(value)
+    }
+  }
 
   implicit class EnhancedJson(el:Json) {
 
@@ -46,7 +68,8 @@ object JSONUtils extends Logging {
     }
 
     //return JSON value of the given field
-    def js(field:String):Json = el.hcursor.get[Json](field).right.getOrElse(Json.Null)
+    def js(field:String):Json = jsOpt(field).getOrElse(Json.Null)
+    def jsOpt(field:String):Option[Json] = el.hcursor.get[Json](field).right.toOption
 
     def seq(field:String):Seq[Json] = {
       val result = el.hcursor.get[Seq[Json]](field)
