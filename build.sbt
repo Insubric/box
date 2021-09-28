@@ -176,7 +176,7 @@ lazy val client: Project = (project in file("client"))
 
 
     //To use jsdom headless browser uncomment the following lines
-    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / jsEnv := new net.exoego.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
     Test / jsEnvInput := Def.task{
       val targetDir = (npmUpdate in Test).value
       println(targetDir)
