@@ -18,7 +18,7 @@ nav_order: 7
 
 ### Gianni Boris Pezzatti
 
-[Personal page](https://www.wsl.ch/en/employees/pezzatti.html)
+[Personal homepage at WSL](https://www.wsl.ch/en/employees/pezzatti.html)
 
 [boris.pezzatti@wsl.ch](mailto:boris.pezzatti@wsl.ch)
 

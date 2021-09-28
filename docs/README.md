@@ -12,6 +12,15 @@ nav_order: 1
 [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.boxframework/box-server_2.12.svg?server=https%3A%2F%2Fs01.oss.sonatype.org&style=flat-square&logo=scala&label=last-snapshot)](https://s01.oss.sonatype.org/content/repositories/snapshots/com/boxframework/box-server_2.12/)
 
 
+## Supported by
+
+
+![WSL](https://dms-media.wavein.ch/wi-dms/wsl_small.png)
+![wavein.ch](https://dms-media.wavein.ch/wi-dms/wavein_logo_small.png)
+
+
+
+
 
 ## What is BOX
 BOX is a framework that aims allowing also non developers to quickly create and modify complete and complex web applications on top of postgres databases, minimizing development and management costs.
@@ -55,10 +64,4 @@ And many new features are on the way ...
 * File support, with image processing capabilities
 * Native geographic support (PostGIS)
 * Sending mails from the system
-
-## Supported by
-
-![WSL](https://dms-media.wavein.ch/wi-dms/wsl_small.png)
-![wavein.ch](https://dms-media.wavein.ch/wi-dms/wavein_logo_small.png)
-
 
