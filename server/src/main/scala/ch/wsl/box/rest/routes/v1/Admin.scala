@@ -26,17 +26,15 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   import ch.wsl.box.rest.utils.JSONSupport._
 
 
-  def forms = pathPrefix("box-admin") {
+  def form = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,BoxActionsRegistry().tableActions,BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX.kind,schema = BoxSchema.schema).route
+        Form(name, lang,BoxActionsRegistry().tableActions,BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
       }
-    } ~ pathEnd{
-      complete(services.connection.adminDB.run(BoxFormMetadataFactory().list))
     }
   }
 
-  def boxAdmins = path("box-admins") {
+  def forms = path(EntityKind.BOX_FORM.plural) {
     get {
       complete(services.connection.adminDB.run(BoxFormMetadataFactory().list))
     }
@@ -52,14 +50,14 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
     BoxFileRoutes.route(session.userProfile.get, mat, ec, services)
   }
 
-  def boxentity = pathPrefix("boxentity") {
+  def boxentity = pathPrefix(EntityKind.BOX_TABLE.kind) {
     BoxRegistry.generated match {
       case Some(value) => pathPrefix(Segment) { lang => value.routes(lang) }
       case None => complete(StatusCodes.InternalServerError, "Can't find generate routes, run generateModel again")
     }
   }
 
-  def entities = path("boxentities") {
+  def entities = path(EntityKind.BOX_TABLE.plural) {
     get {
       complete((BoxFieldAccessRegistry.tables ++ BoxFieldAccessRegistry.views).sorted)
     }
@@ -97,8 +95,8 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
   val route = new Auth().onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
     //access to box tables for administrator
+    form ~
     forms ~
-    boxAdmins ~
     createStub  ~
     file  ~
     boxentity   ~

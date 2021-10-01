@@ -25,11 +25,11 @@ object PopupWidgetFactory extends ComponentWidgetFactory  {
 
   override def name: String = WidgetsNames.popup
 
-  override def create(params: WidgetParams): Widget = PopupWidget(params.field,params.prop,params.allData)
+  override def create(params: WidgetParams): Widget = PopupWidget(params.field,params.prop,params.allData,params.metadata,params.public)
 
 }
 
-case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadableProperty[Json]) extends LookupWidget with Logging {
+case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadableProperty[Json],metadata:JSONMetadata,public:Boolean) extends LookupWidget with Logging {
 
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._

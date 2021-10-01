@@ -1,6 +1,6 @@
 package ch.wsl.box.client.mocks
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
 
@@ -43,6 +43,7 @@ class Values {
   def metadata = JSONMetadata(
     id1,
     testFormName,
+    EntityKind.FORM.kind,
     testFormTitle,
     fields = Seq(
       JSONField(
@@ -104,6 +105,7 @@ class Values {
   def childMetadata = JSONMetadata(
     id2,
     "child",
+    EntityKind.FORM.kind,
     "Child form",
     fields = Seq(
       JSONField(
@@ -152,6 +154,7 @@ class Values {
   val subchildMetadata = JSONMetadata(
     id3,
     "subchild",
+    EntityKind.FORM.kind,
     "SubChild form",
     fields = Seq(
       JSONField(

@@ -80,9 +80,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       metadata <- if(reloadMetadata) services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public) else Future.successful(model.get.metadata.get)
-      children <- if(Seq(EntityKind.FORM,EntityKind.BOX).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
+      children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       data <- state.id match {
-        case Some(id) => services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId.get)
+        case Some(id) => services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId.get,state.public)
         case None => Future.successful{
           Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*)
         }
@@ -173,11 +173,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
         for {
           id <- JSONID.fromString(m.id.getOrElse("")) match {
-            case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data)
+            case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
             case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
           }
           result <- m.public match {
-            case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id)
+            case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id,m.public)
             case true => Future.successful(data)
           }
         } yield {
@@ -218,7 +218,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def reload(id:JSONID): Future[Json] = {
     services.clientSession.loading.set(true)
     for{
-      resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id)
+      resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
       result <- {
         val promise = Promise[Json]()
         reset()
@@ -304,7 +304,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload),changed)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload),changed,model.subProp(_.public).get)
     widget
   }
 

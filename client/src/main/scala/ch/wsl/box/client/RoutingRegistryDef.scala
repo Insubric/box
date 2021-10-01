@@ -57,6 +57,8 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/logout" => LogoutState
     case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank)
     case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std)
+    case "/public" / "box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),true,Layouts.std)
+    case "/public" / "box" / kind / entity / "row" / write / id / "blank" => EntityFormState(kind,entity,write,Some(id),true,Layouts.blank)
     case "/entities" => LoginState("/entities")
     case "/tables" => LoginState("/tables")
     case "/views" => LoginState("/views" )

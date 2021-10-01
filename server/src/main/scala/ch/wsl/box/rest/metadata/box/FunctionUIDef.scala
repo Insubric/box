@@ -11,6 +11,7 @@ object FunctionUIDef {
 
   val main = JSONMetadata(
     objId = FUNCTION,
+    kind = EntityKind.BOX_FORM.kind,
     name = "function",
     label = "Function builder",
     fields = Seq(
@@ -81,6 +82,7 @@ object FunctionUIDef {
 
   def field(tables:Seq[String]) = JSONMetadata(
     objId = FUNCTION_FIELD,
+    kind = EntityKind.BOX_FORM.kind,
     name = "field",
     label = "Field builder",
     fields = Seq(
@@ -129,6 +131,7 @@ object FunctionUIDef {
 
   val fieldI18n = JSONMetadata(
     objId = FUNCTION_FIELD_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "fieldI18n",
     label = "FieldI18n builder",
     fields = Seq(
@@ -161,6 +164,7 @@ object FunctionUIDef {
 
   val functionI18n = JSONMetadata(
     objId = FUNCTION_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FormI18n builder",
     label = "FormI18n builder",
     fields = Seq(

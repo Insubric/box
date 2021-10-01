@@ -51,10 +51,12 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
     val prefix = if(public) "/public" else ""
     httpClient.get[Seq[JSONMetadata]](Routes.apiV1(s"$prefix/$kind/$lang/$entity/children"))
   }
-  def lookup(lang:String,lookupEntity: String, map: JSONFieldMap, queryWithSubstitutions: Json): Future[Seq[JSONLookup]] = {
+  def lookup(kind:String, lang:String,entity:String, field:String, queryWithSubstitutions: Json, public:Boolean): Future[Seq[JSONLookup]] = {
+    val prefix = if(public) "/public" else ""
     queryWithSubstitutions.as[JSONQuery] match {
-      case Right(query) => httpClient.post[JSONQuery, Seq[JSONLookup]](Routes.apiV1(s"/entity/$lang/$lookupEntity/lookup/${map.textProperty}/${map.valueProperty}"), query)
+      case Right(query) => httpClient.post[JSONQuery, Seq[JSONLookup]](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/lookup/$field"), query)
       case Left(fail) => {
+        logger.warn(fail.message)
         Future.successful(Seq())
       }
     }
@@ -62,8 +64,14 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
 
   //for entities and forms
-  def get(kind:String, lang:String, entity:String, id:JSONID):Future[Json] = httpClient.get[Json](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"))
-  def update(kind:String, lang:String, entity:String, id:JSONID, data:Json):Future[JSONID] = httpClient.put[Json,JSONID](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"),data)
+  def get(kind:String, lang:String, entity:String, id:JSONID, public:Boolean):Future[Json] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.get[Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"))
+  }
+  def update(kind:String, lang:String, entity:String, id:JSONID, data:Json, public:Boolean):Future[JSONID] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.put[Json,JSONID](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"),data)
+  }
   def updateMany(kind:String, lang:String, entity:String, ids:Seq[JSONID], data:Seq[Json]):Future[Seq[JSONID]] = httpClient.put[Seq[Json],Seq[JSONID]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${JSONID.toMultiString(ids)}"),data)
   def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean): Future[JSONID] = {
     val prefix = if(public) "/public" else ""

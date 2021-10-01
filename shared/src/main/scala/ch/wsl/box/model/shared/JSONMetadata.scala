@@ -22,6 +22,7 @@ case object SurrugateKey extends KeyStrategy
 case class JSONMetadata(
                          objId:java.util.UUID,
                          name:String,
+                         kind: String,
                          label:String,
                          fields:Seq[JSONField],
                          layout:Layout,
@@ -101,9 +102,10 @@ object JSONMetadata extends Logging {
   }
 
 
-  def simple(id:UUID, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
+  def simple(id:UUID, kind:String, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
     objId = id,
     name = entity,
+    kind = kind,
     label = entity,
     fields = fields,
     layout = Layout(Seq(LayoutBlock(None,12,None,fields.map(x => Left(x.name))))),

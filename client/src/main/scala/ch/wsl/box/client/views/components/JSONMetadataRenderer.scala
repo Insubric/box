@@ -29,7 +29,7 @@ import org.scalajs.dom.Event
   */
 
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean]) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -135,7 +135,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     }
     (
       block,
-      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions),block.fields,hLayout)
+      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,hLayout)
     )
   }
 

@@ -84,16 +84,16 @@ class RestMock(values:Values) extends REST with Logging {
     values.children(entity)
   }
 
-  override def lookup(lang: String, lookupEntity: String, map: JSONFieldMap, queryWithSubstitutions: Json): Future[Seq[JSONLookup]] = {
+  override def lookup(kind:String, lang:String,entity:String,  field:String, queryWithSubstitutions: Json,public:Boolean): Future[Seq[JSONLookup]] = {
     println("lookup not implemented")
     ???
   }
 
-  override def get(kind: String, lang: String, entity: String, id: JSONID): Future[Json] = Future.successful{
+  override def get(kind: String, lang: String, entity: String, id: JSONID, public:Boolean): Future[Json] = Future.successful{
     values.get(id)
   }
 
-  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json): Future[JSONID] = {
+  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean): Future[JSONID] = {
     Future.successful(values.update(id,data))
   }
 

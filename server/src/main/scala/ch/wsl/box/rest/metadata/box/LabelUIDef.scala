@@ -1,6 +1,6 @@
 package ch.wsl.box.rest.metadata.box
 
-import ch.wsl.box.model.shared.{Child, FormActionsMetadata, JSONField, JSONFieldTypes, JSONMetadata, JSONQuery, JSONSort, Layout, LayoutBlock, NaturalKey, Sort, SubLayoutBlock, SurrugateKey, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONMetadata, JSONQuery, JSONSort, Layout, LayoutBlock, NaturalKey, Sort, SubLayoutBlock, SurrugateKey, WidgetsNames}
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.rest.metadata.box.Constants.{LABEL, LABEL_CONTAINER, PAGE}
 import ch.wsl.box.rest.utils.BoxConfig
@@ -9,6 +9,7 @@ object LabelUIDef {
 
   val labelContainer = JSONMetadata(
     objId = LABEL_CONTAINER,
+    kind = EntityKind.BOX_FORM.kind,
     name = "labels",
     label = "Labels",
     fields = Seq(
@@ -23,7 +24,7 @@ object LabelUIDef {
         ))
       )
     ),
-    Layout(
+    layout = Layout(
       blocks = Seq(
         LayoutBlock(None,12,None,Seq("labels").map(Left(_))),
       )
@@ -43,6 +44,7 @@ object LabelUIDef {
 
   val label = JSONMetadata(
     objId = LABEL,
+    kind = EntityKind.BOX_FORM.kind,
     name = "label",
     label = "Labels",
     fields = Seq(
@@ -50,7 +52,7 @@ object LabelUIDef {
     ) ++ BoxConfig.langs.map{l =>
       JSONField(JSONFieldTypes.STRING,l,true,widget = Some(WidgetsNames.input))
     },
-    Layout(
+    layout = Layout(
       blocks = Seq(
         LayoutBlock(None,12,None,(Seq("key")++BoxConfig.langs).map(Left(_))),
       )

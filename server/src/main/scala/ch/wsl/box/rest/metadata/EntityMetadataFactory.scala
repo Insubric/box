@@ -154,6 +154,7 @@ object EntityMetadataFactory extends Logging {
           JSONMetadata(
             UUID.randomUUID(),
             table,
+            EntityKind.ENTITY.kind,
             table,
             fields,
             Layout.fromFields(fields),

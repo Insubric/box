@@ -52,12 +52,12 @@ class UiConfPresenter(viewModel:ModelProperty[UiConfViewModel]) extends Presente
 
   import Context._
 
-  private def loadEntries() = services.rest.list(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"ui",10000).map{ confs =>
+  private def loadEntries() = services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"ui",10000).map{ confs =>
     confs.flatMap(js => js.as[UiConfEntry].toOption)
 
   }
 
-  private def loadAccessLevels() = services.rest.list(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"access_level",10000).map{ confs =>
+  private def loadAccessLevels() = services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"access_level",10000).map{ confs =>
     confs.flatMap(js => js.as[AccessLevel].toOption)
 
   }
@@ -115,9 +115,9 @@ class UiConfPresenter(viewModel:ModelProperty[UiConfViewModel]) extends Presente
     val keysToDelete:Seq[JSONID] = entriesToDelete.map(_.id)
     val data:Seq[Json] = entries.map(_.asJson)
 
-    services.rest.updateMany(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"ui",keys,data)
+    services.rest.updateMany(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"ui",keys,data)
     if(keysToDelete.nonEmpty)
-      services.rest.deleteMany(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"ui",keysToDelete)
+      services.rest.deleteMany(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"ui",keysToDelete)
   }
 
 }
