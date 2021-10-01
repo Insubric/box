@@ -20,7 +20,9 @@ object EntityKind {
   final val TABLE = EntityKind("table")
   final val VIEW =  EntityKind("view")
   final val FORM =  EntityKind("form")
-  final val BOXENTITY =  EntityKind("boxentity")
-  final val BOX =  EntityKind("box-admin")
+  final val BOX_TABLE =  EntityKind("box-table")
+  final val BOX_FORM =  EntityKind("box-form")
+  final val FUNCTION =  EntityKind("function")
+  final val EXPORT =  EntityKind("export")
 
 }

@@ -14,6 +14,7 @@ object FormUIDef {
 
   def main(tables:Seq[String], users:Seq[BoxUser_row]) = JSONMetadata(
     objId = FORM,
+    kind = EntityKind.BOX_FORM.kind,
     name = "form",
     label = "Form - Interface builder",
     fields = Seq(
@@ -53,7 +54,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"exportFields",true,widget = Some(WidgetsNames.input)),
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
-          Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
+          Some(JSONQuery.sortByKeys(Seq("name")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
           ""
         )),
         widget = Some(WidgetsNames.tableChild)
@@ -99,6 +100,7 @@ object FormUIDef {
 
   def page(users:Seq[BoxUser_row]) = JSONMetadata(
     objId = PAGE,
+    kind = EntityKind.BOX_FORM.kind,
     name = "page",
     label = "Pages - Interface builder",
     fields = Seq(
@@ -158,6 +160,7 @@ object FormUIDef {
 
   def field(tables:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD,
+    kind = EntityKind.BOX_FORM.kind,
     name = "Field builder",
     label = "Field builder",
     fields = Seq(
@@ -167,7 +170,7 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
         child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,"")),
         condition = Some(ConditionalField("type",Seq(JSONFieldTypes.FILE.asJson))),
@@ -219,7 +222,7 @@ object FormUIDef {
     rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("name"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -227,6 +230,7 @@ object FormUIDef {
 
   def field_childs(forms:Seq[BoxForm.BoxForm_row]) = JSONMetadata(
     objId = FORM_FIELD_CHILDS,
+    kind = EntityKind.BOX_FORM.kind,
     name = "Field builder childs",
     label = "Field builder childs",
     fields = Seq(
@@ -243,7 +247,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.CHILD)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.STRING,"child_form_uuid",true,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
@@ -317,7 +321,7 @@ object FormUIDef {
     rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("name"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -325,6 +329,7 @@ object FormUIDef {
 
   def field_static(tables:Seq[String],functions:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_STATIC,
+    kind = EntityKind.BOX_FORM.kind,
     name = "Field builder static",
     label = "Field builder static",
     fields = Seq(
@@ -341,7 +346,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.STATIC)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,label=Some("Parent field"),
@@ -386,7 +391,7 @@ object FormUIDef {
     rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("name"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -394,6 +399,7 @@ object FormUIDef {
 
   val fieldI18n = JSONMetadata(
     objId = FORM_FIELD_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FieldI18n builder",
     label = "FieldI18n builder",
     fields = Seq(
@@ -424,7 +430,7 @@ object FormUIDef {
     rawTabularFields = Seq("lang","label","lookupTextField"),
     keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("lang"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -432,6 +438,7 @@ object FormUIDef {
 
   def formI18n(views:Seq[String]) = JSONMetadata(
     objId = FORM_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FormI18n builder",
     label = "FormI18n builder",
     fields = Seq(
@@ -457,7 +464,7 @@ object FormUIDef {
     rawTabularFields = Seq("lang","label","view_table"),
     keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("lang"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -465,6 +472,7 @@ object FormUIDef {
 
   val fieldFile = JSONMetadata(
     objId = FORM_FIELD_FILE,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FieldFile builder",
     label = "FieldFile builder",
     fields = Seq(

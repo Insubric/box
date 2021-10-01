@@ -41,7 +41,7 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
   import Context._
 
   override def handleState(state: AdminConfState.type): Unit = {
-    services.rest.list(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"conf",10000).map{ confs =>
+    services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"conf",10000).map{ confs =>
       val entries = confs.flatMap(js => js.as[ConfEntry].toOption)
       viewModel.subProp(_.entries).set(entries)
     }
@@ -53,8 +53,8 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
     val data:Seq[Json] = viewModel.get.entries.map(_.asJson)
 
     for {
-      _ <- services.rest.updateMany(EntityKind.BOXENTITY.kind, services.clientSession.lang(), "conf", keys, data)
-      _ <- services.rest.updateMany(EntityKind.BOXENTITY.kind, services.clientSession.lang(), "conf", keys, data)
+      _ <- services.rest.updateMany(EntityKind.BOX_TABLE.kind, services.clientSession.lang(), "conf", keys, data)
+      _ <- services.rest.updateMany(EntityKind.BOX_TABLE.kind, services.clientSession.lang(), "conf", keys, data)
     } yield Navigate.back()
 
     e.preventDefault()

@@ -15,6 +15,7 @@ object NewsUIDef {
 
   val main = JSONMetadata(
     objId = NEWS,
+    kind = EntityKind.BOX_FORM.kind,
     name = "news",
     label = "News editor",
     fields = Seq(
@@ -45,6 +46,7 @@ object NewsUIDef {
 
   val newsI18n = JSONMetadata(
     objId = NEWS_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "newsI18n",
     label = "NewsI18n builder",
     fields = Seq(

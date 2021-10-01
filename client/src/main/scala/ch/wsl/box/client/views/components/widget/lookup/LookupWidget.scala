@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.Labels
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONMetadata}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
@@ -23,9 +23,11 @@ trait LookupWidget extends Widget with HasData {
 
 
   def allData:ReadableProperty[Json]
+  def public:Boolean
 
 
   def field:JSONField
+  def metadata:JSONMetadata
   def lookup:ReadableProperty[Seq[JSONLookup]] = _lookup
 
   private val _lookup:Property[Seq[JSONLookup]] = {
@@ -33,26 +35,6 @@ trait LookupWidget extends Widget with HasData {
   }
 
   val model:Property[Option[JSONLookup]] = Property(None)
-
-  field.lookup.get.lookupExtractor.foreach{case extractor =>
-    allData.listen({ all =>
-      val newLookup = toSeq(extractor.map.getOrElse(all.js(extractor.key), Seq()))
-      setNewLookup(newLookup,None)
-    },true)
-  }
-
-  data.sync[Option[JSONLookup]](model)(
-    {json:Json =>
-      val result = lookup.get.find(_.id == json).getOrElse{
-        logger.warn(s"Lookup for $json not found")
-        JSONLookup(json,json.string)
-      }
-      Some(result)
-    },
-    {jsonLookup:Option[JSONLookup] => jsonLookup.map(_.id).asJson}
-  )
-
-
 
 
   override def showOnTable(): JsDom.all.Modifier = {
@@ -64,9 +46,6 @@ trait LookupWidget extends Widget with HasData {
     }))
   }
   override def text() = model.transform(_.map(_.value).getOrElse(""))
-
-
-
 
   private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = s
 
@@ -94,6 +73,9 @@ trait LookupWidget extends Widget with HasData {
   var widgetCacheKeys:scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
 
   def fetchRemoteLookup(q:String,look:JSONFieldLookup) = {
+
+    logger.debug(s"Fetching remote lookup $q")
+
     val cacheKey = typings.jsMd5.mod.^(look.lookupEntity + look.map + q)
 
     val currentModel = model.get
@@ -115,7 +97,10 @@ trait LookupWidget extends Widget with HasData {
             case Right(j) => j
           }
 
-          services.rest.lookup(services.clientSession.lang(), look.lookupEntity, look.map, jsonQuery).map { lookups =>
+          logger.debug(s"Calling lookup with $jsonQuery")
+
+          services.rest.lookup( metadata.kind,services.clientSession.lang(), metadata.name, field.name, jsonQuery, public).map { lookups =>
+            logger.debug(s"Lookup $lookups fetched")
             if (lookups.nonEmpty) {
               LookupWidget.remoteLookup.put(cacheKey, toSeq(lookups))
             }
@@ -127,30 +112,7 @@ trait LookupWidget extends Widget with HasData {
     }
   }
 
-    for {
-      look <- field.lookup
-      query <- look.lookupQuery
-    } yield {
-      if (query.find(_ == '#').nonEmpty) {
 
-        val variables = extractVariables(query)
-
-        val variableData = allData.transform { js =>
-          variables.map(v => (v, js.js(v))).toMap
-        }
-
-        variableData.listen({ vars =>
-          if(vars.values.forall(!_.isNull)) {
-            val q = variables.foldRight(query) { (variable, finalQuery) =>
-              finalQuery.replaceAll("#" + variable, vars(variable).toString())
-            }
-            fetchRemoteLookup(q,look)
-          } else {
-            _lookup.set(Seq())
-          }
-        }, true)
-      }
-    }
 
 
   override def killWidget(): Unit = {
@@ -165,5 +127,49 @@ trait LookupWidget extends Widget with HasData {
       query.substring(i+1,nextIndex).replaceAll("\n","").trim
     }.distinct
   }
+
+  field.lookup.get.lookupExtractor.foreach{case extractor =>
+    allData.listen({ all =>
+      val newLookup = toSeq(extractor.map.getOrElse(all.js(extractor.key), Seq()))
+      setNewLookup(newLookup,None)
+    },true)
+  }
+
+  for {
+    look <- field.lookup
+    query <- look.lookupQuery
+  } yield {
+    if (query.find(_ == '#').nonEmpty) {
+
+      val variables = extractVariables(query)
+
+      val variableData = allData.transform { js =>
+        variables.map(v => (v, js.js(v))).toMap
+      }
+      logger.debug(s"Variables: ${variableData.get}")
+
+      variableData.listen({ vars =>
+        if(vars.values.forall(!_.isNull)) {
+          val q = variables.foldRight(query) { (variable, finalQuery) =>
+            finalQuery.replaceAll("#" + variable, "\"" + vars(variable).string + "\"")
+          }
+          fetchRemoteLookup(q,look)
+        } else {
+          _lookup.set(Seq())
+        }
+      }, true)
+    }
+  }
+
+  data.sync[Option[JSONLookup]](model)(
+    {json:Json =>
+      val result = lookup.get.find(_.id == json).getOrElse{
+        logger.warn(s"Lookup for $json not found")
+        JSONLookup(json,json.string)
+      }
+      Some(result)
+    },
+    {jsonLookup:Option[JSONLookup] => jsonLookup.map(_.id).asJson}
+  )
 
 }

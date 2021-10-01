@@ -139,7 +139,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
 
       val changed = Property(false)
-      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,WidgetCallbackActions(saveAndThen(childId)),changed)
+      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,WidgetCallbackActions(saveAndThen(childId)),changed,widgetParam.public)
 
       val changeListener = changed.listen(_ => checkChanges())
 

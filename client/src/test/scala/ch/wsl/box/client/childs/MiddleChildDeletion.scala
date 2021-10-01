@@ -3,7 +3,7 @@ package ch.wsl.box.client.childs
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{JSONField, JSONID, JSONKeyValue, JSONMetadata, SharedLabels, WidgetsNames}
+import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID, JSONKeyValue, JSONMetadata, SharedLabels, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
 import org.scalajs.dom.document
@@ -76,14 +76,14 @@ class MiddleChildDeletion extends TestBase {
       JSONID.fromMap(Map("id" -> "1"))
     }
 
-    override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,parentName,"it",Seq(
+    override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,parentName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.string("parent_text"),
       JSONField.child(childName,values.id2,"id","parent_id").withWidget(WidgetsNames.tableChild)
     ),Seq("id"))
 
 
-    override def childMetadata: JSONMetadata = JSONMetadata.simple(values.id2,childName,"it",Seq(
+    override def childMetadata: JSONMetadata = JSONMetadata.simple(values.id2,EntityKind.FORM.kind,childName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.number("parent_id",nullable = false),
       JSONField.string("text")

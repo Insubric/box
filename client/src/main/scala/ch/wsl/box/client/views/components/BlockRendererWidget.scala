@@ -81,7 +81,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
     logger.debug(s"Selected widget for ${field.name}: ${widg}")
 
-    widg.create(WidgetParams(widgetParams.id,fieldData,_field,widgetParams.metadata,data,widgetParams.children,widgetParams.actions))
+    widg.create(WidgetParams(widgetParams.id,fieldData,_field,widgetParams.metadata,data,widgetParams.children,widgetParams.actions,widgetParams.public))
 
   }
 

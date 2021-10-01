@@ -115,6 +115,7 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
       JSONMetadata(
         export.export_uuid.get,
         export.function,
+        EntityKind.EXPORT.kind,
         exportI18n.flatMap(_.label).getOrElse(name),
         jsonFields,layout,exportI18n.flatMap(_.function).getOrElse(export.function),
         lang,

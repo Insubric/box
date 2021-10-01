@@ -20,12 +20,12 @@ import scala.concurrent.Future
 object SelectWidgetFactory extends ComponentWidgetFactory  {
   override def name: String = WidgetsNames.select
 
-  override def create(params: WidgetParams): Widget = new SelectWidget(params.field, params.prop, params.allData)
+  override def create(params: WidgetParams): Widget = new SelectWidget(params.field, params.prop, params.allData,params.metadata, params.public)
 
 }
 
 
-class SelectWidget(val field:JSONField, val data: Property[Json], val allData:ReadableProperty[Json]) extends  LookupWidget with Logging {
+class SelectWidget(val field:JSONField, val data: Property[Json], val allData:ReadableProperty[Json],val metadata:JSONMetadata, val public:Boolean) extends  LookupWidget with Logging {
 
   val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).contains(true)
 

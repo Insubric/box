@@ -231,6 +231,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       val result = JSONMetadata(
         form.form_uuid.get,
         form.name,
+        EntityKind.FORM.kind,
         formI18n.flatMap(_.label).getOrElse(form.name),
         jsonFields,
         layout,

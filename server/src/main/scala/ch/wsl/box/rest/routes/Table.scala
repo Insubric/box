@@ -94,20 +94,6 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     }
   }
 
-  def lookup:Route = pathPrefix("lookup") {
-    pathPrefix(Segment) { textProperty =>
-      path(Segment) { valueProperty =>
-        post{
-          entity(as[JSONQuery]){ query =>
-            complete {
-              db.run(Lookup.values(name, valueProperty, textProperty, query))
-            }
-          }
-        }
-      }
-    }
-  }
-
   def kind:Route = path("kind") {
     get {
       complete{EntityKind.VIEW.kind}
@@ -227,6 +213,26 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     onComplete(db.run(DBIO.sequence(ids.map( id => dbActions.delete(id))).transactionally)) {
       case Success(affectedRow) => complete(JSONCount(affectedRow.sum))
       case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+    }
+  }
+
+  def lookup:Route = path("lookup") {
+    path(Segment) { field =>
+      post {
+        entity(as[JSONQuery]) { query =>
+          complete {
+            for{
+              m <- EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk)
+              lookups <- {
+                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
+                  case None => throw new Exception(s"$field has no lookup")
+                }
+              }
+            } yield lookups
+          }
+        }
+      }
     }
   }
 

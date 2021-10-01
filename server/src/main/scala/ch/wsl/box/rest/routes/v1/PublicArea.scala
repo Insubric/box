@@ -25,7 +25,7 @@ case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:Act
 
   implicit val up = new Auth().adminUserProfile
 
-  def form = pathPrefix("form") {
+  def form:Route = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
         val route: Future[Route] = services.connection.adminDB.run(FormMetadataFactory.hasGuestAccess(name)).map {

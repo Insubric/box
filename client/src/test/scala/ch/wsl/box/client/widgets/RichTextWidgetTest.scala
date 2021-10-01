@@ -3,7 +3,7 @@ package ch.wsl.box.client.widgets
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONMetadata, Layout, LayoutBlock, NaturalKey, SharedLabels, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONMetadata, Layout, LayoutBlock, NaturalKey, SharedLabels, WidgetsNames}
 import io.circe.Json
 import org.scalajs.dom.{KeyboardEventInit, document, window}
 import org.scalajs.dom.ext._
@@ -42,7 +42,7 @@ class RichTextWidgetTest extends TestBase {
       JSONID.fromMap(Map("id" -> "1"))
     }
 
-    override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,testFormName,"it",Seq(
+    override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,testFormName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.string(rtfName).withWidget(WidgetsNames.richTextEditorFull)
     ),Seq("id"))

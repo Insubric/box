@@ -171,6 +171,26 @@ case class Form(
     }
   }
 
+  def lookup:Route = pathPrefix("lookup") {
+    path(Segment) { field =>
+      post {
+        entity(as[JSONQuery]) { query =>
+          complete {
+            for{
+              m <- boxDb.adminDb.run(metadata)
+              lookups <- {
+                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
+                  case None => throw new Exception(s"$field has no lookup")
+                }
+              }
+            } yield lookups
+          }
+        }
+      }
+    }
+  }
+
     def route = pathPrefix("id") {
       path(Segment) { strId =>
         JSONID.fromMultiString(strId) match {
@@ -309,6 +329,7 @@ case class Form(
         }
       }
     } ~
+    lookup ~
     xls ~
     csv ~
     pathEnd {
