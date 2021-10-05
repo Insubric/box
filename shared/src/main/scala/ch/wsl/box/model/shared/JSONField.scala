@@ -33,6 +33,11 @@ case class JSONField(
 
   def withWidget(name:String) = copy(widget = Some(name))
 
+  def isDbStored:Boolean = this.`type` match {
+    case JSONFieldTypes.CHILD | JSONFieldTypes.STATIC => false
+    case _ => true
+  }
+
 }
 
 object JSONField{

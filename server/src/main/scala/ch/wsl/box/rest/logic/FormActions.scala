@@ -232,10 +232,15 @@ case class FormActions(metadata:JSONMetadata,
     full <- getById(id)
   } yield full.getOrElse(Json.Null)
 
+  private def insertNullForMissingFields(json:Json):Json = {
+    val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored).map(x => x.name -> Json.Null))
+    allNullFields.deepMerge(json)
+  }
+
   def update(id:JSONID, e:Json) = {
     for{
       _ <- DBIO.sequence(subAction(e,_.upsertIfNeeded))  //need upsert to add new child records
-      result <- jsonAction.update(id,e)
+      result <- jsonAction.update(id,insertNullForMissingFields(e))
     } yield result
   }
 
@@ -243,7 +248,7 @@ case class FormActions(metadata:JSONMetadata,
 
     for{
       _ <- DBIO.sequence(subAction(e,_.upsertIfNeeded))  //need upsert to add new child records
-      result <- jsonAction.updateIfNeeded(id,e)
+      result <- jsonAction.updateIfNeeded(id,insertNullForMissingFields(e))
     } yield result
   }
 
