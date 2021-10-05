@@ -45,6 +45,19 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     } yield result
   }
 
+  def upsert(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
+
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+
+    for{
+      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
+      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
+      _ <- up.db.run(actions.upsertIfNeeded(Some(id),json).transactionally)
+      result <- up.db.run(actions.getById(id))
+    } yield result
+  }
+
   "Form"  should "update a row deleting a field"  in withServices[Assertion] { implicit services =>
       implicit val up = UserProfile(services.connection.adminUser)
       implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
@@ -78,6 +91,24 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
       (idEntry,result) <- insert(formName,base)
       resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name"))
       resultAfterUpdate <- update(formName,idEntry,resultWithDeletion)
+    } yield {
+      resultAfterUpdate.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
+    }
+  }
+
+  "Form with empty child"  should "upsert a row deleting a field"  in withServices[Assertion] { implicit services =>
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+
+
+    val base = stringToJson(DbManagedIdFixtures.layers(1))
+
+
+    for{
+      (formName,_,_,_) <- new FormFixtures("db_").insertForm(up.db)
+      (idEntry,result) <- insert(formName,base)
+      resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name"))
+      resultAfterUpdate <- upsert(formName,idEntry,resultWithDeletion)
     } yield {
       resultAfterUpdate.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
     }

@@ -259,7 +259,7 @@ case class FormActions(metadata:JSONMetadata,
         case None => DBIO.successful(None)
       } //retrieve values in db
       result <- if (current.isDefined) { //if exists, check if we have to skip the update (if row is the same)
-        update(id.get, current.get.deepMerge(json)).map(_ => id.get)
+        update(id.get, current.get.deepMerge(insertNullForMissingFields(json))).map(_ => id.get)
       } else {
         insert(json)
       }
