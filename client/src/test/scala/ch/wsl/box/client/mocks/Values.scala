@@ -27,6 +27,7 @@ class Values {
   val testFormName = "test_form"
   val testFormTitle = "test form"
 
+  val stringField = "string_field"
   val conditionerField = "test_conditioner"
   val conditionalField = "test_conditional"
   val conditionalValue = "active"
@@ -64,6 +65,11 @@ class Values {
       ),
       JSONField(
         JSONFieldTypes.STRING,
+        name = stringField,
+        nullable = true
+      ),
+      JSONField(
+        JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
         condition = Some(ConditionalField(conditionerField,Seq(conditionalValue.asJson)))
@@ -88,6 +94,7 @@ class Values {
       Left(readOnlyField),
       Left(conditionerField),
       Left(conditionalField),
+      Left(stringField),
     )))),
     entity = "test",
     lang = "it",

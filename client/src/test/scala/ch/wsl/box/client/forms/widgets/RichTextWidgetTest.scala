@@ -1,19 +1,14 @@
-package ch.wsl.box.client.widgets
+package ch.wsl.box.client.forms.widgets
 
-import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
-import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONMetadata, Layout, LayoutBlock, NaturalKey, SharedLabels, WidgetsNames}
+import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
+import ch.wsl.box.model.shared._
 import io.circe.Json
-import org.scalajs.dom.{KeyboardEventInit, document, window}
-import org.scalajs.dom.ext._
-import org.scalajs.dom.raw.{Event, HTMLDivElement, HTMLElement, HTMLInputElement, KeyboardEvent}
+import io.circe.syntax._
+import org.scalajs.dom.document
+import org.scalajs.dom.raw.HTMLDivElement
 
 import scala.concurrent.Future
-import io.circe._
-import io.circe.syntax._
-
-import java.util.UUID
 
 
 
