@@ -69,7 +69,7 @@ And many new features are on the way ...
 
 thanks for free licenses to:
 
-[![JProfiler](https://www.ej-technologies.com/images/product_banners/jprofiler_medium.png)](https://www.ej-technologies.com/products/jprofiler/overview.html)
+[![JProfiler](https://www.ej-technologies.com/images/product_banners/jprofiler_medium.png)](https://www.ej-technologies.com/products/jprofiler/overview.html){:rel="nofollow"}
 
 
 
