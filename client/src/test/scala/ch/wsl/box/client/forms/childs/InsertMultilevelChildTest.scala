@@ -1,4 +1,4 @@
-package ch.wsl.box.client.childs
+package ch.wsl.box.client.forms.childs
 
 import ch.wsl.box.client.mocks.RestMock
 import ch.wsl.box.client.services.REST

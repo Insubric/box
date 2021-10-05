@@ -1,15 +1,13 @@
-package ch.wsl.box.client.childs
+package ch.wsl.box.client.forms.childs
 
-import ch.wsl.box.client.mocks.{RestMock, Values}
-import ch.wsl.box.client.services.REST
-import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
+import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
+import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.model.shared.{JSONID, JSONKeyValue, SharedLabels}
-import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.scalajs.dom.document
 import org.scalajs.dom.ext._
-import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
+import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 
 import java.util.UUID
 import scala.concurrent.Future

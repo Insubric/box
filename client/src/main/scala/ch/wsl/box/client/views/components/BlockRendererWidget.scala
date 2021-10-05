@@ -121,13 +121,17 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
         val k = widget.field.name
 
         val result = widget match {
-          case blockRendererWidget: BlockRendererWidget => r.deepMerge(newResult)
+          case blockRendererWidget: BlockRendererWidget => {
+            val newObj = newResult.asObject.map(_.asJson).getOrElse(Json.obj()) // handle the case with empty subblock
+            r.deepMerge(newObj)
+          }
           case _ => r.deepMerge(Map(k -> newResult.js(k)).asJson)
         }
 
         logger.debug(
           s"""
              |block field: ${widget.field.name}
+             |widget: $widget
              |original:
              |$r
              |

@@ -1,6 +1,10 @@
 title: Box 
 remote_theme: pmarsceill/just-the-docs
 search_enabled: true
+plugins:
+  - jekyll-autonofollow
 aux_links:
   "Box on GitHub":
     - "//github.com/Insubric/box"
+nofollow:
+  enable: true

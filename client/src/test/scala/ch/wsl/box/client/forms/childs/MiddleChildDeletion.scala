@@ -1,13 +1,13 @@
-package ch.wsl.box.client.childs
+package ch.wsl.box.client.forms.childs
 
-import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID, JSONKeyValue, JSONMetadata, SharedLabels, WidgetsNames}
+import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
+import ch.wsl.box.model.shared._
 import io.circe.Json
 import io.circe.syntax._
 import org.scalajs.dom.document
-import org.scalajs.dom.raw.{HTMLDivElement, HTMLElement}
+import org.scalajs.dom.raw.HTMLElement
 import typings.std.HTMLButtonElement
 
 import java.util.UUID

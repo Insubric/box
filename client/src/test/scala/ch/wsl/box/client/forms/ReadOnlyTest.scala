@@ -1,9 +1,10 @@
-package ch.wsl.box.client
+package ch.wsl.box.client.forms
 
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{EntityKind, JSONID, JSONKeyValue, SharedLabels}
-import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
-import org.scalajs.dom.{document, window}
+import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
+import ch.wsl.box.model.shared.{EntityKind, JSONID, JSONKeyValue}
+import org.scalajs.dom.document
+import org.scalajs.dom.raw.HTMLElement
 
 import scala.concurrent.Future
 
