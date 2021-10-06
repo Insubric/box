@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget.labels
 
+import ch.wsl.box.client.services.Labels
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import io.circe.Json
@@ -18,7 +19,7 @@ object StaticTextWidget extends ComponentWidgetFactory {
 
   case class StaticTextWidgetImpl(field:JSONField) extends Widget {
 
-    val _text:String = field.label.getOrElse(field.name)
+    val _text:String = field.label.getOrElse(Labels(field.name))
 
     override protected def show(): JsDom.all.Modifier = p(_text)
 
