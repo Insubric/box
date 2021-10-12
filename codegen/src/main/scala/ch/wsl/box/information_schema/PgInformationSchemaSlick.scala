@@ -130,6 +130,23 @@ class PgKeyUsages(tag: Tag) extends Table[PgKeyUsage](tag,  Some("information_sc
   def * = (constraint_name, table_name, column_name) <> (PgKeyUsage.tupled, PgKeyUsage.unapply)
 }
 
+
+case class PgView(
+                         table_name:String,
+                         table_schema:String,
+                         view_definition:String
+                       )
+
+class PgViews(tag: Tag) extends Table[PgView](tag,  Some("information_schema"), "views") {
+
+  def table_name = column[String]("table_name")
+  def table_schema = column[String]("table_schema")
+  def view_definition = column[String]("view_definition")
+
+
+  def * = (table_name, table_schema, view_definition) <> (PgView.tupled, PgView.unapply)
+}
+
 object PgInformationSchemaSlick{
   val pgTables = TableQuery[PgTables]
   val pgColumns = TableQuery[PgColumns]
@@ -137,6 +154,7 @@ object PgInformationSchemaSlick{
   val pgConstraintsReference = TableQuery[PgConstraintReferences]
   val pgContraintsUsage = TableQuery[PgConstraintUsages]
   val pgKeyUsage = TableQuery[PgKeyUsages]
+  val pgView = TableQuery[PgViews]
 }
 
 

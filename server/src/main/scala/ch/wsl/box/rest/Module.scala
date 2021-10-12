@@ -11,7 +11,8 @@ import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDum
 import ch.wsl.box.services.mail_dispatcher.{MailDispatcherService, SingleHostMailDispatcherService}
 import wvlet.airframe._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 
 trait Module{
   def injector:Design
@@ -35,8 +36,13 @@ object DefaultModule extends Module {
     .bind[Config].to[ConfigFileImpl]
     .bind[MailDispatcherService].to[SingleHostMailDispatcherService]
     .bind[Services].toEagerSingleton
+    .onShutdown{s =>
+      Await.result(s.actorSystem.terminate(),10.seconds)
+      s.connection.close()
+    }
 
   val connectionInjector = newDesign
     .bind[Connection].to[ConnectionConfImpl]
+    .onShutdown(c => c.close())
 
 }

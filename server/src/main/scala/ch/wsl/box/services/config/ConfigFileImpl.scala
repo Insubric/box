@@ -4,5 +4,9 @@ import com.typesafe.config.ConfigFactory
 import net.ceedubs.ficus.Ficus._
 
 class ConfigFileImpl extends Config {
-  override def boxSchemaName: Option[String] = Some( ConfigFactory.load().as[String]("box.db.schema"))
+
+  lazy val conf = ConfigFactory.load()
+
+  override def boxSchemaName: Option[String] = Some( conf.as[String]("box.db.schema"))
+  override def schemaName: String = conf.as[Option[String]]("db.schema").getOrElse("public")
 }
