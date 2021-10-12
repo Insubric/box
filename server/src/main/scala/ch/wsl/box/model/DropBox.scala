@@ -25,9 +25,9 @@ object DropBox {
     println("Dropping box tables")
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    DefaultModule.injector.build[Services] { services =>
-      Await.result(fut(services.connection.dbConnection),10 seconds)
-      services.connection.close()
+    DefaultModule.injector.build[Connection] { connection =>
+      Await.result(fut(connection.dbConnection),10 seconds)
+      connection.close()
     }
   }
 

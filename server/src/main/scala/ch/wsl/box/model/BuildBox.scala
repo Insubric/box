@@ -508,11 +508,11 @@ ALTER TABLE ONLY box.function_field
   def main(args: Array[String]): Unit = {
     println("Dropping box tables")
 
-    DefaultModule.injector.build[Services] { services =>
-      val installShowError = install(services.connection.dbConnection,services.connection.adminUser).recover{ case t:Throwable => t.printStackTrace()}
+    DefaultModule.injector.build[Connection] { connection =>
+      val installShowError = install(connection.dbConnection,connection.adminUser).recover{ case t:Throwable => t.printStackTrace()}
 
       Await.result(installShowError, 30 seconds)
-      services.connection.close()
+      connection.close()
 
       println("Box schema ready")
     }
