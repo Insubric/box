@@ -64,7 +64,7 @@ object Migrate {
       .schemas(connection.dbSchema)
       .defaultSchema(connection.dbSchema)
       .table("flyway_schema_history")
-      .locations("migrations")
+      .locations("migrations","classpath:migrations")
       .ignoreMissingMigrations(true)
       .dataSource(connection.dataSource("App migration"))
       .load()

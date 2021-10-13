@@ -292,11 +292,6 @@ lazy val publishAllTask = {
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {
   Def.sequential(
-    (client / clean),
-    (server / clean),
-    (serverCacheRedis / clean),
-    (serverServices / clean),
-    (codegen / clean),
     (client / Compile / fullOptJS / webpack),
     (codegen / Compile / compile),
     (sharedJVM / publishLocal),
