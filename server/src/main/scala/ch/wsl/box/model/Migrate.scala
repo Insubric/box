@@ -31,7 +31,7 @@ object Migrate {
       .schemas(BoxSchema.schema.get)
       .defaultSchema(BoxSchema.schema.get)
       .table("flyway_schema_history_box")
-      .locations("migrations")
+      .locations("box_migrations","classpath:box_migrations")
       .ignoreMissingMigrations(true)
       .dataSource(connection.dataSource("BOX Migration"))
       .load()
