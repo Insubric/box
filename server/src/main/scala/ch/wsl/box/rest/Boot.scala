@@ -18,8 +18,9 @@ import ch.wsl.box.model.Migrate
 import ch.wsl.box.rest.logic.cron.{BoxCronLoader, CronScheduler}
 import ch.wsl.box.rest.logic.notification.{MailHandler, NotificationsHandler}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
+import scala.io.StdIn
 
 
 class Box(name:String,version:String)(implicit services: Services) {
@@ -97,7 +98,7 @@ class Box(name:String,version:String)(implicit services: Services) {
           true
         }
       }
-    } yield res
+    } yield binding
 
 
   }
@@ -110,6 +111,15 @@ object Boot extends App  {
     case _ => ("Standalone","DEV")
   }
 
+  var running = true
+
+  val mainThread = Thread.currentThread()
+  sys.addShutdownHook{
+    println("[BOX framework] - start shutdown process")
+    running = false
+    mainThread.join()
+    println("[BOX framework] - shutdown completed")
+  }
 
   def run(name:String,app_version:String,module:Design) {
 
@@ -119,13 +129,14 @@ object Boot extends App  {
       val server = new Box(name, app_version)(services)
       implicit val executionContext = services.executionContext
 
-      {
+      val binding = {
         for {
           _ <- Migrate.all(services.connection)
           res <- server.start()
         } yield res
-      }.recover{ case t => t.printStackTrace() }
-
+      }.recover{ case t => t.printStackTrace(); throw t}
+      while(running) { true }
+      Await.result(binding.flatMap(_.unbind()), 20.seconds)
     }
   }
 
