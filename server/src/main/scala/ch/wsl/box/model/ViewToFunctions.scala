@@ -32,7 +32,6 @@ object ViewToFunctions {
          |       select 1;
          |""".stripMargin
 
-    println(query)
 
     sqlu""" #$query """
   }
