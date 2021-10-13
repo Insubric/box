@@ -47,13 +47,28 @@ object ViewToFunctions {
     } yield insert
   }
 
-  def createFunctionsViews(schema:String) = {
+  /**
+    * Create function views to use the same Row-Level Access of tables in views
+    *
+    * @param _views List of view to transform, in creation dependency order, they will be dropped in reverse order
+    * @param schema
+    * @return
+    */
+  def createFunctionsViews(_views:Seq[String], schema:String):DBIO[Int] = {
+    for{
+      views <- PgInformationSchemaSlick.pgView.filter(v => v.table_schema === schema && v.table_name.inSet(_views)).result
+      orderedViews = _views.flatMap(v => views.find(_.table_name == v))
+      columns <- PgInformationSchemaSlick.pgColumns.filter(c => c.table_schema === schema && c.table_name.inSet(views.map(_.table_name))).result
+      drop <- DBIO.sequence( orderedViews.reverse.map( v => sqlu""" drop view if exists #$schema.#${v.table_name} cascade; """))
+      inserts <- DBIO.sequence(orderedViews.map(v => viewCode(v,columns.filter(_.table_name == v.table_name).sortBy(_.ordinal_position))))
+    } yield inserts.sum
+  }
+
+  def createFunctionForAllSchemaView(schema:String):DBIO[Int] = {
     for{
       views <- PgInformationSchemaSlick.pgView.filter(v => v.table_schema === schema && !v.table_name.inSet(Seq("geometry_columns","geography_columns"))).result
-      columns <- PgInformationSchemaSlick.pgColumns.filter(c => c.table_schema === schema && c.table_name.inSet(views.map(_.table_name))).result
-      drop <- DBIO.sequence( views.map( v => sqlu""" drop view if exists #$schema.#${v.table_name} cascade; """))
-      inserts <- DBIO.sequence(views.map(v => viewCode(v,columns.filter(_.table_name == v.table_name).sortBy(_.ordinal_position))))
-    } yield inserts.sum
+      inserts <- createFunctionsViews(views.map(_.table_name),schema)
+    } yield inserts
   }
 
   def main(args: Array[String]): Unit = {
@@ -64,7 +79,7 @@ object ViewToFunctions {
       val dbio = args.toSeq match {
         case Seq(schema,view) => createFunctionView(view,schema)
         case Seq(view) => createFunctionView(view,services.config.schemaName)
-        case Seq() => createFunctionsViews(services.config.schemaName)
+        case Seq() => createFunctionForAllSchemaView(services.config.schemaName)
       }
       val count = Await.result(services.connection.adminDB.run(dbio.transactionally),30.seconds)
       println(s"Trasformed $count views")
