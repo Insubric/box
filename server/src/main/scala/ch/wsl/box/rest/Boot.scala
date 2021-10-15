@@ -111,19 +111,17 @@ object Boot extends App  {
     case _ => ("Standalone","DEV")
   }
 
-  var running = true
-
-  val mainThread = Thread.currentThread()
-  sys.addShutdownHook{
-    println("[BOX framework] - start shutdown process")
-    running = false
-    mainThread.join()
-    println("[BOX framework] - shutdown completed")
-  }
-
   def run(name:String,app_version:String,module:Design) {
 
+    var running = true
 
+    val mainThread = Thread.currentThread()
+    sys.addShutdownHook{
+      println("[BOX framework] - start shutdown process")
+      running = false
+      mainThread.join()
+      println("[BOX framework] - shutdown completed")
+    }
 
     module.build[Services] { services =>
       val server = new Box(name, app_version)(services)
