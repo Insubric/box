@@ -228,7 +228,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         enableGoAway
         widget.afterRender().foreach{ _ =>
           services.clientSession.loading.set(false)
-          logger.info("AAAAAAAAAAAAA")
           promise.success(model.subProp(_.data).get)
         }
         promise.future
