@@ -2,7 +2,6 @@ package ch.wsl.box.rest.metadata.box
 
 import ch.wsl.box.model.shared.{Child, ConditionalField, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, WidgetsNames}
 import ch.wsl.box.rest.metadata.box.Constants.{FORM_FIELD_CHILDS, FORM_FIELD_FILE, FORM_FIELD_I18N, FORM_FIELD_STATIC, FORM_I18N}
-import ch.wsl.box.rest.utils.BoxConfig
 import io.circe.Json
 import io.circe.syntax._
 
@@ -58,11 +57,11 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 50.asJson, "fullWidth" -> false.asJson))
   )
 
-  val lang = JSONField(JSONFieldTypes.STRING,"lang",false,
+  def lang(langs:Seq[String]) = JSONField(JSONFieldTypes.STRING,"lang",false,
 
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      BoxConfig.langs.map(x => JSONLookup(x.asJson,x))
+      langs.map(x => JSONLookup(x.asJson,x))
     ))
   )
 

@@ -44,14 +44,14 @@ object NewsUIDef {
     action = FormActionsMetadata.default
   )
 
-  val newsI18n = JSONMetadata(
+  def newsI18n(langs:Seq[String]) = JSONMetadata(
     objId = NEWS_I18N,
     kind = EntityKind.BOX_FORM.kind,
     name = "newsI18n",
     label = "NewsI18n builder",
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"news_uuid",false),
-      CommonField.lang,
+      CommonField.lang(langs),
       JSONField(JSONFieldTypes.STRING,"text",true, widget = Some(WidgetsNames.richTextEditor)),
       JSONField(JSONFieldTypes.STRING,"title",true, widget = Some(WidgetsNames.input))
     ),

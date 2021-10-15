@@ -129,7 +129,7 @@ object FunctionUIDef {
     action = FormActionsMetadata.default
   )
 
-  val fieldI18n = JSONMetadata(
+  def fieldI18n(langs:Seq[String]) = JSONMetadata(
     objId = FUNCTION_FIELD_I18N,
     kind = EntityKind.BOX_FORM.kind,
     name = "fieldI18n",
@@ -137,7 +137,7 @@ object FunctionUIDef {
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.simpleLabel,
       CommonField.tooltip,
       CommonField.hint,
@@ -162,7 +162,7 @@ object FunctionUIDef {
     action = FormActionsMetadata.default
   )
 
-  val functionI18n = JSONMetadata(
+  def functionI18n(langs:Seq[String]) = JSONMetadata(
     objId = FUNCTION_I18N,
     kind = EntityKind.BOX_FORM.kind,
     name = "FormI18n builder",
@@ -170,7 +170,7 @@ object FunctionUIDef {
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"function_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.simpleLabel,
       CommonField.tooltip,
       CommonField.hint,

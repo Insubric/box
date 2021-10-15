@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.rest.routes.v1.{NotificationChannels, NotificationChannelsImpl}
 import ch.wsl.box.services.Services
-import ch.wsl.box.services.config.{Config, ConfigFileImpl}
+import ch.wsl.box.services.config.{ConfFileAndDb, Config, ConfigFileImpl, FullConfig}
 import ch.wsl.box.services.file.ImageCacheStorage
 import ch.wsl.box.services.files.{InMemoryImageCacheStorage, PgImageCacheStorage}
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDummy}
@@ -33,7 +33,7 @@ object DefaultModule extends Module {
     .bind[MailService].to[MailServiceCourier]
     .bind[Connection].to[ConnectionConfImpl]
     .bind[NotificationChannels].to[NotificationChannelsImpl]
-    .bind[Config].to[ConfigFileImpl]
+    .bind[FullConfig].to[ConfFileAndDb]
     .bind[MailDispatcherService].to[SingleHostMailDispatcherService]
     .bind[Services].toEagerSingleton
     .onShutdown{s =>

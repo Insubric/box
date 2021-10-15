@@ -6,7 +6,7 @@ import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxForm_i18n_row, BoxForm_row}
 import ch.wsl.box.model.shared.{Layout, LayoutBlock}
-import ch.wsl.box.rest.utils.{BoxConfig, UserProfile}
+import ch.wsl.box.rest.utils.{ UserProfile}
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,7 +24,7 @@ object StubMetadataFactory {
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
     for{
-      langs <- Future.sequence(BoxConfig.langs.map{ lang =>
+      langs <- Future.sequence(services.config.langs.map{ lang =>
         EntityMetadataFactory.of(services.connection.dbSchema,entity,lang).map(x => (lang,x))
       })
       metadata = langs.head._2

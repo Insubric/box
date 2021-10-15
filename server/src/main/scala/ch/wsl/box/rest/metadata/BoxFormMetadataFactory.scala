@@ -7,11 +7,12 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.routes.{Table, View}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.services.Services
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext) extends Logging with MetadataFactory {
+case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext, services:Services) extends Logging with MetadataFactory {
 
 
 
@@ -37,16 +38,16 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     FormUIDef.field(tablesAndViews),
     FormUIDef.field_childs(forms.sortBy(_.name)),
     FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
-    FormUIDef.fieldI18n,
-    FormUIDef.formI18n(viewsOnly),
+    FormUIDef.fieldI18n(services.config.langs),
+    FormUIDef.formI18n(viewsOnly,services.config.langs),
     FormUIDef.fieldFile,
     FunctionUIDef.main,
     FunctionUIDef.field(tablesAndViews),
-    FunctionUIDef.fieldI18n,
-    FunctionUIDef.functionI18n,
+    FunctionUIDef.fieldI18n(services.config.langs),
+    FunctionUIDef.functionI18n(services.config.langs),
     NewsUIDef.main,
-    NewsUIDef.newsI18n,
-    LabelUIDef.label,
+    NewsUIDef.newsI18n(services.config.langs),
+    LabelUIDef.label(services.config.langs),
     LabelUIDef.labelContainer
   )
 
@@ -79,15 +80,15 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     functions <- getFunctions()
   } yield {
     form match {
-      case f if f.objId == FORM => Seq(FormUIDef.field(tablesAndViews),FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n,FormUIDef.formI18n(viewsOnly),FormUIDef.fieldFile)
-      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n,FormUIDef.formI18n(viewsOnly),FormUIDef.fieldFile)
-      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n,FormUIDef.fieldFile)
-      case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n)
-      case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n)
-      case f if f.objId == FUNCTION => Seq(FunctionUIDef.field(tablesAndViews),FunctionUIDef.fieldI18n,FunctionUIDef.functionI18n)
-      case f if f.objId == FUNCTION_FIELD => Seq(FunctionUIDef.fieldI18n)
-      case f if f.objId == NEWS => Seq(NewsUIDef.newsI18n)
-      case f if f.objId == LABEL_CONTAINER => Seq(LabelUIDef.label)
+      case f if f.objId == FORM => Seq(FormUIDef.field(tablesAndViews),FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs),FormUIDef.fieldFile)
+      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs),FormUIDef.fieldFile)
+      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs),FormUIDef.fieldFile)
+      case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs))
+      case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n(services.config.langs))
+      case f if f.objId == FUNCTION => Seq(FunctionUIDef.field(tablesAndViews),FunctionUIDef.fieldI18n(services.config.langs),FunctionUIDef.functionI18n(services.config.langs))
+      case f if f.objId == FUNCTION_FIELD => Seq(FunctionUIDef.fieldI18n(services.config.langs))
+      case f if f.objId == NEWS => Seq(NewsUIDef.newsI18n(services.config.langs))
+      case f if f.objId == LABEL_CONTAINER => Seq(LabelUIDef.label(services.config.langs))
       case _ => Seq()
     }
   }

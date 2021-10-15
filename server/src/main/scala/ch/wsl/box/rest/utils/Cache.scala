@@ -24,6 +24,6 @@ object Cache {
     FormMetadataFactory.resetCache()
     EntityMetadataFactory.resetCache()
     RuntimeFunction.resetCache()
-    BoxConfig.load(services.connection.adminDB)
+    services.config.refresh()
   }
 }

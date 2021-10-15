@@ -47,13 +47,13 @@ lazy val codegen  = (project in file("codegen")).settings(
   resolvers += Resolver.jcenterRepo,
   Compile / resourceDirectory := baseDirectory.value / "../resources",
   Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
-).settings(publishSettings).dependsOn(sharedJVM)
+).settings(publishSettings).dependsOn(sharedJVM).dependsOn(serverServices)
 
 lazy val serverServices  = (project in file("server-services")).settings(
   name := "box-server-services",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
-  libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
+  libraryDependencies += "com.iheart" %% "ficus" % Settings.versions.ficus,
   resolvers += Resolver.jcenterRepo,
 ).settings(publishSettings).dependsOn(sharedJVM)
 

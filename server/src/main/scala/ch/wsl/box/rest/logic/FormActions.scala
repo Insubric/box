@@ -32,7 +32,7 @@ case class Reference(association:Seq[ReferenceKey])
 case class FormActions(metadata:JSONMetadata,
                        jsonActions: String => TableActions[Json],
                        metadataFactory: MetadataFactory
-                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
+                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,val services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
 
   import ch.wsl.box.shared.utils.JSONUtils._
 

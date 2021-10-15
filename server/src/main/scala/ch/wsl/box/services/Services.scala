@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.routes.v1.NotificationChannels
-import ch.wsl.box.services.config.Config
+import ch.wsl.box.services.config.{Config, FullConfig}
 import ch.wsl.box.services.files.ImageCache
 import ch.wsl.box.services.mail.MailService
 import ch.wsl.box.services.mail_dispatcher.MailDispatcherService
@@ -20,5 +20,5 @@ trait Services {
   val mailDispatcher = bind[MailDispatcherService]
   val connection = bind[Connection]
   val notificationChannels = bind[NotificationChannels]
-  val config = bind[Config]
+  val config = bind[FullConfig]
 }

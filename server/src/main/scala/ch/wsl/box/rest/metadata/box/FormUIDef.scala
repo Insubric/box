@@ -4,7 +4,6 @@ import ch.wsl.box.model.boxentities.BoxForm
 import ch.wsl.box.model.boxentities.BoxUser.BoxUser_row
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.metadata.FormMetadataFactory
-import ch.wsl.box.rest.utils.BoxConfig
 
 object FormUIDef {
 
@@ -397,7 +396,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  val fieldI18n = JSONMetadata(
+  def fieldI18n(langs:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_I18N,
     kind = EntityKind.BOX_FORM.kind,
     name = "FieldI18n builder",
@@ -405,7 +404,7 @@ object FormUIDef {
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"field_uuid",false, widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false, widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.label(),
       CommonField.tooltip,
       CommonField.hint,
@@ -436,7 +435,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def formI18n(views:Seq[String]) = JSONMetadata(
+  def formI18n(views:Seq[String],langs:Seq[String]) = JSONMetadata(
     objId = FORM_I18N,
     kind = EntityKind.BOX_FORM.kind,
     name = "FormI18n builder",
@@ -444,7 +443,7 @@ object FormUIDef {
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.simpleLabel,
       JSONField(JSONFieldTypes.STRING,"view_table",true,
         widget = Some(WidgetsNames.select),
