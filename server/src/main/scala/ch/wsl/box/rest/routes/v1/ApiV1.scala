@@ -10,7 +10,7 @@ import ch.wsl.box.rest.logic.{LangHelper, NewsLoader, TableAccess, UIProvider}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.routes._
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.{BoxConfig, BoxSession, Cache}
+import ch.wsl.box.rest.utils.{BoxSession, Cache}
 import com.softwaremill.session.SessionDirectives.{invalidateSession, optionalSession, setSession, touchRequiredSession}
 import com.softwaremill.session.SessionManager
 import com.softwaremill.session.SessionOptions._
@@ -43,7 +43,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
 
   def conf = path("conf") {
     get {
-      complete(BoxConfig.clientConf)
+      complete(services.config.clientConf)
     }
   }
 

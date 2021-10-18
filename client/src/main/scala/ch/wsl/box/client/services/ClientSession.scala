@@ -2,7 +2,7 @@ package ch.wsl.box.client.services
 
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
-import ch.wsl.box.model.shared.{IDs, JSONID, JSONQuery, LoginRequest}
+import ch.wsl.box.model.shared.{EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
 import org.scalajs.dom
@@ -175,18 +175,22 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  private def queryKey(kind:String,form:String,urlQuery:Option[JSONQuery]):String = s"$kind-$form-${urlQuery.getOrElse("nourlquery")}"
+  private def queryKey(kind:String,form:String,urlQuery:JSONQuery):String = s"${new EntityKind(kind).entityOrForm}-$form-${urlQuery.hashCode()}"
 
   def getQueryFor(kind:String,form:String,urlQuery:Option[JSONQuery]):Option[JSONQuery] = {
-    logger.info(s"getQueryFor kind: $kind, form: $form")
+    val key = queryKey(kind,form,urlQuery.getOrElse(JSONQuery.empty))
+    logger.info(s"getQueryFor kind: $kind, form: $form -> $key")
     for {
       all <- get[Map[String,JSONQuery]](QUERY)
-      q <- all.get(queryKey(kind,form,urlQuery))
-    } yield q
+      q <- all.get(key)
+    } yield {
+      logger.info(s"found session Query: $q")
+      q
+    }
   }
 
   def setQueryFor(kind:String,form:String,urlQuery:Option[JSONQuery],query: JSONQuery):Unit = {
-    val newQ = Map(queryKey(kind,form,urlQuery) -> query)
+    val newQ = Map(queryKey(kind,form,urlQuery.getOrElse(JSONQuery.empty)) -> query)
     val queries:Map[String, JSONQuery] = get[Map[String, JSONQuery]](QUERY) match {
       case Some(value) => value ++ newQ
       case None => newQ
@@ -196,14 +200,14 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def resetQuery(kind:String,form:String,urlQuery:Option[JSONQuery]):Unit = {
     val queries:Map[String, JSONQuery] = get[Map[String, JSONQuery]](QUERY) match {
-      case Some(value) => value.view.filterKeys(_ != queryKey(kind,form,urlQuery)).toMap
+      case Some(value) => value.view.filterKeys(_ != queryKey(kind,form,urlQuery.getOrElse(JSONQuery.empty))).toMap
       case None => Map()
     }
     set(QUERY, queries)
   }
 
-  def getURLQuery():Option[JSONQuery] = get[Option[JSONQuery]](URL_QUERY).flatten
-  def setURLQuery(q: Option[JSONQuery]) = set(URL_QUERY,q)
+  def getURLQuery():Option[JSONQuery] = get[JSONQuery](URL_QUERY)
+  def setURLQuery(q: JSONQuery) = set(URL_QUERY,q)
 
   def getBaseLayer():Option[String] = get[String](BASE_LAYER)
   def setBaseLayer(bl: String) = set(BASE_LAYER,bl)

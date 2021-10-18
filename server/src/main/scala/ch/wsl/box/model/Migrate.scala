@@ -73,22 +73,20 @@ object Migrate {
     result
   }
 
-  def all(connection:Connection) = {
+  def all(services: Services) = {
     for {
-     _ <- box(connection)
-     _ <- Future{ app(connection) }
-     _ <- new SchemaGenerator(connection).run()
-     _ <- LabelsUpdate.run(connection.dbConnection)
+     _ <- box(services.connection)
+     _ <- Future{ app(services.connection) }
+     _ <- new SchemaGenerator(services.connection,services.config.langs).run()
+     _ <- LabelsUpdate.run(services)
     } yield true
   }
 
   def main(args: Array[String]): Unit = {
-    DefaultModule.connectionInjector.build[Connection] { connection =>
-      Await.result(all(connection).recover{ case t =>
+    DefaultModule.connectionInjector.build[Services] { services =>
+      Await.result(all(services).recover{ case t =>
         t.printStackTrace()
       },10.seconds)
-      connection.close()
-      println("Connections closed")
     }
   }
 }

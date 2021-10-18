@@ -8,7 +8,6 @@ import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.rest.routes.{BoxExceptionHandler, Preloading, Root}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.log.DbWriter
-import ch.wsl.box.rest.utils.BoxConfig
 import ch.wsl.box.services.Services
 import com.typesafe.config.Config
 import scribe._
@@ -37,17 +36,15 @@ class Box(name:String,version:String)(implicit services: Services) {
   def start() =  {
 
 
-    BoxConfig.load(services.connection.adminDB)
-
     services.mailDispatcher.start()
     services.notificationChannels.start()
 
 
-    val akkaConf: Config = BoxConfig.akkaHttpSession
+    val akkaConf: Config = services.config.akkaHttpSession
 
-    val host = BoxConfig.host
-    val port = BoxConfig.port
-    val origins = BoxConfig.origins
+    val host = services.config.host
+    val port = services.config.port
+    val origins = services.config.origins
 
     implicit def handler: ExceptionHandler = BoxExceptionHandler(origins).handler()
 
@@ -56,13 +53,13 @@ class Box(name:String,version:String)(implicit services: Services) {
 
     Registry.load()
 
-    val loggerWriter = BoxConfig.logDB match  {
+    val loggerWriter = services.config.logDB match  {
       case false => ConsoleWriter
       case true => new DbWriter(services.connection.adminDB)
     }
-    println(s"Logger level: ${BoxConfig.loggerLevel}")
+    println(s"Logger level: ${services.config.loggerLevel}")
 
-    Logger.root.clearHandlers().withHandler(minimumLevel = Some(BoxConfig.loggerLevel), writer = loggerWriter).replace()
+    Logger.root.clearHandlers().withHandler(minimumLevel = Some(services.config.loggerLevel), writer = loggerWriter).replace()
 
 
     //Registring handlers
@@ -129,7 +126,7 @@ object Boot extends App  {
 
       val binding = {
         for {
-          _ <- Migrate.all(services.connection)
+          _ <- Migrate.all(services)
           res <- server.start()
         } yield res
       }.recover{ case t => t.printStackTrace(); throw t}

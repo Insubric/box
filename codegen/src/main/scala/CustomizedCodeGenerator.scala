@@ -1,6 +1,7 @@
 package ch.wsl.box.codegen
 
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
+import ch.wsl.box.services.config.ConfigFileImpl
 import com.typesafe.config.ConfigFactory
 import net.ceedubs.ficus.Ficus._
 import schemagen.SchemaGenerator
@@ -52,14 +53,14 @@ object CustomizedCodeGenerator  {
 
     val connection = new ConnectionConfImpl()
 
-    Await.result(new SchemaGenerator(connection).run(),120.seconds)
+    val conf = new ConfigFileImpl()
+
+    Await.result(new SchemaGenerator(connection,conf.langs).run(),120.seconds)
 
 
-    val schema:String  = ConfigFactory.load().as[Option[String]]("db.schema").getOrElse("public")
-    val boxSchema:String  = ConfigFactory.load().as[Option[String]]("box.db.schema").getOrElse("box")
 
-    val files = CodeGenerator(schema).generatedFiles(connection)
-    val boxFiles = CodeGenerator(boxSchema,Seq(
+    val files = CodeGenerator(conf.schemaName).generatedFiles(connection)
+    val boxFiles = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq(
       "export",
       "export_field",
       "export_field_i18n",

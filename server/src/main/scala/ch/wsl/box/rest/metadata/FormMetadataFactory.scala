@@ -12,7 +12,7 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.{Auth, BoxConfig, UserProfile}
+import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -86,7 +86,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         for {
           metadata <- getForm(formQuery, lang)
         } yield {
-          if(BoxConfig.enableCache) {
+          if(services.config.enableCache) {
             FormMetadataFactory.cacheFormId.put(cacheKey,metadata)
             FormMetadataFactory.cacheFormName.put((up.name, metadata.name,lang),metadata)
           }
@@ -110,7 +110,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         for {
           metadata <- getForm(formQuery, lang)
         } yield {
-          if(BoxConfig.enableCache) {
+          if(services.config.enableCache) {
             FormMetadataFactory.cacheFormName.put(cacheKey,metadata)
             FormMetadataFactory.cacheFormId.put((up.name, metadata.objId,lang),metadata)
           }

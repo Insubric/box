@@ -24,7 +24,7 @@ import ch.wsl.box.services.Services
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,services: Services) extends TableActions[M] with DBFiltersImpl with Logging {
+class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,val services: Services) extends TableActions[M] with DBFiltersImpl with Logging {
 
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
 

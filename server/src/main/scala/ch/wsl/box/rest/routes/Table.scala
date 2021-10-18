@@ -16,7 +16,7 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
-import ch.wsl.box.rest.utils.{BoxConfig, JSONSupport, UserProfile}
+import ch.wsl.box.rest.utils.{ JSONSupport, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
 import slick.lifted.TableQuery
@@ -65,7 +65,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
     val dbActions = new DbActions[T,M](table)
     val jsonActions = JSONTableActions[T,M](table)
-    val limitLookupFromFk: Int = BoxConfig.fksLookupRowsLimit
+    val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
 
 
     import io.circe.syntax._

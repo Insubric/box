@@ -4,14 +4,13 @@ import java.text.SimpleDateFormat
 import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.time.temporal.{ChronoField, ChronoUnit, TemporalAccessor}
-
 import ch.wsl.box.model.shared.{Filter, JSONFieldTypes, JSONQuery, JSONQueryFilter}
-import ch.wsl.box.rest.utils.BoxConfig
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.ColType
+import ch.wsl.box.services.Services
 import slick.lifted.{OptionLift, Rep}
 
 import scala.util.{Failure, Try}
@@ -55,6 +54,7 @@ trait DbFilters {
 
 trait DBFiltersImpl extends DbFilters with Logging {
 
+  implicit def services:Services
 
   import DateTimeFormatters._
 
@@ -134,7 +134,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typLONG` => c.asInstanceOf[Rep[Long]] === v.toLong
           case `typSTRING` => c.asInstanceOf[Rep[String]] === v
           case `typBOOLEAN` => c.asInstanceOf[Rep[Boolean]] === v.toBoolean
-          case `typTIMESTAMP` => (toTimestamp(v),BoxConfig.filterPrecisionDatetime) match {
+          case `typTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
             case (Nil,_) => throw new Error("Invalid date")
             case (single :: Nil,JSONFieldTypes.DATETIME) => c.asInstanceOf[Rep[java.time.LocalDateTime]] === single
             case (single :: Nil,JSONFieldTypes.DATE) => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= single && c.asInstanceOf[Rep[java.time.LocalDateTime]] < single.plusDays(1)
@@ -154,7 +154,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] === Try(v.toLong).toOption
           case `typOptSTRING` => c.asInstanceOf[Rep[Option[String]]] === v
           case `typOptBOOLEAN` => c.asInstanceOf[Rep[Option[Boolean]]] === Try(v.toBoolean).toOption
-          case `typOptTIMESTAMP` => (toTimestamp(v),BoxConfig.filterPrecisionDatetime) match {
+          case `typOptTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
             case (Nil,_) => throw new Error("Invalid date")
             case (single :: Nil,JSONFieldTypes.DATETIME) => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] === single
             case (single :: Nil,JSONFieldTypes.DATE) => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= single && c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < single.plusDays(1)
@@ -186,7 +186,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] =!= BigDecimal(v)
           case `typSTRING` => c.asInstanceOf[Rep[String]] =!= v
           case `typBOOLEAN` => c.asInstanceOf[Rep[Boolean]] =!= v.toBoolean
-          case `typTIMESTAMP` => (toTimestamp(v),BoxConfig.filterPrecisionDatetime) match {
+          case `typTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
             case (Nil,_) => throw new Error("Invalid date")
             case (single :: Nil,JSONFieldTypes.DATETIME) => c.asInstanceOf[Rep[java.time.LocalDateTime]] =!= single
             case (single :: Nil,JSONFieldTypes.DATE) => c.asInstanceOf[Rep[java.time.LocalDateTime]] < single || c.asInstanceOf[Rep[java.time.LocalDateTime]] >= single.plusDays(1)
@@ -206,7 +206,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] =!= Try(v.toLong).toOption
           case `typOptSTRING` => c.asInstanceOf[Rep[Option[String]]] =!= v
           case `typOptBOOLEAN` => c.asInstanceOf[Rep[Option[Boolean]]] =!= Try(v.toBoolean).toOption
-          case `typOptTIMESTAMP` => (toTimestamp(v),BoxConfig.filterPrecisionDatetime) match {
+          case `typOptTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
             case (Nil,_) => throw new Error("Invalid date")
             case (single :: Nil,JSONFieldTypes.DATETIME) => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] =!= single
             case (single :: Nil,JSONFieldTypes.DATE) => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < single || c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= single.plusDays(1)
@@ -235,9 +235,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] > BigDecimal(v)
           case `typINT` => c.asInstanceOf[Rep[Int]] > v.toInt
           case `typLONG` => c.asInstanceOf[Rep[Long]] > v.toLong
-          case `typTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] > toTimestamp(v).last
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= BoxConfig.prepareDatetime(toTimestamp(v).last.plus(1, ChronoUnit.DAYS))
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= services.config.prepareDatetime(toTimestamp(v).last.plus(1, ChronoUnit.DAYS))
           }
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] > toDate(v).last
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] > toTime(v).get
@@ -247,9 +247,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] > BigDecimal(v)
           case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] > v.toInt
           case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] > v.toLong
-          case `typOptTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] > toTimestamp(v).last
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= BoxConfig.prepareDatetime(toTimestamp(v).last.plus(1, ChronoUnit.DAYS))
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= services.config.prepareDatetime(toTimestamp(v).last.plus(1, ChronoUnit.DAYS))
           }
           case `typOptDATE` => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] > toDate(v).last
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] > toTime(v).get
@@ -267,9 +267,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] >= BigDecimal(v)
           case `typINT` => c.asInstanceOf[Rep[Int]] >= v.toInt
           case `typLONG` => c.asInstanceOf[Rep[Long]] >= v.toLong
-          case `typTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= toTimestamp(v).last
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= BoxConfig.prepareDatetime(toTimestamp(v).last)
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= services.config.prepareDatetime(toTimestamp(v).last)
           }
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] >= toDate(v).last
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] >= toTime(v).get
@@ -279,9 +279,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] >= BigDecimal(v)
           case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] >= v.toInt
           case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] >= v.toLong
-          case `typOptTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= toTimestamp(v).last
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= BoxConfig.prepareDatetime(toTimestamp(v).last)
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= services.config.prepareDatetime(toTimestamp(v).last)
           }
           case `typOptDATE` => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] >= toDate(v).last
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] >= toTime(v).get
@@ -300,9 +300,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] < BigDecimal(v)
           case `typINT` => c.asInstanceOf[Rep[Int]] < v.toInt
           case `typLONG` => c.asInstanceOf[Rep[Long]] < v.toLong
-          case `typTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] < toTimestamp(v).head
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] < BoxConfig.prepareDatetime(toTimestamp(v).head)
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] < services.config.prepareDatetime(toTimestamp(v).head)
           }
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] < toDate(v).head
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] < toTime(v).get
@@ -312,9 +312,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] < BigDecimal(v)
           case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] < v.toInt
           case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] < v.toLong
-          case `typOptTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < toTimestamp(v).head
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < BoxConfig.prepareDatetime(toTimestamp(v).head)
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < services.config.prepareDatetime(toTimestamp(v).head)
           }
           case `typOptDATE` => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] < toDate(v).head
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] < toTime(v).get
@@ -333,9 +333,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] <= BigDecimal(v)
           case `typINT` => c.asInstanceOf[Rep[Int]] <= v.toInt
           case `typLONG` => c.asInstanceOf[Rep[Long]] <= v.toLong
-          case `typTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] <= toTimestamp(v).head
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] <= BoxConfig.prepareDatetime(toTimestamp(v).head.plus(1, ChronoUnit.DAYS))
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] <= services.config.prepareDatetime(toTimestamp(v).head.plus(1, ChronoUnit.DAYS))
           }
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] <= toDate(v).head
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] <= toTime(v).get
@@ -345,9 +345,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] <= BigDecimal(v)
           case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] <= v.toInt
           case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] <= v.toLong
-          case `typOptTIMESTAMP` => BoxConfig.filterPrecisionDatetime match{
+          case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] <= toTimestamp(v).head
-            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] <= BoxConfig.prepareDatetime(toTimestamp(v).head.plus(1, ChronoUnit.DAYS))
+            case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] <= services.config.prepareDatetime(toTimestamp(v).head.plus(1, ChronoUnit.DAYS))
           }
           case `typOptDATE` => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] <= toDate(v).head
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] <= toTime(v).get

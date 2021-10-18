@@ -55,7 +55,7 @@ object DatabaseSetup {
             """))
       _ <- initDb(services.connection.dbConnection)
       _ <- initBox(services.connection.dbConnection, services.connection.adminUser)
-      _ <- Migrate.all(services.connection)
+      _ <- Migrate.all(services)
     } yield true
 
   }
