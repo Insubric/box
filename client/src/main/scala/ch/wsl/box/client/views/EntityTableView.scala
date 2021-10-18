@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
-import ch.wsl.box.client.utils.URLQuery
+import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
@@ -136,7 +136,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
     val urlQuery:Option[JSONQuery] = URLQuery(state.query,emptyFieldsForm)
-    services.clientSession.setURLQuery(urlQuery)
+    services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
     val form = emptyFieldsForm.copy(fields = fields)
@@ -239,44 +239,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.setIDs(ids)
   }
 
-  private def encodeFk(fields:Seq[JSONField],query:JSONQuery):JSONQuery = {
-
-    def getFieldLookup(name:String):Seq[JSONLookup] = fields.find(_.name == name).toSeq.flatMap(_.lookup).flatMap(_.lookup)
-
-    val filters = query.filter.map{ field =>
-      field.operator match {
-        case Some(Filter.FK_LIKE) => {
-          val ids = getFieldLookup(field.column)
-            .filter(_.value.toLowerCase.contains(field.value.toLowerCase()))
-            .map(_.id.string)
-          JSONQueryFilter(field.column,Some(Filter.IN),ids.mkString(","))
-        }
-        case Some(Filter.FK_DISLIKE) => {
-          val ids = getFieldLookup(field.column)
-            .filter(_.value.toLowerCase.contains(field.value.toLowerCase()))
-            .map(_.id.string)
-          JSONQueryFilter(field.column,Some(Filter.NOTIN),ids.mkString(","))
-        }
-        case Some(Filter.FK_EQUALS) => {
-          val id = getFieldLookup(field.column)
-            .find(_.value == field.value)
-            .map(_.id)
-          JSONQueryFilter(field.column,Some(Filter.IN),id.map(_.string).getOrElse(""))  //fails with EQUALS when id = ""
-        }
-        case Some(Filter.FK_NOT) => {
-          val id = getFieldLookup(field.column)
-            .find(_.value == field.value)
-            .map(_.id)
-          JSONQueryFilter(field.column,Some(Filter.NOTIN),id.map(_.string).getOrElse("")) //fails with NOT when id = ""
-        }
-        case _ => field
-      }
-    }
-
-    query.copy(filter = filters)
-
-  }
-
   private def query():JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
 
@@ -297,7 +259,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     logger.info("filterUpdateHandler "+filterUpdateHandler)
 
     val q = query().copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
-    val qEncoded = encodeFk(model.get.metadata.toSeq.flatMap(_.fields),q)
+    val qEncoded = FKEncoder(model.get.metadata.toSeq.flatMap(_.fields),q)
 
     val r = for {
       csv <- services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, qEncoded)
@@ -392,7 +354,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val exportFields = model.get.metadata.map(_.exportFields).getOrElse(Seq())
     val fields = model.get.metadata.map(_.fields).getOrElse(Seq())
 
-    val queryWithFK = encodeFk(fields,query())
+    val queryWithFK = FKEncoder(fields,query())
 
 
     val url = Routes.apiV1(

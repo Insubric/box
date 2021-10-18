@@ -113,6 +113,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       setNavigation()
 
       widget.afterRender()
+      widget.afterRender()
 
       services.clientSession.loading.set(false)
 
@@ -278,7 +279,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def setNavigation() = {
-    services.navigator.For(model.get.id).navigation().map{ nav =>
+    services.navigator.For(model.get.id,model.get.metadata.get).navigation().map{ nav =>
+      logger.info(s"Navigation $nav")
       model.subProp(_.navigation).set(nav)
     }
   }
@@ -315,7 +317,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def navigate(n: navigator.For => Future[Option[String]]) = {
-    n(nav).map(_.map(goTo))
+    n(navigator.For(model.get.id, model.get.metadata.get)).map(_.map(goTo))
   }
 
   def next() = navigate(_.next())
@@ -329,7 +331,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   val navigator = services.navigator
 
-  def nav = navigator.For(model.get.id, model.get.kind,model.get.name)
 
   def goTo(id:String) = {
     val m = model.get
@@ -448,7 +449,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
-    val recordNavigation = showIf(presenter.showNavigation){
+    def recordNavigation = showIf(presenter.showNavigation){
 
           def navigation = model.subModel(_.navigation)
 
