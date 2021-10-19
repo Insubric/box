@@ -41,8 +41,5 @@ object DefaultModule extends Module {
       s.connection.close()
     }
 
-  val connectionInjector = newDesign
-    .bind[Connection].to[ConnectionConfImpl]
-    .onShutdown(c => c.close())
 
 }
