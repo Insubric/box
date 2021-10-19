@@ -83,7 +83,7 @@ object Migrate {
   }
 
   def main(args: Array[String]): Unit = {
-    DefaultModule.connectionInjector.build[Services] { services =>
+    DefaultModule.injector.build[Services] { services =>
       Await.result(all(services).recover{ case t =>
         t.printStackTrace()
       },10.seconds)
