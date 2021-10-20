@@ -60,6 +60,7 @@ class Listener(connection:Connection,channel:String,callback: (String) => Future
 
   override def run(): Unit = {
      while ( running ) {
+       Thread.sleep(500)
        try {
 
           // issue a dummy query to contact the backend
