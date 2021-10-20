@@ -22,12 +22,14 @@ object ViewToFunctions {
   def columnCode(column:PgColumn):String = s""" "${column.column_name}" ${column.udt_name} """
   def viewCode(view:PgView,columns:Seq[PgColumn],triggers:Seq[PgTrigger]):DBIO[Int] = {
 
+    val stable = if(view.stable) "stable" else ""
+
     val query =
       s"""
          |       create function ${view.table_name}() returns table (
          |        ${columns.map(columnCode).mkString(",\n")}
          |                                                 )
-         |       language sql security invoker as $$$$
+         |       language sql $stable security invoker as $$$$
          |         ${view.view_definition}
          |       $$$$;
          |
