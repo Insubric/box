@@ -84,6 +84,30 @@ class PgConstraints(tag: Tag) extends Table[PgConstraint](tag,  Some("informatio
   def * = (table_name, constraint_name, constraint_type) <> (PgConstraint.tupled, PgConstraint.unapply)
 }
 
+case class PgTrigger(
+                         trigger_name:String,
+                         event_manipulation:String,
+                         event_object_schema:String,
+                         event_object_table:String,
+                         action_statement:String,
+                         action_orientation:String,
+                         action_timing:String,
+                       )
+
+class PgTriggers(tag: Tag) extends Table[PgTrigger](tag,  Some("information_schema"), "triggers") {
+
+  def trigger_name = column[String]("trigger_name")
+  def event_manipulation = column[String]("event_manipulation")
+  def event_object_schema = column[String]("event_object_schema")
+  def event_object_table = column[String]("event_object_table")
+  def action_statement = column[String]("action_statement")
+  def action_orientation = column[String]("action_orientation")
+  def action_timing = column[String]("action_timing")
+
+
+  def * = (trigger_name, event_manipulation, event_object_schema,event_object_table,action_statement,action_orientation,action_timing) <> (PgTrigger.tupled, PgTrigger.unapply)
+}
+
 case class PgConstraintReference(
   constraint_name:String,
   referencing_constraint_name:String
@@ -150,6 +174,7 @@ class PgViews(tag: Tag) extends Table[PgView](tag,  Some("information_schema"), 
 object PgInformationSchemaSlick{
   val pgTables = TableQuery[PgTables]
   val pgColumns = TableQuery[PgColumns]
+  val pgTriggers = TableQuery[PgTriggers]
   val pgConstraints = TableQuery[PgConstraints]
   val pgConstraintsReference = TableQuery[PgConstraintReferences]
   val pgContraintsUsage = TableQuery[PgConstraintUsages]
