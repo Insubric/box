@@ -23,7 +23,7 @@ BEGIN
 END
 $$;
 
-create function box.hasrolein(rol text[]) returns boolean
+create or replace function box.hasrolein(rol text[]) returns boolean
     language plpgsql
 as
 $$

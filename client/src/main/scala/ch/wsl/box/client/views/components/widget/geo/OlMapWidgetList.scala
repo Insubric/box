@@ -158,17 +158,18 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       mapStyleElement,
       WidgetUtils.toLabel(field),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
-      div(
-        div(
-          ClientConf.style.mapSearch,
-          TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())),
-          div(
-            BootstrapStyles.Button.group,
-            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
-            gpsButtonGoTo
-          )
-        )
-      ),
+// WSS-232 not clear, consider to re-enable when geolocation is enabled
+//      div(
+//        div(
+//          ClientConf.style.mapSearch,
+//          TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())),
+//          div(
+//            BootstrapStyles.Button.group,
+//            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
+//            gpsButtonGoTo
+//          )
+//        )
+//      ),
       (
         if(options.baseLayers.exists(_.length > 1))
         div(width := 100.pct,marginTop := 33.px, marginBottom := -33.px, zIndex := 2, position.relative, padding := 5.px, backgroundColor := Colors.GreyExtra.value,
