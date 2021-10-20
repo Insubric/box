@@ -1,6 +1,6 @@
 package ch.wsl.box.model
 
-import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema, PgInformationSchemaSlick, PgView}
+import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema, PgInformationSchemaSlick, PgTrigger, PgView}
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.DropBox.fut
 import ch.wsl.box.rest.DefaultModule
@@ -13,12 +13,18 @@ import scala.concurrent.duration._
 
 object ViewToFunctions {
 
+  def triggerCode(view:PgView,trigger:PgTrigger):String =
+    s"""
+       |CREATE TRIGGER ${trigger.trigger_name} ${trigger.action_timing} ${trigger.event_manipulation}
+       |ON ${view.table_schema}.${view.table_name}
+       |FOR EACH ${trigger.action_orientation} ${trigger.action_statement}; """.stripMargin
+
   def columnCode(column:PgColumn):String = s""" "${column.column_name}" ${column.udt_name} """
-  def viewCode(view:PgView,columns:Seq[PgColumn]):DBIO[Int] = {
+  def viewCode(view:PgView,columns:Seq[PgColumn],triggers:Seq[PgTrigger]):DBIO[Int] = {
 
     val query =
       s"""
-         |create function ${view.table_name}() returns table (
+         |       create function ${view.table_name}() returns table (
          |        ${columns.map(columnCode).mkString(",\n")}
          |                                                 )
          |       language sql security invoker as $$$$
@@ -28,6 +34,8 @@ object ViewToFunctions {
          |
          |       create view ${view.table_name} as
          |       select * from ${view.table_name}();
+         |
+         |       ${triggers.map(t => triggerCode(view,t)).mkString("\n")}
          |
          |       select 1;
          |""".stripMargin
@@ -41,8 +49,9 @@ object ViewToFunctions {
     for{
       view <- informationSchema.view
       columns <- informationSchema.columns
+      triggers <- informationSchema.triggers
       drop <- sqlu""" drop view #$schema.#$viewName; """
-      insert <- viewCode(view.get,columns)
+      insert <- viewCode(view.get,columns,triggers)
     } yield insert
   }
 
@@ -58,8 +67,9 @@ object ViewToFunctions {
       views <- PgInformationSchemaSlick.pgView.filter(v => v.table_schema === schema && v.table_name.inSet(_views)).result
       orderedViews = _views.flatMap(v => views.find(_.table_name == v))
       columns <- PgInformationSchemaSlick.pgColumns.filter(c => c.table_schema === schema && c.table_name.inSet(views.map(_.table_name))).result
+      triggers <- PgInformationSchemaSlick.pgTriggers.filter(c => c.event_object_schema === schema && c.event_object_table.inSet(views.map(_.table_name))).result
       drop <- DBIO.sequence( orderedViews.reverse.map( v => sqlu""" drop view if exists #$schema.#${v.table_name} cascade; """))
-      inserts <- DBIO.sequence(orderedViews.map(v => viewCode(v,columns.filter(_.table_name == v.table_name).sortBy(_.ordinal_position))))
+      inserts <- DBIO.sequence(orderedViews.map(v => viewCode(v,columns.filter(_.table_name == v.table_name).sortBy(_.ordinal_position),triggers.filter(_.event_object_table == v.table_name))))
     } yield inserts.sum
   }
 
