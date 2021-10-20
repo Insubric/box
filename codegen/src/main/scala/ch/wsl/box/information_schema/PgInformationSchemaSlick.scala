@@ -158,17 +158,35 @@ class PgKeyUsages(tag: Tag) extends Table[PgKeyUsage](tag,  Some("information_sc
 case class PgView(
                          table_name:String,
                          table_schema:String,
-                         view_definition:String
-                       )
+                         view_definition:String,
+                         is_updatable:String,
+                         is_insertable_into:String,
+                         is_trigger_updatable:String,
+                         is_trigger_deletable:String,
+                         is_trigger_insertable_into:String
+                       ) {
+  def stable:Boolean =
+      is_updatable == "NO" &&
+      is_insertable_into == "NO" &&
+      is_trigger_updatable == "NO" &&
+      is_trigger_deletable == "NO" &&
+      is_trigger_insertable_into == "NO"
+
+}
 
 class PgViews(tag: Tag) extends Table[PgView](tag,  Some("information_schema"), "views") {
 
   def table_name = column[String]("table_name")
   def table_schema = column[String]("table_schema")
   def view_definition = column[String]("view_definition")
+  def is_insertable_into = column[String]("is_insertable_into")
+  def is_trigger_updatable = column[String]("is_trigger_updatable")
+  def is_trigger_deletable = column[String]("is_trigger_deletable")
+  def is_trigger_insertable_into = column[String]("is_trigger_insertable_into")
+  def is_updatable = column[String]("is_updatable")
 
 
-  def * = (table_name, table_schema, view_definition) <> (PgView.tupled, PgView.unapply)
+  def * = (table_name, table_schema, view_definition,is_updatable,is_insertable_into,is_trigger_updatable,is_trigger_deletable,is_trigger_insertable_into) <> (PgView.tupled, PgView.unapply)
 }
 
 object PgInformationSchemaSlick{
