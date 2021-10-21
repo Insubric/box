@@ -261,9 +261,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val q = query().copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
     val qEncoded = FKEncoder(model.get.metadata.toSeq.flatMap(_.fields),q)
 
+    //start request in parallel
+    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, qEncoded)
+    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, qEncoded)
+
     val r = for {
-      csv <- services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, qEncoded)
-      ids <- services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, qEncoded)
+      csv <- csvRequest
+      ids <- idsRequest
     } yield {
       model.subProp(_.rows).set(csv.map(Row(_)))
       model.subProp(_.ids).set(IDsVM.fromIDs(ids))
