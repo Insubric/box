@@ -47,7 +47,7 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
   )
 
-  val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input))
+  val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input), tooltip = Some("Use keyword `arrayIndex` to substitute the value with the index of the array (when this field is part of a child)"))
 
   val conditionFieldId = JSONField(JSONFieldTypes.STRING,"conditionFieldId",true,widget = Some(WidgetsNames.input))
   val conditionValues = JSONField(JSONFieldTypes.STRING,"conditionValues",true,

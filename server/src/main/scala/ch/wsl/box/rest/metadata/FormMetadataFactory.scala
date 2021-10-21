@@ -161,7 +161,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       fieldsFile <- DBIO.sequence(fields.map { case (f, _) =>
           BoxField.BoxFieldFileTable.filter(_.field_uuid === f.field_uuid).result.headOption
       })
-      actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).result
+      actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
+      navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
 
       cols <- new PgInformationSchema(services.connection.dbSchema,form.entity)(ec).columns
       columns = fields.map(f => cols.find(_.column_name == f._1.name))
@@ -216,10 +217,23 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               updateOnly = a.update_only,
               insertOnly = a.insert_only,
               reload = a.reload,
-              confirmText = a.confirm_text
+              confirmText = a.confirm_text,
+              executeFunction = a.execute_function
             )
           },
-          navigationActions = Seq(), // TODO
+          navigationActions = navigationActions.map{a =>
+            FormAction(
+              action = Action.fromString(a.action),
+              importance = Importance.fromString(a.importance),
+              afterActionGoTo = a.after_action_goto,
+              label = a.label,
+              updateOnly = a.update_only,
+              insertOnly = a.insert_only,
+              reload = a.reload,
+              confirmText = a.confirm_text,
+              executeFunction = a.execute_function
+            )
+          },
           showNavigation = form.show_navigation
         )
       }

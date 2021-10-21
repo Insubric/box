@@ -18,6 +18,7 @@ import io.udash.{showIf, _}
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.component.ComponentId
 import io.udash.core.Presenter
+import io.udash.css.CssStyleName
 import io.udash.properties.single.Property
 import org.scalajs.dom._
 import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement}
@@ -371,6 +372,48 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }(_ && _)
 
 
+  def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
+    def callBack() = action.action match {
+      case SaveAction => save{ _id =>
+        if(action.reload) {
+          reload(_id)
+        }
+        action.getUrl(model.get.kind,model.get.name,Some(_id.asString),model.get.write).foreach{ url =>
+          reset()
+          Navigate.toUrl(url)
+        }
+      }
+      case NoAction => action.getUrl(model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
+        reset()
+        Navigate.toUrl(url)
+      }
+      case CopyAction => duplicate()
+      case DeleteAction => delete()
+      case RevertAction => revert()
+      case BackAction => Navigate.back()
+
+    }
+
+    def confirm(cb: () => Any) =  action.confirmText match {
+      case Some(ct) => {
+        val confim = window.confirm(Labels(ct))
+        if(confim) {
+          cb()
+        }
+      }
+      case None => cb()
+    }
+
+    def executeFuntion(cb: () => Any) = action.executeFunction match {
+      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data)
+      case None => cb()
+    }
+
+    (ev: Event) => {
+      confirm(() => executeFuntion(callBack))
+      ev.preventDefault()
+    }
+  }
 
 }
 
@@ -403,45 +446,12 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         case Std => ClientConf.style.boxButton
       }
 
-      def callBack() = action.action match {
-        case SaveAction => presenter.save{ _id =>
-          if(action.reload) {
-            presenter.reload(_id)
-          }
-          action.getUrl(model.get.kind,model.get.name,Some(_id.asString),model.get.write).foreach{ url =>
-            presenter.reset()
-            Navigate.toUrl(url)
-          }
-        }
-        case NoAction => action.getUrl(model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-          presenter.reset()
-          Navigate.toUrl(url)
-        }
-        case CopyAction => presenter.duplicate()
-        case DeleteAction => presenter.delete()
-        case RevertAction => presenter.revert()
-        case BackAction => Navigate.back()
-
-      }
-
-    def confirm(cb: () => Any) =  action.confirmText match {
-      case Some(ct) => {
-        val confim = window.confirm(Labels(ct))
-        if(confim) {
-          cb()
-        }
-      }
-      case None => cb()
-    }
 
     if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
       button(
         id := TestHooks.actionButton(action.label),
         importance,
-        onclick :+= ((ev: Event) => {
-          confirm(callBack)
-          ev.preventDefault()
-        })
+        onclick :+= presenter.actionClick(_id,action)
       )(Labels(action.label)).render
     } else frag()
 
@@ -485,15 +495,15 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           ).render
     }
 
-    def actions = div(
+    def actions(selector:FormActionsMetadata => Seq[FormAction], position:CssStyleName = BootstrapStyles.Float.left()) = div(
       produceWithNested(model.subProp(_.write)) { (w,realeser) =>
         if(!w) Seq() else
-        div(BootstrapStyles.Float.left())(
+        div(position)(
           realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
               realeser2(produce(model.subProp(_.id)) { _id =>
                 div(
-                  form.toSeq.flatMap(_.action.actions).map(actionRenderer(_id))
+                  form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
                 ).render
               })
             ).render
@@ -527,15 +537,11 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       } ,
       showIf(presenter.showNavigation) {
         div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
-          produceWithNested(model.subProp(_.name)) { (m, release) =>
-            div(
-              button(ClientConf.style.boxButton, Navigate.click(Routes(model.subProp(_.kind).get, m).entity(m)))(Labels.entities.table + " ", release(labelTitle)), " "
-            ).render
-          }
+          actions(_.navigationActions,BootstrapStyles.Float.right())
         ).render
       },
       div(BootstrapStyles.Visibility.clearfix),
-      actions,
+      actions(_.actions),
       produce(model.subProp(_.error)){ error =>
         div(
           if(error.length > 0) {
@@ -550,7 +556,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
     def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,
       _maxWidth.map(mw => maxWidth := mw),
-      actions,
+      actions(_.actions),
       ul(
         produce(Notification.list){ notices =>
           notices.map { notice =>

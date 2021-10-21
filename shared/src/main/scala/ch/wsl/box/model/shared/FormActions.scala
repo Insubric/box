@@ -18,6 +18,8 @@ object Action{
     case "NoAction" => NoAction
     case "BackAction" => BackAction
   }
+
+  def all = Seq(SaveAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction)
 }
 
 sealed trait Importance
@@ -31,6 +33,8 @@ object Importance {
     case "Primary" => Primary
     case "Danger" => Danger
   }
+
+  def all = Seq(Std,Primary,Danger)
 }
 
 case class FormAction(
@@ -47,7 +51,8 @@ case class FormAction(
                       updateOnly:Boolean = false,
                       insertOnly:Boolean = false,
                       reload:Boolean = false,
-                      confirmText:Option[String] = None
+                      confirmText:Option[String] = None,
+                      executeFunction:Option[String] = None
                       ) {
   def getUrl(kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
     x .replace("$kind",kind)

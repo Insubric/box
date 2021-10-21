@@ -41,6 +41,9 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     FormUIDef.fieldI18n(services.config.langs),
     FormUIDef.formI18n(viewsOnly,services.config.langs),
     FormUIDef.fieldFile,
+    FormUIDef.form_actions(functions.map(_.name)),
+    FormUIDef.form_navigation_actions(functions.map(_.name)),
+    FormUIDef.fieldFile,
     FunctionUIDef.main,
     FunctionUIDef.field(tablesAndViews),
     FunctionUIDef.fieldI18n(services.config.langs),
@@ -80,7 +83,16 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     functions <- getFunctions()
   } yield {
     form match {
-      case f if f.objId == FORM => Seq(FormUIDef.field(tablesAndViews),FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs),FormUIDef.fieldFile)
+      case f if f.objId == FORM => Seq(
+        FormUIDef.field(tablesAndViews),
+        FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
+        FormUIDef.field_childs(forms),
+        FormUIDef.fieldI18n(services.config.langs),
+        FormUIDef.formI18n(viewsOnly,services.config.langs),
+        FormUIDef.fieldFile,
+        FormUIDef.form_actions(functions.map(_.name)),
+        FormUIDef.form_navigation_actions(functions.map(_.name))
+      )
       case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs),FormUIDef.fieldFile)
       case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs),FormUIDef.fieldFile)
       case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs))
