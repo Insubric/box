@@ -58,13 +58,25 @@ object FormUIDef {
         )),
         widget = Some(WidgetsNames.tableChild)
       ),
+      JSONField(JSONFieldTypes.CHILD,"form_actions",true,
+        child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"")),
+        widget = Some(WidgetsNames.tableChild)
+      ),
+      JSONField(JSONFieldTypes.CHILD,"form_navigation_actions",true,
+        child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"")),
+        widget = Some(WidgetsNames.tableChild)
+      ),
       CommonField.formFieldChild,
       CommonField.formFieldStatic,
       CommonField.formi18n,
+      JSONField(JSONFieldTypes.STATIC,"table_action_title",true,
+        label = Some("Table actions"),
+        widget = Some(WidgetsNames.h4)
+      ),
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,None,Seq(
+        LayoutBlock(None,4,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
               SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props","params").map(Left(_)))
@@ -75,6 +87,7 @@ object FormUIDef {
             )
           ))
         ).map(Right(_))),
+        LayoutBlock(Some("Actions"),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
         LayoutBlock(Some("I18n"),4,None,Seq("form_i18n").map(Left(_))),
         LayoutBlock(Some("Fields"),12,None,Seq("fields").map(Left(_))),
         LayoutBlock(Some("Linked forms"),12,None,Seq("fields_child").map(Left(_))),
@@ -492,6 +505,170 @@ object FormUIDef {
     keys = Seq("field_uuid"),
     keyStrategy = NaturalKey,
     query = None,
+    exportFields = Seq(),
+    view = None,
+    action = FormActionsMetadata.default
+  )
+
+  def form_actions(functions:Seq[String]) = JSONMetadata(
+    objId = FORM_ACTION,
+    kind = EntityKind.BOX_FORM.kind,
+    name = "Form action",
+    label = "Form action",
+    fields = Seq(
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.NUMBER,"action_order",false,widget = Some(WidgetsNames.hidden),default = Some("arrayIndex")),
+      JSONField(JSONFieldTypes.STRING,"action",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Action.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"importance",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Importance.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"after_action_goto",true,
+        widget = Some(WidgetsNames.input),
+        tooltip = Some(
+          """
+            |the goto action is the path were we want to go after the action
+            |the following subsititution are applied
+            |$kind -> the kind of the form i.e. 'table' or 'form'
+            |$name -> name of the current form/table
+            |$id -> id of the current/saved record
+            |$writable -> if the current form is writable
+            |""".stripMargin)
+      ),
+      JSONField(JSONFieldTypes.STRING,"label",false,label=Some("Label"),
+        tooltip = Some("Use global translation table"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
+        tooltip = Some("Before running action show a popup that ask for confirmation with the following text (translated with gobal transaltion table)"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.STRING,"execute_function",true,label=Some("Function"),
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          functions.sorted.map(x => JSONLookup(x.asJson,x))
+        ))
+      ),
+    ),
+    layout = Layout(
+      blocks = Seq(
+        LayoutBlock(None,12,None,Seq(
+          "uuid",
+          "form_uuid",
+          "order",
+          "action",
+          "importance",
+          "execute_function",
+          "after_action_goto",
+          "label",
+          "update_only",
+          "insert_only",
+          "reload",
+          "confirm_text"
+        ).map(Left(_))),
+      )
+    ),
+    entity = "form_actions",
+    lang = "en",
+    tabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    rawTabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    keys = Seq("uuid"),
+    keyStrategy = SurrugateKey,
+    query = Some(JSONQuery.sortByKeys(Seq("action_order"))),
+    exportFields = Seq(),
+    view = None,
+    action = FormActionsMetadata.default
+  )
+
+
+  def form_navigation_actions(functions:Seq[String]) = JSONMetadata(
+    objId = FORM_NAVIGATION_ACTION,
+    kind = EntityKind.BOX_FORM.kind,
+    name = "Form navigation action",
+    label = "Form navigation action",
+    fields = Seq(
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.NUMBER,"action_order",false,widget = Some(WidgetsNames.hidden), default = Some("arrayIndex")),
+      JSONField(JSONFieldTypes.STRING,"action",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Action.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"importance",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Importance.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"after_action_goto",true,
+        widget = Some(WidgetsNames.input),
+        tooltip = Some(
+          """
+            |the goto action is the path were we want to go after the action
+            |the following subsititution are applied
+            |$kind -> the kind of the form i.e. 'table' or 'form'
+            |$name -> name of the current form/table
+            |$id -> id of the current/saved record
+            |$writable -> if the current form is writable
+            |""".stripMargin)
+      ),
+      JSONField(JSONFieldTypes.STRING,"label",false,label=Some("Label"),
+        tooltip = Some("Use global translation table"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
+        tooltip = Some("Before running action show a popup that ask for confirmation with the following text (translated with gobal transaltion table)"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.STRING,"execute_function",true,label=Some("Function"),
+        widget = Some(WidgetsNames.select),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
+        lookup = Some(JSONFieldLookup.prefilled(
+          functions.sorted.map(x => JSONLookup(x.asJson,x))
+        ))
+      ),
+    ),
+    layout = Layout(
+      blocks = Seq(
+        LayoutBlock(None,12,None,Seq(
+          "uuid",
+          "form_uuid",
+          "order",
+          "action",
+          "importance",
+          "execute_function",
+          "after_action_goto",
+          "label",
+          "update_only",
+          "insert_only",
+          "reload",
+          "confirm_text"
+        ).map(Left(_))),
+      )
+    ),
+    entity = "form_navigation_actions",
+    lang = "en",
+    tabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    rawTabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    keys = Seq("uuid"),
+    keyStrategy = SurrugateKey,
+    query = Some(JSONQuery.sortByKeys(Seq("action_order"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default

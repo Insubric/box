@@ -147,9 +147,9 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     }
 
     val picker = input(
+      color.black,
       style,WidgetUtils.toNullable(field.nullable),
       onkeydown := { (e: KeyboardEvent) =>
-        e.preventDefault()
         e.keyCode match {
           case 13 => {
             handleDate(e.target.asInstanceOf[HTMLInputElement].value.asJson, true)

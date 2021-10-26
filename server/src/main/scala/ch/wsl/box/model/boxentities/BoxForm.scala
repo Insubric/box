@@ -102,19 +102,22 @@ object BoxForm {
   lazy val BoxForm_i18nTable = new TableQuery(tag => new BoxForm_i18n(tag))
 
 
-  case class BoxForm_actions_row(uuid: Option[java.util.UUID] = None, form_id: Option[java.util.UUID] = None,
+  case class BoxForm_actions_row(uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID,
                               action:String,importance:String,after_action_goto:Option[String],
                               label:String,
                               update_only:Boolean,
                               insert_only:Boolean,
                               reload:Boolean,
-                              confirm_text:Option[String])
+                              action_order:Double,
+                              confirm_text:Option[String],
+                                 execute_function:Option[String],
+                                )
 
   class BoxForm_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_actions_row](_tableTag,BoxSchema.schema, "form_actions") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload,confirm_text) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
-    val form_uuid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("form_uuid", O.Default(None))
+    val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
     val action: Rep[String] = column[String]("action")
     val importance: Rep[String] = column[String]("importance")
     val after_action_goto: Rep[Option[String]] = column[Option[String]]("after_action_goto", O.Default(None))
@@ -123,13 +126,51 @@ object BoxForm {
     val insert_only: Rep[Boolean] = column[Boolean]("insert_only", O.Default(false))
     val reload: Rep[Boolean] = column[Boolean]("reload", O.Default(false))
     val confirm_text: Rep[Option[String]] = column[Option[String]]("confirm_text", O.Default(None))
+    val execute_function: Rep[Option[String]] = column[Option[String]]("execute_function", O.Default(None))
+    val action_order: Rep[Double] = column[Double]("action_order")
 
 
     /** Foreign key referencing Field (database name fkey_field) */
-    lazy val fieldFk = foreignKey("fkey_form", form_uuid, BoxFormTable)(r => Rep.Some(r.form_uuid), onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+    lazy val fieldFk = foreignKey("fkey_form", form_uuid, BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
   }
 
   lazy val BoxForm_actions = new TableQuery(tag => new BoxForm_actions(tag))
+
+
+
+  case class BoxForm_navigation_actions_row(uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID,
+                                 action:String,importance:String,after_action_goto:Option[String],
+                                 label:String,
+                                 update_only:Boolean,
+                                 insert_only:Boolean,
+                                 reload:Boolean,
+                                 action_order:Double,
+                                 confirm_text:Option[String],
+                                 execute_function:Option[String],
+                                )
+
+  class BoxForm_navigation_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_navigation_actions_row](_tableTag,BoxSchema.schema, "form_navigation_actions") {
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function) <> (BoxForm_navigation_actions_row.tupled, BoxForm_navigation_actions_row.unapply)
+
+    val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
+    val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
+    val action: Rep[String] = column[String]("action")
+    val importance: Rep[String] = column[String]("importance")
+    val after_action_goto: Rep[Option[String]] = column[Option[String]]("after_action_goto", O.Default(None))
+    val label: Rep[String] = column[String]("label")
+    val update_only: Rep[Boolean] = column[Boolean]("update_only", O.Default(false))
+    val insert_only: Rep[Boolean] = column[Boolean]("insert_only", O.Default(false))
+    val reload: Rep[Boolean] = column[Boolean]("reload", O.Default(false))
+    val confirm_text: Rep[Option[String]] = column[Option[String]]("confirm_text", O.Default(None))
+    val execute_function: Rep[Option[String]] = column[Option[String]]("execute_function", O.Default(None))
+    val action_order: Rep[Double] = column[Double]("action_order")
+
+
+    /** Foreign key referencing Field (database name fkey_field) */
+    lazy val fieldFk = foreignKey("fkey_form", form_uuid, BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+  }
+
+  lazy val BoxForm_navigation_actions = new TableQuery(tag => new BoxForm_navigation_actions(tag))
 
 
 }

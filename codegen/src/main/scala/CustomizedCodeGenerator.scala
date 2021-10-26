@@ -60,7 +60,7 @@ object CustomizedCodeGenerator  {
 
 
     val files = CodeGenerator(conf.schemaName).generatedFiles(connection)
-    val boxFiles = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq(
+    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq(
       "export",
       "export_field",
       "export_field_i18n",
@@ -71,6 +71,7 @@ object CustomizedCodeGenerator  {
       "field_i18n",
       "form",
       "form_actions",
+      "form_navigator_actions",
       "form_i18n",
       "function",
       "function_field",
@@ -80,6 +81,8 @@ object CustomizedCodeGenerator  {
       "news",
       "news_i18n"
     )).generatedFiles(connection)
+
+    val boxFilesAll = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq()).generatedFiles(connection)
 
     files.entities.writeToFile(
       "ch.wsl.box.jdbc.PostgresProfile",
@@ -117,7 +120,7 @@ object CustomizedCodeGenerator  {
 
     files.registry.writeToFile(args(0),"ch.wsl.box.generated","","GenRegistry.scala")
 
-    boxFiles.entities.writeToFile(
+    boxFilesLimited.entities.writeToFile(
       "ch.wsl.box.jdbc.PostgresProfile",
       args(0),
       "ch.wsl.box.generated.boxentities",
@@ -125,7 +128,7 @@ object CustomizedCodeGenerator  {
       "Entities.scala"
     )
 
-    boxFiles.generatedRoutes.writeToFile(
+    boxFilesLimited.generatedRoutes.writeToFile(
       args(0),
       "ch.wsl.box.generated.boxentities",
       "GeneratedRoutes",
@@ -133,14 +136,14 @@ object CustomizedCodeGenerator  {
       "Entities"
     )
 
-    boxFiles.entityActionsRegistry.writeToFile(
+    boxFilesLimited.entityActionsRegistry.writeToFile(
       args(0),
       "ch.wsl.box.generated.boxentities",
       "EntityActionsRegistry.scala",
       "Entities"
     )
 
-    boxFiles.fileAccessGenerator.writeToFile(
+    boxFilesLimited.fileAccessGenerator.writeToFile(
       args(0),
       "ch.wsl.box.generated.boxentities",
       "FileRoutes",
@@ -148,10 +151,10 @@ object CustomizedCodeGenerator  {
       "Entities"
     )
 
-    boxFiles.fieldRegistry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","GenFieldRegistry.scala","")
+    boxFilesAll.fieldRegistry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","GenFieldRegistry.scala","")
 
 
-    boxFiles.registry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","","GenRegistry.scala")
+    boxFilesAll.registry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","","GenRegistry.scala")
 
     connection.close()
 

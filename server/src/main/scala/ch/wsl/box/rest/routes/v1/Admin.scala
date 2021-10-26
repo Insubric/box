@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{BoxActionsRegistry, BoxDefinition, BoxDefinitionMerge, BoxFieldAccessRegistry, BoxRegistry}
+import ch.wsl.box.model.{BoxActionsRegistry, BoxDefinition, BoxDefinitionMerge, BoxRegistry}
 import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.EntityKind
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, StubMetadataFactory}
@@ -59,7 +59,7 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
   def entities = path(EntityKind.BOX_TABLE.plural) {
     get {
-      complete((BoxFieldAccessRegistry.tables ++ BoxFieldAccessRegistry.views).sorted)
+      complete((BoxRegistry.generated.toSeq.flatMap(_.fields.tables) ++ BoxRegistry.generated.toSeq.flatMap(_.fields.views)).sorted)
     }
   }
 

@@ -36,6 +36,8 @@ class BoxActionsRegistry(implicit ec:ExecutionContext,services:Services)  {
     case "field_file" => JSONTableActions[BoxField.BoxFieldFile,BoxField.BoxFieldFile_row](BoxField.BoxFieldFileTable)
     case "field_i18n" => JSONTableActions[BoxField.BoxField_i18n,BoxField.BoxField_i18n_row](BoxField.BoxField_i18nTable)
     case "form" => JSONTableActions[BoxForm.BoxForm,BoxForm.BoxForm_row](BoxForm.BoxFormTable)
+    case "form_actions" => JSONTableActions[BoxForm.BoxForm_actions,BoxForm.BoxForm_actions_row](BoxForm.BoxForm_actions)
+    case "form_navigation_actions" => JSONTableActions[BoxForm.BoxForm_navigation_actions,BoxForm.BoxForm_navigation_actions_row](BoxForm.BoxForm_navigation_actions)
     case "form_i18n" => JSONTableActions[BoxForm.BoxForm_i18n,BoxForm.BoxForm_i18n_row](BoxForm.BoxForm_i18nTable)
     case "labels" => JSONTableActions[BoxLabels.BoxLabels,BoxLabels.BoxLabels_row](BoxLabels.BoxLabelsTable)
     case "ui" => JSONTableActions[BoxUITable.BoxUI,BoxUITable.BoxUI_row](BoxUITable.BoxUITable)

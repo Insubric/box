@@ -118,6 +118,11 @@ object Labels {
     def shp = get(SharedLabels.exports.shp)
   }
 
+  object table{
+    def showMore = get(SharedLabels.table.showMore)
+    def showLess = get(SharedLabels.table.showLess)
+  }
+
   object entity{
     def filters = get(SharedLabels.entity.filters)
     def actions = get(SharedLabels.entity.actions)
