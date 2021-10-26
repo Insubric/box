@@ -51,6 +51,7 @@ object ClientConf {
   def colorWarning: String = Try(conf("color.warning")).getOrElse("#ffa500")
 
   def tableFontSize: Int = Try(conf("table.fontSize").toInt).getOrElse(10)
+  def tableMaxTextLength: Int = Try(conf("table.maxTextLength").toInt).getOrElse(140)
   def requiredFontSize: Int = Try(conf("form.requiredFontSize").toInt).getOrElse(8)
 
   def childBorderSize: Int = Try(conf("child.border.size").toInt).getOrElse(1)

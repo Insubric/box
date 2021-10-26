@@ -46,6 +46,15 @@ object SharedLabels extends LabelsCollection {
     )
   }
 
+  object table extends LabelsCollection {
+    def showMore = "table.showMore"
+    def showLess = "table.showLess"
+    def all = Seq(
+      showMore,
+      showLess
+    )
+  }
+
   object navigation extends LabelsCollection{
     def recordFound = "navigation.recordFound"
     def goAway = "navigation.goAway"
