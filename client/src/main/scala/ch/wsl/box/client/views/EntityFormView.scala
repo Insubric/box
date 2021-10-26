@@ -161,60 +161,54 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
 
     val m = model.get
-    m.metadata.foreach{ metadata =>
-//      val jsons = for {
-//        (field, i) <- form.fields.zipWithIndex
-//      } yield Enhancer.parse(field, m.results.lift(i).map(_._2),form.keys){ t =>
-//        model.subProp(_.error).set(s"Error parsing ${field.key} field: " + t.getMessage)
-//      }
+    val metadata = m.metadata.get
+    val data:Json = m.data
 
-      val data:Json = m.data
+    def saveAction(data:Json) = {
 
-      def saveAction(data:Json) = {
-
-        logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
-        for {
-          id <- JSONID.fromString(m.id.getOrElse("")) match {
-            case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
-            case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
-          }
-          result <- m.public match {
-            case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id,m.public)
-            case true => Future.successful(data)
-          }
-        } yield {
-          logger.debug("saveAction::Result")
-          (id,result)
+      logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
+      for {
+        id <- JSONID.fromString(m.id.getOrElse("")) match {
+          case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
+          case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
         }
-
+        result <- m.public match {
+          case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id,m.public)
+          case true => Future.successful(data)
+        }
+      } yield {
+        logger.debug("saveAction::Result")
+        (id,result)
       }
 
+    }
 
 
-      {for{
-        updatedData <- widget.beforeSave(data,metadata)
-        (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields)
-        afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
-      } yield {
 
-        logger.debug(afterSaveResult.toString())
+    {for{
+      updatedData <- widget.beforeSave(data,metadata)
+      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields)
+      afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
+    } yield {
 
-        enableGoAway
-        model.subProp(_.insert).set(false)
-        services.clientSession.loading.set(false)
+      logger.debug(afterSaveResult.toString())
 
-        action(newId)
+      enableGoAway
+      model.subProp(_.insert).set(false)
+      services.clientSession.loading.set(false)
+
+      action(newId)
 
 
-      }}.recover{ case e =>
-        e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
-        e.printStackTrace()
-        services.clientSession.loading.set(false)
+    }}.recover{ case e =>
+      e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
+      e.printStackTrace()
+      services.clientSession.loading.set(false)
 //        e match {
 //          case sql:SQLExceptionReport
 //        }
-      }
     }
+
   }
 
   def reload(id:JSONID): Future[Json] = {
@@ -373,19 +367,30 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
+
+    def executeFuntion():Future[Boolean] = action.executeFunction match {
+      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map(_ => true)
+      case None => Future.successful(true)
+    }
+
     def callBack() = action.action match {
       case SaveAction => save{ _id =>
-        if(action.reload) {
-          reload(_id)
-        }
-        action.getUrl(model.get.kind,model.get.name,Some(_id.asString),model.get.write).foreach{ url =>
-          reset()
-          Navigate.toUrl(url)
+        executeFuntion().map { _ =>
+          if (action.reload) {
+            reload(_id)
+          }
+          action.getUrl(model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
+            logger.info(url)
+            reset()
+            Navigate.toUrl(url)
+          }
         }
       }
       case NoAction => action.getUrl(model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-        reset()
-        Navigate.toUrl(url)
+        executeFuntion().map { _ =>
+          reset()
+          Navigate.toUrl(url)
+        }
       }
       case CopyAction => duplicate()
       case DeleteAction => delete()
@@ -404,13 +409,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       case None => cb()
     }
 
-    def executeFuntion(cb: () => Any) = action.executeFunction match {
-      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data)
-      case None => cb()
-    }
+
 
     (ev: Event) => {
-      confirm(() => executeFuntion(callBack))
+      logger.info(s"Execution action $action")
+      confirm(callBack)
       ev.preventDefault()
     }
   }

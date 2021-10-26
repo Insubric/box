@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.admin
 
 
 import ch.wsl.box.client._
-import ch.wsl.box.client.services.{ClientConf, Navigate, Notification}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Navigate, Notification}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.{BoxDef, BoxDefinition, MergeElement}
@@ -17,6 +17,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{BlobPropertyBag, Event, File, FileReader}
 import org.scalajs.dom.raw.Blob
 import scalacss.ScalatagsCss._
+import scribe.Logging
 import typings.fileSaver.mod.FileSaverOptions
 
 import scala.scalajs.js
@@ -44,7 +45,7 @@ object BoxDefinitionViewPresenter extends ViewFactory[AdminBoxDefinitionState.ty
   }
 }
 
-class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) extends Presenter[AdminBoxDefinitionState.type] {
+class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) extends Presenter[AdminBoxDefinitionState.type] with Logging {
 
   import Context._
 
@@ -63,6 +64,24 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     e.preventDefault()
   }
 
+  def retrocompatibility(bd:BoxDefinition):BoxDefinition = {
+
+    def formActionOldFormatConversion(fa:Json, i:Int):Option[Json] = {
+      BrowserConsole.log(io.circe.scalajs.convertJsonToJs(fa))
+      fa.asObject.map{ obj =>
+        val transformedKey = obj.toList.map{ case (k,v) =>
+          if(k == "form_id") ("form_uuid",v) else (k,v)
+        }
+        Json.fromFields(transformedKey ++ List(("action_order",Json.fromInt(i))))
+      }
+    }
+
+    val fa = bd.form_actions.zipWithIndex.flatMap{ case (json,i) => formActionOldFormatConversion(json,i)}
+    fa.map(f => BrowserConsole.log(io.circe.scalajs.convertJsonToJs(f)))
+
+    bd.copy(form_actions = fa)
+  }
+
   def loadDefinition(file:File) = {
     val reader = new FileReader()
     reader.readAsText(file)
@@ -71,7 +90,8 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
         val jsonStr = reader.result.asInstanceOf[String]
         parse(jsonStr).flatMap(_.as[BoxDefinition]) match {
           case Left(value) => Notification.add(value.getMessage)
-          case Right(value) => {
+          case Right(_value) => {
+            val value = retrocompatibility(_value)
             viewModel.subProp(_.newDefinition).set(Some(value))
             loadDiff(value)
           }
