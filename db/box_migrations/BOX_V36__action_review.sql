@@ -14,10 +14,10 @@ create table box.form_navigation_actions
     execute_function text,
     action_order double precision not null,
     uuid uuid default gen_random_uuid() not null
-        constraint form_table_actions_pk
+        constraint form_navigation_actions_pk
             primary key,
     form_uuid uuid not null
-        constraint form_table_actions_form_form_id_fk
+        constraint form_navigation_actions_form_form_id_fk
             references box.form
             on update cascade on delete cascade
 );
@@ -72,6 +72,8 @@ where entity <> 'box_static_page';
 
 
 update box.form_actions set action_order=0 where action_order is null;
+
+alter table box.form_actions alter column action_order set not null;
 
 select * from box.form_navigation_actions
 
