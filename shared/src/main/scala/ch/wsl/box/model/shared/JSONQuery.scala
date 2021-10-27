@@ -142,9 +142,9 @@ object Filter extends Logging {
 //  final val FALSE = "false"
 
   private def basicOptions(`type`:String) = `type` match {
-    case JSONFieldTypes.NUMBER  => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT, Filter.IN, Filter.NOTIN, Filter.BETWEEN)
+    case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER  => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT, Filter.IN, Filter.NOTIN, Filter.BETWEEN)
     case JSONFieldTypes.DATE | JSONFieldTypes.DATETIME | JSONFieldTypes.TIME => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT)
-    case JSONFieldTypes.STRING => Seq(Filter.LIKE, Filter.DISLIKE, Filter.EQUALS, Filter.NOT)
+    case JSONFieldTypes.STRING => Seq(Filter.LIKE, Filter.DISLIKE, Filter.EQUALS, Filter.NOT, Filter.IN, Filter.NOTIN)
 //    case JSONFieldTypes.BOOLEAN => Seq(Filter.TRUE, Filter.FALSE)
     case _ => Seq(Filter.EQUALS, Filter.NOT)
   }

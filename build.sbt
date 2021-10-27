@@ -84,10 +84,7 @@ lazy val server: Project  = project
     Assets / pipelineStages := Seq(scalaJSPipeline),
     Assets / scalaJSStage := FullOptStage,
     scalaJSProjects := {
-      val result = if (sys.env.get("DEV_SERVER").isDefined) Seq() else Seq(client)
-      println(result)
-      result
-
+      if (sys.env.get("DEV_SERVER").isDefined) Seq() else Seq(client)
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,

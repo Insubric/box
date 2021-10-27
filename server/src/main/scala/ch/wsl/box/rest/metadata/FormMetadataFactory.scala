@@ -403,10 +403,15 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         query <- queryJson.as[JSONQuery].right.toOption
       } yield query }.getOrElse(JSONQuery.sortByKeys(keys))
 
+      //using up.db because we want policies to be applyed here
       lookupData <- DBIO.from(up.db.run(Registry().actions(refEntity).find(filter.copy(lang = Some(lang)))))
+      allLookupData <- if(field.params.exists(_.js("allLookup") == Json.True))
+        DBIO.from(up.db.run(Registry().actions(refEntity).find(JSONQuery.empty)))
+      else
+        DBIO.successful(Seq())
 
     } yield {
-      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), lookupData,field.lookupQuery))
+      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), lookupData,allLookupData,field.lookupQuery))
     }
 
   }} match {
