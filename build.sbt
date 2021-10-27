@@ -83,7 +83,13 @@ lazy val server: Project  = project
     //Comment this to avoid errors in importing project, i.e. when changing libraries
     Assets / pipelineStages := Seq(scalaJSPipeline),
     Assets / scalaJSStage := FullOptStage,
-    scalaJSProjects := Seq(client),
+    scalaJSProjects := {
+      val result = if (sys.env.get("DEV_SERVER").isDefined) Seq() else Seq(client)
+      println(result)
+      result
+
+    },
+//    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
