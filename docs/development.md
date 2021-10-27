@@ -37,6 +37,8 @@ that way every time a file is saved it get compilated and served on 8888.
 
 Please note that there is no autoreload set up so you must reload the page manually on the browser.
 
+When using `devServer` the client is no more needed on the server so to by setting the env variable `DEV_SERVER` disables compiling and FullOptimising.
+
 ### Pre generation of Table entities
 running `sbt server/slick` tables files are generated so they are compiled only once, modification on database are ignored.
 

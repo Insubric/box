@@ -118,5 +118,5 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case _ => ((x: LocalDateTime) => x)
   }
 
-  val devServer: Boolean = ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
+  val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
 }

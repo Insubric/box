@@ -137,6 +137,8 @@ object SharedLabels extends LabelsCollection {
     def removeFile = "form.remove-image"
     def drop = "form.drop"
     def print = "form.print"
+    def trueLabel = "form.trueLabel"
+    def falseLabel = "form.falseLabel"
     def all = Seq(
       required,
       save,
@@ -148,7 +150,9 @@ object SharedLabels extends LabelsCollection {
       removeMap,
       removeFile,
       drop,
-      print
+      print,
+      trueLabel,
+      falseLabel
     )
   }
 
