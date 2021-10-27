@@ -11,11 +11,12 @@ import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.dropdown.UdashDropdown
 import io.udash.properties.seq.SeqProperty
 import io.udash._
-import java.io
 
+import java.io
 import ch.wsl.box.client.utils.TestHooks
 import org.scalajs.dom
 import org.scalajs.dom.{Event, Node}
+import scalatags.JsDom.tags2.nav
 import scalatags.generic
 
 case class MenuLink(name:String, state:RoutingState)
@@ -24,9 +25,8 @@ object Header {
 
   import ch.wsl.box.client.Context._
 
-  private val links:Seq[Modifier] = Seq(produce(services.clientSession.logged) { logged =>
-    if(!logged) span().render else {
-      val l = Seq(MenuLink(Labels.header.home, IndexState)) ++ {
+  private def links(logged:Boolean):Seq[MenuLink] = if(logged) {
+     Seq(MenuLink(Labels.header.home, IndexState)) ++ {
         if (UI.enableAllTables) {
           Seq(
             MenuLink("Admin", AdminState),
@@ -39,31 +39,29 @@ object Header {
           )
         } else Seq()
       }
-      menuLinks(l).render
-    }
-  })
+    } else Seq()
+
 
   private def linkFactory(l: MenuLink) =
     a(Navigate.click(l.state))(span(l.name)).render
 
 
-  def menuLinks(links:Seq[MenuLink]):Seq[generic.Frag[Element, Node]] =  links.map{link =>
-    frag(a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); Navigate.to(link.state); e.preventDefault()} ))(
+  def toHtml(link:MenuLink):generic.Frag[Element, Node] = {
+    a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); Navigate.to(link.state); e.preventDefault()} ))(
       link.name
-    ), ClientConf.menuSeparator)
+    )
   }
 
   def uiMenu = UI.menu.map{ link =>
-    frag(a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => {showMenu.set(false); Navigate.toUrl(link.url); e.preventDefault()} ))(
+    a(ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => {showMenu.set(false); Navigate.toUrl(link.url); e.preventDefault()} ))(
       Labels(link.name)
-    ), ClientConf.menuSeparator)
+    )
   }
 
   def otherMenu:Seq[Modifier] = Seq(
     showIf(services.clientSession.logged) {
-      frag(a(id := TestHooks.logoutButton, ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); services.clientSession.logout(); e.preventDefault() } ),"Logout"), ClientConf.menuSeparator).render
+      a(id := TestHooks.logoutButton, ClientConf.style.linkHeaderFooter,onclick :+= ((e:Event) => { showMenu.set(false); services.clientSession.logout(); e.preventDefault() } ),"Logout").render
     },
-    ClientConf.menuSeparator,
     if(ClientConf.langs.length > 1) {
       frag(
         Labels.header.lang + " ",
@@ -71,14 +69,14 @@ object Header {
           span(a(id := TestHooks.langSwitch(l), ClientConf.style.linkHeaderFooter, onclick :+= ((e: Event) => {
             showMenu.set(false); services.clientSession.setLang(l)
             e.preventDefault()
-          }), l), " ")
+          }), l))
         }
       )
     } else frag()
   )
 
-  def menu:Seq[Modifier] =
-    links ++
+  def menu(logged:Boolean):Seq[Modifier] =
+    links(logged).map(toHtml) ++
     uiMenu ++
     otherMenu
 
@@ -86,11 +84,13 @@ object Header {
 
   def user = Option(dom.window.sessionStorage.getItem(ClientSession.USER))
 
-  def navbar(title:Option[String]) = produce(services.clientSession.logged) { x =>
+  def navbar(title:Option[String]) = produce(services.clientSession.logged) { logged =>
     header(
       div(BootstrapStyles.Float.left())(b(id := "headerTitle", title), small(ClientConf.style.noMobile,user.map("   -   " + _))),
-      div(BootstrapStyles.Float.right(),ClientConf.style.noMobile) (
-        menu
+      nav(BootstrapStyles.Float.right(),ClientConf.style.noMobile) (
+        ul(
+          menu(logged).map(m => li(m))
+        )
       ),
       div(BootstrapStyles.Float.right(),ClientConf.style.mobileOnly)(
         a(ClientConf.style.linkHeaderFooter,
@@ -100,7 +100,7 @@ object Header {
       ),
       showIf(showMenu) {
         div(ClientConf.style.mobileMenu)(
-          (links ++ uiMenu).map(div(_)),hr,
+          (links(logged).map(toHtml) ++ uiMenu).map(div(_)),hr,
           user.map(frag(_,br)),otherMenu.map(span(_,br)),hr,
           Footer.copyright
         ).render

@@ -145,7 +145,15 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       borderBottom(1 px,solid,black),
       color(conf.colors.mainText),
       backgroundColor(conf.colors.main),
-      fontSize(0.8.rem)
+      fontSize(0.8.rem),
+      unsafeChild("ul") (
+        display.inline,
+        margin(10 px)
+      ),
+      unsafeChild("li") (
+        display.inline,
+        margin(10 px)
+      )
     ),
 
     unsafeRoot("footer")(
