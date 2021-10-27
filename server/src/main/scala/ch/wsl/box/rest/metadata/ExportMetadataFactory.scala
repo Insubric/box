@@ -158,7 +158,7 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
         lookupData <- db.run(Registry().actions(entity).find(filter))
 
       } yield {
-        Some(JSONFieldLookup.fromData(entity, JSONFieldMap(value, text, field.name), lookupData))
+        Some(JSONFieldLookup.fromData(entity, JSONFieldMap(value, text, field.name), lookupData,Seq()))
       }
     }} match {
         case Some(a) => a
