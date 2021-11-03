@@ -16,7 +16,7 @@ import scalatags.JsDom
 import scalatags.generic.Attr
 
 
-case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties)
+case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int)
 
 
 case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
@@ -247,6 +247,14 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     width(100 %%),
     textAlign.right,
     float.right
+  )
+
+  val tableHeaderFixed = style(
+    unsafeRoot("thead") (
+      position.sticky,
+      top.`0`,
+      backgroundColor.white
+    )
   )
 
   val smallCells = style(
@@ -611,7 +619,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val smallLabelRequired = style(
-    fontSize(8.px),
+    fontSize(conf.requiredFontSize.px),
     color(conf.colors.danger)
   )
 
@@ -722,7 +730,8 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val simpleCheckbox = style(
-    height(100.%%).important,
+    width(13 px),
+    height(13 px),
     float.none.important,
     borderWidth.`0`,
     border.`0`,
@@ -799,6 +808,31 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       height(20 px),
       width(20 px),
       marginRight(5 px)
+    )
+  )
+
+  val dropFileZone = style(
+    height(50 px),
+    width(100 %%),
+    borderStyle.dashed,
+    borderColor(Colors.Grey),
+    borderWidth(1 px),
+    display.flex,
+    justifyContent.center,
+    alignItems.center,
+    margin.vertical(10 px),
+    unsafeChild("p")(
+      color(Colors.Grey),
+      fontSize(11 px),
+      Font.bold
+    )
+  )
+
+  val dropFileZoneDropping = style(
+    borderColor(conf.colors.main),
+    backgroundColor.rgba(0,0,0,0.3),
+    unsafeChild("p")(
+      color(conf.colors.main)
     )
   )
 

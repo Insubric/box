@@ -15,7 +15,7 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
-import ch.wsl.box.rest.utils.{BoxConfig, JSONSupport, UserProfile}
+import ch.wsl.box.rest.utils.{ JSONSupport, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
 import slick.lifted.TableQuery
@@ -64,7 +64,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
     val dbActions = new DbActions[T,M](table)
     val jsonActions = JSONTableActions[T,M](table)
-    val limitLookupFromFk: Int = BoxConfig.fksLookupRowsLimit
+    val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
 
 
     import io.circe.syntax._
@@ -89,20 +89,6 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
           XLS.route(table)
         }
         onSuccess(db.run(io))(x => x)
-      }
-    }
-  }
-
-  def lookup:Route = pathPrefix("lookup") {
-    pathPrefix(Segment) { textProperty =>
-      path(Segment) { valueProperty =>
-        post{
-          entity(as[JSONQuery]){ query =>
-            complete {
-              db.run(Lookup.values(name, valueProperty, textProperty, query))
-            }
-          }
-        }
       }
     }
   }
@@ -196,8 +182,8 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   def insert:Route = post {                            //inserts
     entity(as[M]) { e =>
       logger.info("Inserting: " + e)
-      val id: Future[JSONID] = db.run(dbActions.insert(e).transactionally)//returns object with id
-      complete(id)
+      val result: Future[M] = db.run(dbActions.insert(e).transactionally)//returns object with id
+      complete(result)
     }
   }
 
@@ -225,6 +211,26 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     onComplete(db.run(DBIO.sequence(ids.map( id => dbActions.delete(id))).transactionally)) {
       case Success(affectedRow) => complete(JSONCount(affectedRow.sum))
       case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+    }
+  }
+
+  def lookup:Route = path("lookup") {
+    path(Segment) { field =>
+      post {
+        entity(as[JSONQuery]) { query =>
+          complete {
+            for{
+              m <- EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk)
+              lookups <- {
+                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
+                  case None => throw new Exception(s"$field has no lookup")
+                }
+              }
+            } yield lookups
+          }
+        }
+      }
     }
   }
 

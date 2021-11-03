@@ -79,7 +79,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
           rowWithFile = handler.inject(row.get,bytea)
           result <- dbActions.update(id,rowWithFile)
           _ <- DBIO.from(services.imageCacher.clear(FileId(id,field)))
-        } yield result
+        } yield id
       }.transactionally}
       complete(result)
     }

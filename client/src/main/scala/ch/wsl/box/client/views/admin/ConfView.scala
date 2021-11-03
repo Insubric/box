@@ -41,7 +41,7 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
   import Context._
 
   override def handleState(state: AdminConfState.type): Unit = {
-    services.rest.list(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"conf",10000).map{ confs =>
+    services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"conf",10000).map{ confs =>
       val entries = confs.flatMap(js => js.as[ConfEntry].toOption)
       viewModel.subProp(_.entries).set(entries)
     }
@@ -52,7 +52,10 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
     val keys:Seq[JSONID] = viewModel.get.entries.map(x => JSONID.fromMap(Map("key" -> x.key)))
     val data:Seq[Json] = viewModel.get.entries.map(_.asJson)
 
-    services.rest.updateMany(EntityKind.BOXENTITY.kind,services.clientSession.lang(),"conf",keys,data)
+    for {
+      _ <- services.rest.updateMany(EntityKind.BOX_TABLE.kind, services.clientSession.lang(), "conf", keys, data)
+      _ <- services.rest.updateMany(EntityKind.BOX_TABLE.kind, services.clientSession.lang(), "conf", keys, data)
+    } yield Navigate.back()
 
     e.preventDefault()
 
@@ -213,6 +216,10 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
       h5("Table"),
       editConf("page_length","Table page length","30","Define the length of page in tabular view",Integer),
       editConf("table.fontSize","Table font size","10","Define the size of the font tabular view",Integer),
+
+      h5("Form"),
+      editConf("form.requiredFontSize","Required font size","8","Define the size of the required element in table",Integer),
+
 
       h5("Child"),
       editConf("child.marginTop.size","Margin top","-1","",Integer),

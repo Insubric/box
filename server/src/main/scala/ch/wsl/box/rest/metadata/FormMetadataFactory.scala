@@ -12,7 +12,7 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.{Auth, BoxConfig, UserProfile}
+import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -86,7 +86,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         for {
           metadata <- getForm(formQuery, lang)
         } yield {
-          if(BoxConfig.enableCache) {
+          if(services.config.enableCache) {
             FormMetadataFactory.cacheFormId.put(cacheKey,metadata)
             FormMetadataFactory.cacheFormName.put((up.name, metadata.name,lang),metadata)
           }
@@ -110,7 +110,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         for {
           metadata <- getForm(formQuery, lang)
         } yield {
-          if(BoxConfig.enableCache) {
+          if(services.config.enableCache) {
             FormMetadataFactory.cacheFormName.put(cacheKey,metadata)
             FormMetadataFactory.cacheFormId.put((up.name, metadata.objId,lang),metadata)
           }
@@ -161,7 +161,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       fieldsFile <- DBIO.sequence(fields.map { case (f, _) =>
           BoxField.BoxFieldFileTable.filter(_.field_uuid === f.field_uuid).result.headOption
       })
-      actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).result
+      actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
+      navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
 
       cols <- new PgInformationSchema(services.connection.dbSchema,form.entity)(ec).columns
       columns = fields.map(f => cols.find(_.column_name == f._1.name))
@@ -216,10 +217,23 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               updateOnly = a.update_only,
               insertOnly = a.insert_only,
               reload = a.reload,
-              confirmText = a.confirm_text
+              confirmText = a.confirm_text,
+              executeFunction = a.execute_function
             )
           },
-          navigationActions = Seq(), // TODO
+          navigationActions = navigationActions.map{a =>
+            FormAction(
+              action = Action.fromString(a.action),
+              importance = Importance.fromString(a.importance),
+              afterActionGoTo = a.after_action_goto,
+              label = a.label,
+              updateOnly = a.update_only,
+              insertOnly = a.insert_only,
+              reload = a.reload,
+              confirmText = a.confirm_text,
+              executeFunction = a.execute_function
+            )
+          },
           showNavigation = form.show_navigation
         )
       }
@@ -231,6 +245,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       val result = JSONMetadata(
         form.form_uuid.get,
         form.name,
+        EntityKind.FORM.kind,
         formI18n.flatMap(_.label).getOrElse(form.name),
         jsonFields,
         layout,
@@ -388,10 +403,15 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         query <- queryJson.as[JSONQuery].right.toOption
       } yield query }.getOrElse(JSONQuery.sortByKeys(keys))
 
+      //using up.db because we want policies to be applyed here
       lookupData <- DBIO.from(up.db.run(Registry().actions(refEntity).find(filter.copy(lang = Some(lang)))))
+      allLookupData <- if(field.params.exists(_.js("allLookup") == Json.True))
+        DBIO.from(up.db.run(Registry().actions(refEntity).find(JSONQuery.empty)))
+      else
+        DBIO.successful(Seq())
 
     } yield {
-      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), lookupData,field.lookupQuery))
+      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), lookupData,allLookupData,field.lookupQuery))
     }
 
   }} match {

@@ -1,17 +1,14 @@
-package ch.wsl.box.client.widgets
+package ch.wsl.box.client.forms.widgets
 
-import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
-import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONMetadata, Layout, LayoutBlock, NaturalKey, SharedLabels, WidgetsNames}
+import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
+import ch.wsl.box.model.shared._
 import io.circe.Json
-import org.scalajs.dom.{KeyboardEventInit, document, window}
-import org.scalajs.dom.ext._
-import org.scalajs.dom.raw.{Event, HTMLDivElement, HTMLElement, HTMLInputElement, KeyboardEvent}
+import io.circe.syntax._
+import org.scalajs.dom.document
+import org.scalajs.dom.raw.HTMLDivElement
 
 import scala.concurrent.Future
-import io.circe._
-import io.circe.syntax._
 
 
 
@@ -40,7 +37,7 @@ class RichTextWidgetTest extends TestBase {
       JSONID.fromMap(Map("id" -> "1"))
     }
 
-    override val metadata: JSONMetadata = JSONMetadata.simple(1,testFormName,"it",Seq(
+    override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,testFormName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.string(rtfName).withWidget(WidgetsNames.richTextEditorFull)
     ),Seq("id"))
@@ -49,9 +46,6 @@ class RichTextWidgetTest extends TestBase {
   }
 
   override def values: Values = new RTValues
-
-  def countChilds(id:Int) = document.querySelectorAll(s"#${TestHooks.tableChildId(id)} .${TestHooks.tableChildRow}").length
-
 
   "rich text widget" should "be loaded" in {
 
@@ -64,7 +58,7 @@ class RichTextWidgetTest extends TestBase {
       _ <- Future {
         Context.applicationInstance.goTo(EntityFormState("form", formName, "true", Some("id::1"), false))
       }
-      _ <- waitElement(() => document.querySelector(s".ql-container"))
+      _ <- waitElement(() => document.querySelector(s".ql-container"),".ql-container")
       _ <- loaded
       editor = document.querySelector(s".ql-container").asInstanceOf[HTMLDivElement]
       _ <- Future {

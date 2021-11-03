@@ -3,7 +3,7 @@ package ch.wsl.box.rest.logic.functions
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import ch.wsl.box.model.shared.JSONQuery
-import ch.wsl.box.rest.utils.{BoxConfig, Lang, UserProfile}
+import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -79,7 +79,7 @@ object RuntimeFunction {
       case Some(f) => f
       case None => {
         val result = compile(embedded)
-        if(BoxConfig.enableCache) {
+        if(services.config.enableCache) {
           compiledFunctions += (name -> result)
         }
         result

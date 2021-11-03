@@ -4,7 +4,6 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.utils.GeoJson
-import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, Geometry}
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
@@ -77,8 +76,6 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   }
 
   baseLayer.listen(loadBase,false)
-
-  override def afterRender(): Unit = {}
 
   protected def _afterRender(): Unit = {
     if(map != null && featuresLayer != null) {
@@ -183,12 +180,14 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     }, immediate)
   }
 
+  import GeoJson._
+
   def changedFeatures() = {
     listener.cancel()
     val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
     convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
-      import ch.wsl.box.client.utils.GeoJson.Geometry._
-      import ch.wsl.box.client.utils.GeoJson._
+      import GeoJson.Geometry._
+      import GeoJson._
       val geometries = collection.features.map(_.geometry)
       logger.info(s"$geometries")
       geometries.length match {
@@ -211,7 +210,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
             case _ => None
           }
 
-          val collection: Option[ch.wsl.box.client.utils.GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && options.features.multiPoint) {
+          val collection: Option[GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && options.features.multiPoint) {
             Some(MultiPoint(multiPoint.flatMap(_.get)))
           } else if (multiLine.forall(_.isDefined) && options.features.multiLine) {
             Some(MultiLineString(multiLine.flatMap(_.get)))
@@ -706,7 +705,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       produce(data) { geo =>
 
-        val geometry = geo.as[ch.wsl.box.client.utils.GeoJson.Geometry].toOption
+        val geometry = geo.as[GeoJson.Geometry].toOption
 
         val enable = EnabledFeatures(geometry)
 

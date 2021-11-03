@@ -2,7 +2,6 @@ package ch.wsl.box.rest.metadata.box
 
 import ch.wsl.box.model.shared.{Child, ConditionalField, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, WidgetsNames}
 import ch.wsl.box.rest.metadata.box.Constants.{FORM_FIELD_CHILDS, FORM_FIELD_FILE, FORM_FIELD_I18N, FORM_FIELD_STATIC, FORM_I18N}
-import ch.wsl.box.rest.utils.BoxConfig
 import io.circe.Json
 import io.circe.syntax._
 
@@ -15,7 +14,7 @@ object CommonField {
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.withExtractor(
       "type",
-      WidgetsNames.mapping.map{ case (k,v) => k.asJson -> v.map(x => JSONLookup(x,x))}
+      WidgetsNames.mapping.map{ case (k,v) => k.asJson -> v.map(x => JSONLookup(x.asJson,x))}
     )
   ))
 
@@ -25,14 +24,14 @@ object CommonField {
       JSONFieldTypes.ALL
         .filter(x => child || x != JSONFieldTypes.CHILD)
         .filter(x => static || x != JSONFieldTypes.STATIC)
-        .sorted.map(x => JSONLookup(x,x))
+        .sorted.map(x => JSONLookup(x.asJson,x))
     )
   ))
 
   def lookupEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupEntity",true,
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      tables.map(x => JSONLookup(x,x))
+      tables.map(x => JSONLookup(x.asJson,x))
     )),
     condition = Some(ConditionalField("widget",Seq(WidgetsNames.select.asJson,WidgetsNames.popup.asJson,WidgetsNames.lookupLabel.asJson)))
   )
@@ -48,7 +47,7 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
   )
 
-  val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input))
+  val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input), tooltip = Some("Use keyword `arrayIndex` to substitute the value with the index of the array (when this field is part of a child)"))
 
   val conditionFieldId = JSONField(JSONFieldTypes.STRING,"conditionFieldId",true,widget = Some(WidgetsNames.input))
   val conditionValues = JSONField(JSONFieldTypes.STRING,"conditionValues",true,
@@ -58,11 +57,11 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 50.asJson, "fullWidth" -> false.asJson))
   )
 
-  val lang = JSONField(JSONFieldTypes.STRING,"lang",false,
+  def lang(langs:Seq[String]) = JSONField(JSONFieldTypes.STRING,"lang",false,
 
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      BoxConfig.langs.map(x => JSONLookup(x,x))
+      langs.map(x => JSONLookup(x.asJson,x))
     ))
   )
 

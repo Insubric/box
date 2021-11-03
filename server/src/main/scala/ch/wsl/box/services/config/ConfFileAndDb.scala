@@ -1,33 +1,28 @@
-package ch.wsl.box.rest.utils
+package ch.wsl.box.services.config
 
-import java.sql.Timestamp
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
-
+import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
 import com.typesafe.config.ConfigFactory
-import scribe.{Level, Logger, Logging}
+import scribe.{Level, Logging}
 
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.util.Try
-import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.jdbc.UserDatabase
-import schemagen.ViewLabels
+import net.ceedubs.ficus.Ficus._
 
-
-
-object BoxConfig extends Logging {
-
+class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
   private var conf: Map[String, String] = Map()
 
-  def load(boxDb:UserDatabase)(implicit ec: ExecutionContext) = {
+  def load() = {
 
     val query = for {
       row <- ch.wsl.box.model.boxentities.BoxConf.BoxConfTable
     } yield row
 
-    val tempConf = Await.result(boxDb.run(query.result).map {
+    val tempConf = Await.result(connection.adminDB.run(query.result).map {
       _.map { row =>
         row.key -> row.value.getOrElse("")
       }.toMap
@@ -37,22 +32,24 @@ object BoxConfig extends Logging {
 
   }
 
+  load()
+
+  def refresh() = load()
+
   def clientConf:Map[String, String] = conf.filterNot{ case (k,v) =>
-         Set(
-              "host",
-              "port",
-              "cookie.name",
-              "server-secret",
-              "max-age",
-              "logger.level",
-              "fks.lookup.labels",
-              "fks.lookup.rowsLimit",
-              "redactor.js",
-              "redactor.css"
-         ).contains(k)}
+    Set(
+      "host",
+      "port",
+      "cookie.name",
+      "server-secret",
+      "max-age",
+      "logger.level",
+      "fks.lookup.labels",
+      "fks.lookup.rowsLimit",
+      "redactor.js",
+      "redactor.css"
+    ).contains(k)}
 
-
-  def langs = ViewLabels.langs
 
   def fksLookupLabels = ConfigFactory.parseString( Try(conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
 
@@ -103,7 +100,7 @@ object BoxConfig extends Logging {
 
   def enableRedactor:Boolean = {
     Try(conf("redactor.js")).toOption.exists(_.nonEmpty) &&
-    Try(conf("redactor.css")).toOption.exists(_.nonEmpty)
+      Try(conf("redactor.css")).toOption.exists(_.nonEmpty)
   }
 
   def redactorJs = Try(conf("redactor.js")).getOrElse("")
@@ -121,4 +118,5 @@ object BoxConfig extends Logging {
     case _ => ((x: LocalDateTime) => x)
   }
 
+  val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
 }

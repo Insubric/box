@@ -11,6 +11,7 @@ object FunctionUIDef {
 
   val main = JSONMetadata(
     objId = FUNCTION,
+    kind = EntityKind.BOX_FORM.kind,
     name = "function",
     label = "Function builder",
     fields = Seq(
@@ -41,7 +42,7 @@ object FunctionUIDef {
       ),
       JSONField(JSONFieldTypes.STRING,"description",true),
       JSONField(JSONFieldTypes.STRING,"mode",false,widget = Some(WidgetsNames.select), lookup = Some(JSONFieldLookup.prefilled(
-        FunctionKind.Modes.all.map(x => JSONLookup(x,x))
+        FunctionKind.Modes.all.map(x => JSONLookup(x.asJson,x))
       ))),
       JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.textarea),label = Some("")),
       JSONField(JSONFieldTypes.NUMBER,"order",true),
@@ -81,6 +82,7 @@ object FunctionUIDef {
 
   def field(tables:Seq[String]) = JSONMetadata(
     objId = FUNCTION_FIELD,
+    kind = EntityKind.BOX_FORM.kind,
     name = "field",
     label = "Field builder",
     fields = Seq(
@@ -127,14 +129,15 @@ object FunctionUIDef {
     action = FormActionsMetadata.default
   )
 
-  val fieldI18n = JSONMetadata(
+  def fieldI18n(langs:Seq[String]) = JSONMetadata(
     objId = FUNCTION_FIELD_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "fieldI18n",
     label = "FieldI18n builder",
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.simpleLabel,
       CommonField.tooltip,
       CommonField.hint,
@@ -159,14 +162,15 @@ object FunctionUIDef {
     action = FormActionsMetadata.default
   )
 
-  val functionI18n = JSONMetadata(
+  def functionI18n(langs:Seq[String]) = JSONMetadata(
     objId = FUNCTION_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FormI18n builder",
     label = "FormI18n builder",
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"function_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.simpleLabel,
       CommonField.tooltip,
       CommonField.hint,

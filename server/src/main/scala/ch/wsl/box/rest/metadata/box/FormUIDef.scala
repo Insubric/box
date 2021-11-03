@@ -4,7 +4,6 @@ import ch.wsl.box.model.boxentities.BoxForm
 import ch.wsl.box.model.boxentities.BoxUser.BoxUser_row
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.metadata.FormMetadataFactory
-import ch.wsl.box.rest.utils.BoxConfig
 
 object FormUIDef {
 
@@ -14,6 +13,7 @@ object FormUIDef {
 
   def main(tables:Seq[String], users:Seq[BoxUser_row]) = JSONMetadata(
     objId = FORM,
+    kind = EntityKind.BOX_FORM.kind,
     name = "form",
     label = "Form - Interface builder",
     fields = Seq(
@@ -26,7 +26,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"entity",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          tables.map(x => JSONLookup(x,x))
+          tables.map(x => JSONLookup(x.asJson,x))
         ))
       ),
       JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
@@ -41,7 +41,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"guest_user",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          users.map(x => JSONLookup(x.username,x.username))
+          users.map(x => JSONLookup(x.username.asJson,x.username))
         ))
       ),
       JSONField(JSONFieldTypes.STRING,"edit_key_field",true,
@@ -53,18 +53,30 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"exportFields",true,widget = Some(WidgetsNames.input)),
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
-          Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
+          Some(JSONQuery.sortByKeys(Seq("name")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
           ""
         )),
+        widget = Some(WidgetsNames.tableChild)
+      ),
+      JSONField(JSONFieldTypes.CHILD,"form_actions",true,
+        child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"")),
+        widget = Some(WidgetsNames.tableChild)
+      ),
+      JSONField(JSONFieldTypes.CHILD,"form_navigation_actions",true,
+        child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"")),
         widget = Some(WidgetsNames.tableChild)
       ),
       CommonField.formFieldChild,
       CommonField.formFieldStatic,
       CommonField.formi18n,
+      JSONField(JSONFieldTypes.STATIC,"table_action_title",true,
+        label = Some("Table actions"),
+        widget = Some(WidgetsNames.h4)
+      ),
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,None,Seq(
+        LayoutBlock(None,4,None,Seq(
           SubLayoutBlock(None,Seq(12,12,12),Seq(
             Right(
               SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props","params").map(Left(_)))
@@ -75,6 +87,7 @@ object FormUIDef {
             )
           ))
         ).map(Right(_))),
+        LayoutBlock(Some("Actions"),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
         LayoutBlock(Some("I18n"),4,None,Seq("form_i18n").map(Left(_))),
         LayoutBlock(Some("Fields"),12,None,Seq("fields").map(Left(_))),
         LayoutBlock(Some("Linked forms"),12,None,Seq("fields_child").map(Left(_))),
@@ -99,6 +112,7 @@ object FormUIDef {
 
   def page(users:Seq[BoxUser_row]) = JSONMetadata(
     objId = PAGE,
+    kind = EntityKind.BOX_FORM.kind,
     name = "page",
     label = "Pages - Interface builder",
     fields = Seq(
@@ -115,7 +129,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"guest_user",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          users.map(x => JSONLookup(x.username,x.username))
+          users.map(x => JSONLookup(x.username.asJson,x.username))
         ))
       ),
       JSONField(JSONFieldTypes.BOOLEAN,"show_navigation",false,
@@ -158,6 +172,7 @@ object FormUIDef {
 
   def field(tables:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD,
+    kind = EntityKind.BOX_FORM.kind,
     name = "Field builder",
     label = "Field builder",
     fields = Seq(
@@ -167,7 +182,7 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
         child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,"")),
         condition = Some(ConditionalField("type",Seq(JSONFieldTypes.FILE.asJson))),
@@ -219,7 +234,7 @@ object FormUIDef {
     rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("name"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -227,6 +242,7 @@ object FormUIDef {
 
   def field_childs(forms:Seq[BoxForm.BoxForm_row]) = JSONMetadata(
     objId = FORM_FIELD_CHILDS,
+    kind = EntityKind.BOX_FORM.kind,
     name = "Field builder childs",
     label = "Field builder childs",
     fields = Seq(
@@ -236,19 +252,19 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          WidgetsNames.mapping(JSONFieldTypes.CHILD).map(x => JSONLookup(x,x))
+          WidgetsNames.mapping(JSONFieldTypes.CHILD).map(x => JSONLookup(x.asJson,x))
         )
       )),
       JSONField(JSONFieldTypes.STRING,"type",false,
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.CHILD)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.STRING,"child_form_uuid",true,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          forms.map{ form => JSONLookup(form.form_uuid.get.toString,form.name) }.sortBy(_.value)
+          forms.map{ form => JSONLookup(form.form_uuid.get.asJson,form.name) }.sortBy(_.value)
         ))
       ),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,
@@ -317,7 +333,7 @@ object FormUIDef {
     rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("name"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -325,6 +341,7 @@ object FormUIDef {
 
   def field_static(tables:Seq[String],functions:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_STATIC,
+    kind = EntityKind.BOX_FORM.kind,
     name = "Field builder static",
     label = "Field builder static",
     fields = Seq(
@@ -334,14 +351,14 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          WidgetsNames.mapping(JSONFieldTypes.STATIC).map(x => JSONLookup(x,x))
+          WidgetsNames.mapping(JSONFieldTypes.STATIC).map(x => JSONLookup(x.asJson,x))
         )
       )),
       JSONField(JSONFieldTypes.STRING,"type",false,
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.STATIC)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("field_uuid"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       JSONField(JSONFieldTypes.STRING,"masterFields",true,label=Some("Parent field"),
@@ -358,7 +375,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.select),
         condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
         lookup = Some(JSONFieldLookup.prefilled(
-          functions.sorted.map(x => JSONLookup(x,x))
+          functions.sorted.map(x => JSONLookup(x.asJson,x))
         ))
       ),
     ),
@@ -386,20 +403,21 @@ object FormUIDef {
     rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("name"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
   )
 
-  val fieldI18n = JSONMetadata(
+  def fieldI18n(langs:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FieldI18n builder",
     label = "FieldI18n builder",
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"field_uuid",false, widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false, widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.label(),
       CommonField.tooltip,
       CommonField.hint,
@@ -424,25 +442,26 @@ object FormUIDef {
     rawTabularFields = Seq("lang","label","lookupTextField"),
     keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("lang"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
   )
 
-  def formI18n(views:Seq[String]) = JSONMetadata(
+  def formI18n(views:Seq[String],langs:Seq[String]) = JSONMetadata(
     objId = FORM_I18N,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FormI18n builder",
     label = "FormI18n builder",
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.lang,
+      CommonField.lang(langs),
       CommonField.simpleLabel,
       JSONField(JSONFieldTypes.STRING,"view_table",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
-          views.map(x => JSONLookup(x,x))
+          views.map(x => JSONLookup(x.asJson,x))
         ))
       ),
     ),
@@ -457,7 +476,7 @@ object FormUIDef {
     rawTabularFields = Seq("lang","label","view_table"),
     keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
-    query = None,
+    query = Some(JSONQuery.sortByKeys(Seq("lang"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default
@@ -465,6 +484,7 @@ object FormUIDef {
 
   val fieldFile = JSONMetadata(
     objId = FORM_FIELD_FILE,
+    kind = EntityKind.BOX_FORM.kind,
     name = "FieldFile builder",
     label = "FieldFile builder",
     fields = Seq(
@@ -485,6 +505,170 @@ object FormUIDef {
     keys = Seq("field_uuid"),
     keyStrategy = NaturalKey,
     query = None,
+    exportFields = Seq(),
+    view = None,
+    action = FormActionsMetadata.default
+  )
+
+  def form_actions(functions:Seq[String]) = JSONMetadata(
+    objId = FORM_ACTION,
+    kind = EntityKind.BOX_FORM.kind,
+    name = "Form action",
+    label = "Form action",
+    fields = Seq(
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.NUMBER,"action_order",false,widget = Some(WidgetsNames.hidden),default = Some("arrayIndex")),
+      JSONField(JSONFieldTypes.STRING,"action",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Action.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"importance",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Importance.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"after_action_goto",true,
+        widget = Some(WidgetsNames.input),
+        tooltip = Some(
+          """
+            |the goto action is the path were we want to go after the action
+            |the following subsititution are applied
+            |$kind -> the kind of the form i.e. 'table' or 'form'
+            |$name -> name of the current form/table
+            |$id -> id of the current/saved record
+            |$writable -> if the current form is writable
+            |""".stripMargin)
+      ),
+      JSONField(JSONFieldTypes.STRING,"label",false,label=Some("Label"),
+        tooltip = Some("Use global translation table"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
+        tooltip = Some("Before running action show a popup that ask for confirmation with the following text (translated with gobal transaltion table)"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.STRING,"execute_function",true,label=Some("Function"),
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          functions.sorted.map(x => JSONLookup(x.asJson,x))
+        ))
+      ),
+    ),
+    layout = Layout(
+      blocks = Seq(
+        LayoutBlock(None,12,None,Seq(
+          "uuid",
+          "form_uuid",
+          "order",
+          "action",
+          "importance",
+          "execute_function",
+          "after_action_goto",
+          "label",
+          "update_only",
+          "insert_only",
+          "reload",
+          "confirm_text"
+        ).map(Left(_))),
+      )
+    ),
+    entity = "form_actions",
+    lang = "en",
+    tabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    rawTabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    keys = Seq("uuid"),
+    keyStrategy = SurrugateKey,
+    query = Some(JSONQuery.sortByKeys(Seq("action_order"))),
+    exportFields = Seq(),
+    view = None,
+    action = FormActionsMetadata.default
+  )
+
+
+  def form_navigation_actions(functions:Seq[String]) = JSONMetadata(
+    objId = FORM_NAVIGATION_ACTION,
+    kind = EntityKind.BOX_FORM.kind,
+    name = "Form navigation action",
+    label = "Form navigation action",
+    fields = Seq(
+      JSONField(JSONFieldTypes.STRING,"uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
+      JSONField(JSONFieldTypes.NUMBER,"action_order",false,widget = Some(WidgetsNames.hidden), default = Some("arrayIndex")),
+      JSONField(JSONFieldTypes.STRING,"action",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Action.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"importance",false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Importance.all.map(x => JSONLookup(x.toString.asJson,x.toString))
+        )
+        )),
+      JSONField(JSONFieldTypes.STRING,"after_action_goto",true,
+        widget = Some(WidgetsNames.input),
+        tooltip = Some(
+          """
+            |the goto action is the path were we want to go after the action
+            |the following subsititution are applied
+            |$kind -> the kind of the form i.e. 'table' or 'form'
+            |$name -> name of the current form/table
+            |$id -> id of the current/saved record
+            |$writable -> if the current form is writable
+            |""".stripMargin)
+      ),
+      JSONField(JSONFieldTypes.STRING,"label",false,label=Some("Label"),
+        tooltip = Some("Use global translation table"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
+        tooltip = Some("Before running action show a popup that ask for confirmation with the following text (translated with gobal transaltion table)"),
+        widget = Some(WidgetsNames.input)
+      ),
+      JSONField(JSONFieldTypes.STRING,"execute_function",true,label=Some("Function"),
+        widget = Some(WidgetsNames.select),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
+        lookup = Some(JSONFieldLookup.prefilled(
+          functions.sorted.map(x => JSONLookup(x.asJson,x))
+        ))
+      ),
+    ),
+    layout = Layout(
+      blocks = Seq(
+        LayoutBlock(None,12,None,Seq(
+          "uuid",
+          "form_uuid",
+          "order",
+          "action",
+          "importance",
+          "execute_function",
+          "after_action_goto",
+          "label",
+          "update_only",
+          "insert_only",
+          "reload",
+          "confirm_text"
+        ).map(Left(_))),
+      )
+    ),
+    entity = "form_navigation_actions",
+    lang = "en",
+    tabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    rawTabularFields = Seq("label","action","importance","execute_function","after_action_goto"),
+    keys = Seq("uuid"),
+    keyStrategy = SurrugateKey,
+    query = Some(JSONQuery.sortByKeys(Seq("action_order"))),
     exportFields = Seq(),
     view = None,
     action = FormActionsMetadata.default

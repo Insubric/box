@@ -111,6 +111,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
       JSONMetadata(
         func.function_uuid.get,
         func.name,
+        EntityKind.FUNCTION.kind,
         functionI18n.flatMap(_.label).getOrElse(name),
         jsonFields,
         layout,
@@ -157,7 +158,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
         lookupData <- db.run(Registry().actions(entity).find(filter))
 
       } yield {
-        Some(JSONFieldLookup.fromData(entity, JSONFieldMap(value, text, field.name), lookupData))
+        Some(JSONFieldLookup.fromData(entity, JSONFieldMap(value, text, field.name), lookupData,Seq()))
       }
     }} match {
       case Some(a) => a

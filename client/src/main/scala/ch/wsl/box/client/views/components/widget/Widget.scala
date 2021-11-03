@@ -28,6 +28,8 @@ trait Widget extends Logging {
 
   def jsonToString(json:Json):String = json.string
 
+  def resetChangeAlert():Unit = {}
+
   def strToJson(nullable:Boolean = false)(str:String):Json = (str, nullable) match {
     case ("", true) => Json.Null
     case _ => str.asJson
@@ -60,7 +62,7 @@ trait Widget extends Logging {
 
   def beforeSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
   def afterSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
-  def afterRender():Unit = {}
+  def afterRender():Future[Boolean] = Future.successful(true)
 
   def reload() = {} //recover autoreleased resources
 
@@ -84,22 +86,6 @@ trait Widget extends Logging {
   }
 
 
-  import scalacss.ScalatagsCss._
-  import scalatags.JsDom.all._
-  import io.udash.css.CssView._
-
-
-  protected def saveAll(data:Json, metadata:JSONMetadata, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json])(implicit ec: ExecutionContext):Future[Json] = {
-    widgets.foldRight(Future.successful(data)){ (widget,result) =>
-      for{
-        r <- result
-        newResult <- widgetAction(widget)(r,metadata)
-      } yield {
-        r.deepMerge(newResult)
-      }
-    }
-  }
-
 }
 
 object Widget{
@@ -122,7 +108,36 @@ trait HasData extends Widget {
 
 }
 
-case class WidgetCallbackActions(saveAndThen: (JSONID => Unit) => Unit)
+
+trait IsCheckBoxWithData extends Widget {
+  def data:Property[Json]
+
+  private def checkbox2string(p: Json):JsDom.all.Modifier = {
+    p.as[Boolean].right.toOption match {
+      case Some(true) => raw("&#10003;")
+      case Some(false) => raw("&#10005;")
+      case _ => "-"
+    }
+  }
+
+  override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+    div(
+      checkbox2string(p) , " ", field.title
+    ).render
+  }
+  override def showOnTable(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+    div(
+      checkbox2string(p)
+    ).render
+  }
+
+  override def text(): ReadableProperty[String] = data.transform(_.string)
+
+}
+
+
+
+case class WidgetCallbackActions(saveAndThen: (Json => Unit) => Unit)
 
 object WidgetCallbackActions{
   def noAction = new WidgetCallbackActions(_ => ())
@@ -135,7 +150,8 @@ case class WidgetParams(
                          metadata: JSONMetadata,
                          _allData:Property[Json],
                          children:Seq[JSONMetadata],
-                         actions:WidgetCallbackActions
+                         actions:WidgetCallbackActions,
+                         public:Boolean
                        ) extends Logging {
   def allData:ReadableProperty[Json] = _allData
 
@@ -147,14 +163,15 @@ case class WidgetParams(
 }
 
 object WidgetParams{
-  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata):WidgetParams = WidgetParams(
+  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,
     field = field,
     metadata = metadata,
     _allData = prop,
     children = Seq(),
-    actions = WidgetCallbackActions.noAction
+    actions = WidgetCallbackActions.noAction,
+    public
   )
 }
 

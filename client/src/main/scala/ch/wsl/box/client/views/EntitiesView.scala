@@ -8,6 +8,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, REST, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.{EntitiesState, EntityFormState, EntityTableState}
+import ch.wsl.box.model.shared.EntityKind
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.form.UdashForm
@@ -42,7 +43,7 @@ class EntitiesPresenter(model:ModelProperty[Entities]) extends Presenter[Entitie
   override def handleState(state: EntitiesState): Unit = {
     model.subProp(_.kind).set(Some(state.kind))
     if(services.clientSession.logged.get) {
-      services.rest.entities(state.kind).map { models =>
+      services.rest.entities(new EntityKind(state.kind).entityOrForm).map { models =>
         model.subSeq(_.list).set(models)
         model.subSeq(_.filteredList).set(models)
       }
@@ -55,10 +56,10 @@ class EntitiesPresenter(model:ModelProperty[Entities]) extends Presenter[Entitie
     }
   }
 
-
-  def updateEntitiesList() = {
-    model.subProp(_.filteredList).set(model.subProp(_.list).get.filter(m => m.contains(model.get.search)))
+  model.subProp(_.search).listen{ search =>
+    model.subProp(_.filteredList).set(model.subProp(_.list).get.filter(m => m.contains(search)))
   }
+
 
 }
 
@@ -86,20 +87,16 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
 
   private def sidebar: Element = if(UI.showEntitiesSidebar) {
     div(sidebarGrid)(
-      showIf(model.transform(_.currentEntity.isDefined)) {
+      showIf(model.subProp(_.currentEntity).transform(_.isDefined)) {
         div(
           div(Labels.entities.search),
-          TextInput(model.subProp(_.search))(onkeyup :+= ((ev: Event) => {
-            presenter.updateEntitiesList()
-            true
-          })),
-          produceWithNested(model.subProp(_.search)) { (q, releaser) =>
-            ul(ClientConf.style.noBullet,
-              releaser(repeat(model.subSeq(_.filteredList)) { m =>
-                li(a(Navigate.click(routes.entity(m.get)), m.get)).render
-              })
-            ).render
-          }
+          TextInput(model.subProp(_.search))(),
+          ul(ClientConf.style.noBullet,
+            repeat(model.subSeq(_.filteredList)) { m =>
+              li(a(Navigate.click(routes.entity(m.get)), m.get)).render
+            }
+          )
+
         ).render
       }
     ).render
@@ -108,23 +105,19 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
   override def getTemplate: scalatags.generic.Modifier[Element] = div(BootstrapStyles.Grid.row)(
     sidebar,
     div(contentGrid)(
-      produce(model)( m =>
-        m.currentEntity match {
+      produce(model.subProp(_.currentEntity))( ce =>
+        ce match {
           case None => div(
             h1(Labels.entities.title),
             p(Labels.entities.select),
             div(Labels.entities.search),
-            TextInput(model.subProp(_.search))(onkeyup :+= ((ev: Event) => {
-              presenter.updateEntitiesList()
-              true
-            })),
-            produceWithNested(model.subProp(_.search)) { (q,releaser) =>
-              ul(ClientConf.style.noBullet,
-                releaser(repeat(model.subSeq(_.filteredList)){m =>
-                  li(a(Navigate.click(routes.entity(m.get)),m.get)).render
-                })
-              ).render
-            }
+            TextInput(model.subProp(_.search))(),
+            ul(ClientConf.style.noBullet,
+              repeat(model.subSeq(_.filteredList)){m =>
+                li(a(Navigate.click(routes.entity(m.get)),m.get)).render
+              }
+            )
+
           ).render
           case Some(model) => div().render
         }

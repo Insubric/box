@@ -54,7 +54,8 @@ object TypeMapping {
     "geometry" -> JSONFieldTypes.GEOMETRY,
     "jsonb" -> JSONFieldTypes.JSON,
     "name" -> JSONFieldTypes.STRING,
-    "uuid" -> JSONFieldTypes.STRING
+    "uuid" -> JSONFieldTypes.STRING,
+    "oid" -> JSONFieldTypes.INTEGER
   )
 
 }

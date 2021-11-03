@@ -1,7 +1,8 @@
 package ch.wsl.box.model.shared
 
-import java.util.UUID
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 
+import java.util.UUID
 import io.circe.Json
 
 /**
@@ -32,6 +33,11 @@ case class JSONField(
 
   def withWidget(name:String) = copy(widget = Some(name))
 
+  def isDbStored:Boolean = this.`type` match {
+    case JSONFieldTypes.CHILD | JSONFieldTypes.STATIC => false
+    case _ => true
+  }
+
 }
 
 object JSONField{
@@ -61,7 +67,7 @@ case class LookupLabel(localIds:Seq[String],remoteIds:Seq[String],remoteField:St
   * @param lookupQuery
   * @param lookupExtractor map with on the first place the key of the Json, on second place the possible values with they respective values
   */
-case class JSONFieldLookup(lookupEntity:String, map:JSONFieldMap, lookup:Seq[JSONLookup] = Seq(), lookupQuery:Option[String] = None, lookupExtractor: Option[JSONLookupExtractor] = None)
+case class JSONFieldLookup(lookupEntity:String, map:JSONFieldMap, lookup:Seq[JSONLookup] = Seq(), lookupQuery:Option[String] = None, lookupExtractor: Option[JSONLookupExtractor] = None, allLookup:Seq[JSONLookup] = Seq())
 
 case class JSONLookupExtractor(key:String, values:Seq[Json], results:Seq[Seq[JSONLookup]]) {
   def map = values.zip(results).toMap
@@ -71,16 +77,17 @@ case class JSONLookupExtractor(key:String, values:Seq[Json], results:Seq[Seq[JSO
 object JSONFieldLookup {
   val empty: JSONFieldLookup = JSONFieldLookup("",JSONFieldMap("","", ""))
 
-  def fromData(lookupEntity:String, mapping:JSONFieldMap, lookupData:Seq[Json], lookupQuery:Option[String] = None):JSONFieldLookup = {
+  def fromData(lookupEntity:String, mapping:JSONFieldMap, lookupData:Seq[Json], allLookupData:Seq[Json], lookupQuery:Option[String] = None):JSONFieldLookup = {
     import ch.wsl.box.shared.utils.JSONUtils._
 
-    val options = lookupData.map{ lookupRow =>
-
+    def toJsonLookup(lookupRow:Json):JSONLookup = {
       val label = mapping.textProperty.split(",").map(_.trim).map(k => lookupRow.get(k)).mkString(" - ")
-
-      JSONLookup(lookupRow.get(mapping.valueProperty),label)
+      JSONLookup(lookupRow.js(mapping.valueProperty),label)
     }
-    JSONFieldLookup(lookupEntity, mapping, options,lookupQuery)
+
+    val options = lookupData.map(toJsonLookup)
+    val optionsAll = allLookupData.map(toJsonLookup)
+    JSONFieldLookup(lookupEntity, mapping, options,lookupQuery,allLookup = optionsAll)
   }
 
   def prefilled(data:Seq[JSONLookup]) = JSONFieldLookup("",JSONFieldMap("","", ""),data)
@@ -94,7 +101,7 @@ object JSONFieldLookup {
   }
 }
 
-case class JSONLookup(id:String, value:String)
+case class JSONLookup(id:Json, value:String)
 
 case class FileReference(name_field:String, file_field:String, thumbnail_field:Option[String])
 
@@ -112,6 +119,10 @@ object Child{
     val mapping = parent.zip(child).filterNot(x => x._1 == "#all" || x._2 == "#all").map{ case (p,c) => ChildMapping(p,c)}
     new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim))
   }
+
+  def min(field:JSONField):Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)
+  def max(field:JSONField):Option[Int] = field.params.flatMap(_.js("max").as[Int].toOption)
+
 }
 
 case class ConditionalField(conditionFieldId:String,conditionValues:Seq[Json])

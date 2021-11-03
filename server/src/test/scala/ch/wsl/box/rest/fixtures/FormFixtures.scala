@@ -8,7 +8,46 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.UserDatabase
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
+
+object FormFixtures{
+
+  private val simpleName = "simple"
+
+  private val simpleForm = BoxForm_row(
+    name = simpleName,
+    entity = simpleName,
+    layout = Some(
+      """
+        |{
+        |  "blocks" : [
+        |    {
+        |      "title" : null,
+        |      "width" : 6,
+        |      "fields" : [
+        |       "id",
+        |       "name"
+        |      ]
+        |    }
+        |  ]
+        |}
+        |""".stripMargin),
+    show_navigation = true
+  )
+
+  private def simpleFormFields(simpleFormId:UUID) = Seq(
+    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.NUMBER, name = "id"),
+    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.STRING, name = "name"),
+  )
+
+  def insertSimple(implicit db:UserDatabase, ec:ExecutionContext): Future[(String, UUID)] = for{
+    _ <- db.run(BoxFormTable.filter(x => x.name === simpleName  ).delete)
+    simpleId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_uuid)) += simpleForm)
+    _ <- db.run(DBIO.sequence(simpleFormFields(simpleId).map(x => BoxFieldTable += x)))
+  } yield {
+    (simpleForm.name,simpleId)
+  }
+}
 
 class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
 
@@ -101,7 +140,7 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
   )
 
 
-  def insertForm(implicit db:UserDatabase) = for{
+  def insertForm(implicit db:UserDatabase): Future[(String, UUID, UUID, UUID)] = for{
     _ <- db.run(BoxFormTable.filter(x => x.name === parentName || x.name === childName ).delete)
     parentId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_uuid)) += parentForm)
     childId <- db.run( (BoxFormTable returning BoxFormTable.map(_.form_uuid)) += childForm)
@@ -110,6 +149,6 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
     _ <- db.run(DBIO.sequence(childFormFields(childId,subchildId).map(x => BoxFieldTable += x)))
     _ <- db.run(DBIO.sequence(subchildFormFields(subchildId).map(x => BoxFieldTable += x)))
   } yield {
-    parentForm.name
+    (parentForm.name,parentId,childId,subchildId)
   }
 }

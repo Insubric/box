@@ -26,11 +26,6 @@ class RestMock(values:Values) extends REST with Logging {
     ???
   }
 
-  override def serverReset(): Future[String] = {
-    println("serverReset not implemented")
-    ???
-  }
-
   override def entities(kind: String): Future[Seq[String]] = {
     kind match {
       case "form" => Future.successful(values.formEntities)
@@ -89,23 +84,23 @@ class RestMock(values:Values) extends REST with Logging {
     values.children(entity)
   }
 
-  override def lookup(lang: String, lookupEntity: String, map: JSONFieldMap, queryWithSubstitutions: Json): Future[Seq[JSONLookup]] = {
+  override def lookup(kind:String, lang:String,entity:String,  field:String, queryWithSubstitutions: Json,public:Boolean): Future[Seq[JSONLookup]] = {
     println("lookup not implemented")
     ???
   }
 
-  override def get(kind: String, lang: String, entity: String, id: JSONID): Future[Json] = Future.successful{
+  override def get(kind: String, lang: String, entity: String, id: JSONID, public:Boolean): Future[Json] = Future.successful{
     values.get(id)
   }
 
-  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json): Future[JSONID] = {
+  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean): Future[Json] = {
     Future.successful(values.update(id,data))
   }
 
-  override def updateMany(kind: String, lang: String, entity: String, ids: Seq[JSONID], data: Seq[Json]): Future[Seq[JSONID]] = ???
+  override def updateMany(kind: String, lang: String, entity: String, ids: Seq[JSONID], data: Seq[Json]): Future[Seq[Json]] = ???
 
-  override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[JSONID] = Future.successful{
-    JSONID(id = Vector(JSONKeyValue("id","1")))
+  override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[Json] = Future.successful{
+    values.insert(data)
   }
 
   override def delete(kind: String, lang: String, entity: String, id: JSONID): Future[JSONCount] = {

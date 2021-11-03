@@ -14,6 +14,7 @@ object WidgetsNames {
   val datetimePicker = "datetimePicker"
   val select = "selectWidget"
   val checkbox = "checkbox"
+  val selectBoolean = "selectBoolean"
   val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
   val twoLines = "twoLines"
@@ -43,6 +44,7 @@ object WidgetsNames {
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
+  val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
 
   val mapping= Map(
@@ -77,7 +79,8 @@ object WidgetsNames {
       popup,
       hidden,
       dynamicWidget,
-      langWidget
+      langWidget,
+      dropdownLangWidget
     ),
     CHILD -> Seq(
       simpleChild,
@@ -118,6 +121,7 @@ object WidgetsNames {
     BOOLEAN -> Seq(
       checkbox,
       tristateCheckbox,
+      selectBoolean,
       hidden,
       dynamicWidget,
     ),

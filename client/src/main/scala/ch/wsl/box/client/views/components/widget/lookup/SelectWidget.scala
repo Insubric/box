@@ -20,12 +20,12 @@ import scala.concurrent.Future
 object SelectWidgetFactory extends ComponentWidgetFactory  {
   override def name: String = WidgetsNames.select
 
-  override def create(params: WidgetParams): Widget = new SelectWidget(params.field, params.prop, params.allData)
+  override def create(params: WidgetParams): Widget = new SelectWidget(params.field, params.prop, params.allData,params.metadata, params.public)
 
 }
 
 
-class SelectWidget(val field:JSONField, val data: Property[Json], val allData:ReadableProperty[Json]) extends  LookupWidget with Logging {
+class SelectWidget(val field:JSONField, val data: Property[Json], val allData:ReadableProperty[Json],val metadata:JSONMetadata, val public:Boolean) extends  LookupWidget with Logging {
 
   val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).contains(true)
 
@@ -35,21 +35,10 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
 
-  override def beforeSave(data: Json, metadata: JSONMetadata) = Future.successful{
-    val jsField = data.js(field.name)
-    val result = if (!field.nullable && jsField.isNull) {
-      lookup.get.headOption.map(_.id) match {
-        case Some(v) => v.asJson
-        case None => Json.Null
-      }
-    } else jsField
-    Map(field.name -> result).asJson
-  }
-
-  override protected def show(): JsDom.all.Modifier = autoRelease(showIf(model.transform(_.value.nonEmpty)){
+  override protected def show(): JsDom.all.Modifier = autoRelease(showIf(model.transform(_.isDefined)){
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       lab(field.title),
-      div(BootstrapStyles.Float.right(), bind(model.transform(_.value))),
+      div(BootstrapStyles.Float.right(), bind(model.transform(_.map(_.value).getOrElse("")))),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   })
@@ -61,12 +50,16 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       WidgetUtils.toLabel(field),
-      tooltip(Select[JSONLookup](model,lookup)((s:JSONLookup) => StringFrag(s.value),m:_*).render)._1,
+      produce(lookup) { l =>
+        tooltip(Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*).render)._1
+      },
       div(BootstrapStyles.Visibility.clearfix)
     )
   }
 
   override def editOnTable(): JsDom.all.Modifier = {
-    Select[JSONLookup](model,lookup)((s:JSONLookup) => StringFrag(s.value),ClientConf.style.simpleInput).render
+    produce(lookup) { l =>
+      Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), ClientConf.style.simpleInput).render
+    }
   }
 }

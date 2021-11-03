@@ -1,10 +1,12 @@
 package ch.wsl.box.shared.utils
 
-import ch.wsl.box.model.shared.{JSONDiff, JSONDiffField, JSONDiffModel, JSONID, JSONMetadata}
+import ch.wsl.box.model.shared.{JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata}
 import io.circe._
-import io.circe.syntax._
+import io.circe.syntax.EncoderOps
 import scribe.Logging
 import yamusca.imports._
+
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andre on 5/22/2017.
@@ -13,6 +15,24 @@ object JSONUtils extends Logging {
 
   val LANG = "::lang"
   val FIRST = "::first"
+
+  def toJs(value:String,typ:String):Option[Json] = {
+    Try {
+      val json:Json = typ match {
+        case JSONFieldTypes.NUMBER => value.toDouble.asJson
+        case JSONFieldTypes.INTEGER => value.toInt.asJson
+        case JSONFieldTypes.BOOLEAN => Json.fromBoolean(value.toBoolean)
+        case _ => Json.fromString(value)
+      }
+      json
+    } match {
+      case Failure(exception) => {
+        logger.warn(exception.getMessage)
+        None
+      }
+      case Success(value) => Some(value)
+    }
+  }
 
   implicit class EnhancedJson(el:Json) {
 
@@ -47,7 +67,8 @@ object JSONUtils extends Logging {
     }
 
     //return JSON value of the given field
-    def js(field:String):Json = el.hcursor.get[Json](field).right.getOrElse(Json.Null)
+    def js(field:String):Json = jsOpt(field).getOrElse(Json.Null)
+    def jsOpt(field:String):Option[Json] = el.hcursor.get[Json](field).right.toOption
 
     def seq(field:String):Seq[Json] = {
       val result = el.hcursor.get[Seq[Json]](field)
@@ -73,6 +94,40 @@ object JSONUtils extends Logging {
       } else None
     }
 
+    def removeEmptyArray:Json = {
+
+      el.asObject match {
+        case Some(obj) => Json.fromFields(obj.toIterable.flatMap{ case (k,js) =>
+          js.asArray match {
+            case Some(value) => if(value.nonEmpty) Some(k -> js) else None
+            case None => Some(k -> js)
+          }
+        })
+        case None => el
+      }
+
+    }
+
+    def removeNonDataFields:Json = {
+
+      val folder = new Json.Folder[Json] {
+        override def onNull: Json = Json.Null
+        override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
+        override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
+        override def onString(value: String): Json = Json.fromString(value)
+        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields).filterNot{ //remove empty array elements
+          _.as[JsonObject] match {
+            case Left(_) => false
+            case Right(value) => value.keys.isEmpty
+          }})
+        override def onObject(value: JsonObject): Json = Json.fromJsonObject{
+          value.filter(!_._1.startsWith("$")).mapValues(_.removeNonDataFields)
+        }
+      }
+
+      Json.Null.deepMerge(el).foldWith(folder).deepDropNullValues
+
+    }
 
     def diff(metadata:JSONMetadata, children:Seq[JSONMetadata], other:Json):JSONDiff = {
 

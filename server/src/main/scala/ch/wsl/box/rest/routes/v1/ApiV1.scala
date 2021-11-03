@@ -10,12 +10,12 @@ import ch.wsl.box.rest.logic.{LangHelper, NewsLoader, TableAccess, UIProvider}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.routes._
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.{BoxConfig, BoxSession}
+import ch.wsl.box.rest.utils.{BoxSession, Cache}
 import com.softwaremill.session.SessionDirectives.{invalidateSession, optionalSession, setSession, touchRequiredSession}
 import com.softwaremill.session.SessionManager
 import com.softwaremill.session.SessionOptions._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
 import boxInfo.BoxBuildInfo
 import ch.wsl.box.model.boxentities.BoxUser
@@ -43,7 +43,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
 
   def conf = path("conf") {
     get {
-      complete(BoxConfig.clientConf)
+      complete(services.config.clientConf)
     }
   }
 
@@ -91,12 +91,12 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
         case Some(session) => complete(
           {
             for {
-              accessLevel <- session.userProfile.get.accessLevel
+              accessLevel <- session.userProfile match {
+                case Some(value) => value.accessLevel
+                case None => Future.successful(UIProvider.NOT_LOGGED_IN)
+              }
               ui <- UIProvider.forAccessLevel(accessLevel)
             } yield ui
-          }.recoverWith{ case t =>
-            t.printStackTrace()
-            UIProvider.forAccessLevel(UIProvider.NOT_LOGGED_IN)
           }
         )
       }
@@ -161,6 +161,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
       loginHeader ~
       ui ~
       uiFile ~
+      Cache.resetRoute() ~
       PublicArea().route ~
       PrivateArea().route
   }

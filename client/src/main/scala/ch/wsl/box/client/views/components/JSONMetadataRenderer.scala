@@ -5,10 +5,13 @@ import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.views.components
 import ch.wsl.box.client.views.components.widget._
+import ch.wsl.box.client.views.components.widget.child.ChildRenderer
 import ch.wsl.box.client.views.components.widget.labels.{StaticTextWidget, TitleWidget}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
+import io.circe.syntax.EncoderOps
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.form.UdashForm
 import io.udash._
@@ -26,7 +29,7 @@ import org.scalajs.dom.Event
   */
 
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -36,6 +39,36 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
 
+  private val currentData:Property[Json] = Property(data.get)
+
+  def resetChanges() = {
+    logger.info(s"${metadata.name} resetChanges")
+    blocks.foreach(_._2.resetChangeAlert())
+    currentData.set(data.get)
+  }
+
+  data.listen { d =>
+    logger.info(s"changed ${d.js(ChildRenderer.CHANGED_KEY)} on ${metadata.name}")
+    if(d.js(ChildRenderer.CHANGED_KEY) == Json.True) {
+      changed.set(true,true)
+      logger.info(s"${metadata.name} has changes in child")
+    } else if(!currentData.get.removeNonDataFields.equals(d.removeNonDataFields)) {
+      changed.set(true,true)
+      logger.info(s"""
+                ${metadata.name} has changes
+
+                original:
+                ${currentData.get.removeNonDataFields}
+
+                new:
+                ${d.removeNonDataFields}
+
+                """)
+
+    } else {
+      changed.set(false,true)
+    }
+  }
 
   override def field: JSONField = JSONField("metadataRenderer","metadataRenderer",false)
 
@@ -45,7 +78,6 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
       data.ID(metadata.keys).map(_.asString)
   }
 
-
   data.listen { data =>
     val currentID = getId(data)
     if (currentID != id.get) {
@@ -53,190 +85,67 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     }
   }
 
-  private def checkCondition(field: JSONField) = {
-    field.condition match {
-      case None => Property(true)
-      case Some(condition) => {
-
-        val observedData = Property(data.get.js(condition.conditionFieldId))
 
 
-        data.listen{ d =>
-          val newJs = d.js(condition.conditionFieldId)
-          if( newJs != observedData.get) {
-            observedData.set(newJs)
-          }
-        }
+  private def saveAll(data:Json,widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
+    // start to empty and populate
 
-        def evaluate(d:Json):Boolean = {
-          val value = d
-          val r = condition.conditionValues.contains(value)
-          logger.info(s"evaluating condition for field: ${field.name} against $value with accepted values: ${condition.conditionValues} with result: $r")
-          r
-        }
+    def extractFields(fields:Either[String,SubLayoutBlock]):Seq[String] = fields match {
+      case Left(value) if metadata.fields.exists(_.name == value) => Seq(value)
+      case Left(_) => Seq()
+      case Right(value) => value.fields.flatMap(extractFields)
+    }
 
-
-        val visibility = Property(false)
-        observedData.listen(d => {
-          val r = evaluate(d)
-          if(r == !visibility.get) { //change only when the status changesW
-            visibility.set(r)
-          }
-        },true)
-        visibility
+    val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
+      widgetAction(b._2)(data,metadata).map { intermediateResult =>
+        val fields:Seq[String] = b._1.fields.flatMap(extractFields)
+        logger.info(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n $fields")
+        Json.fromFields(fields.flatMap{k =>
+          intermediateResult.jsOpt(k).map(v => k -> v)
+        })
       }
+    })
+
+
+
+    blocksResult.map{ js =>
+      logger.info(s"metadata: ${metadata.name} blocksResult: $js \n\n data: $data")
+      val defaults:Seq[(String,Json)] = metadata.fields.filter(_.default.isDefined).flatMap{f =>
+        data.jsOpt(f.name)
+            .orElse(JSONUtils.toJs(f.default.get,f.`type`))
+            .map(v => f.name -> v)
+      }
+
+      val keys = metadata.keys.map(k => k -> data.js(k))
+
+      val base:Json = Json.fromFields(defaults ++ keys)
+      val result = js.foldLeft(base){ (acc,n) => acc.deepMerge(n)}
+      logger.info(s"metadata: ${metadata.name} merge: $result")
+      result
     }
+
+
+
   }
 
-
-  private def widgetSelector(field: JSONField, id:Property[Option[String]], fieldData:Property[Json]): Widget = {
-
-
-
-    val _field:JSONField = WidgetUtils.isKeyNotEditable(metadata,field,id.get) match {
-      case true => field.copy(readOnly = true)
-      case false => field
+  val blocks: Seq[(LayoutBlock, Widget)] = metadata.layout.blocks.map { block =>
+    val hLayout = block.distribute.contains(true) match {
+      case true => Right(true)
+      case false => Left(Stream.continually(12))
     }
-
-    val widg = field.widget match {
-      case Some(value) => WidgetRegistry.forName(value)
-      case None => WidgetRegistry.forType(field.`type`)
-    }
-
-    logger.debug(s"Selected widget for ${field.name}: ${widg}")
-
-    widg.create(WidgetParams(id,fieldData,_field,metadata,data,children,actions))
-
-  }
-
-
-
-
-
-  case class WidgetVisibility(widget:Widget,visibility: ReadableProperty[Boolean])
-
-  object WidgetVisibility{
-    def apply(widget: Widget): WidgetVisibility = WidgetVisibility(widget, Property(true))
-  }
-
-
-
-  private def subBlock(block: SubLayoutBlock):WidgetVisibility = WidgetVisibility(new Widget {
-
-    val widget = fieldsRenderer(block.fields, Left(Stream.continually(block.fieldsWidth.toStream).flatten))
-
-    override def afterSave(data:Json,form:JSONMetadata): Future[Json] = widget.afterSave(data,form)
-    override def beforeSave(data:Json,form:JSONMetadata) = widget.beforeSave(data,form)
-
-    override def killWidget(): Unit = widget.killWidget()
-
-    override def field: JSONField = JSONField("block","block",false)
-
-    override def afterRender(): Unit = widget.afterRender()
-
-    override protected def show(): JsDom.all.Modifier = render(false)
-
-    override protected def edit(): JsDom.all.Modifier = render(true)
-
-    private def render(write:Boolean): JsDom.all.Modifier = div(BootstrapCol.md(12), ClientConf.style.subBlock)(
-      block.title.map( t => h3(minHeight := 20.px, Labels(t))),  //renders title in subblocks
-      widget.render(write,Property(true))
+    (
+      block,
+      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,hLayout)
     )
-  })
-
-  private def simpleField(fieldName:String):WidgetVisibility = {for{
-    field <- metadata.fields.find(_.name == fieldName)
-  } yield {
-
-
-    val fieldData = data.bitransform(_.js(field.name))((fd:Json) => data.get.deepMerge(Json.obj((field.name,fd))))
-
-//    data.listen({ d =>
-//      val newJs = d.js(field.name)
-//      if( newJs != fieldData.get) {
-//        fieldData.set(newJs)
-//      }
-//    },true)
-//
-//    fieldData.listen{ fd =>
-//      if(data.get.js(field.name) != fd) {
-//        data.set(data.get.deepMerge(Json.obj((field.name,fd))))
-//      }
-//    }
-
-    WidgetVisibility(widgetSelector(field, id, fieldData),checkCondition(field))
-
-  }}.getOrElse(WidgetVisibility(HiddenWidget.HiddenWidgetImpl(JSONField.empty)))
-
-
-  private def fieldsRenderer(fields: Seq[Either[String, SubLayoutBlock]], horizontal: Either[Stream[Int],Boolean]):Widget = new Widget {
-
-    val widgets:Seq[WidgetVisibility] = fields.map{
-      case Left(fieldName) => simpleField(fieldName)
-      case Right(subForm) => subBlock(subForm)
-    }
-    import io.circe.syntax._
-
-    override def afterSave(value:Json,metadata:JSONMetadata): Future[Json] = saveAll(value,metadata,widgets.map(_.widget),_.afterSave)
-    override def beforeSave(value:Json,metadata:JSONMetadata) = saveAll(value,metadata,widgets.map(_.widget),_.beforeSave)
-
-    override def killWidget(): Unit = widgets.foreach(_.widget.killWidget())
-
-
-    override def afterRender(): Unit = widgets.foreach(_.widget.afterRender())
-
-    override def field: JSONField = JSONField("fieldsRenderer","fieldsRenderer",false)
-
-    override protected def show(): JsDom.all.Modifier = render(false)
-
-    override protected def edit(): JsDom.all.Modifier = render(true)
-
-
-
-    def fixedWidth(widths:Stream[Int],write:Boolean) : JsDom.all.Modifier = div(
-      widgets.zip(widths).map { case (widget, width) =>
-        div(BootstrapCol.md(width), ClientConf.style.field,
-          widget.widget.render(write,widget.visibility)
-        )
-      }
-    )
-
-    def distribute(write:Boolean) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
-      widgets.map { case widget =>
-        div(ClientConf.style.field,
-          widget.widget.render(write,widget.visibility)
-        )
-      }
-    )
-
-    private def render(write:Boolean): JsDom.all.Modifier = {
-      horizontal match {
-        case Left(widths) => fixedWidth(widths,write)
-        case Right(_) => distribute(write)
-      }
-    }
   }
 
-
-
-    val blocks: Seq[(LayoutBlock, Widget)] = metadata.layout.blocks.map { block =>
-      val hLayout = block.distribute.contains(true) match {
-        case true => Right(true)
-        case false => Left(Stream.continually(12))
-      }
-      (
-        block,
-        fieldsRenderer(block.fields,hLayout)
-      )
-    }
-
-    override def afterSave(value:Json, metadata:JSONMetadata): Future[Json] = saveAll(value,metadata,blocks.map(_._2),_.afterSave)
-    override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value,metadata,blocks.map(_._2),_.beforeSave)
+  override def afterSave(value:Json, metadata:JSONMetadata): Future[Json] = saveAll(value,_.afterSave)
+  override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value,_.beforeSave)
 
   override def killWidget(): Unit = blocks.foreach(_._2.killWidget())
 
 
-  override def afterRender(): Unit = blocks.foreach(_._2.afterRender())
+  override def afterRender() = Future.sequence(blocks.map(_._2.afterRender())).map(_.forall(x => x))
 
   override protected def show(): JsDom.all.Modifier = render(false)
 
@@ -246,25 +155,17 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
   private def render(write:Boolean): JsDom.all.Modifier = {
-    def renderer(block: LayoutBlock, widget:Widget) = {
-      div(
-        h3(block.title.map { title => Labels(title) }), //renders title in blocks
-        widget.render(write, Property {
-          true
-        })
-      ).render
-    }
-
-    val hasTabs:Boolean = blocks.flatMap(_._1.tab).distinct.nonEmpty
 
     def renderBlocks(b:Seq[(LayoutBlock,Widget)]) = b.map{ case (block,widget) =>
       div(BootstrapCol.md(block.width), ClientConf.style.block)(
-        renderer(block,widget)
+        div(
+          h3(block.title.map { title => Labels(title) }), //renders title in blocks
+          widget.render(write, Property(true))
+        )
       )
     }
 
     div(
-        Debug(data,autoRelease, "data"),
         div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
           renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined)),
           blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (_,blks) =>
@@ -289,7 +190,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
               }
             )
           }
-        )
+        ),
+        Debug(currentData,b => b, s"original data ${metadata.name}"),
+        Debug(data,b => b, s"data ${metadata.name}")
     )
   }
 

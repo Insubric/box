@@ -46,26 +46,26 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     Registry().fileRoutes()
   }
 
-  def entityRoute(implicit up:UserProfile) = pathPrefix("entity") {
+  def entityRoute(implicit up:UserProfile) = pathPrefix(EntityKind.ENTITY.kind) {
     pathPrefix(Segment) { lang =>
       Registry().routes(lang)
     }
   }
 
-  def entities = path("entities") {
+  def entities = path(EntityKind.ENTITY.plural) {
     get {
       val alltables = Registry().fields.tables ++ Registry().fields.views
       complete(alltables.toSeq.sorted)
     }
   }
 
-  def tables = path("tables") {
+  def tables = path(EntityKind.TABLE.plural) {
     get {
       complete(Registry().fields.tables.toSeq.sorted)
     }
   }
 
-  def views = path("views") {
+  def views = path(EntityKind.VIEW.plural) {
     get {
       complete(Registry().fields.views.toSeq.sorted)
     }
@@ -89,13 +89,13 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     }
   }
 
-  def forms(implicit up:UserProfile) = path("forms") {
+  def forms(implicit up:UserProfile) = path(EntityKind.FORM.plural) {
     get {
       complete(services.connection.adminDB.run(FormMetadataFactory().list))
     }
   }
 
-  def form(implicit up:UserProfile) = pathPrefix("form") {
+  def form(implicit up:UserProfile) = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
         Form(name, lang,x => Registry().actions(x),FormMetadataFactory(),up.db,EntityKind.FORM.kind).route

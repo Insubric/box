@@ -1,4 +1,5 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
+import org.scalajs.jsenv.Input.Script
 
 val publishSettings = List(
   Global / scalaJSStage := FullOptStage,
@@ -46,13 +47,13 @@ lazy val codegen  = (project in file("codegen")).settings(
   resolvers += Resolver.jcenterRepo,
   Compile / resourceDirectory := baseDirectory.value / "../resources",
   Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
-).settings(publishSettings).dependsOn(sharedJVM)
+).settings(publishSettings).dependsOn(sharedJVM).dependsOn(serverServices)
 
 lazy val serverServices  = (project in file("server-services")).settings(
   name := "box-server-services",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
   scalaVersion := Settings.versions.scala212,
-  libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
+  libraryDependencies += "com.iheart" %% "ficus" % Settings.versions.ficus,
   resolvers += Resolver.jcenterRepo,
 ).settings(publishSettings).dependsOn(sharedJVM)
 
@@ -71,6 +72,7 @@ lazy val server: Project  = project
     Compile / run / mainClass := Some("ch.wsl.box.rest.Boot"),
     Compile / resourceDirectory := baseDirectory.value / "../resources",
     Test / unmanagedResourceDirectories += baseDirectory.value / "../db",
+    Test / unmanagedSourceDirectories += baseDirectory.value / "../db",
     Test / fork := true,
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := "boxInfo",
@@ -81,7 +83,10 @@ lazy val server: Project  = project
     //Comment this to avoid errors in importing project, i.e. when changing libraries
     Assets / pipelineStages := Seq(scalaJSPipeline),
     Assets / scalaJSStage := FullOptStage,
-    scalaJSProjects := Seq(client),
+    scalaJSProjects := {
+      if (sys.env.get("DEV_SERVER").isDefined) Seq() else Seq(client)
+    },
+//    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
@@ -132,9 +137,9 @@ lazy val client: Project = (project in file("client"))
       "proj4" -> "2.5.0",
       "@types/proj4" -> "2.5.0",
       "ol-ext" -> "3.1.14",
-      "jquery" -> "3.3.1",
+      "jquery" -> "3.4.1",
+      "@types/jquery" -> "3.5.6",
       "popper.js" -> "1.16.1",
-      "@types/jquery" -> "3.3.1",
       "bootstrap" -> "4.1.3",
       "@types/bootstrap" -> "4.1.3",
       "flatpickr" -> "4.6.3",
@@ -146,7 +151,8 @@ lazy val client: Project = (project in file("client"))
       "@types/file-saver" -> "2.0.1",
       "js-md5" -> "0.7.3",
       "@types/js-md5" -> "0.4.2",
-      "print-js" -> "1.6.0"
+      "print-js" -> "1.6.0",
+      "striptags" -> "3.2.0"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "ol-ext",
@@ -175,19 +181,19 @@ lazy val client: Project = (project in file("client"))
 
 
     //To use jsdom headless browser uncomment the following lines
-//    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
-//    Test / jsEnvInput := Def.task{
-//      val targetDir = (npmUpdate in Test).value
-//      println(targetDir)
-//      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
-//      println(r)
-//      r
-//    }.value,
+    Test / jsEnv := new net.exoego.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / jsEnvInput := Def.task{
+      val targetDir = (npmUpdate in Test).value
+      println(targetDir)
+      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
+      println(r)
+      r
+    }.value,
+    Test / scalaJSStage := FastOptStage,
 
     //To use Selenium uncomment the following line
-    Test / scalaJSStage := FullOptStage,
-    Test / jsEnv := BrowserStackRunner.load(),
-
+//    Test / scalaJSStage := FullOptStage,
+//    Test / jsEnv := BrowserStackRunner.load(),
 
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
@@ -291,11 +297,6 @@ lazy val publishAllTask = {
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {
   Def.sequential(
-    (client / clean),
-    (server / clean),
-    (serverCacheRedis / clean),
-    (serverServices / clean),
-    (codegen / clean),
     (client / Compile / fullOptJS / webpack),
     (codegen / Compile / compile),
     (sharedJVM / publishLocal),

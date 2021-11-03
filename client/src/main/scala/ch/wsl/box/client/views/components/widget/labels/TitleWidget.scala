@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget.labels
 
+import ch.wsl.box.client.services.Labels
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
 import io.circe.Json
@@ -25,7 +26,7 @@ case class TitleWidget(level:Int) extends ComponentWidgetFactory {
 
   case class H1WidgetImpl(field:JSONField) extends Widget {
 
-    val _text:String = field.label.getOrElse(field.name)
+    val _text:String = field.label.getOrElse(Labels(field.name))
 
     override protected def show(): JsDom.all.Modifier = level match {
       case 1 => h1(_text)

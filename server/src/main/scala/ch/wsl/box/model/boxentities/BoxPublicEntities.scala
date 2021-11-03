@@ -10,15 +10,14 @@ object BoxPublicEntities {
   val profile = ch.wsl.box.jdbc.PostgresProfile
 
 
-  case class Row(id: Option[Int] = None, entity:String, update: Boolean, insert: Boolean)
+  case class Row(entity:String, update: Boolean, insert: Boolean)
 
   class Table(_tableTag: Tag) extends profile.api.Table[Row](_tableTag,BoxSchema.schema, "public_entities") {
-    def * = (Rep.Some(id), entity, update, insert) <> (Row.tupled, Row.unapply)
+    def * = (entity, update, insert) <> (Row.tupled, Row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id),  entity, update, insert).shaped.<>({r=>import r._; _1.map(_=> Row.tupled((_1, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (entity, update, insert).shaped.<>({r=>import r._; _1.map(_=> Row.tupled((_1, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
-    val entity: Rep[String] = column[String]("entity")
+    val entity: Rep[String] = column[String]("entity", O.PrimaryKey)
     val insert: Rep[Boolean] = column[Boolean]("insert")
     val update: Rep[Boolean] = column[Boolean]("update")
 

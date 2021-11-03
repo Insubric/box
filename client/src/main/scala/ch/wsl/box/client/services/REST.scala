@@ -16,7 +16,6 @@ trait REST{
   def appVersion():Future[String]
   def validSession():Future[Boolean]
   def cacheReset():Future[String]
-  def serverReset():Future[String]
   def entities(kind:String):Future[Seq[String]]
 
   //for entities and forms
@@ -32,14 +31,14 @@ trait REST{
 
   //only for forms
   def children(kind:String, entity:String, lang:String, public:Boolean): Future[Seq[JSONMetadata]]
-  def lookup(lang:String,lookupEntity: String, map: JSONFieldMap, queryWithSubstitutions: Json): Future[Seq[JSONLookup]]
+  def lookup(kind:String, lang:String,entity:String,  field:String, queryWithSubstitutions: Json,public:Boolean = false): Future[Seq[JSONLookup]]
 
 
   //for entities and forms
-  def get(kind:String, lang:String, entity:String, id:JSONID):Future[Json]
-  def update(kind:String, lang:String, entity:String, id:JSONID, data:Json):Future[JSONID]
-  def updateMany(kind:String, lang:String, entity:String, ids:Seq[JSONID], data:Seq[Json]):Future[Seq[JSONID]]
-  def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean): Future[JSONID]
+  def get(kind:String, lang:String, entity:String, id:JSONID,public:Boolean = false):Future[Json]
+  def update(kind:String, lang:String, entity:String, id:JSONID, data:Json,public:Boolean = false):Future[Json]
+  def updateMany(kind:String, lang:String, entity:String, ids:Seq[JSONID], data:Seq[Json]):Future[Seq[Json]]
+  def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean): Future[Json]
   def delete(kind:String, lang:String, entity:String, id:JSONID):Future[JSONCount]
   def deleteMany(kind:String, lang:String, entity:String, ids:Seq[JSONID]):Future[JSONCount]
 

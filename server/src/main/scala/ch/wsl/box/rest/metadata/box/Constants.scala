@@ -12,6 +12,8 @@ object Constants {
   final val FORM_FIELD_FILE = UUID.fromString("a8189d2d-173e-48aa-9199-fb243d2e2b3f")
   final val FORM_FIELD_CHILDS = UUID.fromString("dd8caa48-83d3-4ad8-8065-e88c671d726a")
   final val FORM_FIELD_STATIC = UUID.fromString("da6d60f6-b172-4859-9eab-9d86b52bd7e2")
+  final val FORM_ACTION = UUID.fromString("207c079f-611c-4f9d-a09f-f481cfc3f3db")
+  final val FORM_NAVIGATION_ACTION = UUID.fromString("6e07d5bb-33bf-4b8d-aef8-318c98ebd77e")
   final val FORM_ENTITY_LOOKUP = UUID.fromString("3175e57d-6f21-4c2a-83a7-2fcba7285cfe")
 
 

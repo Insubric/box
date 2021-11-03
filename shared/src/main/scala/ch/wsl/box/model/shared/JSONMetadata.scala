@@ -22,6 +22,7 @@ case object SurrugateKey extends KeyStrategy
 case class JSONMetadata(
                          objId:java.util.UUID,
                          name:String,
+                         kind: String,
                          label:String,
                          fields:Seq[JSONField],
                          layout:Layout,
@@ -53,33 +54,41 @@ case class JSONMetadata(
 
 object JSONMetadata extends Logging {
 
+  def childPlaceholder(field:JSONField,childMetadata:JSONMetadata, subforms:Seq[JSONMetadata]):Option[Json] = {
+    if(Child.min(field) > 0) {
+      val subs = for (i <- 1 to Child.min(field)) yield {
+        jsonPlaceholder(childMetadata, subforms).asJson
+      }
+      Some(subs.asJson)
+    } else None
+
+  }
+
   def jsonPlaceholder(form:JSONMetadata, subforms:Seq[JSONMetadata] = Seq()):Map[String,Json] = {
+
     form.fields.flatMap{ field =>
 
-      val defaultFirstForLookup: Option[String] = field.nullable match {
+      val defaultFirstForLookup: Option[Json] = field.nullable match {
         case false => field.lookup.flatMap(_.lookup.headOption).map(_.id) //get first element
         case true => field.lookup.flatMap(_.lookup.lift(1)).map(_.id)     //get second element (first should be null)
       }
 
       val default = (field.default) match{
-        case Some(JSONUtils.FIRST) => defaultFirstForLookup
+        case Some(JSONUtils.FIRST) => defaultFirstForLookup.map(_.string)
         case _ => field.default
       }
 
       val value:Option[Json] = Try((default, field.`type`) match {
         case (Some("arrayIndex"),_) => None
         case (Some("auto"),_) => None
-        case (Some(d),JSONFieldTypes.NUMBER) => Some(d.toDouble.asJson)
-        case (Some(d),JSONFieldTypes.BOOLEAN) => Some(d.toBoolean.asJson)
-        case (Some(d),_) => Some(d.asJson)
-        case (None,JSONFieldTypes.NUMBER) => None
-        case (None,JSONFieldTypes.BOOLEAN) => None
         case (None,JSONFieldTypes.CHILD) => {
           for{
             child <- field.child
             sub <- subforms.find(_.objId == child.objId)
-          } yield jsonPlaceholder(sub,subforms).asJson
+            result <- childPlaceholder(field,sub,subforms)
+          } yield result
         }
+        case (Some(d),typ) => JSONUtils.toJs(d,typ)
         case (None,_) => None
       }).toOption.flatten
 
@@ -93,9 +102,10 @@ object JSONMetadata extends Logging {
   }
 
 
-  def simple(id:UUID, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
+  def simple(id:UUID, kind:String, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
     objId = id,
     name = entity,
+    kind = kind,
     label = entity,
     fields = fields,
     layout = Layout(Seq(LayoutBlock(None,12,None,fields.map(x => Left(x.name))))),

@@ -26,6 +26,7 @@ jobs:
       JAVA_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8 -XX:+CMSClassUnloadingEnabled
       JVM_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8 -XX:+CMSClassUnloadingEnabled
       NODE_OPTIONS: --max-old-space-size=2048
+      SBT_NATIVE_CLIENT: true
 
     steps:
       - name: Checkout
@@ -55,7 +56,7 @@ jobs:
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m server/test
       - name: Push server result to testspace
         run: testspace server/target/test-reports/*.xml
-        if: always()
+        if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       - name: Run tests client
         env:
           AUTOMATE_USERNAME: ${{secrets.AUTOMATE_USERNAME}}
@@ -65,4 +66,4 @@ jobs:
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/test
       - name: Push server result to testspace
         run: testspace client/target/test-reports/*.xml
-        if: always()
+        if: ${{ needs.pre_job.outputs.should_skip != 'true' }}

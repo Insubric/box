@@ -1,8 +1,10 @@
 package ch.wsl.box.client.mocks
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
+
+import java.util.UUID
 
 class Values {
   val headerLangEn = "test header en"
@@ -13,7 +15,8 @@ class Values {
 
   val uiConf = Map(
     "title" -> "Test Title",
-    "index.html" -> s"""<div id="$titleId">$titleText</div>"""
+    "index.html" -> s"""<div id="$titleId">$titleText</div>""",
+    "debug" -> "true"
   )
 
   val conf = Map(
@@ -24,6 +27,7 @@ class Values {
   val testFormName = "test_form"
   val testFormTitle = "test form"
 
+  val stringField = "string_field"
   val conditionerField = "test_conditioner"
   val conditionalField = "test_conditional"
   val conditionalValue = "active"
@@ -33,9 +37,14 @@ class Values {
   val readOnlyField = "read_only_test"
   val readOnlyValue = "read_only_test_value"
 
-  val metadata = JSONMetadata(
-    1,
+  val id1 = UUID.fromString("e4f47af2-28a0-4732-8bcc-107d430f4ea3")
+  val id2 = UUID.fromString("c8fc2910-a111-46a9-bdf5-c289f2f3199f")
+  val id3 = UUID.fromString("6c5c0149-2aca-4a8f-b2bb-ede770529989")
+
+  def metadata = JSONMetadata(
+    id1,
     testFormName,
+    EntityKind.FORM.kind,
     testFormTitle,
     fields = Seq(
       JSONField(
@@ -56,6 +65,11 @@ class Values {
       ),
       JSONField(
         JSONFieldTypes.STRING,
+        name = stringField,
+        nullable = true
+      ),
+      JSONField(
+        JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
         condition = Some(ConditionalField(conditionerField,Seq(conditionalValue.asJson)))
@@ -66,7 +80,7 @@ class Values {
         widget = Some(WidgetsNames.tableChild),
         nullable = false,
         child = Some(Child(
-          objId = 2,
+          objId = id2,
           key = "child",
           masterFields = "id",
           childFields = "parent_id",
@@ -80,6 +94,7 @@ class Values {
       Left(readOnlyField),
       Left(conditionerField),
       Left(conditionalField),
+      Left(stringField),
     )))),
     entity = "test",
     lang = "it",
@@ -94,9 +109,10 @@ class Values {
     static = false
   )
 
-  val childMetadata = JSONMetadata(
-    2,
+  def childMetadata = JSONMetadata(
+    id2,
     "child",
+    EntityKind.FORM.kind,
     "Child form",
     fields = Seq(
       JSONField(
@@ -120,7 +136,7 @@ class Values {
         widget = Some(WidgetsNames.tableChild),
         nullable = false,
         child = Some(Child(
-          objId = 3,
+          objId = id3,
           key = "subchild",
           masterFields = "id",
           childFields = "child_id",
@@ -143,8 +159,9 @@ class Values {
   )
 
   val subchildMetadata = JSONMetadata(
-    3,
+    id3,
     "subchild",
+    EntityKind.FORM.kind,
     "SubChild form",
     fields = Seq(
       JSONField(
@@ -206,7 +223,11 @@ class Values {
     }
   }
 
-  def update(id:JSONID,obj:Json):JSONID = {
+  def insert(data:Json):Json = {
+    data
+  }
+
+  def update(id:JSONID,obj:Json):Json = {
     println("not implemented")
     ???
   }

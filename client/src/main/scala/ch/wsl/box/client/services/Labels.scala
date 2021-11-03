@@ -19,6 +19,7 @@ object Labels {
   def all:Map[String,String] = labels
 
   private def get(key:String):String = labels.lift(key).filterNot(_.trim == "").getOrElse(key)
+  private def getOpt(key:String):Option[String] = labels.lift(key).filterNot(_.trim == "")
 
   object messages {
     def confirm = get(SharedLabels.messages.confirm)
@@ -89,8 +90,11 @@ object Labels {
     def removeDate = get(SharedLabels.form.removeDate)
     def changed = get(SharedLabels.form.changed)
     def removeMap = get(SharedLabels.form.removeMap)
-    def removeImage = get(SharedLabels.form.removeImage)
+    def removeFile = get(SharedLabels.form.removeFile)
+    def drop = get(SharedLabels.form.drop)
     def print = get(SharedLabels.form.print)
+    def trueLabel = getOpt(SharedLabels.form.trueLabel)
+    def falseLabel = getOpt(SharedLabels.form.falseLabel)
   }
 
   object lookup{
@@ -115,6 +119,11 @@ object Labels {
     def pdf = get(SharedLabels.exports.pdf)
     def html = get(SharedLabels.exports.html)
     def shp = get(SharedLabels.exports.shp)
+  }
+
+  object table{
+    def showMore = get(SharedLabels.table.showMore)
+    def showLess = get(SharedLabels.table.showLess)
   }
 
   object entity{

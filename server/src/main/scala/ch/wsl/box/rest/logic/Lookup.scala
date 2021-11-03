@@ -25,22 +25,26 @@ object Lookup {
 
   }
 
-  def valueExtractor(lookupElements:Option[Map[String,Seq[Json]]],metadata:JSONMetadata)(field:String, value:String):Option[String] = {
+  def valueExtractor(lookupElements:Option[Map[String,Seq[Json]]],metadata:JSONMetadata)(field:String, value:Json):Option[Json] = {
 
     for{
       elements <- lookupElements
       field <- metadata.fields.find(_.name == field)
       lookup <- field.lookup
       foreignEntity <- elements.get(lookup.lookupEntity)
-      foreignRow <- foreignEntity.find(_.get(lookup.map.valueProperty) == value)
-    } yield foreignRow.get(lookup.map.textProperty)
+      foreignRow <- foreignEntity.find(_.js(lookup.map.valueProperty) == value)
+    } yield {
+      Json.fromString(lookup.map.textProperty.split(",").map(_.trim).map{ key =>
+        foreignRow.get(key)
+      }.mkString(" - "))
+    }
 
   }
 
   def values(entity:String,value:String,text:String,query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Seq[JSONLookup]] = {
     Registry().actions(entity).find(query).map{ _.map{ row =>
       val label = text.split(",").map(x => row.get(x.trim)).mkString(" - ")
-      JSONLookup(row.get(value),label)
+      JSONLookup(row.js(value),label)
     }}
   }
 }

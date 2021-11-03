@@ -27,7 +27,7 @@ import org.locationtech.jts.geom.Geometry
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,services: Services) extends TableActions[M] with DBFiltersImpl with Logging {
+class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,val services: Services) extends TableActions[M] with DBFiltersImpl with Logging {
 
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
 
@@ -144,21 +144,16 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     }
   }
 
-  def insert(e: M) = {
-    for{
-      result <-  insertReturningModel(e)
-      keys <- keys()
-    } yield new EnhancedModel(result).ID(keys)
-  }
 
 
-  override def insertReturningModel(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
+
+  override def insert(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
     logger.info(s"INSERT $obj")
     resetMetadataCache()
     for{
       result <-  {
         (entity.returning(entity) += obj)
-      }.transactionally
+      }
     } yield result
   }
 
@@ -168,10 +163,14 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     filter(id).delete.transactionally
   }
 
+  import ch.wsl.box.jdbc.SlickUpdateExt.UpdateReturning._
+
   def update(id:JSONID, e:M) = {
     logger.info(s"UPDATE BY ID $id")
     resetMetadataCache()
-    filter(id).update(e).transactionally
+    for{
+      result <- filter(id).updateReturning(entity,e)
+    } yield result.head
   }
 
 

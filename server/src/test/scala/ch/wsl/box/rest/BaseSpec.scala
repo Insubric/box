@@ -3,7 +3,7 @@ package ch.wsl.box.rest
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
-import ch.wsl.box.rest.utils.{BoxConfig, DatabaseSetup, UserProfile}
+import ch.wsl.box.rest.utils.{DatabaseSetup, UserProfile}
 import org.scalatest.concurrent.ScalaFutures
 import _root_.io.circe._
 import _root_.io.circe.parser._
@@ -53,7 +53,6 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
     TestModule(container).injector.run[Services, A] { implicit services =>
       val assertion = for{
         _ <- DatabaseSetup.setUp()
-        _ = BoxConfig.load(services.connection.adminDB)
         assertion <- run(services)
       } yield assertion
 

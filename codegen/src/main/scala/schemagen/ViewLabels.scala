@@ -10,9 +10,7 @@ import scala.concurrent.ExecutionContext
 
 
 
-object ViewLabels extends Logging {
-
-  val langs:Seq[String] = ConfigFactory.load().as[Option[String]]("langs").map(_.split(",").map(_.trim).toSeq).getOrElse(Seq("en"))
+class ViewLabels(langs:Seq[String]) extends Logging {
 
   private val keys = langs.map(l => s"$l.label as $l").mkString(", ")
   private val joins = langs.map(l => s"left join box.labels $l on keys.key = $l.key and $l.lang='$l'").mkString("\n")

@@ -51,6 +51,15 @@ class PgInformationSchema(schema:String, table:String, excludeFields:Seq[String]
         .sortBy(_.ordinal_position).result
   }
 
+  def triggers:DBIO[Seq[PgTrigger]] = {
+      pgTriggers
+        .filter(e => e.event_object_table === table && e.event_object_schema === schema).result
+  }
+
+  def view:DBIO[Option[PgView]] = {
+    pgView.filter(v => v.table_name === table && v.table_schema === schema).result.headOption
+  }
+
 
 
   private val pkQ = for{

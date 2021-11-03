@@ -4,7 +4,7 @@ import java.util.UUID
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema}
 import ch.wsl.box.model.shared._
-import ch.wsl.box.rest.utils.{BoxConfig, UserProfile}
+import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.shared.utils.JSONUtils
 import com.typesafe.config.Config
 import scribe.Logging
@@ -13,12 +13,12 @@ import net.ceedubs.ficus.Ficus._
 import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{FullDatabase, Managed, TypeMapping}
-import ch.wsl.box.model.BoxFieldAccessRegistry
+import ch.wsl.box.model.BoxRegistry
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.services.Services
-import com.avsystem.commons.Try
 
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Try
 
 
 object EntityMetadataFactory extends Logging {
@@ -41,9 +41,9 @@ object EntityMetadataFactory extends Logging {
     }
   }
 
-  def lookupField(referencingTable:String,lang:String, firstNoPK:Option[String]):String = {
+  def lookupField(referencingTable:String,lang:String, firstNoPK:Option[String])(implicit services: Services):String = {
 
-    val lookupLabelFields = BoxConfig.fksLookupLabels
+    val lookupLabelFields = services.config.fksLookupLabels
 
     val default = lookupLabelFields.as[Option[String]]("default").getOrElse("name")
 
@@ -108,7 +108,7 @@ object EntityMetadataFactory extends Logging {
                       lookupData <- Registry().actions(model).find()
                     } yield {
                       val options = lookupData.map { lookupRow =>
-                        JSONLookup(lookupRow.get(value), lookupRow.get(text))
+                        JSONLookup(lookupRow.js(value), lookupRow.get(text))
                       }
 
                       JSONField(
@@ -154,6 +154,7 @@ object EntityMetadataFactory extends Logging {
           JSONMetadata(
             UUID.randomUUID(),
             table,
+            EntityKind.ENTITY.kind,
             table,
             fields,
             Layout.fromFields(fields),
@@ -174,7 +175,7 @@ object EntityMetadataFactory extends Logging {
         for{
           metadata <- result
         } yield {
-          if(BoxConfig.enableCache) {
+          if(services.config.enableCache) {
             logger.warn("adding to cache table " + Seq(up.name, table, lang, lookupMaxRows).mkString)
             DBIO.successful(cacheTable.put(cacheKey,metadata))
           }
@@ -186,7 +187,7 @@ object EntityMetadataFactory extends Logging {
     }
   }
 
-  def keysOf(schema:String,table:String)(implicit ec:ExecutionContext):DBIO[Seq[String]] = {
+  def keysOf(schema:String,table:String)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[String]] = {
     logger.info("Getting " + table + " keys")
     cacheKeys.get(table) match {
       case Some(r) => DBIO.successful(r)
@@ -202,7 +203,7 @@ object EntityMetadataFactory extends Logging {
         for{
           keys <- result
         } yield {
-          if(BoxConfig.enableCache) {
+          if(services.config.enableCache) {
             DBIO.successful(cacheKeys.put(table,keys))
           }
           keys
@@ -233,7 +234,7 @@ object EntityMetadataFactory extends Logging {
     if(dbField.name != "Unknown") {
       dbField
     } else {
-      BoxFieldAccessRegistry.field(table,field)
+      BoxRegistry.generated.map(_.fields.field(table,field)).getOrElse(dbField)
     }
   }
 

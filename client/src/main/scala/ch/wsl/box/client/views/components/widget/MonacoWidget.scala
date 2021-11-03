@@ -1,8 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
-
-import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash.properties.single.Property
@@ -30,6 +29,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   })
 
   var container: Div = null
+  var editor: Option[IStandaloneCodeEditor] = None
 
   val defaultLanguage = field.`type` match {
     case JSONFieldTypes.JSON => "json"
@@ -40,21 +40,26 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   val containerHeight:Int = field.params.flatMap(_.js("height").as[Int].toOption).getOrElse(200)
 
   def _afterRender(): Unit = {
+    logger.info("Editor after render")
     if(container != null) {
 
       logger.info(language)
 
 
-      val editor = typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
+      editor = Some(typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
         .setLanguage(language)
-        .setValue(data.get.string)
+      ))
 
-      )
-      editor.onDidChangeModelContent{e =>
+      val dataListener:Registration = data.listen({js =>
+          editor.foreach(_.setValue(js.string))
+      },true)
 
-        data.set(editor.getValue().asJson)
 
-      }
+      editor.foreach(_.onDidChangeModelContent{e =>
+        dataListener.cancel()
+        data.set(editor.get.getValue().asJson)
+        dataListener.restart()
+      })
     }
   }
 
@@ -88,6 +93,8 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
 
 
     produce(_id) { _ =>
+
+      editor.foreach(_.dispose())
 
       val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).forall(x => x) // default true
 

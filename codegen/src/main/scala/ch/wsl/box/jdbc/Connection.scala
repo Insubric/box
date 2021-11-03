@@ -79,6 +79,9 @@ class ConnectionConfImpl extends Connection {
   val adminPoolSize = dbConf.as[Option[Int]]("adminPoolSize").getOrElse(15)
   val enableConnectionPool = dbConf.as[Option[Boolean]]("enableConnectionPool").getOrElse(true)
   val adminUser = dbConf.as[String]("user")
+  val leakDetectionThreshold =  dbConf.as[Option[Int]]("leakDetectionThreshold").getOrElse(100000)
+  val maxLifetime =  dbConf.as[Option[Int]]("maxLifetime").getOrElse(600000)
+  val idleTimeout =  dbConf.as[Option[Int]]("idleTimeout").getOrElse(300000)
 
   val connectionPool = if (enableConnectionPool) {
     ConfigValueFactory.fromAnyRef("HikariCP")
@@ -119,10 +122,10 @@ class ConnectionConfImpl extends Connection {
     .withValue("connectionPool", connectionPool)
     //https://github.com/brettwooldridge/HikariCP/issues/1237
     //https://stackoverflow.com/questions/58098979/connections-not-being-closedhikaricp-postgres/58101472#58101472
-    .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(600000))
-    .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(300000))
+    .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(maxLifetime))
+    .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(idleTimeout))
+    .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(leakDetectionThreshold))
     .withValue("autoCommit", ConfigValueFactory.fromAnyRef(false))
-    .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(10000))
     .withValue("properties",ConfigValueFactory.fromMap(Map(
       "ApplicationName" -> s"BOX Connections - Pool $randomId"
     ).asJava))

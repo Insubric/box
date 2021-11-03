@@ -84,6 +84,30 @@ class PgConstraints(tag: Tag) extends Table[PgConstraint](tag,  Some("informatio
   def * = (table_name, constraint_name, constraint_type) <> (PgConstraint.tupled, PgConstraint.unapply)
 }
 
+case class PgTrigger(
+                         trigger_name:String,
+                         event_manipulation:String,
+                         event_object_schema:String,
+                         event_object_table:String,
+                         action_statement:String,
+                         action_orientation:String,
+                         action_timing:String,
+                       )
+
+class PgTriggers(tag: Tag) extends Table[PgTrigger](tag,  Some("information_schema"), "triggers") {
+
+  def trigger_name = column[String]("trigger_name")
+  def event_manipulation = column[String]("event_manipulation")
+  def event_object_schema = column[String]("event_object_schema")
+  def event_object_table = column[String]("event_object_table")
+  def action_statement = column[String]("action_statement")
+  def action_orientation = column[String]("action_orientation")
+  def action_timing = column[String]("action_timing")
+
+
+  def * = (trigger_name, event_manipulation, event_object_schema,event_object_table,action_statement,action_orientation,action_timing) <> (PgTrigger.tupled, PgTrigger.unapply)
+}
+
 case class PgConstraintReference(
   constraint_name:String,
   referencing_constraint_name:String
@@ -130,13 +154,50 @@ class PgKeyUsages(tag: Tag) extends Table[PgKeyUsage](tag,  Some("information_sc
   def * = (constraint_name, table_name, column_name) <> (PgKeyUsage.tupled, PgKeyUsage.unapply)
 }
 
+
+case class PgView(
+                         table_name:String,
+                         table_schema:String,
+                         view_definition:String,
+                         is_updatable:String,
+                         is_insertable_into:String,
+                         is_trigger_updatable:String,
+                         is_trigger_deletable:String,
+                         is_trigger_insertable_into:String
+                       ) {
+  def stable:Boolean =
+      is_updatable == "NO" &&
+      is_insertable_into == "NO" &&
+      is_trigger_updatable == "NO" &&
+      is_trigger_deletable == "NO" &&
+      is_trigger_insertable_into == "NO"
+
+}
+
+class PgViews(tag: Tag) extends Table[PgView](tag,  Some("information_schema"), "views") {
+
+  def table_name = column[String]("table_name")
+  def table_schema = column[String]("table_schema")
+  def view_definition = column[String]("view_definition")
+  def is_insertable_into = column[String]("is_insertable_into")
+  def is_trigger_updatable = column[String]("is_trigger_updatable")
+  def is_trigger_deletable = column[String]("is_trigger_deletable")
+  def is_trigger_insertable_into = column[String]("is_trigger_insertable_into")
+  def is_updatable = column[String]("is_updatable")
+
+
+  def * = (table_name, table_schema, view_definition,is_updatable,is_insertable_into,is_trigger_updatable,is_trigger_deletable,is_trigger_insertable_into) <> (PgView.tupled, PgView.unapply)
+}
+
 object PgInformationSchemaSlick{
   val pgTables = TableQuery[PgTables]
   val pgColumns = TableQuery[PgColumns]
+  val pgTriggers = TableQuery[PgTriggers]
   val pgConstraints = TableQuery[PgConstraints]
   val pgConstraintsReference = TableQuery[PgConstraintReferences]
   val pgContraintsUsage = TableQuery[PgConstraintUsages]
   val pgKeyUsage = TableQuery[PgKeyUsages]
+  val pgView = TableQuery[PgViews]
 }
 
 

@@ -2,19 +2,22 @@ package ch.wsl.box.model
 
 import java.io.PrintWriter
 import java.sql.{DriverManager, SQLException, SQLFeatureNotSupportedException}
-
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.boxentities.BoxSchema
 import org.flywaydb.core.Flyway
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.DefaultModule
 import ch.wsl.box.services.Services
+import org.flywaydb.core.api.exception.FlywayValidateException
+import org.flywaydb.core.api.output.MigrateResult
+
 import javax.sql.DataSource
 import schemagen.SchemaGenerator
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.Try
 
 object Migrate {
 
@@ -28,12 +31,29 @@ object Migrate {
       .schemas(BoxSchema.schema.get)
       .defaultSchema(BoxSchema.schema.get)
       .table("flyway_schema_history_box")
-      .locations("migrations")
+      .locations("box_migrations","classpath:box_migrations")
       .ignoreMissingMigrations(true)
       .dataSource(connection.dataSource("BOX Migration"))
       .load()
 
-    val result = flyway.migrate()
+    val result:Future[MigrateResult] = Future {
+      flyway.migrate()
+    }.recoverWith{ case e:FlywayValidateException =>
+      if( // Add exception for manually modified Migration 27
+        e.getMessage.contains("Migration checksum mismatch for migration version 27") &&
+        e.getMessage.contains("-2039720488")
+      ) {
+        connection.dbConnection.run {
+          sqlu"""
+            update box.flyway_schema_history_box set checksum=-2039720488 where version='27';
+            """
+        }.map{ _ =>
+          flyway.migrate()
+        }
+      } else {
+        Future.failed(e)
+      }
+    }
     result
 
   }
@@ -44,7 +64,7 @@ object Migrate {
       .schemas(connection.dbSchema)
       .defaultSchema(connection.dbSchema)
       .table("flyway_schema_history")
-      .locations("migrations")
+      .locations("migrations","classpath:migrations")
       .ignoreMissingMigrations(true)
       .dataSource(connection.dataSource("App migration"))
       .load()
@@ -53,22 +73,20 @@ object Migrate {
     result
   }
 
-  def all(connection:Connection) = {
+  def all(services: Services) = {
     for {
-     _ <- Future{ box(connection) }
-     _ <- Future{ app(connection) }
-     _ <- new SchemaGenerator(connection).run()
-     _ <- LabelsUpdate.run(connection.dbConnection)
+     _ <- box(services.connection)
+     _ <- Future{ app(services.connection) }
+     _ <- new SchemaGenerator(services.connection,services.config.langs).run()
+     _ <- LabelsUpdate.run(services)
     } yield true
   }
 
   def main(args: Array[String]): Unit = {
-    DefaultModule.connectionInjector.build[Connection] { connection =>
-      Await.result(all(connection).recover{ case t =>
+    DefaultModule.injector.build[Services] { services =>
+      Await.result(all(services).recover{ case t =>
         t.printStackTrace()
       },10.seconds)
-      connection.close()
-      println("Connections closed")
     }
   }
 }

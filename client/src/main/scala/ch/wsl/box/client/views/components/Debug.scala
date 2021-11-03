@@ -11,7 +11,7 @@ import org.scalajs.dom.Event
 object Debug {
 
 
-  def apply[T](model: Property[T],releaser:Binding=>Binding = b => b, name:String ="")(implicit enc:io.circe.Encoder[T]) = {
+  def apply[T](model: ReadableProperty[T],releaser:Binding=>Binding = b => b, name:String ="")(implicit enc:io.circe.Encoder[T]) = {
     val show = Property {
       false
     }

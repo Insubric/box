@@ -41,14 +41,14 @@ class RuntimeFunctionSpec extends BaseSpec {
 
     val code =
       """
-        |Future.successful(DataResultTable(Seq(),Seq(Seq("test"))))
+        |Future.successful(DataResultTable(Seq(),Seq(Seq(Json.fromString("test")))))
       """.stripMargin
 
     assert(true)
 
     val f = RuntimeFunction("test1",code)
     f(context,"en").map{ result =>
-      assert(result.asInstanceOf[DataResultTable].rows.head.head == "test")
+      assert(result.asInstanceOf[DataResultTable].rows.head.head == Json.fromString("test"))
     }
   }
 

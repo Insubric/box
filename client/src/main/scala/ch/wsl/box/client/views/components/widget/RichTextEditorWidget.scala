@@ -45,7 +45,7 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
 
 
   override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
-    div(p.string).render
+    div(raw(p.string)).render
   })
 
   _id.listen(x => logger.info(s"Rich text widget load with ID: $x"))

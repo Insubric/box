@@ -115,7 +115,7 @@ case class Form(
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, jsonActions, metadataFactory)
             fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-            data <- formActions.list(query, fkValues)
+            data <- formActions.list(query, fkValues, true)
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
@@ -171,51 +171,103 @@ case class Form(
     }
   }
 
+  def updateDiff = put {
+    privateOnly {
+      entity(as[JSONDiff]) { e =>
+        complete {
+          actions { fs =>
+            for {
+              jsonId <- db.run{
+                fs.updateDiff(e).transactionally
+              }
+            } yield {
+              if(schema == BoxSchema.schema) {
+                Cache.reset()
+              }
+              if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def lookup:Route = pathPrefix("lookup") {
+    path(Segment) { field =>
+      post {
+        entity(as[JSONQuery]) { query =>
+          complete {
+            for{
+              m <- boxDb.adminDb.run(metadata)
+              lookups <- {
+                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
+                  case None => throw new Exception(s"$field has no lookup")
+                }
+              }
+            } yield lookups
+          }
+        }
+      }
+    }
+  }
+
+  def _get(ids:Seq[JSONID]) = get {
+    privateOnly {
+      complete(actions { fs =>
+        db.run(fs.getById(ids.head).transactionally).map { record =>
+          logger.info(record.toString)
+          HttpEntity(ContentTypes.`application/json`, record.asJson)
+        }
+      })
+    }
+  }
+
+  def _delete(ids:Seq[JSONID]) = delete {
+    privateOnly {
+      complete {
+        actions { fs =>
+          for {
+            count <- db.run(DBIO.sequence(ids.map(id => fs.delete(id))).transactionally)
+          } yield JSONCount(count.sum)
+        }
+      }
+    }
+  }
+
+  def update(ids:Seq[JSONID]) = put {
+    privateOnly {
+      entity(as[Json]) { e =>
+        complete {
+          actions { fs =>
+            val values = e.as[Seq[Json]].getOrElse(Seq(e))
+            val result = for {
+              jsonId <- db.run{
+                DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.update(id, x)}).transactionally
+              }
+            } yield {
+              if(schema == BoxSchema.schema) {
+                Cache.reset()
+              }
+              if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+            }
+
+            result.recover{ case t:Throwable => t.printStackTrace()}
+
+            result
+          }
+        }
+      }
+    }
+  }
+
     def route = pathPrefix("id") {
       path(Segment) { strId =>
         JSONID.fromMultiString(strId) match {
           case ids if ids.nonEmpty =>
-            get {
-              privateOnly {
-                complete(actions { fs =>
-                  db.run(fs.getById(ids.head).transactionally).map { record =>
-                    logger.info(record.toString)
-                    HttpEntity(ContentTypes.`application/json`, record.asJson)
-                  }
-                })
-              }
-            } ~
-              put {
-                privateOnly {
-                  entity(as[JSONDiff]) { e =>
-                    complete {
-                      actions { fs =>
-                        for {
-                          jsonId <- db.run{
-                            fs.updateDiff(e).transactionally
-                          }
-                        } yield {
-                          if(schema == BoxSchema.schema) {
-                              Cache.reset()
-                          }
-                          if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
-                        }
-                      }
-                    }
-                  }
-                }
-              } ~
-              delete {
-                privateOnly {
-                  complete {
-                    actions { fs =>
-                      for {
-                        count <- db.run(DBIO.sequence(ids.map(id => fs.delete(id))).transactionally)
-                      } yield JSONCount(count.sum)
-                    }
-                  }
-                }
-              }
+              _get(ids) ~
+              update(ids) ~
+              _delete(ids)
           case _ => complete(StatusCodes.BadRequest,s"JSONID $strId not valid")
         }
       }
@@ -308,6 +360,7 @@ case class Form(
         }
       }
     } ~
+    lookup ~
     xls ~
     csv ~
     pathEnd {

@@ -128,7 +128,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
       div(ClientConf.style.global)(ed.map(_.description.getOrElse[String]("")).getOrElse[String]("")).render
     },
     br,
-    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keys).map(_.asString)),WidgetCallbackActions.noAction).edit(),
+    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keys).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(),
     showIf(table) { button(Labels.exports.load,onclick :+= presenter.query,ClientConf.style.boxButton).render },
     showIf(table) { button(Labels.exports.csv,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },

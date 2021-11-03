@@ -25,11 +25,11 @@ object PopupWidgetFactory extends ComponentWidgetFactory  {
 
   override def name: String = WidgetsNames.popup
 
-  override def create(params: WidgetParams): Widget = PopupWidget(params.field,params.prop,params.allData)
+  override def create(params: WidgetParams): Widget = PopupWidget(params.field,params.prop,params.allData,params.metadata,params.public)
 
 }
 
-case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadableProperty[Json]) extends LookupWidget with Logging {
+case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadableProperty[Json],metadata:JSONMetadata,public:Boolean) extends LookupWidget with Logging {
 
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
@@ -40,7 +40,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin)(
       label(field.title),
       div(BootstrapStyles.Float.right(), ClientConf.style.popupButton,
-        bind(model.transform(_.value))
+        bind(model.transform(_.map(_.value).getOrElse("")))
       ),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
@@ -69,7 +69,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
                 lu.filter(opt => searchTerm == "" || opt.value.toLowerCase.contains(searchTerm.toLowerCase)).map { x =>
                   div(a(x.value, onclick :+= ((e: Event) => {
                     modalStatus.set(Status.Closed)
-                    model.set(x)
+                    model.set(Some(x))
                     e.preventDefault()
                   })))
                 }
@@ -131,7 +131,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
         modalStatus.set(Status.Open)
         e.preventDefault()
-      }),bind(model.transform(_.value))).render)._1,
+      }),bind(model.transform(_.map(_.value).getOrElse("")))).render)._1,
       modal.render
 
     )

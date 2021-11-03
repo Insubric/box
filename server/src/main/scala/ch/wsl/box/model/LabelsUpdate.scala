@@ -3,29 +3,38 @@ package ch.wsl.box.model
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxLabels.{BoxLabelsTable, BoxLabels_row}
 import ch.wsl.box.model.shared.SharedLabels
-import ch.wsl.box.rest.utils.BoxConfig
+import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object LabelsUpdate {
 
-  def run(db:Database)(implicit ec:ExecutionContext): Future[Option[Int]] = {
 
-    val all = for{
-      label <- BoxLabelsTable
-    } yield label.key
 
-    for{
-      labels <- db.run(all.result)
-      labelsToInsert = SharedLabels.all.diff(labels)
-      inserted <- db.run{
-        BoxLabelsTable ++= labelsToInsert.flatMap{ key =>
-          BoxConfig.langs.map{ lang =>
-            BoxLabels_row(lang,key)
+  def run(services:Services)(implicit ec:ExecutionContext): Future[Int] = {
+
+    val db = services.connection.dbConnection
+
+    val all = db.run{BoxLabelsTable.result}
+
+    val allLabelsFut = all.map(x => (x.map(_.key) ++ SharedLabels.all).distinct)
+
+
+    def updateLabels(lang:String):Future[Int] = {
+      for {
+        labels <- all
+        allLabels <- allLabelsFut
+        labelsToInsert = allLabels.diff(labels.filter(_.lang == lang).map(_.key))
+        inserted <- db.run {
+          BoxLabelsTable ++= labelsToInsert.map { key =>
+            BoxLabels_row(lang, key)
           }
         }
-      }
-    } yield inserted
+      } yield inserted.sum
+    }
+
+    Future.sequence(services.config.langs.map(updateLabels)).map(_.sum)
+
   }
 
 }

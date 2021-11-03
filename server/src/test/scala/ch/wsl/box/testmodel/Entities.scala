@@ -27,7 +27,7 @@ object Entities {
   case class Simple_row(id: Option[Int] = None, name: Option[String] = None)
   class Simple(_tableTag: Tag) extends profile.api.Table[Simple_row](_tableTag, "simple") {
     def * = (Rep.Some(id), name) <> (Simple_row.tupled, Simple_row.unapply)
-    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
   }
   lazy val Simple = new TableQuery(tag => new Simple(tag))

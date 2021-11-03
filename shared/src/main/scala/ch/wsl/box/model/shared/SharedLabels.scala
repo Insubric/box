@@ -46,6 +46,15 @@ object SharedLabels extends LabelsCollection {
     )
   }
 
+  object table extends LabelsCollection {
+    def showMore = "table.showMore"
+    def showLess = "table.showLess"
+    def all = Seq(
+      showMore,
+      showLess
+    )
+  }
+
   object navigation extends LabelsCollection{
     def recordFound = "navigation.recordFound"
     def goAway = "navigation.goAway"
@@ -125,8 +134,11 @@ object SharedLabels extends LabelsCollection {
     def removeDate = "form.remove_date"
     def changed = "form.changed"
     def removeMap = "form.remove-map"
-    def removeImage = "form.remove-image"
+    def removeFile = "form.remove-image"
+    def drop = "form.drop"
     def print = "form.print"
+    def trueLabel = "form.trueLabel"
+    def falseLabel = "form.falseLabel"
     def all = Seq(
       required,
       save,
@@ -136,8 +148,11 @@ object SharedLabels extends LabelsCollection {
       removeDate,
       changed,
       removeMap,
-      removeImage,
-      print
+      removeFile,
+      drop,
+      print,
+      trueLabel,
+      falseLabel
     )
   }
 

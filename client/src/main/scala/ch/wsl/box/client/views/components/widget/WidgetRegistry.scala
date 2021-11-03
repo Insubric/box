@@ -1,10 +1,11 @@
 package ch.wsl.box.client.views.components.widget
 
+import ch.wsl.box.client.views.components.widget.boolean.SelectBooleanWidget
 import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory, TrasparentChild}
 import ch.wsl.box.client.views.components.widget.geo.{MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.labels.{HtmlWidget, LinkedFormWidget, LookupLabelWidget, StaticTextWidget, TitleWidget}
 import ch.wsl.box.client.views.components.widget.lookup.{PopupWidgetFactory, SelectWidgetFactory}
-import ch.wsl.box.client.views.components.widget.utility.LangWidget
+import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget}
 import ch.wsl.box.model.shared.WidgetsNames
 import scribe.Logging
 
@@ -21,6 +22,7 @@ object WidgetRegistry extends Logging {
 
     HiddenWidget,
     LangWidget,
+    DropdownLangWidget,
 
     PopupWidgetFactory,
     SelectWidgetFactory,
@@ -35,6 +37,7 @@ object WidgetRegistry extends Logging {
 
     CheckboxWidget,
     TristateWidget,
+    SelectBooleanWidget,
 
     DateTimeWidget.Time,
     DateTimeWidget.Date,

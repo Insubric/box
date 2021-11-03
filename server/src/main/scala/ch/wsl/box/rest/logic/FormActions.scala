@@ -16,6 +16,7 @@ import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
@@ -31,7 +32,7 @@ case class Reference(association:Seq[ReferenceKey])
 case class FormActions(metadata:JSONMetadata,
                        jsonActions: String => TableActions[Json],
                        metadataFactory: MetadataFactory
-                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
+                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,val services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
 
   import ch.wsl.box.shared.utils.JSONUtils._
 
@@ -55,7 +56,7 @@ case class FormActions(metadata:JSONMetadata,
     JSONQuery(
       filter = defaultQuery.filter ++ query.filter,
       sort = query.sort ++ defaultQuery.sort,
-      paging = defaultQuery.paging.orElse(query.paging),
+      paging = query.paging.orElse(defaultQuery.paging),
       lang = defaultQuery.lang
     )
   }.getOrElse(query)
@@ -76,7 +77,7 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  private def listRenderer(json:Json,lookupElements:Option[Map[String,Seq[Json]]])(name:String):Json = {
+  private def listRenderer(json:Json,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false)(name:String):Json = {
 
     def jsonCSVRenderer(json:Json,field:JSONField):Json = {
 
@@ -88,22 +89,23 @@ case class FormActions(metadata:JSONMetadata,
           case None => json.js(field.name)
         }
         case (_,Some(WidgetsNames.integerDecimal2)) => json.js(field.name).withNumber(n => "%.2f".format((n.toDouble / 100.0)).asJson)
+        case (_,Some(WidgetsNames.richTextEditorFull)) | (_,Some(WidgetsNames.richTextEditor)) | (_,Some(WidgetsNames.redactor)) if dropHtml => Html.stripTags(json.get(field.name)).asJson
         case (_,_) => json.js(field.name)
       }
     }
 
-    Lookup.valueExtractor(lookupElements, metadata)(name, json.get(name)).map(_.asJson)
+    Lookup.valueExtractor(lookupElements, metadata)(name, json.js(name)).map(_.asJson)
       .orElse(metadata.fields.find(_.name == name).map(jsonCSVRenderer(json,_)))
       .getOrElse(json.js(name))
   }
 
 
 
-  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]]):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
+  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
 
 
     val columns = metadata.tabularFields.map{f =>
-      (f, listRenderer(row,lookupElements)(f))
+      (f, listRenderer(row,lookupElements,dropHtml)(f))
     }
     Json.obj(columns:_*)
   }}
@@ -159,27 +161,31 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  def subAction[T](e:Json, action: FormActions => ((JSONID,Json) => DBIO[_]),alwaysApply:Boolean = false): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).filter { field =>
-    field.condition match {
-      case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
-      case None => true
+  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
+
+    val result = metadata.fields.filter(_.child.isDefined).filter { field =>
+      field.condition match {
+        case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
+        case None => true
+      }
+    }.map{ field =>
+      for {
+        form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
+        dbSubforms <- getChild(e,form,field.child.get)
+        subs = e.seq(field.name)
+        subJsonWithIndexs = attachArrayIndex(subs,form)
+        subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
+        deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
+        result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
+          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json)
+        })
+      } yield field.name -> result.asJson
     }
-  }.map{ field =>
-    for {
-      form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
-      dbSubforms <- getChild(e,form,field.child.get)
-      subs = e.seq(field.name)
-      subJsonWithIndexs = attachArrayIndex(subs,form)
-      subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
-      deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
-      result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
-          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys).get,json).map(x => Some(x))
-      }).map(_.flatten)
-    } yield result
+    DBIO.sequence(result)
   }
 
   def deleteSingle(id: JSONID,e:Json) = {
-    jsonAction.delete(id)
+    jsonAction.delete(id).map(_ => e)
   }
 
 
@@ -204,14 +210,14 @@ case class FormActions(metadata:JSONMetadata,
   def delete(id:JSONID) = {
     for{
       json <- getById(id)
-      subs <- DBIO.sequence(subAction(json.get,x => (id,json) => x.deleteSingle(id,json),true))
+      subs <- subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true)
       current <- deleteSingle(id,json.get)
-    } yield current + subs.size
+    } yield 1 + subs.length
   }
 
-  def insert(e:Json) = for{
-    inserted <- jsonAction.insertReturningModel(e)
-    _ <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
+  def insert(e:Json):DBIO[Json] = for{
+    inserted <- jsonAction.insert(e)
+    childs <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
       for {
         metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
         rows = attachArrayIndex(e.seq(field.name),metadata)
@@ -220,21 +226,39 @@ case class FormActions(metadata:JSONMetadata,
           field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
         }
         result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,jsonActions,metadataFactory).insert(row)))
-      } yield result
+      } yield field.name -> result.asJson
     })
-  } yield JSONID.fromData(inserted,metadata).getOrElse(JSONID.empty)
+  } yield inserted.deepMerge(Json.fromFields(childs))
 
 
-  override def insertReturningModel(obj: Json) = for{
-    id <- insert(obj)
-    full <- getById(id)
-  } yield full.getOrElse(Json.Null)
 
-  def update(id:JSONID, e:Json) = {
+  private def insertNullForMissingFields(json:Json):Json = {
+    val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored).map(x => x.name -> Json.Null))
+    allNullFields.deepMerge(json)
+  }
+
+  def update(id:JSONID, e:Json):DBIO[Json] = {
     for{
-      _ <- DBIO.sequence(subAction(e,_.update))  //need upsert to add new child records
-      result <- jsonAction.update(id,e)
-    } yield result
+      result <- jsonAction.update(id,insertNullForMissingFields(e))
+      childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
+    } yield result.deepMerge(Json.fromFields(childs))
+  }
+
+  def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[Json] = {
+    for {
+      current <- id match {
+        case Some(id) => getById(id)
+        case None => DBIO.successful(None)
+      } //retrieve values in db
+      result <- if (current.isDefined) { //if exists, check if we have to skip the update (if row is the same)
+        update(id.get, current.get.deepMerge(insertNullForMissingFields(json)))
+      } else {
+        insert(json)
+      }
+    } yield {
+      logger.info(s"Inserted $result")
+      result
+    }
   }
 
 

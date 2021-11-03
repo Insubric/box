@@ -36,12 +36,11 @@ trait ViewActions[T] {
  * @tparam T model class type
  */
 trait TableActions[T] extends ViewActions[T] {
-  def insert(obj: T): DBIO[JSONID]
-  def insertReturningModel(obj: T): DBIO[T]
+  def insert(obj: T): DBIO[T]
 
   def delete(id:JSONID): DBIO[Int]
 
-  def update(id:JSONID, obj: T): DBIO[Int]
+  def update(id:JSONID, obj: T): DBIO[T]
 
   def updateDiff(diff:JSONDiff):DBIO[Seq[JSONID]]
 

@@ -4,9 +4,9 @@ import akka.stream.Materializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
-import ch.wsl.box.model.boxentities.BoxForm.{BoxForm_i18n_row, BoxForm_row}
-import ch.wsl.box.model.shared.{Layout, LayoutBlock}
-import ch.wsl.box.rest.utils.{BoxConfig, UserProfile}
+import ch.wsl.box.model.boxentities.BoxForm.{BoxForm_actions, BoxForm_actions_row, BoxForm_i18n_row, BoxForm_row}
+import ch.wsl.box.model.shared.{FormAction, FormActionsMetadata, JSONField, JSONMetadata, Layout, LayoutBlock}
+import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -23,10 +23,10 @@ object StubMetadataFactory {
 
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
-    for{
-      langs <- Future.sequence(BoxConfig.langs.map{ lang =>
+    val dbio = for{
+      langs <- DBIO.from(Future.sequence(services.config.langs.map{ lang =>
         EntityMetadataFactory.of(services.connection.dbSchema,entity,lang).map(x => (lang,x))
-      })
+      }))
       metadata = langs.head._2
       form <- {
         val newForm = BoxForm_row(
@@ -41,22 +41,22 @@ object StubMetadataFactory {
           show_navigation = true
         )
 
-        up.db.run{
-          (BoxForm.BoxFormTable.returning(BoxForm.BoxFormTable) += newForm).transactionally
-        }
+
+        BoxForm.BoxFormTable.returning(BoxForm.BoxFormTable) += newForm
+
       }
-      formI18n <- Future.sequence(langs.map{ lang =>
+      formI18n <- DBIO.sequence(langs.map{ lang =>
         val newFormI18n = BoxForm_i18n_row(
           form_uuid = form.form_uuid,
           lang = Some(lang._1),
           label = Some(entity)
         )
-        up.db.run{
-          (BoxForm.BoxForm_i18nTable.returning(BoxForm.BoxForm_i18nTable) += newFormI18n).transactionally
-        }
+
+        BoxForm.BoxForm_i18nTable.returning(BoxForm.BoxForm_i18nTable) += newFormI18n
+
       })
-      a <- up.db.run {
-        DBIO.seq(metadata.fields.map { field =>
+      a <- {
+        DBIO.sequence(metadata.fields.map { field =>
           val newField = BoxField_row(
             form_uuid = form.form_uuid.get,
             `type` = field.`type`,
@@ -68,40 +68,53 @@ object StubMetadataFactory {
           )
 
 
-          (BoxField.BoxFieldTable.returning(BoxField.BoxFieldTable) += newField).transactionally
+          (BoxField.BoxFieldTable.returning(BoxField.BoxFieldTable) += newField)
 
-        }: _*).transactionally
+        })
       }
-      fields <- up.db.run {
+      fields <- {
         BoxField.BoxFieldTable.filter(_.form_uuid === form.form_uuid.get ).result
       }
       fieldsI18n <- {
-        val t1: Future[Seq[Seq[BoxField_i18n_row]]] = Future.sequence(langs.map{ lang =>
-          val t: Future[Seq[BoxField_i18n_row]] = Future.sequence(lang._2.fields.map{ case jsonField =>
+        val langFields: Seq[(String, JSONMetadata, JSONField)] = langs.flatMap(x => x._2.fields.map(y => (x._1,x._2,y)))
+        DBIO.sequence(langFields.map{ case (lang,metadata,field) =>
 
-            val field = fields.find(_.name == jsonField.name ).get
+            val dbField:BoxField.BoxField_row = fields.find(_.name == field.name ).get
 
             val newFieldI18n = BoxField_i18n_row(
-              field_uuid = field.field_uuid,
-              lang = Some(lang._1),
-              label = jsonField.label,
-              placeholder = jsonField.placeholder,
-              tooltip = jsonField.tooltip,
-              lookupTextField = jsonField.lookup.map(_.map.textProperty)
+              field_uuid = dbField.field_uuid,
+              lang = Some(lang),
+              label = field.label,
+              placeholder = field.placeholder,
+              tooltip = field.tooltip,
+              lookupTextField = field.lookup.map(_.map.textProperty)
             )
-
-            up.db.run{
-              (BoxField.BoxField_i18nTable.returning(BoxField.BoxField_i18nTable) += newFieldI18n).transactionally
-            }
-
+            BoxField.BoxField_i18nTable.returning(BoxField.BoxField_i18nTable) += newFieldI18n
           })
-          t
-        })
-        t1
+      }
+      formActions <- {
+        val actions = FormActionsMetadata.default.actions.zipWithIndex.map{ case (a,i) =>
+          BoxForm_actions_row(
+            form_uuid = form.form_uuid.get,
+            action = a.action.toString,
+            importance = a.importance.toString,
+            after_action_goto = a.afterActionGoTo,
+            label = a.label,
+            update_only = a.updateOnly,
+            insert_only = a.insertOnly,
+            reload = a.reload,
+            confirm_text = a.confirmText,
+            execute_function = a.executeFunction,
+            action_order = i+1
+          )
+        }
+        BoxForm_actions ++= actions
       }
     } yield {
       true
     }
+
+    up.db.run(dbio.transactionally)
 
   }
 

@@ -49,7 +49,7 @@ object Settings {
     val junit = "4.12"
     val scalatest = "3.2.2"
     val selenium = "3.14.0"
-    val testcontainersScalaVersion = "0.39.3"
+    val testcontainersScalaVersion = "0.39.8"
 
 
     //json parsers
@@ -66,7 +66,7 @@ object Settings {
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M10"
+    val udash = "0.9.0-M18"
     val udashJQuery = "3.0.4"
 
     val scribe = "2.7.12"
@@ -82,7 +82,7 @@ object Settings {
     * the special %%% function selects the correct version for each project
     */
   val sharedJVMJSDependencies = Def.setting(Seq(
-    "io.udash" %%% "udash-core" % versions.udash,
+    //"io.udash" %%% "udash-core" % versions.udash,
     "io.circe" %%% "circe-core" % versions.circe,
     "io.circe" %%% "circe-generic" % versions.circe,
     "io.circe" %%% "circe-parser" % versions.circe,
@@ -129,7 +129,6 @@ object Settings {
     "io.circe"                 %% "circe-core"       % versions.circe,
     "io.circe"                 %% "circe-generic"    % versions.circe,
     "io.circe"                 %% "circe-parser"     % versions.circe,
-    "io.udash"                 %% "udash-rpc"        % versions.udash,
     "org.webjars"               % "webjars-locator-core" % "0.44",
     "org.webjars"              % "webjars-locator"   % "0.39",
     //"org.specs2"               %% "specs2-core"      % versions.specs2    % "test",
@@ -148,7 +147,7 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.2.0",
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0",
     "org.arakhne.afc.advanced" % "shapefile" % "16.0", // version 17 requires JDK 11
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
@@ -162,18 +161,7 @@ object Settings {
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
     "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
-    "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
-    "org.geotools" % "gt-main" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-shapefile" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-swing" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-wms" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-wmts" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-tile-client" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-epsg-hsql" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-image" % "25.2" exclude("javax.media","jai_core"),
-    "org.geotools" % "gt-render" % "25.2" exclude("javax.media","jai_core"),
-    // Workaround: need to use a non existing version in order to use the explicit URL https://www.scala-sbt.org/1.x/docs/Library-Management.html#Explicit+URL
-    "javax.media" % "jai_core" % "1.1.3-explicit-resolve" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar"
+    "com.github.daddykotex" %% "courier" % "3.0.0-M3a"
 //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
 //    "com.github.andyglow" %% "scala-jsonschema-circe-json" % versions.scalaJsonSchema
   ))

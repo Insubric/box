@@ -12,7 +12,7 @@ import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
 
-case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget with HasData {
+case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget with IsCheckBoxWithData {
 
   val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
   val topElement:Seq[Modifier] = field.params.exists(_.js("topElement") == true.asJson) match {
@@ -55,14 +55,7 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
     Checkbox(booleanModel)(ClientConf.style.simpleCheckbox).render
   }
 
-  override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
-    div(
-        if(
-          p.as[Boolean].right.toOption.contains(true) ||
-          p.as[Int].right.toOption.contains(1)
-        ) raw("&#10003;") else raw("&#10005;"), " ", field.title
-      ).render
-  }
+
 }
 
 object CheckboxWidget extends ComponentWidgetFactory {

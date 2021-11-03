@@ -29,7 +29,6 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Pro
   protected val dbActions = new DbActions[T,M](entity)
 
 
-
   def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
   override def find(query: JSONQuery) = for {
     keys <- dbActions.keys()
@@ -67,12 +66,12 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
     }
   }
 
-  override def update(id:JSONID, json: Json):DBIO[Int] = {
+  override def update(id:JSONID, json: Json):DBIO[Json] = {
     for{
       current <- getById(id) //retrieve values in db
       merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updatedCount <- dbActions.update(id, toM(merged))
-    } yield updatedCount
+      updated <- dbActions.update(id, toM(merged)).map(_.asJson)
+    } yield updated
   }
 
 
@@ -81,8 +80,7 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
 
   override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???
 
-  override def insert(json: Json):DBIO[JSONID] = dbActions.insert(toM(json))
-  override def insertReturningModel(json: Json)= dbActions.insertReturningModel(toM(json)).map(_.asJson)
+  override def insert(json: Json):DBIO[Json] = dbActions.insert(toM(json)).map(_.asJson)
 
   override def delete(id: JSONID):DBIO[Int] = dbActions.delete(id)
 
