@@ -78,30 +78,29 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
     }
   }
 
-  override def update(id:JSONID, json: Json):DBIO[Int] = {
+  override def update(id:JSONID, json: Json):DBIO[Json] = {
     for{
       current <- getById(id) //retrieve values in db
       merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updatedCount <- dbActions.update(id, toM(merged))
-    } yield updatedCount
+      updated <- dbActions.update(id, toM(merged)).map(_.asJson)
+    } yield updated
   }
 
-  override def updateIfNeeded(id:JSONID, json: Json):DBIO[Int] = {
+  override def updateIfNeeded(id:JSONID, json: Json):DBIO[Json] = {
     for{
       current <- getById(id) //retrieve values in db
       merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
       updateCount <- if (toM(current.get) != toM(merged)) {  //check if same
-        dbActions.update(id, toM(merged))            //could also use updateIfNeeded and no check
-      } else DBIO.successful(0)
+        dbActions.update(id, toM(merged)).map(_.asJson)            //could also use updateIfNeeded and no check
+      } else DBIO.successful(current.get)
     } yield {
       updateCount
     }
   }
 
-  override def insert(json: Json):DBIO[JSONID] = dbActions.insert(toM(json))
-  override def insertReturningModel(json: Json)= dbActions.insertReturningModel(toM(json)).map(_.asJson)
+  override def insert(json: Json):DBIO[Json] = dbActions.insert(toM(json)).map(_.asJson)
 
-  override def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[JSONID] = {
+  override def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[Json] = {
     for{
       current <- id match {
         case Some(id) => getById(id)
@@ -113,8 +112,8 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
           merged <- DBIO.from(mergeCurrent(id.get,current.get,json)) //merge old and new json
           model = toM(merged)
           result <- if (toM(current.get) != model) {
-            dbActions.update(id.get, toM(merged)).map(_ => id.get)        //could also use updateIfNeeded and no check
-          } else DBIO.successful(id.get)
+            dbActions.update(id.get, toM(merged)).map(_.asJson)       //could also use updateIfNeeded and no check
+          } else DBIO.successful(current.get)
         } yield result
 
 

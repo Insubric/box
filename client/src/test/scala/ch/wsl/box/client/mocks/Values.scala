@@ -223,11 +223,11 @@ class Values {
     }
   }
 
-  def insert(data:Json):JSONID = {
-    JSONID(id = Vector(JSONKeyValue("id","1")))
+  def insert(data:Json):Json = {
+    data
   }
 
-  def update(id:JSONID,obj:Json):JSONID = {
+  def update(id:JSONID,obj:Json):Json = {
     println("not implemented")
     ???
   }

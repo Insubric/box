@@ -139,21 +139,16 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     }
   }
 
-  def insert(e: M) = {
-    for{
-      result <-  insertReturningModel(e)
-      keys <- keys()
-    } yield new EnhancedModel(result).ID(keys)
-  }
 
 
-  override def insertReturningModel(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
+
+  override def insert(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
     logger.info(s"INSERT $obj")
     resetMetadataCache()
     for{
       result <-  {
         (entity.returning(entity) += obj)
-      }.transactionally
+      }
     } yield result
   }
 
@@ -163,10 +158,14 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     filter(id).delete.transactionally
   }
 
+  import ch.wsl.box.jdbc.SlickUpdateExt.UpdateReturning._
+
   def update(id:JSONID, e:M) = {
     logger.info(s"UPDATE BY ID $id")
     resetMetadataCache()
-    filter(id).update(e).transactionally
+    for{
+      result <- filter(id).updateReturning(entity,e)
+    } yield result.head
   }
 
   def updateIfNeeded(id:JSONID, e:M) = {
@@ -177,7 +176,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
       updated <- if (current.get != e) {
         update(id,e).transactionally
       } else {
-        DBIO.successful(0)
+        DBIO.successful(current.get)
       }
     } yield updated
   }
@@ -196,9 +195,9 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
           val result = update(id.get,e).transactionally
           logger.info(s"UPSERTED (UPDATED) IF NEEDED BY ID $id")
-          result.map(_ => id.get)
+          result
         } else {
-          DBIO.successful(id.get)
+          DBIO.successful(current.get)
         }
       }else{
         val result = insert(e)

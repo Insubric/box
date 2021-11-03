@@ -93,13 +93,13 @@ class RestMock(values:Values) extends REST with Logging {
     values.get(id)
   }
 
-  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean): Future[JSONID] = {
+  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean): Future[Json] = {
     Future.successful(values.update(id,data))
   }
 
-  override def updateMany(kind: String, lang: String, entity: String, ids: Seq[JSONID], data: Seq[Json]): Future[Seq[JSONID]] = ???
+  override def updateMany(kind: String, lang: String, entity: String, ids: Seq[JSONID], data: Seq[Json]): Future[Seq[Json]] = ???
 
-  override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[JSONID] = Future.successful{
+  override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[Json] = Future.successful{
     values.insert(data)
   }
 

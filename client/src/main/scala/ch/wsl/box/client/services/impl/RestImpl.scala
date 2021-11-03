@@ -68,14 +68,14 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
     val prefix = if(public) "/public" else ""
     httpClient.get[Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"))
   }
-  def update(kind:String, lang:String, entity:String, id:JSONID, data:Json, public:Boolean):Future[JSONID] = {
+  def update(kind:String, lang:String, entity:String, id:JSONID, data:Json, public:Boolean):Future[Json] = {
     val prefix = if(public) "/public" else ""
-    httpClient.put[Json,JSONID](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"),data)
+    httpClient.put[Json,Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"),data)
   }
-  def updateMany(kind:String, lang:String, entity:String, ids:Seq[JSONID], data:Seq[Json]):Future[Seq[JSONID]] = httpClient.put[Seq[Json],Seq[JSONID]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${JSONID.toMultiString(ids)}"),data)
-  def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean): Future[JSONID] = {
+  def updateMany(kind:String, lang:String, entity:String, ids:Seq[JSONID], data:Seq[Json]):Future[Seq[Json]] = httpClient.put[Seq[Json],Seq[Json]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${JSONID.toMultiString(ids)}"),data)
+  def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean): Future[Json] = {
     val prefix = if(public) "/public" else ""
-    httpClient.post[Json,JSONID](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity"),data)
+    httpClient.post[Json,Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity"),data)
   }
   def delete(kind:String, lang:String, entity:String, id:JSONID):Future[JSONCount] = httpClient.delete[JSONCount](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"))
   def deleteMany(kind:String, lang:String, entity:String, ids:Seq[JSONID]):Future[JSONCount] = httpClient.delete[JSONCount](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${JSONID.toMultiString(ids)}"))

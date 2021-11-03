@@ -9,17 +9,15 @@ import slick.dbio.DBIO
 object JSONPageActions extends TableActions[Json] {
   private val responseId = JSONID(Vector(JSONKeyValue("static","page")))
 
-  override def insert(obj: Json): PostgresProfile.api.DBIO[JSONID] = DBIO.successful(responseId)
-
-  override def insertReturningModel(obj: Json): jdbc.PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
+  override def insert(obj: Json): PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
 
   override def delete(id: JSONID): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
 
-  override def update(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
+  override def update(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
 
-  override def updateIfNeeded(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
+  override def updateIfNeeded(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
 
-  override def upsertIfNeeded(id: Option[JSONID], obj: Json): PostgresProfile.api.DBIO[JSONID] = DBIO.successful(responseId)
+  override def upsertIfNeeded(id: Option[JSONID], obj: Json): PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
 
   override def find(query: JSONQuery) = DBIO.successful(Seq())
 

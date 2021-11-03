@@ -183,8 +183,8 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   def insert:Route = post {                            //inserts
     entity(as[M]) { e =>
       logger.info("Inserting: " + e)
-      val id: Future[JSONID] = db.run(dbActions.insert(e).transactionally)//returns object with id
-      complete(id)
+      val result: Future[M] = db.run(dbActions.insert(e).transactionally)//returns object with id
+      complete(result)
     }
   }
 
