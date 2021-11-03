@@ -175,7 +175,7 @@ case class FormActions(metadata:JSONMetadata,
         subs = e.seq(field.name)
         subJsonWithIndexs = attachArrayIndex(subs,form)
         subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
-        deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
+        deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
           action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json)
         })
