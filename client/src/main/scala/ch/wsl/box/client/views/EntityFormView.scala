@@ -164,21 +164,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     val metadata = m.metadata.get
     val data:Json = m.data
 
-    def saveAction(data:Json) = {
+    def saveAction(data:Json):Future[(JSONID,Json)] = {
 
       logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
       for {
-        id <- JSONID.fromString(m.id.getOrElse("")) match {
+        result <- JSONID.fromString(m.id.getOrElse("")) match {
           case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
           case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
         }
-        result <- m.public match {
-          case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id,m.public)
-          case true => Future.successful(data)
-        }
       } yield {
         logger.debug("saveAction::Result")
-        (id,result)
+        (JSONID.fromData(result,metadata).getOrElse(JSONID.empty),result)
       }
 
     }

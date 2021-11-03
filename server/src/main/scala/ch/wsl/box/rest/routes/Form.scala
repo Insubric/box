@@ -191,52 +191,62 @@ case class Form(
     }
   }
 
+  def _get(ids:Seq[JSONID]) = get {
+    privateOnly {
+      complete(actions { fs =>
+        db.run(fs.getById(ids.head).transactionally).map { record =>
+          logger.info(record.toString)
+          HttpEntity(ContentTypes.`application/json`, record.asJson)
+        }
+      })
+    }
+  }
+
+  def _delete(ids:Seq[JSONID]) = delete {
+    privateOnly {
+      complete {
+        actions { fs =>
+          for {
+            count <- db.run(DBIO.sequence(ids.map(id => fs.delete(id))).transactionally)
+          } yield JSONCount(count.sum)
+        }
+      }
+    }
+  }
+
+  def update(ids:Seq[JSONID]) = put {
+    privateOnly {
+      entity(as[Json]) { e =>
+        complete {
+          actions { fs =>
+            val values = e.as[Seq[Json]].getOrElse(Seq(e))
+            val result = for {
+              jsonId <- db.run{
+                DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.upsertIfNeeded(Some(id), x)}).transactionally
+              }
+            } yield {
+              if(schema == BoxSchema.schema) {
+                Cache.reset()
+              }
+              if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+            }
+
+            result.recover{ case t:Throwable => t.printStackTrace()}
+
+            result
+          }
+        }
+      }
+    }
+  }
+
     def route = pathPrefix("id") {
       path(Segment) { strId =>
         JSONID.fromMultiString(strId) match {
           case ids if ids.nonEmpty =>
-            get {
-              privateOnly {
-                complete(actions { fs =>
-                  db.run(fs.getById(ids.head).transactionally).map { record =>
-                    logger.info(record.toString)
-                    HttpEntity(ContentTypes.`application/json`, record.asJson)
-                  }
-                })
-              }
-            } ~
-              put {
-                privateOnly {
-                  entity(as[Json]) { e =>
-                    complete {
-                      actions { fs =>
-                        val values = e.as[Seq[Json]].getOrElse(Seq(e))
-                        for {
-                          jsonId <- db.run{
-                            DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.upsertIfNeeded(Some(id), x)}).transactionally
-                          }
-                        } yield {
-                          if(schema == BoxSchema.schema) {
-                              Cache.reset()
-                          }
-                          if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
-                        }
-                      }
-                    }
-                  }
-                }
-              } ~
-              delete {
-                privateOnly {
-                  complete {
-                    actions { fs =>
-                      for {
-                        count <- db.run(DBIO.sequence(ids.map(id => fs.delete(id))).transactionally)
-                      } yield JSONCount(count.sum)
-                    }
-                  }
-                }
-              }
+              _get(ids) ~
+              update(ids) ~
+              _delete(ids)
           case _ => complete(StatusCodes.BadRequest,s"JSONID $strId not valid")
         }
       }

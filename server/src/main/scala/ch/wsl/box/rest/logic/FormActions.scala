@@ -161,27 +161,31 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[_]),alwaysApply:Boolean = false): Seq[DBIO[Seq[_]]] = metadata.fields.filter(_.child.isDefined).filter { field =>
-    field.condition match {
-      case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
-      case None => true
+  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
+
+    val result = metadata.fields.filter(_.child.isDefined).filter { field =>
+      field.condition match {
+        case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
+        case None => true
+      }
+    }.map{ field =>
+      for {
+        form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
+        dbSubforms <- getChild(e,form,field.child.get)
+        subs = e.seq(field.name)
+        subJsonWithIndexs = attachArrayIndex(subs,form)
+        subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
+        deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
+        result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
+          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json)
+        })
+      } yield field.name -> result.asJson
     }
-  }.map{ field =>
-    for {
-      form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
-      dbSubforms <- getChild(e,form,field.child.get)
-      subs = e.seq(field.name)
-      subJsonWithIndexs = attachArrayIndex(subs,form)
-      subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
-      deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
-      result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
-          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json).map(x => Some(x))
-      }).map(_.flatten)
-    } yield result
+    DBIO.sequence(result)
   }
 
   def deleteSingle(id: JSONID,e:Json) = {
-    jsonAction.delete(id)
+    jsonAction.delete(id).map(_ => e)
   }
 
 
@@ -206,14 +210,14 @@ case class FormActions(metadata:JSONMetadata,
   def delete(id:JSONID) = {
     for{
       json <- getById(id)
-      subs <- DBIO.sequence(subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true))
+      subs <- subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true)
       current <- deleteSingle(id,json.get)
-    } yield current + subs.size
+    } yield 1 + subs.length
   }
 
-  def insert(e:Json) = for{
-    inserted <- jsonAction.insertReturningModel(e)
-    _ <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
+  def insert(e:Json):DBIO[Json] = for{
+    inserted <- jsonAction.insert(e)
+    childs <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
       for {
         metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
         rows = attachArrayIndex(e.seq(field.name),metadata)
@@ -222,44 +226,40 @@ case class FormActions(metadata:JSONMetadata,
           field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
         }
         result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,jsonActions,metadataFactory).insert(row)))
-      } yield result
+      } yield field.name -> result.asJson
     })
-  } yield JSONID.fromData(inserted,metadata).getOrElse(JSONID.empty)
+  } yield inserted.deepMerge(Json.fromFields(childs))
 
 
-  override def insertReturningModel(obj: Json) = for{
-    id <- insert(obj)
-    full <- getById(id)
-  } yield full.getOrElse(Json.Null)
 
   private def insertNullForMissingFields(json:Json):Json = {
     val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored).map(x => x.name -> Json.Null))
     allNullFields.deepMerge(json)
   }
 
-  def update(id:JSONID, e:Json) = {
+  def update(id:JSONID, e:Json):DBIO[Json] = {
     for{
-      _ <- DBIO.sequence(subAction(e,_.upsertIfNeeded))  //need upsert to add new child records
       result <- jsonAction.update(id,insertNullForMissingFields(e))
-    } yield result
+      childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
+    } yield result.deepMerge(Json.fromFields(childs))
   }
 
   def updateIfNeeded(id:JSONID, e:Json) = {
 
     for{
-      _ <- DBIO.sequence(subAction(e,_.upsertIfNeeded))  //need upsert to add new child records
       result <- jsonAction.updateIfNeeded(id,insertNullForMissingFields(e))
-    } yield result
+      childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records
+    } yield result.deepMerge(Json.fromFields(childs))
   }
 
-  def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[JSONID] = {
+  def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[Json] = {
     for {
       current <- id match {
         case Some(id) => getById(id)
         case None => DBIO.successful(None)
       } //retrieve values in db
       result <- if (current.isDefined) { //if exists, check if we have to skip the update (if row is the same)
-        update(id.get, current.get.deepMerge(insertNullForMissingFields(json))).map(_ => id.get)
+        update(id.get, current.get.deepMerge(insertNullForMissingFields(json)))
       } else {
         insert(json)
       }
