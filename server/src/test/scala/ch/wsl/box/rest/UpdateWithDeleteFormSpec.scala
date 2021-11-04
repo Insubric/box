@@ -28,8 +28,11 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
       actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
       i <- up.db.run(actions.insert(json).transactionally)
-      result <- up.db.run(actions.getById(i))
-    } yield (i,result.get)
+      result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
+    } yield {
+      assert(i == result.get)
+      (JSONID.fromData(i,form).get,result.get)
+    }
   }
 
   def update(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
@@ -40,9 +43,9 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     for{
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
       actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
-      _ <- up.db.run(actions.update(id,json).transactionally)
+      i <- up.db.run(actions.update(id,json).transactionally)
       result <- up.db.run(actions.getById(id))
-    } yield result
+    } yield (i,result)
   }
 
   def upsert(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
@@ -53,9 +56,9 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     for{
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
       actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
-      _ <- up.db.run(actions.upsertIfNeeded(Some(id),json).transactionally)
+      i <- up.db.run(actions.upsertIfNeeded(Some(id),json).transactionally)
       result <- up.db.run(actions.getById(id))
-    } yield result
+    } yield (i,result)
   }
 
   "Form"  should "update a row deleting a field"  in withServices[Assertion] { implicit services =>
@@ -71,10 +74,12 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
          (idEntry,result) <- insert(formName,base.asJson)
          resultSimple = result.as[Simple_row].toOption.get
          resultWithDeletion = resultSimple.copy(name = None).asJson
-         resultAfterUpdate <- update(formName,idEntry,resultWithDeletion)
+         (r1,r2) <- update(formName,idEntry,resultWithDeletion)
        } yield {
          resultSimple.name shouldBe base.name
-         resultAfterUpdate.get shouldBe resultWithDeletion
+         r1 shouldBe r2.get
+         r1 shouldBe resultWithDeletion
+         r2.get shouldBe resultWithDeletion
        }
   }
 
@@ -90,9 +95,11 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
       (formName,_,_,_) <- new FormFixtures("db_").insertForm(up.db)
       (idEntry,result) <- insert(formName,base)
       resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name"))
-      resultAfterUpdate <- update(formName,idEntry,resultWithDeletion)
+      (r1,r2) <- update(formName,idEntry,resultWithDeletion)
     } yield {
-      resultAfterUpdate.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
+      r1 shouldBe r2.get
+      r1.dropNullValues shouldBe resultWithDeletion.dropNullValues
+      r2.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
     }
   }
 
@@ -108,9 +115,11 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
       (formName,_,_,_) <- new FormFixtures("db_").insertForm(up.db)
       (idEntry,result) <- insert(formName,base)
       resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name"))
-      resultAfterUpdate <- upsert(formName,idEntry,resultWithDeletion)
+      (r1,r2) <- upsert(formName,idEntry,resultWithDeletion)
     } yield {
-      resultAfterUpdate.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
+      r1 shouldBe r2.get
+      r1.dropNullValues shouldBe resultWithDeletion.dropNullValues
+      r2.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
     }
   }
 

@@ -61,6 +61,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   override def handleState(state: FormState): Unit = {
 
+    val loaded = Promise[Boolean]()
+    TestHooks.addLoadedPromise(loaded)
+
     services.clientSession.loading.set(true)
 
     val reloadMetadata = {
@@ -118,7 +121,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       services.clientSession.loading.set(false)
 
-      TestHooks.loaded()
+      loaded.success(true)
 
     }}.recover{ case e => e.printStackTrace() }
 
@@ -166,7 +169,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     def saveAction(data:Json):Future[(JSONID,Json)] = {
 
-      logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
+      logger.info(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
       for {
         result <- JSONID.fromString(m.id.getOrElse("")) match {
           case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
@@ -187,7 +190,20 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
     } yield {
 
-      logger.debug(afterSaveResult.toString())
+
+      logger.debug(s"""
+
+                 Save outcome:
+
+                 original: $data
+
+                 afterBeforeSave: $updatedData
+
+                 afterSave: $resultBeforeAfterSave
+
+                 afterAfterSave: $afterSaveResult
+
+                 """)
 
       enableGoAway
       model.subProp(_.insert).set(false)

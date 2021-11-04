@@ -31,10 +31,10 @@ class RichTextWidgetTest extends TestBase {
     override def get(id: JSONID): Json = data
 
 
-    override def update(id: JSONID, obj: Json): JSONID = {
+    override def update(id: JSONID, obj: Json): Json = {
       assert(data == obj)
 
-      JSONID.fromMap(Map("id" -> "1"))
+      obj
     }
 
     override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,testFormName,"it",Seq(

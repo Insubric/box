@@ -73,7 +73,14 @@ object JSONUtils extends Logging {
 
     def seq(field:String):Seq[Json] = {
       val result = el.hcursor.get[Seq[Json]](field)
-      result.right.getOrElse(Seq())
+      result match {
+        case Left(value) => {
+          logger.warn(s"Cannot decode seq for $field with error ${value.getMessage()}")
+          logger.debug(s"Original json $el")
+          Seq()
+        }
+        case Right(value) => value
+      }
     }
 
     def get(field: String):String = getOpt(field).getOrElse("")
