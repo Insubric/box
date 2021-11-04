@@ -151,7 +151,16 @@ object InputWidget extends Logging {
 
     override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
       val stringModel = Property("")
-      autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
+
+      data.sync[String](stringModel)(jsonToString _,fromString _)
+
+      data.listen(prop => println(s"Input property change to: $prop"))
+      stringModel.listen(prop => println(s"String model property change to: $prop"))
+
+      if(TestHooks.testing) {
+        TestHooks.properties += TestHooks.formField(field.name) -> data
+      }
+
       field.`type` match {
         case JSONFieldTypes.NUMBER => NumberInput(stringModel)((y ++ Seq(step := "any")):_*).render
         case JSONFieldTypes.INTEGER => NumberInput(stringModel)(y:_*).render

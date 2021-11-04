@@ -195,7 +195,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     private def propagate[T](data: Json,f: (Widget => ((Json, JSONMetadata) => Future[T]))): Future[Seq[T]] = {
 
       val rows = data.seq(child.key)
-      BrowserConsole.log(io.circe.scalajs.convertJsonToJs(rows.asJson))
 
       val out = Future.sequence(childWidgets.filterNot(_.deleted).map{ case cw =>
 
@@ -231,12 +230,20 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
     override def afterSave(data: Json, m: JSONMetadata): Future[Json] = {
-      logger.info(data.toString())
       metadata.foreach { met =>
         //Set new inserted records open by default
         val oldData: Seq[JSONID] = this.prop.get.as[Seq[Json]].getOrElse(Seq()).flatMap(x => JSONID.fromData(x, met))
         val newData: Seq[JSONID] = data.seq(field.name).flatMap(x => JSONID.fromData(x, met))
-
+        logger.debug(
+          s"""
+             |Child after save ${met.name}
+             |
+             |data: $data
+             |
+             |old: $oldData
+             |
+             |new: $newData
+             |""".stripMargin)
         newData.foreach{ id =>
           if(!oldData.contains(id)) {
             services.clientSession.setTableChildOpen(ClientSession.TableChildElement(field.name,met.objId,Some(id)))

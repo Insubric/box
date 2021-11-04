@@ -2,13 +2,13 @@ package ch.wsl.box.client.services
 
 import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
-
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
 import ch.wsl.box.client.styles.{GlobalStyles, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import io.circe._
 import io.circe.parser._
+import scribe.Level
 
 import scala.util.Try
 
@@ -27,6 +27,14 @@ object ClientConf {
     conf = table
     _version = version
     _appVersion = appVersion
+  }
+
+  def loggerLevel = conf.get("client.logger.level") match {
+    case Some(l) if l.toLowerCase == "debug" => Level.Debug
+    case Some(l) if l.toLowerCase == "info" => Level.Info
+    case Some(l) if l.toLowerCase == "error" => Level.Error
+    case Some(l) if l.toLowerCase == "trace" => Level.Trace
+    case _ => Level.Warn
   }
 
   def version: String = _version

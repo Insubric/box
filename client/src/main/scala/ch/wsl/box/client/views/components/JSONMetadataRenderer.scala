@@ -48,13 +48,13 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   }
 
   data.listen { d =>
-    logger.info(s"changed ${d.js(ChildRenderer.CHANGED_KEY)} on ${metadata.name}")
+    logger.debug(s"changed ${d.js(ChildRenderer.CHANGED_KEY)} on ${metadata.name}")
     if(d.js(ChildRenderer.CHANGED_KEY) == Json.True) {
       changed.set(true,true)
-      logger.info(s"${metadata.name} has changes in child")
+      logger.debug(s"${metadata.name} has changes in child")
     } else if(!currentData.get.removeNonDataFields.equals(d.removeNonDataFields)) {
       changed.set(true,true)
-      logger.info(s"""
+      logger.debug(s"""
                 ${metadata.name} has changes
 
                 original:
@@ -99,7 +99,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
       widgetAction(b._2)(data,metadata).map { intermediateResult =>
         val fields:Seq[String] = b._1.fields.flatMap(extractFields)
-        logger.info(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n $fields")
+        logger.debug(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n $fields")
         Json.fromFields(fields.flatMap{k =>
           intermediateResult.jsOpt(k).map(v => k -> v)
         })
@@ -109,7 +109,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
     blocksResult.map{ js =>
-      logger.info(s"metadata: ${metadata.name} blocksResult: $js \n\n data: $data")
+      logger.debug(s"metadata: ${metadata.name} blocksResult: $js \n\n data: $data")
       val defaults:Seq[(String,Json)] = metadata.fields.filter(_.default.isDefined).flatMap{f =>
         data.jsOpt(f.name)
             .orElse(JSONUtils.toJs(f.default.get,f.`type`))
@@ -120,7 +120,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
       val base:Json = Json.fromFields(defaults ++ keys)
       val result = js.foldLeft(base){ (acc,n) => acc.deepMerge(n)}
-      logger.info(s"metadata: ${metadata.name} merge: $result")
+      logger.debug(s"metadata: ${metadata.name} merge: $result")
       result
     }
 
@@ -139,7 +139,10 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     )
   }
 
-  override def afterSave(value:Json, metadata:JSONMetadata): Future[Json] = saveAll(value,_.afterSave)
+  override def afterSave(value:Json, metadata:JSONMetadata): Future[Json] = {
+    logger.debug(s"JSONMetadataRenderer after save for ${metadata.name} with $value")
+    saveAll(value,_.afterSave)
+  }
   override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value,_.beforeSave)
 
   override def killWidget(): Unit = blocks.foreach(_._2.killWidget())
