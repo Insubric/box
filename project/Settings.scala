@@ -53,7 +53,7 @@ object Settings {
 
 
     //json parsers
-    val circe = "0.13.0"
+    val circe = "0.14.1"
 
     //database
     val postgres = "42.2.20"

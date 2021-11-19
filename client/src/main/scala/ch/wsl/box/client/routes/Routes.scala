@@ -1,8 +1,13 @@
 package ch.wsl.box.client.routes
 
+import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
 import ch.wsl.box.model.shared.JSONQuery
 import org.scalajs.dom
+import org.scalajs.dom.experimental.URLSearchParams
+import scribe.Logging
+
+import scala.scalajs.js
 
 /**
   * Created by andre on 6/6/2017.
@@ -16,21 +21,43 @@ trait Routes{
   def entity(name:String):RoutingState
 }
 
-object Routes {
+object Routes extends Logging {
 
   import io.circe._
   import io.circe.syntax._
   import io.circe.generic.auto._
 
-  def apiV1(path:String = ""):String = {
-    dom.window.location.port == "12345" match {
-      case false =>  dom.window.location.pathname + "api/v1"+path
-      case true => "http://localhost:8080/api/v1" + path
+  def urlParams = {
+    new URLSearchParams(dom.window.location.search).map(x => x._1 -> x._2).toMap
+  }
+
+  def fullUrl = dom.document.asInstanceOf[js.Dynamic].baseURI.asInstanceOf[String]
+
+  def baseUri = {
+    val bu = fullUrl
+    if(bu.contains("//")) {
+      bu.split("/").drop(3).toList match {
+        case Nil => "/"
+        case x => x.mkString("/","/","/")
+      }
+    } else {
+      bu
     }
   }
 
+  def removeBase(s:String):String = {
+    val result = s.stripPrefix(baseUri.stripSuffix("/"))
+    logger.info(s"Original $s result: $result base $baseUri")
+    result
+  }
+
+
+  def apiV1(path:String = ""):String = {
+    baseUri + "api/v1"+path
+  }
+
   def wsV1(topic:String):String = {
-    dom.window.location.origin.getOrElse("").replace("http","ws") + "/api/v1/notifications/"+topic
+    fullUrl.replace("http","ws") + "api/v1/notifications/"+topic
   }
 
   def apply(kind:String, entityName:String) = new Routes{

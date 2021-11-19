@@ -360,9 +360,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     val queryWithFK = FKEncoder(fields,query())
 
+    val queryNoLimits = queryWithFK.copy(paging = None)
+
 
     val url = Routes.apiV1(
-      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${queryWithFK.asJson.toString()}".replaceAll("\n","")
+      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${queryNoLimits.asJson.toString()}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)

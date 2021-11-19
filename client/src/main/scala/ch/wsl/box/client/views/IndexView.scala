@@ -19,29 +19,19 @@ object IndexViewModel extends HasModelPropertyCreator[IndexViewModel] {
     Blank.Simple(IndexViewModel(Seq()))
 }
 
-object IndexViewPresenter extends ViewFactory[IndexState.type]{
+object IndexViewPresenter extends ViewFactory[IndexState.type ]{
 
   val prop = ModelProperty.blank[IndexViewModel]
 
   override def create() = (new IndexView(prop),new IndexPresenter(prop))
 }
 
-class IndexPresenter(viewModel:ModelProperty[IndexViewModel]) extends Presenter[IndexState.type] {
+class IndexPresenter(viewModel:ModelProperty[IndexViewModel]) extends Presenter[IndexState.type ] {
 
   import Context._
 
 
-  override def handleState(state: IndexState.type): Unit = {
-    UI.indexPage match {
-      case Some(value) => Context.applicationInstance.goTo(
-        FormPageState(EntityKind.FORM.kind,value,"true",false),
-        true
-      )
-      case None => _handleState()
-    }
-  }
-
-  def _handleState(): Unit = {
+  override def handleState(state: IndexState.type ): Unit = {
     for{
       news <- if(ClientConf.displayIndexNews)
           services.rest.news(services.clientSession.lang())
