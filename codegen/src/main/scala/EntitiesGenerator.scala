@@ -20,18 +20,23 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |/** Stand-alone Slick data model for immediate use */
        |
        |
+       |  import io.circe._
+       |  import io.circe.generic.extras.semiauto._
+       |  import io.circe.generic.extras.Configuration
+       |  import ch.wsl.box.rest.utils.JSONSupport._
+       |  import Light._
+       |
        |  import slick.model.ForeignKeyAction
        |  import slick.collection.heterogeneous._
        |  import slick.collection.heterogeneous.syntax._
        |
        |object $container {
        |
+       |      implicit val customConfig: Configuration = Configuration.default.withDefaults
        |
        |      import ch.wsl.box.jdbc.PostgresProfile.api._
        |
        |      val profile = ch.wsl.box.jdbc.PostgresProfile
-       |
-       |      import profile._
        |
        |          ${indent(code)}
        |}
@@ -57,6 +62,13 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
     override def EntityType = new EntityType{
 
 
+      def encoderDecoder:String =
+        s"""
+           |val decode$name:Decoder[$name] = Decoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})($name.apply)
+           |val encode$name:Encoder[$name] = Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
+           |  ${columns.map(_.name).mkString("(x.",", x.",")")}
+           |)
+           |""".stripMargin
 
       override def code = {
         val args = columns.map { c =>
@@ -71,9 +83,18 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
         val result = s"""case class $name($args)$prns"""
 
         if(model.columns.size <= 22) {
-          result
+          result +
+            s"""
+               |
+               |$encoderDecoder
+               |
+               |""".stripMargin
         } else {
           result + s"""
+
+    val decode$name:Decoder[$name] = deriveConfiguredDecoder[$name]
+    val encode$name:Encoder[$name] = deriveConfiguredEncoder[$name]
+
     object ${TableClass.elementType}{
 
       type ${TableClass.elementType}HList = ${columns.map(_.exposedType).mkString(" :: ")} :: HNil
@@ -115,6 +136,16 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
 
 
       override def optionEnabled = columns.size <= 22 && mappingEnabled && columns.exists(c => !c.model.nullable)
+
+      override def code: String =  {
+        val prns = parents.map(" with " + _).mkString("")
+        val args = model.name.schema.map(n => s"""Some("$n")""") ++ Seq("\""+model.name.table+"\"")
+        s"""
+class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns {
+  ${indent(body.map(_.mkString("\n")).mkString("\n\n"))}
+}
+        """.trim()
+      }
     }
 
     def tableModel = model
