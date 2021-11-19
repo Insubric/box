@@ -3,12 +3,13 @@ package ch.wsl.box.client
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientSession, Labels, Notification}
 import io.udash._
+import org.scalajs.dom
 import scribe.Logging
 
 class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   import Context._
   def matchUrl(url: Url): RoutingState = {
-    val localUrl = Routes.removeBase(url.value)
+    val localUrl = if(dom.window.location.hash.startsWith("#/")) dom.window.location.hash.stripPrefix("#") else url.value
     logger.info(s"match URL $localUrl logged: ${services.clientSession.isSet(ClientSession.USER)}")
     services.clientSession.isSet(ClientSession.USER) match {
       //case true => loggedInUrl2State.applyOrElse (url.value.stripSuffix ("/"), (x: String) => ErrorState)

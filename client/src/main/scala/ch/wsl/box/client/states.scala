@@ -1,7 +1,8 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.model.shared.{ExportDef, JSONQuery}
+import ch.wsl.box.client.services.UI
+import ch.wsl.box.model.shared.{EntityKind, ExportDef, JSONQuery}
 import io.udash._
 
 import scala.scalajs.js.URIUtils
@@ -41,7 +42,9 @@ case object AdminConfState extends FinalRoutingState(Some(RootState()))
 case object AdminUiConfState extends FinalRoutingState(Some(RootState()))
 case object AdminBoxDefinitionState extends FinalRoutingState(Some(RootState()))
 
-case object IndexState extends FinalRoutingState(Some(RootState()))
+case object IndexState extends FormState(EntityKind.FORM.kind, "index", "true", Some("static::page"), false, Layouts.std) {
+  override def entity: String = UI.indexPage.getOrElse("")
+}
 
 case class EntitiesState(kind:String, currentEntity:String, layout:String = Layouts.std) extends ContainerRoutingState(Some(RootState(layout)))
 
@@ -49,14 +52,15 @@ case class EntityTableState(kind:String, entity:String,query:Option[String]) ext
 
 abstract class FormState(
                           val kind:String,
-                          val entity:String,
+                          _entity:String,
                           val write:String,
                           _id:Option[String],
                           val public:Boolean,
                           val layout: String
-                        ) extends FinalRoutingState(Some(EntitiesState(kind,entity,layout))) {
+                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,layout))) {
   def id:Option[String] = _id
   def writeable:Boolean = write == "true"
+  def entity = _entity
 }
 
 case class EntityFormState(

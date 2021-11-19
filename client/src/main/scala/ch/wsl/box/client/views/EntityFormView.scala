@@ -61,6 +61,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   override def handleState(state: FormState): Unit = {
 
+    logger.warn(state.toString)
+
     val loaded = Promise[Boolean]()
     TestHooks.addLoadedPromise(loaded)
 
@@ -93,12 +95,14 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
     } yield {
 
+      val dataWithQueryParams = data.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
+
       model.set(EntityFormModel(
         name = state.entity,
         kind = state.kind,
         id = state.id,
         metadata = Some(metadata),
-        data = data,
+        data = dataWithQueryParams,
         "",
         children,
         Navigation.empty1,
@@ -116,7 +120,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       setNavigation()
 
-      widget.afterRender()
       widget.afterRender()
 
       services.clientSession.loading.set(false)
