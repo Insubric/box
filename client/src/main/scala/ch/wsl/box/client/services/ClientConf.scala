@@ -50,6 +50,7 @@ object ClientConf {
   def displayIndexHtml: Boolean = Try(conf("display.index.html").toBoolean).getOrElse(false)
 
   def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
+  def frontendUrl: String = Try(conf("frontendUrl")).getOrElse("http://localhost:8080")
 
   def colorMain: String = Try(conf("color.main")).getOrElse("#006268")
   def colorMainText: String = Try(conf("color.main.text")).getOrElse("#ffffff")

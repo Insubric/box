@@ -1,5 +1,6 @@
 package ch.wsl.box.rest.routes
 
+import akka.http.scaladsl.model.{ContentType, MediaType}
 import akka.http.scaladsl.server.Directives._
 import org.webjars.{MultipleMatchesException, WebJarAssetLocator}
 import scribe.Logging
@@ -19,7 +20,11 @@ object WebJarsSupport extends Logging {
       Try(webJarAssetLocator.getFullPath(webjarName)) match {
         case Success(fullPath) => {
           logger.info("found")
-          getFromResource(fullPath)
+//          if(fullPath.endsWith("woff2")) {
+//            getFromResource(fullPath,contentType = ContentType.apply(MediaType.applicationBinary("font-woff2",MediaType.NotCompressible)))
+//          } else {
+            getFromResource(fullPath)
+//          }
         }
         case Failure(e: MultipleMatchesException) => {
           print(e.getMatches)

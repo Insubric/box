@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
-
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.datepicker.UdashDatePicker
@@ -15,12 +14,12 @@ import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import io.udash.bootstrap.datepicker.UdashDatePicker.Placement
 import io.udash.properties.single.Property
+import org.scalajs.dom.raw.HTMLInputElement
 import org.scalajs.dom.{Event, KeyboardEvent}
 import scalacss.internal.StyleA
 import scalatags.JsDom
 import scribe.Logging
 import typings.flatpickr.optionsMod.{DateOption, Hook}
-import typings.std.HTMLInputElement
 
 import scala.scalajs.js
 import scala.util.Try
@@ -54,7 +53,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     case true => ClientConf.style.dateTimePickerFullWidth
     case false => ClientConf.style.dateTimePicker
   }
-  override def edit() = editMe(id,field,data,style,range)
+  override def edit() = editMe()
   override protected def show(): JsDom.all.Modifier = showMe(field.title)
 
   val formatted:ReadableProperty[String] = data.transform{ js =>
@@ -128,9 +127,23 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     ).render
   })
 
-  protected def editMe(id:ReadableProperty[Option[String]], field:JSONField, model:Property[Json],style:StyleA, range:Boolean):Modifier = {
+  protected def editMe() = {
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
+
+    div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
+      if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
+      tooltip(picker())._1,
+      div(BootstrapStyles.Visibility.clearfix)
+    ).render
+  }
+
+
+  override def editOnTable(): JsDom.all.Modifier = picker()
+
+  protected def picker():HTMLInputElement = {
+
+
 
     var flatpicker:typings.flatpickr.instanceMod.Instance = null
 
@@ -173,30 +186,26 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
     def setListener(immediate: Boolean, flatpicker:typings.flatpickr.instanceMod.Instance) = {
-      changeListener = model.listen({ d =>
+      changeListener = data.listen({ d =>
         logger.info(s"Changed model to $d")
         handleDate(d)
       },immediate)
     }
 
 
-    val result = div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
-      tooltip(picker)._1,
-      div(BootstrapStyles.Visibility.clearfix)
-    ).render
+
 
     val onChange:Hook = (
                           selectedDates:js.Array[typings.flatpickr.globalsMod.global.Date],
                           dateStr:String,
                           instance: typings.flatpickr.instanceMod.Instance,
-                          data:js.UndefOr[js.Any]) => {
+                          _data:js.UndefOr[js.Any]) => {
       changeListener.cancel()
-      logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance $data")
+      logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance ${_data}")
       if(dateStr == "") {
-        model.set(Json.Null)
+        data.set(Json.Null)
       } else {
-        model.set(dateStr.asJson)
+        data.set(dateStr.asJson)
       }
       setListener(false, instance)
     }
@@ -225,7 +234,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     setListener(true,flatpicker)
 
 
-    result
+    picker
 
   }
 }
