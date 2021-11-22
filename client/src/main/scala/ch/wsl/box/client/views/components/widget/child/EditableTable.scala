@@ -39,7 +39,14 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
   val tableContainer = style(
     margin.`0`,
     marginTop(10 px),
-    overflow.auto
+    overflow.auto,
+    &.hover(
+      unsafeChild("th") (
+        backgroundColor(conf.colors.main),
+        color(conf.colors.mainText),
+        borderColor(conf.colors.main),
+      )
+    )
   )
 
   val table = style(
@@ -85,19 +92,23 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
     borderWidth(0 px, 2 px, 1 px, 2 px),
     borderColor(Colors.GreySemi),
     borderStyle.solid,
+    &.hover(
+      borderColor(conf.colors.main),
+    )
   )
-
 
 
   val th = style(
     borderWidth(2 px),
-    borderColor(conf.colors.main),
     borderStyle.solid,
-    padding(cellPadding px),
+    borderColor(Colors.GreySemi),
+    paddingLeft(4 px),
+    paddingRight(4 px),
+    paddingTop(2 px),
+    paddingBottom(2 px),
     whiteSpace.nowrap,
-    backgroundColor(conf.colors.main),
-    color(conf.colors.mainText),
-    fontSize(14 px),
+    backgroundColor(Colors.GreySemi),
+    fontSize(12 px),
     Font.bold,
     whiteSpace.normal
   )
@@ -118,7 +129,6 @@ object EditableTable extends ChildRendererFactory {
     val parentMetadata = widgetParam.metadata
 
     import ch.wsl.box.client.Context._
-
 
     val tableStyle = TableStyle(ClientConf.styleConf, metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
     val tableStyleElement = document.createElement("style")
