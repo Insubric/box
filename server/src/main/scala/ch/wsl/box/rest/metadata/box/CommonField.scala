@@ -2,11 +2,16 @@ package ch.wsl.box.rest.metadata.box
 
 import ch.wsl.box.model.shared.{Child, ConditionalField, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, WidgetsNames}
 import ch.wsl.box.rest.metadata.box.Constants.{FORM_FIELD_CHILDS, FORM_FIELD_FILE, FORM_FIELD_I18N, FORM_FIELD_STATIC, FORM_I18N}
+import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
 import io.circe.syntax._
 
 object CommonField {
 
+
+  val allFields:Map[Json,Seq[JSONLookup]] = Registry().fields.tableFields.map{ case (table,fields) =>
+    table.asJson -> fields.keys.toSeq.sorted.map(field => JSONLookup(field.asJson,field))
+  }
 
   val name = JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.input))
 
@@ -28,22 +33,22 @@ object CommonField {
     )
   ))
 
-  def lookupEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupEntity",true,
+  def lookupEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupEntity",false,
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
       tables.map(x => JSONLookup(x.asJson,x))
     )),
-    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select.asJson,WidgetsNames.popup.asJson,WidgetsNames.lookupLabel.asJson)))
+    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel).asJson))
   )
 
-  def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",true,
-    condition = Some(ConditionalField("lookupEntity",tables.map(_.asJson))),
+  def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",false,
+    condition = Some(ConditionalField("lookupEntity",tables.asJson)),
     widget = Some(WidgetsNames.input)
   )
 
   def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.STRING,"lookupQuery",true,
     widget = Some(WidgetsNames.code),
-    condition = Some(ConditionalField("lookupEntity",tables.map(_.asJson))),
+    condition = Some(ConditionalField("lookupEntity",tables.asJson)),
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
   )
 
@@ -69,7 +74,7 @@ object CommonField {
   val simpleLabel = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.input))
 
   def label(widgetDisabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.dynamicWidget),
-    condition = Some(ConditionalField("widget",WidgetsNames.all.diff(widgetDisabled).map(_.asJson))),
+    condition = Some(ConditionalField("widget",WidgetsNames.all.diff(widgetDisabled).asJson)),
     params = Some(Json.obj(
       "selectorField" -> "widget".asJson,
       "widgetMapping" -> Json.obj(
@@ -81,10 +86,10 @@ object CommonField {
   val tooltip = JSONField(JSONFieldTypes.STRING,"tooltip",true, widget = Some(WidgetsNames.input))
   val hint = JSONField(JSONFieldTypes.STRING,"hint",true, widget = Some(WidgetsNames.input))
   def placeholder(widgetEnabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"placeholder",true, widget = Some(WidgetsNames.input),
-    condition = Some(ConditionalField("widget",widgetEnabled.map(_.asJson)))
+    condition = Some(ConditionalField("widget",widgetEnabled.asJson))
   )
   def lookupTextField(widgetEnabled: Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"lookupTextField",true,label = Some("Dynamic label"), tooltip = Some("It can be a lookup or another field in the same form"), widget = Some(WidgetsNames.input),
-    condition = Some(ConditionalField("widget",widgetEnabled.map(_.asJson)))
+    condition = Some(ConditionalField("widget",widgetEnabled.asJson))
   )
 
 

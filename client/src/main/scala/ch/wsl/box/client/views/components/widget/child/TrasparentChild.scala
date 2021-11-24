@@ -26,7 +26,6 @@ object TrasparentChild extends ChildRendererFactory {
 
     val distribute = field.params.exists(_.js("distribute") == true.asJson)
 
-    def child = field.child.get
 
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
@@ -38,10 +37,10 @@ object TrasparentChild extends ChildRendererFactory {
         case Some(f) => {
             div(if(distribute) { ClientConf.style.distributionContrainer } else frag(),
               autoRelease(repeat(entity) { e =>
-                val widget = childWidgets.find(_.id == e.get)
+                val widget = getWidget(e.get)
                 div(
-                  widget.get.widget.render(write, Property(true)),
-                  removeButton(write,widget.get,f)
+                  widget.widget.render(write, Property(true)),
+                  removeButton(write,widget,f)
                 ).render
               }),
               addButton(write,f)

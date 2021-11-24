@@ -4,6 +4,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 
 import java.util.UUID
 import io.circe.Json
+import io.circe.generic.auto._
 
 /**
   * Created by andreaminetti on 16/03/16.
@@ -125,7 +126,17 @@ object Child{
 
 }
 
-case class ConditionalField(conditionFieldId:String,conditionValues:Seq[Json])
+case class NotCondition(not:Seq[Json])
+
+case class ConditionalField(conditionFieldId:String,conditionValues:Json) {
+  def check(js:Json):Boolean = conditionValues
+    .asArray.map(_.contains(js))
+    .orElse(conditionValues.as[NotCondition].toOption.map(!_.not.contains(js))) match {
+    case Some(value) => value
+    case None => throw new Exception(s"Wrong conditions: $conditionValues")
+  }
+
+}
 
 object JSONFieldTypes{
   val NUMBER = "number"

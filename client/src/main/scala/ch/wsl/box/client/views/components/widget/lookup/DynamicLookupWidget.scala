@@ -54,11 +54,6 @@ trait DynamicLookupWidget extends Widget {
   },true)
 
 
-
-
-
-
-
   def widget() = WidgetRegistry
     .forName(lookupLabel.widget)
     .create(params.copy(prop = remoteField))

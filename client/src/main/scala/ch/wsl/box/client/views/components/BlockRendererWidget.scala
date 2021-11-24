@@ -47,7 +47,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
         def evaluate(d:Json):Boolean = {
           val value = d
-          val r = condition.conditionValues.contains(value)
+          val r = condition.check(value)
           logger.info(s"evaluating condition for field: ${field.name} against $value with accepted values: ${condition.conditionValues} with result: $r")
           r
         }

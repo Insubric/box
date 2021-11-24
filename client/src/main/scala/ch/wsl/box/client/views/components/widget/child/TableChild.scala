@@ -30,7 +30,6 @@ object TableChildFactory extends ChildRendererFactory {
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
-    override def child: Child = field.child.get
 
     override protected def render(write: Boolean): Modifier = {
 
@@ -49,7 +48,7 @@ object TableChildFactory extends ChildRendererFactory {
               tbody(
                 autoRelease(produce(entity) { ent => //cannot use repeat because we have two childs for each iteration so frag is not working
                   ent.map { e =>
-                    val widget = childWidgets.find(_.id == e).get
+                    val widget = getWidget(e)
 
                     val toggleRow = (e:Event) => {
                       val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId.get)
