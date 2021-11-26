@@ -312,14 +312,16 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   val smallBottomMargin = style( marginBottom(5 px) )
 
   val subBlock = style(
-    padding.`0`
+    padding.`0`,
+    minHeight.`0`
   )
 
   val block = style(
     paddingTop.`0`,
     paddingBottom.`0`,
     paddingRight(20 px),
-    paddingLeft(20 px)
+    paddingLeft(20 px),
+    minHeight.`0`
   )
 
   val withBorder = style(
@@ -329,7 +331,8 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val field = style(
-    padding.`0`
+    padding.`0`,
+    minHeight.`0`
   )
 
   val distributionContrainer = style(
@@ -537,6 +540,11 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     &.hover(
       inputHighlight
     )
+  )
+
+  val popupEntiresList = style(
+    overflowY.auto,
+    maxHeight(70.vh)
   )
 
   val fullWidth = style(

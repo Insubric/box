@@ -236,7 +236,7 @@ object EditableTable extends ChildRendererFactory {
     def checkCondition(field: JSONField,e:Seq[String]) = {
       field.condition match {
         case Some(value) => {
-            e.forall(r => childWidgets.find(_.id == r).forall { x =>
+            e.exists(r => childWidgets.find(_.id == r).forall { x =>
               value.check(x.data.get.js(value.conditionFieldId))
             })
         }
@@ -268,14 +268,17 @@ object EditableTable extends ChildRendererFactory {
       val f = fields(metadata)
 
       entity.transform { e =>
-        e.flatMap(r => childWidgets.find(_.id == r).map { x =>
+        val columnsLengths = e.flatMap(r => childWidgets.find(_.id == r).map { x =>
           f.map { f =>
             f.condition match {
               case Some(value) => if (value.check(x.data.get.js(value.conditionFieldId))) 1 else 0
               case None => 1
             }
           }
-        }).headOption.map(_.sum).getOrElse(f.length)
+        }).map(_.sum)
+
+        if(columnsLengths.isEmpty) f.length else columnsLengths.max
+
       }
 
     }
@@ -291,7 +294,7 @@ object EditableTable extends ChildRendererFactory {
       case None => p("child not found")
       case Some(m) => {
 
-        showIf(entity.transform(_.nonEmpty && hideEmpty)) {
+        showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
 
           val columns = countColumns(m)
 
