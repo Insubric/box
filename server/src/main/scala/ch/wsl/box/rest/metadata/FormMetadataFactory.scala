@@ -335,7 +335,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   private def condition(field:BoxField_row) = for{
     fieldId <- field.conditionFieldId
     values <- field.conditionValues
-    json <- Try(parse(values).right.get.as[Seq[Json]].right.get).toOption
+    json <- Try(parse(values).right.get.as[Json].right.get).toOption
   } yield ConditionalField(fieldId,json)
 
   private def file(ff:BoxFieldFile_row) = FileReference(ff.name_field, ff.file_field, ff.thumbnail_field)

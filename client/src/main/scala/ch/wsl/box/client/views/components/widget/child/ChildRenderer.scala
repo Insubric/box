@@ -47,8 +47,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def widgetParam:WidgetParams
 
 
+    def child:Child = field.child match {
+      case Some(value) => value
+      case None => throw new Exception(s" ${field.name} does not have a child")
+    }
 
-    def child:Child
     def children:Seq[JSONMetadata] = widgetParam.children
     def masterData:ReadableProperty[Json] = widgetParam.allData
 
@@ -68,6 +71,10 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
+    def getWidget(id:String):ChildRow = childWidgets.find(_.id == id) match {
+      case Some(value) => value
+      case None => throw new Exception(s"Widget not found $id")
+    }
     val entity: SeqProperty[String] = SeqProperty(Seq())
     val metadata = children.find(_.objId == child.objId)
 

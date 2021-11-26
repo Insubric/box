@@ -8,6 +8,8 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.properties.single.{Property, ReadableProperty}
 
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
+
 trait DynamicLookupWidget extends Widget {
 
   def params: WidgetParams
@@ -45,18 +47,18 @@ trait DynamicLookupWidget extends Widget {
         lookupLabel.remoteEntity,
         JSONID.fromMap(localFields)
       ).map{ remote =>
-        val remoteValue = remote.js(lookupLabel.remoteField)
+        val remoteValue = lookupLabel.remoteField.split(",").toList match {
+          case singleField :: Nil => remote.js(singleField)
+          case Nil => Json.Null
+          case fields => Json.fromString(fields.map(remote.get).mkString(" - "))
+        }
+
         remoteField.set(remoteValue)
       }
     } else {
       remoteField.set(Json.Null)
     }
   },true)
-
-
-
-
-
 
 
   def widget() = WidgetRegistry

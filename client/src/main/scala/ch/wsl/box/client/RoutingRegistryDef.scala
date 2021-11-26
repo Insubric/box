@@ -58,6 +58,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   private val (loggedOutUrl2State, loggedOutState2Url) = bidirectional {
     case "" => LoginState("")
     case "/logout" => LogoutState
+    case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
     case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank)
     case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std)
     case "/public" / "box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),true,Layouts.std)

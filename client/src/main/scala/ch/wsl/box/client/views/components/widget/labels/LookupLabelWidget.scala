@@ -47,6 +47,10 @@ object LookupLabelWidget extends ComponentWidgetFactory {
     }
 
 
+    override def showOnTable(): JsDom.all.Modifier = widget().showOnTable()
+    override def editOnTable(): JsDom.all.Modifier = {
+      widget().showOnTable()
+    }
 
     override protected def edit(): JsDom.all.Modifier = show()
   }

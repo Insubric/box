@@ -168,7 +168,7 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
     val condition = for{
       fieldId <- field.conditionFieldId
       values <- field.conditionValues
-      json <- Try(parse(values).right.get.as[Seq[Json]].right.get).toOption
+      json <- Try(parse(values).right.get.as[Json].right.get).toOption
     } yield ConditionalField(fieldId,json)
 
 

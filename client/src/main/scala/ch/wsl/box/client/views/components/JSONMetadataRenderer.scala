@@ -162,7 +162,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     def renderBlocks(b:Seq[(LayoutBlock,Widget)]) = b.map{ case (block,widget) =>
       div(BootstrapCol.md(block.width), ClientConf.style.block)(
         div(
-          h3(block.title.map { title => Labels(title) }), //renders title in blocks
+          if(block.title.exists(_.nonEmpty)) {
+            h3(block.title.map { title => Labels(title) })
+          } else frag(), //renders title in blocks
           widget.render(write, Property(true))
         )
       )

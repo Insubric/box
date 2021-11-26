@@ -135,12 +135,11 @@ object EditableTable extends ChildRendererFactory {
     tableStyleElement.innerText = tableStyle.render(cssStringRenderer, cssEnv)
 
     val hideExporters = widgetParam.field.params.exists(_.js("hideExporters") == Json.True)
+    val hideEmpty = widgetParam.field.params.exists(_.js("hideEmpty") == Json.True)
 
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
-
-    override def child: Child = field.child.get
 
 
     def fields(f:JSONMetadata) = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
@@ -150,7 +149,7 @@ object EditableTable extends ChildRendererFactory {
         field.dynamicLabel match {
           case Some(value) => {
             val title = entity.transform { e =>
-              val rows = e.flatMap(row => childWidgets.find(_.id == row).get.data.get.getOpt(value))
+              val rows = e.flatMap(row => getWidget(row).data.get.getOpt(value))
               if (rows.isEmpty) name else rows.distinct.mkString(", ")
             }
             title
@@ -184,7 +183,7 @@ object EditableTable extends ChildRendererFactory {
         title,
         f.map(colHeader).map(_.get),
         entity.get.toSeq.map{ row =>
-          val childWidget = childWidgets.find(_.id == row).get
+          val childWidget = getWidget(row)
           f.map { field =>
             val (_,widget) = colContentWidget(childWidget, field, metadata)
             val result = widget.text().get
@@ -237,8 +236,8 @@ object EditableTable extends ChildRendererFactory {
     def checkCondition(field: JSONField,e:Seq[String]) = {
       field.condition match {
         case Some(value) => {
-            e.forall(r => childWidgets.find(_.id == r).forall { x =>
-              value.conditionValues.contains(x.data.get.js(value.conditionFieldId))
+            e.exists(r => childWidgets.find(_.id == r).forall { x =>
+              value.check(x.data.get.js(value.conditionFieldId))
             })
         }
         case None => true
@@ -269,14 +268,17 @@ object EditableTable extends ChildRendererFactory {
       val f = fields(metadata)
 
       entity.transform { e =>
-        e.flatMap(r => childWidgets.find(_.id == r).map { x =>
+        val columnsLengths = e.flatMap(r => childWidgets.find(_.id == r).map { x =>
           f.map { f =>
             f.condition match {
-              case Some(value) => if (value.conditionValues.contains(x.data.get.js(value.conditionFieldId))) 1 else 0
+              case Some(value) => if (value.check(x.data.get.js(value.conditionFieldId))) 1 else 0
               case None => 1
             }
           }
-        }).headOption.map(_.sum).getOrElse(f.length)
+        }).map(_.sum)
+
+        if(columnsLengths.isEmpty) f.length else columnsLengths.max
+
       }
 
     }
@@ -292,80 +294,80 @@ object EditableTable extends ChildRendererFactory {
       case None => p("child not found")
       case Some(m) => {
 
-        val columns = countColumns(m)
+        showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
 
-        val f = fields(m)
+          val columns = countColumns(m)
 
+          val f = fields(m)
 
-        produce(columns) { cols =>
+          div(
+            produce(columns) { cols =>
 
-          val additionalColumns = if (write && !disableRemove) 1 else 0
+              val additionalColumns = if (write && !disableRemove) 1 else 0
+              val colWidth = width := (100 / (cols + additionalColumns)).pct
 
-          val colWidth = width := (100 / (cols + additionalColumns)).pct
-
-
-          div(tableStyle.tableContainer,
-            table(tableStyle.table,
-              thead(
-                for (field <- f) yield {
-                  val name = colHeader(field)
-                  showIfCondition(field) {
-                    th(bind(name), tableStyle.th, colWidth)
-                  }
-
-                },
-                if (write && !disableRemove) th("", tableStyle.th) else frag()
-              ),
-
-
-              tbody(
-                repeat(entity) { row =>
-                  val childWidget = childWidgets.find(_.id == row.get).get
-
-                  tr(tableStyle.tr,
+                div(tableStyle.tableContainer,
+                table(tableStyle.table,
+                  thead(
                     for (field <- f) yield {
-                      val (params,widget) = colContentWidget(childWidget,field,m)
-
-
+                      val name = colHeader(field)
                       showIfCondition(field) {
-                        td(if (
-                          field.readOnly ||
-                            WidgetUtils.isKeyNotEditable(m,field,params.id.get)
-                          ) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
-                        )
+                        th(bind(name), tableStyle.th, colWidth)
                       }
+
                     },
-                    if (write && !disableRemove) td(tableStyle.td, colWidth,
-                      a(ClientConf.style.childRemoveButton,
-                        BootstrapStyles.Float.right(),
-                        onclick :+= removeItem(childWidget), Icons.minusFill)
-                    ) else frag()
+                    if (write && !disableRemove) th("", tableStyle.th) else frag()
+                  ),
+
+
+                  tbody(
+                    repeat(entity) { row =>
+                      val childWidget = getWidget(row.get)
+
+                      tr(tableStyle.tr,
+                        for (field <- f) yield {
+                          val (params, widget) = colContentWidget(childWidget, field, m)
+
+
+                          showIfCondition(field) {
+                            td(if (
+                              field.readOnly ||
+                                WidgetUtils.isKeyNotEditable(m, field, params.id.get)
+                            ) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
+                            )
+                          }
+                        },
+                        if (write && !disableRemove) td(tableStyle.td, colWidth,
+                          a(ClientConf.style.childRemoveButton,
+                            BootstrapStyles.Float.right(),
+                            onclick :+= removeItem(childWidget), Icons.minusFill)
+                        ) else frag()
+                      ).render
+                    },
+                    if (write && !disableAdd) {
+                      tr(tableStyle.tr,
+                        td(tableStyle.td, colspan := cols),
+                        td(tableStyle.td, colWidth,
+                          a(id := TestHooks.addChildId(m.objId),
+                            ClientConf.style.childAddButton,
+                            BootstrapStyles.Float.right(),
+                            onclick :+= addItemHandler(child, m), Icons.plusFill)
+                        ),
+                      )
+                    } else frag()
                   ).render
-                },
-                if (write && !disableAdd) {
-                  tr(tableStyle.tr,
-                    td(tableStyle.td, colspan := cols),
-                    td(tableStyle.td, colWidth,
-                      a(id := TestHooks.addChildId(m.objId),
-                        ClientConf.style.childAddButton,
-                        BootstrapStyles.Float.right(),
-                        onclick :+= addItemHandler(child, m), Icons.plusFill)
-                    ),
+                ),
+                if (!hideExporters) {
+                  Seq(
+                    button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= printTable(m)),
+                    button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= exportCSV(m)),
+                    button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= exportXLS(m)),
                   )
-                } else frag()
+                }
               ).render
-            ),
-            if(!hideExporters) {
-              Seq(
-                button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= printTable(m)),
-                button(ClientConf.style.boxButtonImportant, Labels.entity.csv, onclick :+= exportCSV(m)),
-                button(ClientConf.style.boxButtonImportant, Labels.entity.xls, onclick :+= exportXLS(m)),
-              )
             }
           ).render
         }
-
-
       }
     }
 

@@ -32,7 +32,7 @@ import scalacss.internal.StyleA
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
 import scala.scalajs.js.timers.setTimeout
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andre on 4/24/2017.
@@ -82,13 +82,19 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     model.subProp(_.insert).set(state.id.isEmpty)
 
 
-    val jsonId = state.id.flatMap(JSONID.fromString)
+
 
     {for{
       metadata <- if(reloadMetadata) services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public) else Future.successful(model.get.metadata.get)
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       data <- state.id match {
-        case Some(id) => services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId.get,state.public)
+        case Some(id) => {
+          val jsonId = state.id.flatMap(JSONID.fromString) match {
+            case Some(value) => value
+            case None => throw new Exception(s"cannot parse JsonID ${state.id}")
+          }
+          services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
+        }
         case None => Future.successful{
           Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*)
         }
@@ -126,7 +132,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       loaded.success(true)
 
-    }}.recover{ case e => e.printStackTrace() }
+    }}.onComplete {
+      case Failure(exception) => {
+        exception.printStackTrace()
+        throw exception
+      }
+      case Success(value) => true
+    }
 
   }
 

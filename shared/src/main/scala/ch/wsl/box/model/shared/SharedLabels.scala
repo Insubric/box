@@ -252,9 +252,11 @@ object SharedLabels extends LabelsCollection {
   object popup extends LabelsCollection{
     def search = "popup.search"
     def close = "popup.close"
+    def remove = "popup.remove"
     def all = Seq(
       search,
-      close
+      close,
+      remove
     )
   }
 

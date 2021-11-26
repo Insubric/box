@@ -56,7 +56,7 @@ case class FormActions(metadata:JSONMetadata,
     JSONQuery(
       filter = defaultQuery.filter ++ query.filter,
       sort = query.sort ++ defaultQuery.sort,
-      paging = query.paging.orElse(defaultQuery.paging),
+      paging = query.paging,
       lang = defaultQuery.lang
     )
   }.getOrElse(query)
@@ -165,7 +165,7 @@ case class FormActions(metadata:JSONMetadata,
 
     val result = metadata.fields.filter(_.child.isDefined).filter { field =>
       field.condition match {
-        case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
+        case Some(condition) => alwaysApply || condition.check(e.js(condition.conditionFieldId))
         case None => true
       }
     }.map{ field =>

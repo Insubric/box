@@ -54,7 +54,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD))),
-          ""
+          props = "entity"
         )),
         widget = Some(WidgetsNames.tableChild)
       ),
@@ -178,14 +178,14 @@ object FormUIDef {
     fields = Seq(
       JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
-      CommonField.name,
+      JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.select), lookup = Some(JSONFieldLookup.withExtractor("entity",CommonField.allFields))),
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
       JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.CHILD,"field_file",true,
         child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,"")),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.FILE.asJson))),
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.FILE).asJson)),
         params = Some(Map("max" -> 1, "min" -> 0).asJson),
         widget = Some(WidgetsNames.simpleChild)
       ),
@@ -195,11 +195,11 @@ object FormUIDef {
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER.asJson)))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER).asJson))
       ),
       JSONField(JSONFieldTypes.NUMBER,"max",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER.asJson)))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER).asJson))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,
@@ -260,52 +260,49 @@ object FormUIDef {
         default = Some(JSONFieldTypes.CHILD)
       ),
       JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
-      JSONField(JSONFieldTypes.STRING,"child_form_uuid",true,
+      JSONField(JSONFieldTypes.STRING,"child_form_uuid",false,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
           forms.map{ form => JSONLookup(form.form_uuid.get.asJson,form.name) }.sortBy(_.value)
         ))
       ),
-      JSONField(JSONFieldTypes.STRING,"masterFields",true,
+      JSONField(JSONFieldTypes.STRING,"masterFields",false,
         label = Some("Parent key fields"),
         widget = Some(WidgetsNames.input),
         condition = Some(ConditionalField("widget",Seq(
-          WidgetsNames.simpleChild.asJson,
-          WidgetsNames.tableChild.asJson,
-          WidgetsNames.lookupForm.asJson,
-          WidgetsNames.editableTable.asJson,
-          WidgetsNames.trasparentChild.asJson,
-        )))
+          WidgetsNames.simpleChild,
+          WidgetsNames.tableChild,
+          WidgetsNames.lookupForm,
+          WidgetsNames.editableTable,
+          WidgetsNames.trasparentChild,
+        ).asJson))
       ),
-      JSONField(JSONFieldTypes.STRING,"childFields",true,
+      JSONField(JSONFieldTypes.STRING,"childFields",false,
         label = Some("Child key fields"),
         widget = Some(WidgetsNames.input),
         condition = Some(ConditionalField("widget",Seq(
-          WidgetsNames.simpleChild.asJson,
-          WidgetsNames.tableChild.asJson,
-          WidgetsNames.editableTable.asJson,
-          WidgetsNames.trasparentChild.asJson,
-        )))
+          WidgetsNames.simpleChild,
+          WidgetsNames.tableChild,
+          WidgetsNames.editableTable,
+          WidgetsNames.trasparentChild,
+        ).asJson))
       ),
       JSONField(JSONFieldTypes.STRING,"childQuery",true,
         widget = Some(WidgetsNames.code),
         params = Some(Json.obj("language" -> "json".asJson, "height" -> 200.asJson)),
         condition = Some(ConditionalField("widget",Seq(
-          WidgetsNames.linkedForm.asJson,
-          WidgetsNames.simpleChild.asJson,
-          WidgetsNames.tableChild.asJson,
-          WidgetsNames.editableTable.asJson,
-          WidgetsNames.trasparentChild.asJson,
-        )))
+          WidgetsNames.linkedForm,
+          WidgetsNames.simpleChild,
+          WidgetsNames.tableChild,
+          WidgetsNames.editableTable,
+          WidgetsNames.trasparentChild,
+        ).asJson))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
-      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_file",true,
-        child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,""))
-      )
+      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.checkbox))
     ),
     layout = Layout(
       blocks = Seq(
@@ -321,8 +318,7 @@ object FormUIDef {
           "default",
           "conditionFieldId",
           "conditionValues",
-          "params",
-          "field_file"
+          "params"
         ).map(Left(_))),
         LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
       )
@@ -361,19 +357,16 @@ object FormUIDef {
       JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
-      JSONField(JSONFieldTypes.STRING,"masterFields",true,label=Some("Parent field"),
+      JSONField(JSONFieldTypes.STRING,"masterFields",false,label=Some("Parent field"),
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.lookupLabel.asJson)))
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.lookupLabel).asJson))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
-      JSONField(JSONFieldTypes.CHILD,"field_file",true,
-        child = Some(Child(FORM_FIELD_FILE,"field_file","field_uuid","field_uuid",None,""))
-      ),
-      JSONField(JSONFieldTypes.STRING,"function",true,label=Some("Function"),
+      JSONField(JSONFieldTypes.STRING,"function",false,label=Some("Function"),
         widget = Some(WidgetsNames.select),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction).asJson)),
         lookup = Some(JSONFieldLookup.prefilled(
           functions.sorted.map(x => JSONLookup(x.asJson,x))
         ))
@@ -638,7 +631,7 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.STRING,"execute_function",true,label=Some("Function"),
         widget = Some(WidgetsNames.select),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction.asJson))),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.executeFunction).asJson)),
         lookup = Some(JSONFieldLookup.prefilled(
           functions.sorted.map(x => JSONLookup(x.asJson,x))
         ))
