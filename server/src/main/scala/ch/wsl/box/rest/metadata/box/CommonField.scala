@@ -8,7 +8,6 @@ import io.circe.syntax._
 
 object CommonField {
 
-
   val allFields:Map[Json,Seq[JSONLookup]] = Registry().fields.tableFields.map{ case (table,fields) =>
     table.asJson -> fields.keys.toSeq.sorted.map(field => JSONLookup(field.asJson,field))
   }

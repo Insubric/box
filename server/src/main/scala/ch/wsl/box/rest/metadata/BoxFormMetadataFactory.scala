@@ -36,14 +36,13 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     FormUIDef.main(tablesAndViews,users.sortBy(_.username)),
     FormUIDef.page(users.sortBy(_.username)),
     FormUIDef.field(tablesAndViews),
+    FormUIDef.field_no_db(tablesAndViews),
     FormUIDef.field_childs(forms.sortBy(_.name)),
     FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
     FormUIDef.fieldI18n(services.config.langs),
     FormUIDef.formI18n(viewsOnly,services.config.langs),
-    FormUIDef.fieldFile,
     FormUIDef.form_actions(functions.map(_.name)),
     FormUIDef.form_navigation_actions(functions.map(_.name)),
-    FormUIDef.fieldFile,
     FunctionUIDef.main,
     FunctionUIDef.field(tablesAndViews),
     FunctionUIDef.fieldI18n(services.config.langs),
@@ -85,16 +84,17 @@ case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext
     form match {
       case f if f.objId == FORM => Seq(
         FormUIDef.field(tablesAndViews),
+        FormUIDef.field_no_db(tablesAndViews),
         FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
         FormUIDef.field_childs(forms),
         FormUIDef.fieldI18n(services.config.langs),
         FormUIDef.formI18n(viewsOnly,services.config.langs),
-        FormUIDef.fieldFile,
         FormUIDef.form_actions(functions.map(_.name)),
         FormUIDef.form_navigation_actions(functions.map(_.name))
       )
-      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs),FormUIDef.fieldFile)
-      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs),FormUIDef.fieldFile)
+      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs))
+      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs))
+      case f if f.objId == FORM_FIELD_NOT_DB => Seq(FormUIDef.fieldI18n(services.config.langs))
       case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs))
       case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n(services.config.langs))
       case f if f.objId == FUNCTION => Seq(FunctionUIDef.field(tablesAndViews),FunctionUIDef.fieldI18n(services.config.langs),FunctionUIDef.functionI18n(services.config.langs))

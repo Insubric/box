@@ -205,8 +205,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
     } yield {
 
-
-      logger.debug(s"""
+      logger.debug(s"""outcome
 
                  Save outcome:
 
