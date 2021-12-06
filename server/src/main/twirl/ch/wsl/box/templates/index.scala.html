@@ -9,6 +9,21 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+        <!-- remove hash -->
+        <script>
+                if(window.location.hash.startsWith("#/")) {
+                    var queryString = window.location.search
+                    console.log("qs: " + queryString)
+                    var _location = window.location.toString()
+                    console.log("l: " + _location)
+                    _location = _location.replace(queryString,'')
+                    console.log("l: " + _location)
+                    _location = _location.replace('#/', '')
+                    console.log("l: " + _location)
+                    window.location = _location + queryString
+                }
+        </script>
+
         <title></title>
 
         <base href="@basePath">

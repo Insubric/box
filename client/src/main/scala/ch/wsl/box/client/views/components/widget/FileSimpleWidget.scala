@@ -96,10 +96,10 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
       } else span("File loaded").render
       case ((None,Some(source)),nested) => div(
         nested(produce(urls) {
-          case Some((thumb,download)) => div(
+          case Some((thumb,_download)) => div(
             img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb),
             div(
-              a("Download", ClientConf.style.boxButton, href := Routes.apiV1(download)),
+              a("Download", ClientConf.style.boxButton, href := Routes.apiV1(_download),attr("download") := "download"),
             )
           ).render
           case _ => div().render
