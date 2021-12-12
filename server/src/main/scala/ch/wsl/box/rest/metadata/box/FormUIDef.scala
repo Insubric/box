@@ -595,6 +595,12 @@ object FormUIDef {
           functions.sorted.map(x => JSONLookup(x.asJson,x))
         ))
       ),
+      JSONField(JSONFieldTypes.JSON,"condition",true,
+        widget = Some(WidgetsNames.code),
+        placeholder = Some("[1,2,3]"),
+        tooltip = Some("Enter a JSON array that express the condition"),
+        params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> true.asJson))
+      )
     ),
     layout = Layout(
       blocks = Seq(
@@ -610,7 +616,8 @@ object FormUIDef {
           "update_only",
           "insert_only",
           "reload",
-          "confirm_text"
+          "confirm_text",
+          "condition"
         ).map(Left(_))),
       )
     ),

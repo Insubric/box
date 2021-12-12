@@ -405,14 +405,14 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
           if (action.reload) {
             reload(_id)
           }
-          action.getUrl(model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
+          action.getUrl(model.get.data,model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
             logger.info(url)
             reset()
             Navigate.toUrl(url)
           }
         }
       }
-      case NoAction => action.getUrl(model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
+      case NoAction => action.getUrl(model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
         executeFuntion().map { _ =>
           reset()
           Navigate.toUrl(url)
@@ -477,11 +477,19 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
 
     if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
-      button(
+      val actionButton = button(
         id := TestHooks.actionButton(action.label),
         importance,
         onclick :+= presenter.actionClick(_id,action)
       )(Labels(action.label)).render
+      action.condition match {
+        case Some(conditions) => {
+          showIf(model.subProp(_.data).transform{ js => conditions.forall{ cond =>
+            cond.check(js.js(cond.conditionFieldId))
+          }})( actionButton )
+        }
+        case None => actionButton
+      }
     } else frag()
 
   }

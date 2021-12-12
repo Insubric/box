@@ -144,6 +144,16 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     DBIO.successful(x.split(",").toSeq.map(_.trim))
   }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
+  private def toConditions(json:Json):Seq[ConditionalField] = {
+    json.as[Map[String, Json]] match {
+      case Left(value) => {
+        logger.warn(s"Failed to decode condition: ${value.getMessage()} on $json")
+        Seq()
+      }
+      case Right(value) => value.map{ case (k,v) => ConditionalField(k,v)}.toSeq
+    }
+  }
+
   private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String) = {
 
     import io.circe.generic.auto._
@@ -218,7 +228,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               insertOnly = a.insert_only,
               reload = a.reload,
               confirmText = a.confirm_text,
-              executeFunction = a.execute_function
+              executeFunction = a.execute_function,
+              condition = a.condition.map(toConditions)
             )
           },
           navigationActions = navigationActions.map{a =>
