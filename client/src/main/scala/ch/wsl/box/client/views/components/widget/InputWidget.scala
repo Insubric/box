@@ -174,7 +174,8 @@ object InputWidget extends Logging {
     override def editOnTable(): JsDom.all.Modifier = {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
-      TextInput(stringModel)(ClientConf.style.simpleInput).render
+      val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
+      TextInput(stringModel)(mod:_*).render
     }
   }
 
