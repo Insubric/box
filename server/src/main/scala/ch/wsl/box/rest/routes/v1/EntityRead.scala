@@ -13,7 +13,7 @@ import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONQuery}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery}
 import ch.wsl.box.rest.logic.{DbActions, JSONViewActions, Lookup, TableActions, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, UserProfile}
 import io.circe.{Decoder, Encoder}
@@ -26,6 +26,7 @@ import ch.wsl.box.rest.routes.enablers.CSVDownload
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object EntityRead extends Logging  {
 
@@ -52,6 +53,24 @@ object EntityRead extends Logging  {
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
 
+    def getById(id:JSONID):Route = get {
+      onComplete(db.run(actions.getById(id))) {
+        case Success(data) => {
+          complete(data)
+        }
+        case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+      }
+    }
+
+    pathPrefix("id") {
+      path(Segment) { strId =>
+        JSONID.fromMultiString(strId) match {
+          case ids if ids.nonEmpty =>
+            getById(ids.head)
+          case Nil => complete(StatusCodes.BadRequest, s"JSONID $strId not valid")
+        }
+      }
+    } ~
     pathPrefix("lookup") {
         pathPrefix(Segment) { textProperty =>
           path(Segment) { valueProperty =>

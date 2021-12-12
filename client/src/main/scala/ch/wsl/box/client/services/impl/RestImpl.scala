@@ -65,8 +65,14 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   //for entities and forms
   def get(kind:String, lang:String, entity:String, id:JSONID, public:Boolean):Future[Json] = {
-    val prefix = if(public) "/public" else ""
-    httpClient.get[Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"))
+
+    val prefix = (public,EntityKind(kind).isEntity) match {
+      case (true,true) => "/public"
+      case (true,false) => s"/public/${EntityKind(kind).entityOrForm}/$lang"
+      case (false,_) => s"/${EntityKind(kind).entityOrForm}/$lang"
+    }
+
+    httpClient.get[Json](Routes.apiV1(s"$prefix/$entity/id/${id.asString}"))
   }
   def update(kind:String, lang:String, entity:String, id:JSONID, data:Json, public:Boolean):Future[Json] = {
     val prefix = if(public) "/public" else ""
