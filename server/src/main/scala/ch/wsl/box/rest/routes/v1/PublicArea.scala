@@ -48,23 +48,25 @@ case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:Act
     }
   }
 
-  val route:Route = pathPrefix("public") {
-    form ~
-    pathPrefix(Segment) { entity =>
-      val route: Future[Route] = publicEntities.map{ pe =>
-        pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
-          case Some(action) => EntityRead(entity,action)
-          case None => complete(StatusCodes.NotFound,"Entity not found")
-        }
-      }
-      onComplete(route) {
-        case Success(value) => value
-        case Failure(e) => {
-          e.printStackTrace()
-          complete(StatusCodes.InternalServerError,"error")
-        }
+  def entityRoute:Route = pathPrefix(Segment) { entity =>
+    val route: Future[Route] = publicEntities.map{ pe =>
+      pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
+        case Some(action) => EntityRead(entity,action)
+        case None => complete(StatusCodes.NotFound,"Entity not found")
       }
     }
+    onComplete(route) {
+      case Success(value) => value
+      case Failure(e) => {
+        e.printStackTrace()
+        complete(StatusCodes.InternalServerError,"error")
+      }
+    }
+  }
+
+  val route:Route = pathPrefix("public") {
+    form ~
+      entityRoute
   }
 
 

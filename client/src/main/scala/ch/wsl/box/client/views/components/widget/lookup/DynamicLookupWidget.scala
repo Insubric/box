@@ -45,7 +45,8 @@ trait DynamicLookupWidget extends Widget {
         EntityKind.ENTITY.kind,
         services.clientSession.lang(),
         lookupLabel.remoteEntity,
-        JSONID.fromMap(localFields)
+        JSONID.fromMap(localFields),
+        params.public
       ).map{ remote =>
         val remoteValue = lookupLabel.remoteField.split(",").toList match {
           case singleField :: Nil => remote.js(singleField)
