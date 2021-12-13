@@ -32,7 +32,13 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Pro
   def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
   override def find(query: JSONQuery) = findQuery(query).result
 
-  override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = dbActions.getById(id).map(_.map(_.asJson))
+  override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = {
+    dbActions.getById(id).map { res =>
+      res.map { m =>
+        m.asJson
+      }
+    }
+  }
 
   override def count() = dbActions.count()
   override def count(query: JSONQuery) = dbActions.count(query)

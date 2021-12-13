@@ -162,7 +162,10 @@ trait DBFiltersImpl extends DbFilters with Logging {
           }
           case `typOptDATE` => toDate(v) match {
             case Nil => throw new Error("Invalid date")
-            case single :: Nil => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] === single
+            case single :: Nil => {
+              logger.debug(s"parsed data: $single")
+              c.asInstanceOf[Rep[Option[java.time.LocalDate]]] === single
+            }
             case from :: to :: Nil => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] >= from && c.asInstanceOf[Rep[Option[java.time.LocalDate]]] < to
           }
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] === toTime(v).get
