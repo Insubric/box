@@ -145,7 +145,9 @@ object EditableTable extends ChildRendererFactory {
     def fields(f:JSONMetadata) = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
 
     def colHeader(field:JSONField):ReadableProperty[String] = {
-        val name = field.label.getOrElse(field.name)
+        val name = field.label.getOrElse(field.name) + {
+          if(!field.nullable) " "+Labels.form.required else ""
+        }
         field.dynamicLabel match {
           case Some(value) => {
             val title = entity.transform { e =>

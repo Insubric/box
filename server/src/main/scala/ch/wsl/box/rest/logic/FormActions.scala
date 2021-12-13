@@ -163,6 +163,8 @@ case class FormActions(metadata:JSONMetadata,
 
   def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
 
+    logger.debug(s"Applying sub action to $e")
+
     val result = metadata.fields.filter(_.child.isDefined).filter { field =>
       field.condition match {
         case Some(condition) => alwaysApply || condition.check(e.js(condition.conditionFieldId))

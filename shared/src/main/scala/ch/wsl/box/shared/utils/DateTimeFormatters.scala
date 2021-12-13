@@ -76,7 +76,10 @@ object DateTimeFormatters {
     }
   }
   def toTimestamp(s:String):List[LocalDateTime] = intervalParser(timestamp.parse,s)
-  def toDate(s:String):List[LocalDate] = intervalParser(date.parse,s)
+  def toDate(s:String):List[LocalDate] = {
+    val result = intervalParser(date.parse,s)
+    result
+  }
 
 
   object timestamp extends DateTimeFormatters[LocalDateTime] {

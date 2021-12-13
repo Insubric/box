@@ -4,6 +4,7 @@ import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.udash._
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
@@ -137,6 +138,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
 
   override def editOnTable(): JsDom.all.Modifier = popupEdit((modal,modalStatus) => {
     div(
+      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
@@ -153,6 +155,7 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
       BootstrapStyles.Display.flex(),BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Between))(
       WidgetUtils.toLabel(field),
+      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
         modalStatus.set(Status.Open)
         e.preventDefault()
