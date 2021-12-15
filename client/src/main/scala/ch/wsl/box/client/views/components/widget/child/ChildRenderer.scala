@@ -136,7 +136,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       propData.listen{data =>
         val newData = prop.get.as[Seq[Json]].toSeq.flatten.map{x =>
-          if(x.ID(metadata.get.keys) == data.ID(metadata.get.keys)) {
+          if(x.ID(metadata.get.keys).nonEmpty && x.ID(metadata.get.keys) == data.ID(metadata.get.keys)) {
             x.deepMerge(data)
           } else x
         }
