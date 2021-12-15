@@ -56,7 +56,8 @@ case class FormAction(
                       reload:Boolean = false,
                       confirmText:Option[String] = None,
                       executeFunction:Option[String] = None,
-                      condition:Option[Seq[ConditionalField]] = None
+                      condition:Option[Seq[ConditionalField]] = None,
+                      html5check:Boolean = true
                       ) {
   def getUrl(data:Json,kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
     val urlInternalSubstitutions = x.replace("$kind",kind)

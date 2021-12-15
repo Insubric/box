@@ -77,7 +77,7 @@ class Values {
         JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
-        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue.asJson)))
+        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue).asJson))
       ),
       JSONField(
         JSONFieldTypes.CHILD,

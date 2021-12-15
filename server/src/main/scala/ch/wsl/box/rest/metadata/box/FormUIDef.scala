@@ -585,6 +585,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
       JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
       JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"html_check",false,widget = Some(WidgetsNames.checkbox), default = Some("true")),
       JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
         tooltip = Some("Before running action show a popup that ask for confirmation with the following text (translated with gobal transaltion table)"),
         widget = Some(WidgetsNames.input)
@@ -617,7 +618,8 @@ object FormUIDef {
           "insert_only",
           "reload",
           "confirm_text",
-          "condition"
+          "condition",
+          "html_check"
         ).map(Left(_))),
       )
     ),
