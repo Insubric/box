@@ -41,8 +41,8 @@ case class SelectBooleanWidget(field:JSONField, data: Property[Json]) extends Wi
 
   def boolToString(b:Boolean):String = {
     b match {
-      case true => field.params.flatMap(_.getOpt("trueLabel")).orElse(Labels.form.trueLabel).getOrElse(b.toString)
-      case false => field.params.flatMap(_.getOpt("falseLabel")).orElse(Labels.form.falseLabel).getOrElse(b.toString)
+      case true => field.params.flatMap(_.getOpt("trueLabel").map(x => Labels(x))).orElse(Labels.form.trueLabel).getOrElse(b.toString)
+      case false => field.params.flatMap(_.getOpt("falseLabel").map(x => Labels(x))).orElse(Labels.form.falseLabel).getOrElse(b.toString)
     }
   }
 
