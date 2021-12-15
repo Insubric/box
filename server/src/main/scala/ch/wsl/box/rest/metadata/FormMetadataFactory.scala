@@ -229,7 +229,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               reload = a.reload,
               confirmText = a.confirm_text,
               executeFunction = a.execute_function,
-              condition = a.condition.map(toConditions)
+              condition = a.condition.map(toConditions),
+              html5check = a.html_check
             )
           },
           navigationActions = navigationActions.map{a =>

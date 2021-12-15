@@ -149,8 +149,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def setForm(form:HTMLFormElement)= { _form = form }
 
-  def saveAndReload(action:Json => Unit):Unit = {
-    save{ id =>
+  def saveAndReload(check:Boolean = true)(action:Json => Unit):Unit = {
+    save(check){ id =>
       reload(id).map{ data =>
         action(data)
         if(!model.subProp(_.id).get.flatMap(JSONID.fromString).contains(id)) {
@@ -160,11 +160,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
   }
 
-  def save(action:JSONID => Unit):Unit  = {
+  def save(check:Boolean = true)(action:JSONID => Unit):Unit  = {
 
     services.clientSession.loading.set(true)
 
-    if(!_form.reportValidity()) {
+    if(check) if(!_form.reportValidity()) {
       services.clientSession.loading.set(false)
       val errors = document.querySelectorAll("*:invalid")
       for(i <- 0 to errors.length) {
@@ -326,7 +326,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload),changed,model.subProp(_.public).get)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload()),changed,model.subProp(_.public).get)
     widget
   }
 
@@ -400,7 +400,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
 
     def callBack() = action.action match {
-      case SaveAction => save{ _id =>
+      case SaveAction => save(action.html5check){ _id =>
         executeFuntion().map { _ =>
           if (action.reload) {
             reload(_id)
