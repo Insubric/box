@@ -4,6 +4,7 @@ import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.syntax._
 import org.scalajs.dom.document
@@ -72,7 +73,7 @@ class MiddleChildDeletion extends TestBase {
 
 
     override def update(id: JSONID, obj: Json): Json = {
-      assert(expectedData == obj.deepDropNullValues.hcursor.downField("$changed").delete.top.get)
+      assert(expectedData == obj.removeNonDataFields)
 
       obj
     }
