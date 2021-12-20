@@ -9,7 +9,7 @@ import io.circe.syntax._
 object CommonField {
 
   val allFields:Map[Json,Seq[JSONLookup]] = Registry().fields.tableFields.map{ case (table,fields) =>
-    table.asJson -> fields.keys.toSeq.sorted.map(field => JSONLookup(field.asJson,field))
+    table.asJson -> fields.keys.toSeq.sorted.map(field => JSONLookup(field.asJson,Seq(field)))
   }
 
   val name = JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.input))
@@ -18,7 +18,7 @@ object CommonField {
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.withExtractor(
       "type",
-      WidgetsNames.mapping.map{ case (k,v) => k.asJson -> v.map(x => JSONLookup(x.asJson,x))}
+      WidgetsNames.mapping.map{ case (k,v) => k.asJson -> v.map(x => JSONLookup(x.asJson,Seq(x)))}
     )
   ))
 
@@ -28,14 +28,14 @@ object CommonField {
       JSONFieldTypes.ALL
         .filter(x => child || x != JSONFieldTypes.CHILD)
         .filter(x => static || x != JSONFieldTypes.STATIC)
-        .sorted.map(x => JSONLookup(x.asJson,x))
+        .sorted.map(x => JSONLookup(x.asJson,Seq(x)))
     )
   ))
 
   def lookupEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupEntity",false,
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      tables.map(x => JSONLookup(x.asJson,x))
+      tables.map(x => JSONLookup(x.asJson,Seq(x)))
     )),
     condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel).asJson))
   )
@@ -65,7 +65,7 @@ object CommonField {
 
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.prefilled(
-      langs.map(x => JSONLookup(x.asJson,x))
+      langs.map(x => JSONLookup(x.asJson,Seq(x)))
     ))
   )
 

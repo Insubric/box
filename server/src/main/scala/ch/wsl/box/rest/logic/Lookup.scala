@@ -34,16 +34,16 @@ object Lookup {
       foreignEntity <- elements.get(lookup.lookupEntity)
       foreignRow <- foreignEntity.find(_.js(lookup.map.valueProperty) == value)
     } yield {
-      Json.fromString(lookup.map.textProperty.split(",").map(_.trim).map{ key =>
-        foreignRow.get(key)
-      }.mkString(" - "))
+      Json.fromString(
+        JSONFieldLookup.toJsonLookup(lookup.map)(foreignRow).value
+      )
     }
 
   }
 
   def values(entity:String,value:String,text:String,query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Seq[JSONLookup]] = {
     Registry().actions(entity).find(query).map{ _.map{ row =>
-      val label = text.split(",").map(x => row.get(x.trim)).mkString(" - ")
+      val label = text.split(",").flatMap(x => row.getOpt(x.trim)).filterNot(_.isEmpty)
       JSONLookup(row.js(value),label)
     }}
   }
