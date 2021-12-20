@@ -165,7 +165,7 @@ trait LookupWidget extends Widget with HasData {
     {json:Json =>
       val result = lookup.get.find(_.id == json).getOrElse{
         logger.warn(s"Lookup for $json not found")
-        JSONLookup(json,json.string)
+        JSONLookup(json,Seq(json.string))
       }
       Some(result)
     },

@@ -78,16 +78,17 @@ case class JSONLookupExtractor(key:String, values:Seq[Json], results:Seq[Seq[JSO
 object JSONFieldLookup {
   val empty: JSONFieldLookup = JSONFieldLookup("",JSONFieldMap("","", ""))
 
+  def toJsonLookup(mapping:JSONFieldMap)(lookupRow:Json):JSONLookup = {
+    val label = mapping.textProperty.split(",").map(_.trim).flatMap(k => lookupRow.getOpt(k)).filterNot(_.isEmpty)
+    JSONLookup(lookupRow.js(mapping.valueProperty),label)
+  }
+
   def fromData(lookupEntity:String, mapping:JSONFieldMap, lookupData:Seq[Json], allLookupData:Seq[Json], lookupQuery:Option[String] = None):JSONFieldLookup = {
     import ch.wsl.box.shared.utils.JSONUtils._
 
-    def toJsonLookup(lookupRow:Json):JSONLookup = {
-      val label = mapping.textProperty.split(",").map(_.trim).map(k => lookupRow.get(k)).mkString(" - ")
-      JSONLookup(lookupRow.js(mapping.valueProperty),label)
-    }
 
-    val options = lookupData.map(toJsonLookup)
-    val optionsAll = allLookupData.map(toJsonLookup)
+    val options = lookupData.map(toJsonLookup(mapping))
+    val optionsAll = allLookupData.map(toJsonLookup(mapping))
     JSONFieldLookup(lookupEntity, mapping, options,lookupQuery,allLookup = optionsAll)
   }
 
@@ -102,7 +103,12 @@ object JSONFieldLookup {
   }
 }
 
-case class JSONLookup(id:Json, value:String)
+case class JSONLookup(id:Json, values:Seq[String]) {
+  def value = {
+    println(s"AAAAA $values")
+    values.filterNot(_.isEmpty).mkString(" - ")
+  }
+}
 
 case class FileReference(name_field:String, file_field:String, thumbnail_field:Option[String])
 

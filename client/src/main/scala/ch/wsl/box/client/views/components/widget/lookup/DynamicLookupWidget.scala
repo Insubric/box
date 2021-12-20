@@ -51,7 +51,7 @@ trait DynamicLookupWidget extends Widget {
         val remoteValue = lookupLabel.remoteField.split(",").toList match {
           case singleField :: Nil => remote.js(singleField)
           case Nil => Json.Null
-          case fields => Json.fromString(fields.map(remote.get).mkString(" - "))
+          case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
         }
 
         remoteField.set(remoteValue)

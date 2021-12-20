@@ -88,7 +88,9 @@ object JSONUtils extends Logging {
     def getOpt(field: String):Option[String] = el.hcursor.get[Json](field).fold(
       { _ =>
         None
-      }, { x => Some(x.string) }
+      }, { x =>
+        if(!x.isNull) Some(x.string) else None
+      }
     )
 
     def ID(fields:Seq[String]):Option[JSONID] = {
