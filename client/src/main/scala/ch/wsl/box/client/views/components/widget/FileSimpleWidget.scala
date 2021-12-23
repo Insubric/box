@@ -118,7 +118,6 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val acceptMultipleFiles = Property(false)
   val selectedFiles = SeqProperty.blank[File]
   val fileInput = FileInput(selectedFiles, acceptMultipleFiles)("files",display.none,onfocus :+= {(e:Event) =>
-    println("äaaaaa")
     e.preventDefault()
   }).render
 
