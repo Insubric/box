@@ -23,7 +23,8 @@ case class GeneratedFiles(
                        entityActionsRegistry: EntityActionsRegistryGenerator,
                        fileAccessGenerator: FileAccessGenerator,
                        registry: RegistryGenerator,
-                       fieldRegistry: FieldAccessGenerator
+                       fieldRegistry: FieldAccessGenerator,
+                       fixFiles: FixFileAccesGenerator
                          )
 
 case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends BaseCodeGenerator {
@@ -41,7 +42,8 @@ case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends Ba
       entityActionsRegistry = EntityActionsRegistryGenerator(calculatedViews ++ calculatedTables, dbModel),
       fileAccessGenerator = FileAccessGenerator(dbModel, dbConf),
       registry = RegistryGenerator(dbModel),
-      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel)
+      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel),
+      fixFiles = FixFileAccesGenerator(dbModel,calculatedTables)
     )
 
   }
@@ -60,6 +62,9 @@ object CustomizedCodeGenerator  {
 
 
     val files = CodeGenerator(conf.schemaName).generatedFiles(connection)
+
+    files.fixFiles.createTriggers(connection.dbConnection)
+
     val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq(
       "export",
       "export_field",

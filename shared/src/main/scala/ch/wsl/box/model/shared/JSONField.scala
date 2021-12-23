@@ -105,7 +105,6 @@ object JSONFieldLookup {
 
 case class JSONLookup(id:Json, values:Seq[String]) {
   def value = {
-    println(s"AAAAA $values")
     values.filterNot(_.isEmpty).mkString(" - ")
   }
 }
