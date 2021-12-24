@@ -28,20 +28,30 @@ case class FileAccessGenerator(model:Model,conf:Config) extends slick.codegen.So
 
 
     s"""
-       |    File("$table.$bytea",$tableTableQuery,new FileHandler[$tableTableRow] {
+       |    case "$table.$bytea" => File("$table.$bytea",$tableTableQuery,new FileHandler[$tableTableRow] {
        |        override def inject(row: $tableTableRow, file: Array[Byte]) = row.copy($bytea = $inj)
        |        override def extract(row: $tableTableRow) = $ext
        |    }).route""".stripMargin
 
   }
 
+  def route(tbl: TableDef, col:Column) = {
+    val table = tbl.model.name.table
+    val bytea = col.name
+
+    s"""pathPrefix("$table.$bytea")(routeForField("$table.$bytea"))"""
+
+  }
+
   val fileColumns: Seq[(TableDef, Column)] = tables.filter(_.columns.exists(_.model.tpe == "Array[Byte]")).flatMap{ table =>
     table.columns.filter(_.model.tpe == "Array[Byte]").map(c => (table,c.model))
   }
-  val filesCode:String = fileColumns.nonEmpty match {
-    case true => fileColumns.map(x => file(x._1,x._2)).mkString(" ~ ")
+  val rotuesCode:String = fileColumns.nonEmpty match {
+    case true => fileColumns.map(x => route(x._1,x._2)).mkString(" ~\n    ")
     case false => """pathEnd{complete("No files handlers")}"""
   }
+
+  val filesCode:String = fileColumns.map(x => file(x._1,x._2)).mkString("\n")
 
 
   def generate(pkg:String,name:String,modelPackages:String):String =
@@ -66,11 +76,22 @@ case class FileAccessGenerator(model:Model,conf:Config) extends slick.codegen.So
        |  import ch.wsl.box.rest.routes._
        |  import akka.http.scaladsl.server.Directives._
        |
-       |  def apply()(implicit up:UserProfile, materializer:Materializer, ec:ExecutionContext, services: Services):Route = {
-       |    implicit val db = up.db
        |
-       |    $filesCode
+       |  def routeForField(field:String)(implicit up:UserProfile, materializer:Materializer, ec:ExecutionContext, services: Services):Route = {
+       |    implicit val db = up.db
+       |    field match {
+       |      $filesCode
+       |       case _ => throw new Exception(s"File field $$field not found")
+       |    }
        |  }
+       |
+       |  def apply()(implicit up:UserProfile, materializer:Materializer, ec:ExecutionContext, services: Services):Route = {
+       |
+       |
+       |    $rotuesCode
+       |
+       |  }
+       |
        |}
      """.stripMargin
 
