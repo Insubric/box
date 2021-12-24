@@ -151,8 +151,6 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   }
 
   def route:Route = {
-    pathPrefix(field) {
-
       pathPrefix(Segment) { idstr =>
         logger.info(s"Parsing File'JSONID: $idstr")
         JSONID.fromString(idstr) match {
@@ -167,9 +165,6 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
           }
           case None => complete(StatusCodes.BadRequest,s"JSONID $idstr not valid")
         }
-
-
       }
-    }
   }
 }

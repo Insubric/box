@@ -25,6 +25,26 @@ case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:Act
 
   implicit val up = new Auth().adminUserProfile
 
+  def file:Route = pathPrefix("file") {
+    pathPrefix(Segment) { entity =>
+      pathPrefix(Segment) { field =>
+        val route: Future[Route] = publicEntities.map{ pe =>
+          pe.find(_.entity == entity).map(e => Registry().fileRoutes.routeForField(s"$entity.$field")) match {
+            case Some(action) => action
+            case None => complete(StatusCodes.NotFound,"Entity not found")
+          }
+        }
+        onComplete(route) {
+          case Success(value) => value
+          case Failure(e) => {
+            e.printStackTrace()
+            complete(StatusCodes.InternalServerError,"error")
+          }
+        }
+      }
+    }
+  }
+
   def form:Route = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
@@ -66,7 +86,8 @@ case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:Act
 
   val route:Route = pathPrefix("public") {
     form ~
-      entityRoute
+    file ~
+    entityRoute
   }
 
 

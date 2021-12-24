@@ -12,5 +12,6 @@ trait GeneratedRoutes {
 }
 
 trait GeneratedFileRoutes {
+  def routeForField(field:String)(implicit up:UserProfile, materializer:Materializer, ec:ExecutionContext, services: Services):Route
   def apply()(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, services: Services):Route
 }
