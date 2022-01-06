@@ -2,7 +2,7 @@ package ch.wsl.box.client.views
 
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification}
+import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
 import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
@@ -410,7 +410,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     }
 
     val options = SeqProperty{
-      metadata.toSeq.flatMap(_.fields).find(_.name == field).toSeq.flatMap(f => Filter.options(f))
+      metadata.toSeq.flatMap(_.fields).find(_.name == field).toSeq.flatMap(f => UI.enabledFilters(Filter.options(f)))
     }
 
     Select(operator, options)(label,ClientConf.style.fullWidth,ClientConf.style.filterTableSelect)

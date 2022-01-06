@@ -136,6 +136,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
     override def extraWidth: Boolean = true
   }
   case class Dropdown(values:Map[String,String]) extends Type
+  case object FiltersConf extends Type
 
 
   def editBoolean(key:String,lab:String,description:String) = {
@@ -150,13 +151,35 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
     _editConf(lab, description,input)
   }
 
+  def filters(prop:Property[String]):Modifier = {
+
+
+    div(
+      produceWithNested(prop){(str,nested) =>
+        val enabled = if(str == "all") Filter.all else str.split(",").toSeq
+        div(
+          button("Select All", onclick :+= ((e:Event) => prop.set("all"))),
+          button("Deselect All", onclick :+= ((e:Event) => prop.set(""))),
+          Filter.all.map{ fil =>
+            val checkProperty = Property(enabled.contains(fil))
+            checkProperty.listen{
+              case true => prop.set( (enabled ++ Seq(fil)).mkString(","))
+              case false => prop.set( enabled.filterNot(_ == fil).mkString(","))
+            }
+            div(Checkbox(checkProperty)()," ",label(fil)).render
+          }
+        ).render
+      }
+    )
+  }
+
   def editConf(key:String,lab:String,ph:String,description:String,tpe:Type) = {
 
     val prop: Property[String] = viewModel.subProp(_.currentEntries).bitransform(_.find(_.key == key).map(_.value).getOrElse("")) { x =>
       viewModel.get.currentEntries.filterNot(_.key == key) ++  Seq(UiConfEntryCurrent(key, x))
     }
 
-    val input = tpe match {
+    val input:Modifier = tpe match {
       case String => {
         TextInput(prop)(width := 100.pct, placeholder := ph)
       }
@@ -192,6 +215,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
       case Dropdown(values) => {
         Select(prop,SeqProperty(values.keys.toSeq))(x => values(x),width := 100.pct)
       }
+      case FiltersConf => filters(prop)
 
     }
     _editConf(lab, description,input, tpe.extraWidth)
@@ -250,6 +274,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
           editBoolean("showEntitiesSidebar", "Entities sidebar", "Show list of entities on the sidebar"),
           editConf("menu", "Menu", placeholder("menu"), "", Code("json",200)),br,
           editConf("index.html", "Index HTML", placeholder("index.html"), "", Code("html",400)),
+          editConf("filters.enable", "Filters Enabled", placeholder("index.html"), "", FiltersConf),
         ).render
       }
     ),
