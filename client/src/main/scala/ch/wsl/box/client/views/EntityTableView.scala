@@ -3,7 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
 import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
@@ -494,14 +494,18 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                   metadata.toSeq.flatMap(_.tabularFields).map{ field =>
                     val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field))
                     val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field))
-                    val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => Labels(Sort.label(x.sort))).getOrElse(""))
+                    val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
                     val order:ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
 
                     td(ClientConf.style.smallCells)(
                       a(
                         onclick :+= presenter.sort(fieldQuery),
                         span(bind(title), ClientConf.style.tableHeader), " ",
-                        bind(sort), " ", bind(order)
+                        span(whiteSpace.nowrap,span(produce(sort){
+                          case Sort.ASC => Icons.asc.render
+                          case Sort.DESC => Icons.desc.render
+                          case _ => frag().render
+                        })," ", bind(order))
                       )
                     ).render
                   }
