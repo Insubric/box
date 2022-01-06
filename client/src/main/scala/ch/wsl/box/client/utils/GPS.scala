@@ -2,7 +2,7 @@ package ch.wsl.box.client.utils
 
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.Notification
-import ch.wsl.box.client.utils.GeoJson.Coordinates
+import ch.wsl.box.model.shared.GeoJson.Coordinates
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Position, PositionError, PositionOptions}
 import scribe.Logging

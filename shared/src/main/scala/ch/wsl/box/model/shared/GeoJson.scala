@@ -1,6 +1,5 @@
-package ch.wsl.box.client.utils
+package ch.wsl.box.model.shared
 
-import ch.wsl.box.client.services.ClientConf
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -134,13 +133,13 @@ object GeoJson {
     implicit val encoderGeometryCollection: Encoder[GeometryCollection] = Encoder.instance(j => Json.obj("type" -> "GeometryCollection".asJson, "geometries" -> j.geometries.asJson  ))
 
     implicit val encoder: Encoder[Geometry] = Encoder.instance {
-        case j:GeometryCollection => Json.obj("type" -> "GeometryCollection".asJson, "geometries" -> j.geometries.asJson  )
-        case j:Point => Json.obj("type" -> "Point".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:LineString => Json.obj("type" -> "LineString".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:MultiPoint => Json.obj("type" -> "MultiPoint".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:MultiLineString => Json.obj("type" -> "MultiLineString".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:Polygon => Json.obj("type" -> "Polygon".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:MultiPolygon => Json.obj("type" -> "MultiPolygon".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:GeometryCollection => Json.obj("type" -> "GeometryCollection".asJson, "geometries" -> j.geometries.asJson  )
+      case j:Point => Json.obj("type" -> "Point".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:LineString => Json.obj("type" -> "LineString".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:MultiPoint => Json.obj("type" -> "MultiPoint".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:MultiLineString => Json.obj("type" -> "MultiLineString".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:Polygon => Json.obj("type" -> "Polygon".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:MultiPolygon => Json.obj("type" -> "MultiPolygon".asJson, "coordinates" -> j.coordinates.asJson  )
     }
 
     implicit val decoder: Decoder[Geometry] = Decoder.instance { c =>

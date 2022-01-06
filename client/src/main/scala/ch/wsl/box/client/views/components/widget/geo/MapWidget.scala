@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.ClientConf
-import ch.wsl.box.client.utils.GeoJson
 import ch.wsl.box.model.shared.JSONField
 import io.circe._
 import io.circe.syntax._

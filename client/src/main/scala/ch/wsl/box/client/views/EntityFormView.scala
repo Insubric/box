@@ -395,27 +395,40 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
 
     def executeFuntion():Future[Boolean] = action.executeFunction match {
-      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map(_ => true)
+      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
+        result.errorMessage match {
+          case Some(value) => {
+            Notification.add(value)
+            services.clientSession.loading.set(false)
+            false
+          }
+          case None => true
+        }
+      }
       case None => Future.successful(true)
     }
 
     def callBack() = action.action match {
       case SaveAction => save(action.html5check){ _id =>
-        executeFuntion().map { _ =>
-          if (action.reload) {
-            reload(_id)
-          }
-          action.getUrl(model.get.data,model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
-            logger.info(url)
-            reset()
-            Navigate.toUrl(url)
+        executeFuntion().map { functionOk =>
+          if(functionOk) {
+            if (action.reload) {
+              reload(_id)
+            }
+            action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
+              logger.info(url)
+              reset()
+              Navigate.toUrl(url)
+            }
           }
         }
       }
       case NoAction => action.getUrl(model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-        executeFuntion().map { _ =>
-          reset()
-          Navigate.toUrl(url)
+        executeFuntion().map { functionOk =>
+          if(functionOk) {
+            reset()
+            Navigate.toUrl(url)
+          }
         }
       }
       case CopyAction => duplicate()

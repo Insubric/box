@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.services.{ClientConf, Notification}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
@@ -35,9 +35,14 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
       def exec(allData:Json) = {
         services.clientSession.loading.set(true)
         logger.info(s"Exec with params $allData")
-        services.rest.execute(field.function.get, services.clientSession.lang(), allData).foreach { _ =>
+        services.rest.execute(field.function.get, services.clientSession.lang(), allData).foreach { result =>
           services.clientSession.loading.set(false)
-          applicationInstance.reload()
+          result.errorMessage match {
+            case Some(value) => Notification.add(value)
+            case None => {
+              applicationInstance.reload()
+            }
+          }
         }
       }
       saveBefore match {

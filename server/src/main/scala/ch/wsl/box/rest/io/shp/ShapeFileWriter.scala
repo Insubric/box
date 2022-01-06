@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream
 import java.util
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
-import ch.wsl.box.rest.logic.DataResultTable
+import ch.wsl.box.model.shared.DataResultTable
 import org.arakhne.afc.attrs.attr._
 import org.arakhne.afc.attrs.collection.{AbstractAttributeProvider, AttributeProvider}
 import org.arakhne.afc.io.dbase.DBaseFileWriter

@@ -4,7 +4,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.GPS
-import ch.wsl.box.client.utils.GeoJson.{Coordinates, Geometry, Point}
+import ch.wsl.box.model.shared.GeoJson.{Coordinates, Geometry, Point}
 import ch.wsl.box.client.views.components.widget._
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -34,7 +34,7 @@ import scala.scalajs.js
 case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget with HasData with Logging {
 
 
-  import ch.wsl.box.client.utils.GeoJson.Geometry._
+  import ch.wsl.box.model.shared.GeoJson.Geometry._
   import ch.wsl.box.client.Context._
 
   override def field: JSONField = params.field

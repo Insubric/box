@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
-import ch.wsl.box.client.utils.GeoJson
+import ch.wsl.box.model.shared.GeoJson
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
@@ -37,8 +37,8 @@ import typings.ol.formatMod.WKT
 import typings.ol.mod.Overlay
 import typings.ol.olStrings.singleclick
 
-import ch.wsl.box.client.utils.GeoJson.Geometry._
-import ch.wsl.box.client.utils.GeoJson._
+import ch.wsl.box.model.shared.GeoJson.Geometry._
+import ch.wsl.box.model.shared.GeoJson._
 
 case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
   import dsl._

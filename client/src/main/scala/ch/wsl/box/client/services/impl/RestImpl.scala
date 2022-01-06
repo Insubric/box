@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{CSVTable, EntityKind, ExportDef, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
+import ch.wsl.box.model.shared.{CSVTable, DataResultTable, EntityKind, ExportDef, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
 import kantan.csv._
@@ -115,7 +115,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   override def exportXLS(table: XLSTable): Future[File] = httpClient.postFileResponse[XLSTable](Routes.apiV1(s"/exportXLS"),table)
 
 
-  override def execute(functionName: String, lang: String, data:Json): Future[String] = httpClient.post[Json,String](Routes.apiV1(s"/function/$functionName/$lang"),data)
+  override def execute(functionName: String, lang: String, data:Json): Future[DataResultTable] = httpClient.post[Json,DataResultTable](Routes.apiV1(s"/function/$functionName/$lang/raw"),data)
 
   //admin
   def generateStub(entity:String) = httpClient.get[Boolean](Routes.apiV1(s"/create-stub/$entity"))
