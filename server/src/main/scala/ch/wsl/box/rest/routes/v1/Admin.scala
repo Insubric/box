@@ -5,9 +5,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{BoxActionsRegistry, BoxDefinition, BoxDefinitionMerge, BoxRegistry}
+import ch.wsl.box.model.{BoxActionsRegistry, BoxDefinition, BoxDefinitionMerge, BoxRegistry, Translations}
 import ch.wsl.box.model.boxentities.BoxSchema
-import ch.wsl.box.model.shared.EntityKind
+import ch.wsl.box.model.shared.{BoxTranslationsFields, EntityKind}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.routes.{BoxFileRoutes, Form, Table}
 import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
@@ -89,6 +89,24 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
     }
   }
 
+  def translations = pathPrefix("translations") {
+    pathPrefix("fields") {
+      path(Segment) { lang =>
+        get {
+          complete(Translations.exportFields(lang, services.connection.adminDB).map(_.asJson))
+        }
+      } ~ path("commit") {
+        post {
+          entity(as[BoxTranslationsFields]) { merge =>
+            complete {
+              Translations.updateFields(merge, services.connection.adminDB)
+            }
+          }
+        }
+      }
+    }
+  }
+
 
 
 
@@ -101,6 +119,7 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
     file  ~
     boxentity   ~
     entities ~
-    boxDefinition
+    boxDefinition ~
+    translations
   }
 }

@@ -73,6 +73,9 @@ trait REST{
   def definitionDiff(definition:BoxDefinition):Future[BoxDefinitionMerge]
   def definitionCommit(merge:BoxDefinitionMerge):Future[Boolean]
 
+  def translationsFields(lang:String):Future[Seq[Field]]
+  def translationsFieldsCommit(merge:BoxTranslationsFields):Future[Boolean]
+
   def execute(functionName:String,lang:String,data:Json):Future[DataResultTable]
 }
 

@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{CSVTable, DataResultTable, EntityKind, ExportDef, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
 import kantan.csv._
@@ -122,4 +122,10 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   override def definition(): Future[BoxDefinition] = httpClient.get[BoxDefinition](Routes.apiV1(s"/box-definition"))
   override def definitionDiff(definition: BoxDefinition): Future[BoxDefinitionMerge] = httpClient.post[BoxDefinition,BoxDefinitionMerge](Routes.apiV1(s"/box-definition/diff"),definition)
   override def definitionCommit(merge: BoxDefinitionMerge): Future[Boolean] = httpClient.post[BoxDefinitionMerge,Boolean](Routes.apiV1(s"/box-definition/commit"),merge)
+
+
+  override def translationsFields(lang: String): Future[Seq[Field]] = httpClient.get[Seq[Field]](Routes.apiV1(s"/translations/fields/$lang"))
+  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Boolean] = httpClient.post[BoxTranslationsFields,Boolean](Routes.apiV1(s"/translations/fields/commit"),merge)
+
+
 }
