@@ -141,6 +141,8 @@ object Filter extends Logging {
 //  final val TRUE = "true"
 //  final val FALSE = "false"
 
+  final val all = Seq(NONE,EQUALS,NOT,FK_EQUALS,FK_NOT,>,<,>=,<=,LIKE,DISLIKE,FK_LIKE,FK_DISLIKE,IN,NOTIN,BETWEEN,IS_NULL,IS_NOT_NULL)
+
   private def basicOptions(`type`:String) = `type` match {
     case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER  => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT, Filter.IN, Filter.NOTIN, Filter.BETWEEN)
     case JSONFieldTypes.DATE | JSONFieldTypes.DATETIME | JSONFieldTypes.TIME => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT)

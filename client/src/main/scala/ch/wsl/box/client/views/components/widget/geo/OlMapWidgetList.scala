@@ -4,8 +4,8 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
-import ch.wsl.box.client.utils.GeoJson
-import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
+import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import io.circe.Json
@@ -54,8 +54,8 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
     convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
-      import ch.wsl.box.client.utils.GeoJson.Geometry._
-      import ch.wsl.box.client.utils.GeoJson._
+      import ch.wsl.box.model.shared.GeoJson.Geometry._
+      import ch.wsl.box.model.shared.GeoJson._
       val geometries = collection.features.map(_.geometry)
       logger.info(s"$geometries")
 
@@ -180,9 +180,9 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       ),
       mapDiv,
       produce(data) { geo =>
-        import ch.wsl.box.client.utils.GeoJson.Geometry._
-        import ch.wsl.box.client.utils.GeoJson._
-        val geometry = geo.as[ch.wsl.box.client.utils.GeoJson.Geometry].toOption
+        import ch.wsl.box.model.shared.GeoJson.Geometry._
+        import ch.wsl.box.model.shared.GeoJson._
+        val geometry = geo.as[ch.wsl.box.model.shared.GeoJson.Geometry].toOption
 
         val enable = EnabledFeatures(geometry)
 

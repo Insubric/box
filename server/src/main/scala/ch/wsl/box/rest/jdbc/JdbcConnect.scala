@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.jdbc
 
 import java.sql._
-
 import ch.wsl.box.model.boxentities.BoxExportField
 import ch.wsl.box.model.boxentities.BoxExportField.BoxExportHeader_i18n_row
 import ch.wsl.box.rest.utils.UserProfile
@@ -9,10 +8,10 @@ import io.circe.Json
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{Connection, UserDatabase}
-import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.services.Services
 
 
@@ -42,14 +41,17 @@ object JdbcConnect extends Logging {
         val argsStr = if (args == null) ""
         else args.map(_.toString()).mkString(",")
 
-        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'","\\'").replaceAll("\"","'")
+        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
         logger.info(query)
         val resultSet = statement.executeQuery(query)
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
-        val data = getResults(resultSet,metadata)
-        DataResultTable(metadata.map(_.label),data,Map())
-      }.toOption
+        val data = getResults(resultSet, metadata)
+        DataResultTable(metadata.map(_.label), data, Map())
+      } match {
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+        case Success(value) => Some(value)
+      }
       connection.close()
       result
     }

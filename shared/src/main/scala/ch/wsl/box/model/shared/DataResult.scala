@@ -1,12 +1,13 @@
-package ch.wsl.box.rest.logic
+package ch.wsl.box.model.shared
 
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import io.circe._
+import io.circe.generic.semiauto._
 import io.circe.syntax._
-import org.locationtech.jts.geom.Geometry
 
 sealed trait DataResult
 
-case class DataResultTable(headers:Seq[String],rows:Seq[Seq[Json]],geometry: Map[String,Seq[Geometry]] = Map()) extends DataResult {
+case class DataResultTable(headers:Seq[String],rows:Seq[Seq[Json]],geometry: Map[String,Seq[Geometry]] = Map(), errorMessage:Option[String] = None) extends DataResult {
 
   lazy val toMap: Seq[Map[String, Json]] = rows.map(r => headers.zip(r).toMap)
 
@@ -17,6 +18,10 @@ case class DataResultTable(headers:Seq[String],rows:Seq[Seq[Json]],geometry: Map
   def json = {
     toMap.asJson
   }
+}
+
+object DataResultTable {
+  implicit val encoder = deriveCodec[DataResultTable]
 }
 
 case class DataResultObject(obj:Json) extends DataResult

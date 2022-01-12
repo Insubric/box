@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import ch.wsl.box.model.shared.FunctionKind
 import ch.wsl.box.rest.jdbc.JdbcConnect
-import ch.wsl.box.rest.logic.DataResult
+import ch.wsl.box.model.shared.DataResult
 import ch.wsl.box.rest.utils.{JSONSupport, UserProfile}
 import io.circe.Json
 import scribe.Logging

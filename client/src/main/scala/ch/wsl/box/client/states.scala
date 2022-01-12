@@ -41,6 +41,7 @@ case object AdminState extends FinalRoutingState(Some(RootState()))
 case object AdminConfState extends FinalRoutingState(Some(RootState()))
 case object AdminUiConfState extends FinalRoutingState(Some(RootState()))
 case object AdminBoxDefinitionState extends FinalRoutingState(Some(RootState()))
+case class AdminTranslationsState(from:String,to:String) extends FinalRoutingState(Some(RootState()))
 
 case object IndexState extends FormState(EntityKind.FORM.kind, "index", "true", Some("static::page"), false, Layouts.std) {
   override def entity: String = UI.indexPage.getOrElse("")

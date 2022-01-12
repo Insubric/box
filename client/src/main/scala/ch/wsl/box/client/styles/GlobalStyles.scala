@@ -176,6 +176,15 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       backgroundColor.rgba(0,0,0,0.5),
     ),
 
+
+    unsafeRoot(".rotate-right") (
+      transform := "rotate(90deg)"
+    ),
+
+    unsafeRoot(".rotate-left") (
+      transform := "rotate(-90deg)"
+    ),
+
     unsafeRoot(".container-fluid")(
       padding.`0`
     ),

@@ -2,15 +2,14 @@ package ch.wsl.box.rest.logic.functions
 
 import akka.stream.Materializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONQuery}
 import ch.wsl.box.rest.jdbc.JdbcConnect
-import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import ch.wsl.box.services.Services
-import geotrellis.vector.geometryDecoder
 import io.circe.Json
-import org.locationtech.jts.geom.Geometry
 
 import scala.concurrent.{ExecutionContext, Future}
 

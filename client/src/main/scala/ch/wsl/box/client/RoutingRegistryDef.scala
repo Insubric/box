@@ -51,6 +51,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query))
     case "/admin"  => AdminState
     case "/admin" / "box-definition"  => AdminBoxDefinitionState
+    case "/admin" / "translations" / from / to  => AdminTranslationsState(from,to)
     case "/admin" / "conf"  => AdminConfState
     case "/admin" / "ui-conf"  => AdminUiConfState
   }
@@ -79,6 +80,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/box" / kind / entity / "query" / query => LoginState3params("/box/$kind/$entity/query/$query",kind,entity,query)
     case "/admin"  => LoginState("/admin")
     case "/admin" / "box-definition"  => LoginState("/admin/box-definition")
+    case "/admin" / "translations" / from / to  => LoginState2params("/admin/translations/$from/$to",from,to)
     case "/admin" / "conf"  => LoginState("/admin/conf")
     case "/admin" / "ui-conf"  => LoginState("/admin/ui-conf")
   }
