@@ -44,23 +44,6 @@ grant execute on function box.mail_notification(email, email[], text, text) to w
 
 grant execute on function box.mail_notification(email, email[], text, text) to bafu;
 
-create or replace function box.mail_notification(_mail_from email, _mail_to email[], _subject text, _text text, _html text) returns uuid
-    language sql
-as
-$$
-select box.mail_notification(_mail_from,_mail_to,_subject,_text,_html,'{}'::jsonb);
-$$;
-
-alter function box.mail_notification(email, email[], text, text, text) owner to postgres;
-
-grant execute on function box.mail_notification(email, email[], text, text, text) to wsb;
-
-grant execute on function box.mail_notification(email, email[], text, text, text) to wss;
-
-grant execute on function box.mail_notification(email, email[], text, text, text) to wssweb_user;
-
-grant execute on function box.mail_notification(email, email[], text, text, text) to bafu;
-
 create or replace function box.mail_notification(_mail_from email, _mail_to email[], _subject text, _text text, _html text, _params jsonb) returns uuid
     language plpgsql
 as
@@ -87,5 +70,38 @@ grant execute on function box.mail_notification(email, email[], text, text, text
 
 grant execute on function box.mail_notification(email, email[], text, text, text, jsonb) to wssweb_user;
 
-grant execute on function box.mail_notification(email, email[], text, text, text, jsonb) to bafu;
+grant execute on function box.mail_notification(email, email[], text, text, text, jsonb) to bafu;create or replace function box.mail_notification(_mail_from email, _mail_to email[], _subject text, _text text, _html text) returns uuid
+    language sql
+as
+$$
+select box.mail_notification(_mail_from,_mail_to,_subject,_text,_html,'{}'::jsonb);
+$$;
+
+alter function box.mail_notification(email, email[], text, text, text) owner to postgres;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to wsb;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to wss;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to wssweb_user;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to bafu;
+
+
+create or replace function box.mail_notification(_mail_from email, _mail_to email[], _subject text, _text text, _html text) returns uuid
+    language sql
+as
+$$
+select box.mail_notification(_mail_from,_mail_to,_subject,_text,_html,'{}'::jsonb);
+$$;
+
+alter function box.mail_notification(email, email[], text, text, text) owner to postgres;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to wsb;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to wss;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to wssweb_user;
+
+grant execute on function box.mail_notification(email, email[], text, text, text) to bafu;
 
