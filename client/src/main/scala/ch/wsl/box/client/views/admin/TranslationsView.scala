@@ -128,7 +128,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
       header
     ),
     div(BootstrapCol.md(2)),
-    div(BootstrapCol.md(12),overflow.auto, maxHeight := 80.pct,
+    div(BootstrapCol.md(12),overflow.auto, ClientConf.style.fullHeightMax,
       produce(viewModel.subProp(_.source)) {fields =>
         div(
           fields.map(viewField)
