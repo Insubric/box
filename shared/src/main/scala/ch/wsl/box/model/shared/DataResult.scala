@@ -11,6 +11,9 @@ case class DataResultTable(headers:Seq[String],rows:Seq[Seq[Json]],geometry: Map
 
   lazy val toMap: Seq[Map[String, Json]] = rows.map(r => headers.zip(r).toMap)
 
+  lazy val geomColumn:Seq[String] = geometry.keys.toSeq
+  def toMapGeom(geomCol:String): Seq[(Map[String, Json],Geometry)] = toMap.zip(geometry(geomCol))
+
   def col(name:String):Seq[Json] = toMap.flatMap(_.get(name))
 
   lazy val colMap:Map[String,Seq[Json]] = headers.map(h => h -> col(h)).toMap

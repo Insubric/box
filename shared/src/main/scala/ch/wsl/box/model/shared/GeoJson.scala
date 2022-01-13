@@ -46,6 +46,8 @@ object GeoJson {
   sealed trait Geometry {
     def toSingle:Seq[SingleGeometry]
 
+    def geomName:String
+
     def equalsToFlattenCoords(flatCoords:Seq[Double]):Boolean = flattenCoordinates == flatCoords
 
     def flattenCoordinates:Seq[Double] = toSingle.flatMap(_.flattenCoordinates)
@@ -67,19 +69,31 @@ object GeoJson {
   }
 
   case class Point(coordinates: Coordinates) extends SingleGeometry {
-    override def toString(precision:Double): String = s"POINT(${coordinates.toString(precision)})"
+
+
+    override def geomName: String = "POINT"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.toString(precision)})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatten
   }
 
   case class LineString(coordinates: Seq[Coordinates]) extends SingleGeometry {
-    override def toString(precision:Double): String = s"LINESTRING(${coordinates.map(_.toString(precision)).mkString(",")})"
+
+
+    override def geomName: String = "LINESTRING"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.toString(precision)).mkString(",")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatten)
   }
 
   case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
-    override def toString(precision:Double): String = s"MULTIPOINT(${coordinates.map(_.toString(precision)).mkString("(","),(",")")})"
+
+
+    override def geomName: String = "MULTIPOINT"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.toString(precision)).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Point(c))
 
@@ -88,7 +102,11 @@ object GeoJson {
   }
 
   case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
-    override def toString(precision:Double): String = s"MULTILINESTRING(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
+
+
+    override def geomName: String = "MULTILINESTRING"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => LineString(c))
 
@@ -98,13 +116,21 @@ object GeoJson {
   }
 
   case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends SingleGeometry {
-    override def toString(precision:Double): String = s"POLYGON(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
+
+
+    override def geomName: String = "POLYGON"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatMap(_.flatten))
   }
 
   case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
-    override def toString(precision:Double): String = s"MULTIPOLYGON(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
+
+
+    override def geomName: String = "MULTIPOLYGON"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Polygon(c))
 
@@ -115,9 +141,12 @@ object GeoJson {
 
   case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry {
 
+
+    override def geomName: String = "GEOMETRYCOLLECTION"
+
     override def toSingle: Seq[SingleGeometry] = geometries.flatMap(_.toSingle)
 
-    override def toString(precision:Double): String = s"GEOMETRYCOLLECTION(${geometries.map(_.toString(precision)).mkString(",")})"
+    override def toString(precision:Double): String = s"$geomName(${geometries.map(_.toString(precision)).mkString(",")})"
 
 
     override protected def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(GeometryCollection(singleGeometries))
