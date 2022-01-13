@@ -217,6 +217,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     val options = typings.flatpickr.optionsMod.Options()
       .setAllowInput(true)
+      .setDisableMobile(true)
       .setOnChange(onChange)
 
     if(range) {

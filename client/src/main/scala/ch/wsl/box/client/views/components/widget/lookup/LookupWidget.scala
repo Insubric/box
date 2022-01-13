@@ -52,9 +52,7 @@ trait LookupWidget extends Widget with HasData {
   private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = s
 
   private def current():Seq[JSONLookup] = {
-    val current = field.lookup.toSeq.flatMap(_.allLookup.filter(x => data.get == x.id))
-    logger.warn(s"Current $current")
-    current
+    field.lookup.toSeq.flatMap(_.allLookup.filter(x => data.get == x.id))
   }
 
   private def setNewLookup(_newLookup:Seq[JSONLookup],_data:Option[Json]) = {
