@@ -89,7 +89,7 @@ object Settings {
     "io.circe" %%% "circe-generic-extras" % versions.circe,
     "com.outr" %%% "scribe" % versions.scribe,
     "com.nrinaudo" %%% "kantan.csv" % versions.kantan,
-    "com.github.eikek" %%% "yamusca-core" % "0.8.0"
+    "com.github.eikek" %%% "yamusca-core" % "0.8.0",
   ))
 
   val sharedJVMCodegenDependencies = Def.setting(Seq(
@@ -148,7 +148,6 @@ object Settings {
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
     "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0",
-    "org.arakhne.afc.advanced" % "shapefile" % "16.0", // version 17 requires JDK 11
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "org.flywaydb" % "flyway-core" % "7.9.1",
@@ -161,8 +160,10 @@ object Settings {
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
     "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
-    "com.github.daddykotex" %% "courier" % "3.0.0-M3a"
-//    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
+    "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
+    "org.geotools" % "gt-shapefile" % "23.2",
+
+    //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
 //    "com.github.andyglow" %% "scala-jsonschema-circe-json" % versions.scalaJsonSchema
   ))
 

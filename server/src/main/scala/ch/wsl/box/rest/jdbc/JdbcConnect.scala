@@ -10,7 +10,7 @@ import scribe.Logging
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.jdbc.{Connection, UserDatabase}
+import ch.wsl.box.jdbc.{Connection, TypeMapping, UserDatabase}
 import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.services.Services
 
@@ -47,9 +47,9 @@ object JdbcConnect extends Logging {
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
         val data = getResults(resultSet, metadata)
-        DataResultTable(metadata.map(_.label), data, Map())
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
       } match {
-        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
         case Success(value) => Some(value)
       }
       connection.close()

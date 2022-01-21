@@ -37,8 +37,10 @@ object PSQLImpl extends RuntimePSQL {
       rows <- actions.find(query)
     } yield {
       rows.headOption.map { firstRow =>
+        val keys = firstRow.asObject.get.keys.toSeq
         DataResultTable(
-          headers = firstRow.asObject.get.keys.toSeq,
+          headers = keys,
+          headerType = keys.map(k => columns(k).jsonType),
           rows = rows.map{ row =>
             row.asObject.get.values.toSeq
           },
