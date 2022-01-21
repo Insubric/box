@@ -138,6 +138,7 @@ object Labels {
     def confirmRevert = get(SharedLabels.entity.confirmRevert)
     def csv = get(SharedLabels.entity.csv)
     def xls = get(SharedLabels.entity.xls)
+    def shp = get(SharedLabels.entity.shp)
   }
 
   object header{

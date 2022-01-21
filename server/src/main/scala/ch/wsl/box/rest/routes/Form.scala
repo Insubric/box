@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayOutputStream
-
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
@@ -16,8 +15,10 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
-import ch.wsl.box.rest.io.csv.{CSV}
+import ch.wsl.box.rest.io.csv.CSV
+import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
+import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
@@ -155,6 +156,7 @@ case class Form(
     )
   }
 
+
   def csv:Route = path("csv") {
     post {
       privateOnly {
@@ -166,6 +168,26 @@ case class Form(
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
           onSuccess(db.run(csvTable(q,fk,fields)))(csv => CSV.download(csv))
+        }
+      }
+    }
+  }
+
+  def shp:Route = path("shp") {
+    get {
+      parameters('q) { q =>
+        val query = parse(q).right.get.as[JSONQuery].right.get
+        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
+          complete {
+            for {
+              metadata <- boxDb.adminDb.run(tabularMetadata())
+              formActions = FormActions(metadata, jsonActions, metadataFactory)
+              data <- db.run(formActions.dataTable(query, None))
+              shapefile <- ShapeFileWriter.writeShapeFile(name,data)
+            }  yield {
+              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
+            }
+          }
         }
       }
     }
@@ -342,6 +364,7 @@ case class Form(
     lookup ~
     xls ~
     csv ~
+    shp ~
     pathEnd {
         post {
           entity(as[Json]) { e =>

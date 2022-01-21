@@ -78,7 +78,7 @@ trait Data extends Logging {
       }
       case Some(dc) if dc.mode == FunctionKind.Modes.SHP => {
 
-        val shp: Future[Array[Byte]] = Future(ShapeFileWriter.writeShapeFile(function,dc.asTable))
+        val shp: Future[Array[Byte]] = ShapeFileWriter.writeShapeFile(function,dc.asTable)
 
         respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.zip"))) {
           complete(shp.map(p => HttpEntity(MediaTypes.`application/zip`, p)))

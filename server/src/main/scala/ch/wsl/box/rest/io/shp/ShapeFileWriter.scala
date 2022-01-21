@@ -1,226 +1,234 @@
 package ch.wsl.box.rest.io.shp
 
-import java.io.ByteArrayOutputStream
-import java.util
+import java.io.{ByteArrayOutputStream, File}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import ch.wsl.box.model.shared.{DataResultTable, GeoJson}
 import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
-import org.arakhne.afc.attrs.attr._
-import org.arakhne.afc.attrs.collection.{AbstractAttributeProvider, AttributeProvider}
-import org.arakhne.afc.io.dbase.DBaseFileWriter
-import org.arakhne.afc.io.shape._
-import org.arakhne.afc.math.geometry.PathElementType
-import org.arakhne.afc.math.geometry.d2.d.{Path2d, PathElement2d, Point2d}
+import org.geotools.data.shapefile.ShapefileDataStoreFactory
+import org.geotools.data.simple.SimpleFeatureStore
+import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.geotools.feature.DefaultFeatureCollection
+import org.geotools.geometry.jts.JTSFactoryFinder
+import org.geotools.data.DefaultTransaction
+import org.locationtech.jts.geom.{Coordinate, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon}
 import scribe.Logging
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder
+import org.opengis.feature.simple.SimpleFeatureType
+import org.geotools.data.simple._
 
+import java.nio.file.Files
 import scala.collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
 
-case class ShapeFile(shp:Array[Byte],shx:Array[Byte],dbf:Array[Byte])
+case class ShapeFileElement(extension:String,file:File)
+case class ShapeFileAttributeDef(name:String,typ:String)
+case class ShapeFileAttributes(typ:String,value:Json)
+case class ShapeFileRow(geometry: Geometry, attributes:Seq[ShapeFileAttributes])
 
 object ShapeFileWriter extends Logging {
 
 
-  private def pointExporter(points:Seq[Geometry],attributes: Seq[AbstractAttributeProvider],shpStream:ByteArrayOutputStream,shxStream:ByteArrayOutputStream,dbfStream:ByteArrayOutputStream) = {
+  private val geometryFactory = JTSFactoryFinder.getGeometryFactory
 
-    val data = for (p <- points) yield {
-      val coords = p.asInstanceOf[GeoJson.Point].coordinates
-      new Point2d(coords.x,coords.y)
+  /**
+   *
+   * @tparam T Geometry type
+   */
+  private def schemaFor[T](cls: Class[T],name:String,defs:Seq[ShapeFileAttributeDef]):SimpleFeatureType = {
+
+    /**
+     * References
+     * https://docs.geotools.org/latest/userguide/library/data/shape.html
+     * https://docs.geotools.org/latest/userguide/library/main/feature.html
+     *
+     *
+     * In particular shapefiles supports:
+     *
+     * - attribute names must be 15 characters or you will get a warning:
+     * - a single geometry column named the_geom (stored in the SHP file) * LineString, MultiLineString * Polygon, MultiPolygon * Point, MultiPoint
+     * - Geometries can also contain a measure (M) value or Z & M values.
+     * - “simple” attributes (stored in the DBF file)
+     *    - String max length of 255
+     *    - Integer
+     *    - Double
+     *    - Boolean
+     *    - Date - TimeStamp interpretation that is just the date
+     */
+
+    val builder: SimpleFeatureTypeBuilder = new SimpleFeatureTypeBuilder
+    builder.setName(name)
+    //builder.setCRS() // TODO <- Coordinate reference system
+
+
+    // add attributes in order
+    builder.add("the_geom", cls) // SHP should always have a column holding the geometry the_geom
+    defs.foreach{ d =>
+      d.typ match {
+        case "integer" => builder.add(d.name.take(15),classOf[Integer])
+        case "number" => builder.add(d.name.take(15),classOf[Double])
+        case _ => builder.length(255).add(d.name.take(15),classOf[String])
+      }
     }
+    builder.length(15).add("Name", classOf[String]) // <- 15 chars width for name field
 
-    val exporter = new ElementExporter[Point2d] {
-      override def getAttributeProviders(elements: util.Collection[_ <: Point2d]): Array[AttributeProvider] = elements.asScala.map(getAttributeProvider).toArray
+    builder.buildFeatureType
 
-      override def getAttributeProvider(element: Point2d): AttributeProvider = data.zipWithIndex.find(_._1 == element).map { case (p, i) => attributes(i) }.get
-
-      override def getFileBounds: ESRIBounds = new ESRIBounds(
-        data.map(_.getX).min,
-        data.map(_.getX).max,
-        data.map(_.getY).min,
-        data.map(_.getY).max
-      )
-
-      override def getPointCountFor(element: Point2d, groupIndex: Int): Int = 1
-
-      override def getGroupCountFor(element: Point2d): Int = 1
-
-      override def getPointAt(element: Point2d, groupIndex: Int, pointIndex: Int, expectM: Boolean, expectZ: Boolean): ESRIPoint = new ESRIPoint(element.getX(), element.getY())
-
-      override def getGroupTypeFor(element: Point2d, groupIndex: Int): ShapeMultiPatchType = ???
-    }
-
-    // Dbf writing
-    val dbfWriter = new DBaseFileWriter(dbfStream)
-//        dbfWriter.writeHeader(attributes.asJava)
-//        dbfWriter.write(attributes.asJava)
-
-    // Shx writing
-    val shxWriter = new ShapeFileIndexWriter(shxStream, ShapeElementType.POINT, exporter.getFileBounds())
-//    shxWriter.write(data.length)
-
-    // Shp writing
-    val writer = new org.arakhne.afc.io.shape.ShapeFileWriter(shpStream, ShapeElementType.POINT, exporter, dbfWriter, shxWriter)
-    writer.write(data.toList.asJavaCollection)
-    writer.close()
-    shxWriter.close()
-    dbfWriter.close()
   }
 
-  private def lineExporter(points:Seq[Geometry],attributes: Seq[AbstractAttributeProvider],shpStream:ByteArrayOutputStream,shxStream:ByteArrayOutputStream,dbfStream:ByteArrayOutputStream) = {
-
-
-    val data:Seq[Path2d] = for (p <- points) yield {
-      val coords = p.asInstanceOf[GeoJson.LineString].coordinates
-
-      val path = new Path2d()
-      coords.foreach(c => path.lineTo(c.x,c.y) )
-      path.closePath()
-      path
-    }
-
-    val exporter = new ElementExporter[Path2d] {
-      override def getAttributeProviders(elements: util.Collection[_ <: Path2d]): Array[AttributeProvider] = elements.asScala.map(getAttributeProvider).toArray
-
-      override def getAttributeProvider(element: Path2d): AttributeProvider = data.zipWithIndex.find(_._1 == element).map { case (p, i) => attributes(i) }.orNull
-
-      override def getFileBounds: ESRIBounds = new ESRIBounds(
-        data.flatMap(_.toPointArray().map(_.getX)).min,
-        data.flatMap(_.toPointArray().map(_.getX)).max,
-        data.flatMap(_.toPointArray().map(_.getY)).min,
-        data.flatMap(_.toPointArray().map(_.getY)).max
-      )
-
-      override def getPointCountFor(element: Path2d, groupIndex: Int): Int = element.size()
-
-      override def getGroupCountFor(element: Path2d): Int = 1
-
-      override def getPointAt(element: Path2d, groupIndex: Int, pointIndex: Int, expectM: Boolean, expectZ: Boolean): ESRIPoint = new ESRIPoint(element.getPointAt(pointIndex).getX(), element.getPointAt(pointIndex).getY())
-
-      override def getGroupTypeFor(element: Path2d, groupIndex: Int): ShapeMultiPatchType = ???
-    }
-
-    // Dbf writing
-    val dbfWriter = new DBaseFileWriter(dbfStream)
-    //    dbfWriter.writeHeader(attributes.asJava)
-    //    dbfWriter.write(attributes.asJava)
-
-    // Shx writing
-    val shxWriter = new ShapeFileIndexWriter(shxStream, ShapeElementType.POINT, exporter.getFileBounds())
-    //shxWriter.write(data.length)
-
-    // Shp writing
-    val writer = new org.arakhne.afc.io.shape.ShapeFileWriter(shpStream, ShapeElementType.POINT, exporter, dbfWriter, shxWriter)
-    writer.write(data.toList.asJavaCollection)
-    writer.close()
-    shxWriter.close()
-    dbfWriter.close()
+  private def pointJTS(point:GeoJson.Point):Point =   {
+    geometryFactory.createPoint(new Coordinate(point.coordinates.x,point.coordinates.y))
   }
 
-  def writeShapeFile(name:String,myData: DataResultTable) = {
+  private def lineJTS(line:GeoJson.LineString):LineString=  {
+    geometryFactory.createLineString(line.coordinates.map(c => new Coordinate(c.x,c.y)).toArray)
+  }
+
+  private def polygonJTS(poly:GeoJson.Polygon):Polygon = {
+
+    val ring = geometryFactory.createLinearRing{
+      poly.coordinates.head.map(c => new Coordinate(c.x,c.y)).toArray
+    }
+
+    val holes = poly.coordinates.tail.map{ hole =>
+      geometryFactory.createLinearRing(hole.map(c => new Coordinate(c.x,c.y)).toArray)
+    }.toArray
+
+    geometryFactory.createPolygon(ring,holes)
+
+  }
+
+  private def multiPointJTS(points:GeoJson.MultiPoint):MultiPoint =  {
+    geometryFactory.createMultiPoint{
+      points.toSingle.map(p => pointJTS(p.asInstanceOf[GeoJson.Point])).toArray
+    }
+  }
+
+  private def multiLineJTS(lines:GeoJson.MultiLineString):MultiLineString =  {
+    geometryFactory.createMultiLineString{
+      lines.toSingle.map(p => lineJTS(p.asInstanceOf[GeoJson.LineString])).toArray
+    }
+  }
+
+  private def multiPolygonJTS(polygons:GeoJson.MultiPolygon):MultiPolygon =  {
+    geometryFactory.createMultiPolygon{
+      polygons.toSingle.map(p => polygonJTS(p.asInstanceOf[GeoJson.Polygon])).toArray
+    }
+  }
+
+
+
+  private def toJTS(geometry: Geometry):org.locationtech.jts.geom.Geometry = {
+    geometry match {
+      case geometry: GeoJson.SingleGeometry => geometry match {
+        case p:GeoJson.Point => pointJTS(p)
+        case l:GeoJson.LineString => lineJTS(l)
+        case poly:GeoJson.Polygon => polygonJTS(poly)
+      }
+      case mp:GeoJson.MultiPoint => multiPointJTS(mp)
+      case ml:GeoJson.MultiLineString => multiLineJTS(ml)
+      case mpoly:GeoJson.MultiPolygon => multiPolygonJTS(mpoly)
+      case GeoJson.GeometryCollection(geometries) => throw new Exception("Geometry collection are not supported in shapefiles")
+    }
+  }
+
+
+
+  private def attributeWriter(attributes: Seq[ShapeFileAttributes],featureBuilder:SimpleFeatureBuilder) = {
+    attributes.foreach{ sfa =>
+      sfa.typ match {
+        case "number" => featureBuilder.add(sfa.value.as[Double].toOption.orNull)
+        case "integer" => featureBuilder.add(sfa.value.as[Int].toOption.orNull)
+        case _ => featureBuilder.add(sfa.value.string.take(255))
+      }
+    }
+  }
+
+  private def createShapefile(schema: SimpleFeatureType,rows:Seq[ShapeFileRow]):Seq[ShapeFileElement] = {
+
+    val file = File.createTempFile("shapefile-export",".shp")
+
+    val dataStoreFactory = new ShapefileDataStoreFactory
+    val params = Map(
+      "url" -> file.toURI.toURL,
+      "create spatial index" -> java.lang.Boolean.TRUE
+    )
+    val dataStore = dataStoreFactory.createNewDataStore(params.asJava.asInstanceOf[java.util.Map[String,java.io.Serializable]])
+
+    dataStore.createSchema(schema)
+    val typeName = dataStore.getTypeNames()(0)
+    val featureSource = dataStore.getFeatureSource(typeName)
+
+    val collection = new DefaultFeatureCollection("internal",schema)
+    val featureBuilder = new SimpleFeatureBuilder(schema)
+
+
+    for (r <- rows) {
+      featureBuilder.add(toJTS(r.geometry))
+      attributeWriter(r.attributes,featureBuilder)
+      collection.add(featureBuilder.buildFeature(null))
+    }
+
+    val transaction = new DefaultTransaction("create")
+    featureSource.asInstanceOf[SimpleFeatureStore].addFeatures(collection)
+    transaction.commit()
+    transaction.close()
+
+    val dir = file.toURI.getPath.split("/").init.mkString("/")
+    val prefix = file.toURI.getPath.split('.').init.mkString(".")
+
+    val files = new File(dir).listFiles().toSeq.filter(_.getPath.startsWith(prefix))
+
+    files.map(f => ShapeFileElement(f.getPath.split('.').last,f))
+  }
+
+
+  def writeShapeFile(name:String,myData: DataResultTable)(implicit ex:ExecutionContext):Future[Array[Byte]] = Future{
 
     val zipFile = new ByteArrayOutputStream()
     val zip = new ZipOutputStream(zipFile)
 
+    val attributeDef = myData.headers.zip(myData.headerType).map{case (h,ht) => ShapeFileAttributeDef(h,ht)}
+
     myData.geomColumn.map{ geomCol =>
-      myData.toMapGeom(geomCol).groupBy{ g => g._2.geomName}.map{ case (geomType,data) =>
+
+      val allData: Seq[ShapeFileRow] = myData.rows.map{ row =>
+        row.zip(myData.headerType).map{ case (value,typ) => ShapeFileAttributes(typ, value)}
+      }.zip(myData.geometry(geomCol)).map{ case (attributes,geom) => ShapeFileRow(geom,attributes)}
+
+
+      allData.groupBy{ g => g.geometry.geomName}.map{ case (geomType,data) =>
         val n = s"$name-$geomType"
-        val shapeFile = createShapefile(data.map(_._1),data.map(_._2))
-        zip.putNextEntry(new ZipEntry(s"$n.shp"))
-        zip.write(shapeFile.shp)
-        zip.closeEntry()
-        zip.putNextEntry(new ZipEntry(s"$n.shx"))
-        zip.write(shapeFile.shx)
-        zip.closeEntry()
-        zip.putNextEntry(new ZipEntry(s"$n.dbf"))
-        zip.write(shapeFile.dbf)
-        zip.closeEntry()
+
+        val schema = data.head.geometry match {
+          case geometry: GeoJson.SingleGeometry => geometry match {
+            case GeoJson.Point(_) => schemaFor(classOf[Point],name,attributeDef)
+            case GeoJson.LineString(_) => schemaFor(classOf[LineString],name,attributeDef)
+            case GeoJson.Polygon(_) => schemaFor(classOf[Polygon],name,attributeDef)
+          }
+          case GeoJson.MultiPoint(_) => schemaFor(classOf[MultiPoint],name,attributeDef)
+          case GeoJson.MultiLineString(_) => schemaFor(classOf[MultiLineString],name,attributeDef)
+          case GeoJson.MultiPolygon(_) => schemaFor(classOf[MultiPolygon],name,attributeDef)
+          case GeoJson.GeometryCollection(_) => throw new Exception("Geometry colletions are not supported in shapefiles")
+        }
+
+        val shapeFile = createShapefile(schema,data)
+
+        shapeFile.foreach{ sf =>
+          zip.putNextEntry(new ZipEntry(s"$n.${sf.extension}"))
+          zip.write(Files.readAllBytes(sf.file.toPath))
+          zip.closeEntry()
+          sf.file.delete()
+        }
       }
     }
 
     zip.close()
-
     val result = zipFile.toByteArray
-
     zipFile.close()
 
-
     result
-
-  }
-
-  def createShapefile(rows: Seq[Map[String,Json]], geoms:Seq[Geometry]):ShapeFile = {
-
-
-    val attributes: Seq[AbstractAttributeProvider] = for (row <- rows) yield {
-      new AbstractAttributeProvider {
-
-        val values: Map[String, AttributeValueImpl] = row.map{case (k,v) => k -> v.fold[AttributeValueImpl](
-          jsonNull = new AttributeValueImpl(""),
-          jsonBoolean = bool => new AttributeValueImpl(bool),
-          jsonNumber = number => new AttributeValueImpl(number),
-          jsonString = str => new AttributeValueImpl(str),
-          jsonArray = _ => new AttributeValueImpl(v.string),
-          jsonObject = _ => new AttributeValueImpl(v.string)
-        )}
-
-
-        override def getAttributeCount: Int = values.size
-
-        override def hasAttribute(name: String): Boolean = values.contains(name)
-
-        override def getAllAttributes: util.Collection[Attribute] = {
-          val seq: Seq[Attribute] = values.map { case (name, v) => new AttributeImpl(name, v) }.toSeq
-          seq.asJavaCollection
-        }
-
-        override def getAllAttributesByType: util.Map[AttributeType, util.Collection[Attribute]] = values.groupBy(_._2.getType).map { case (name, v) =>
-          val seq: Seq[Attribute] = v.map { case (name, v) => new AttributeImpl(name, v) }.toSeq
-          name -> seq.asJavaCollection
-        }.asJava
-
-        override def getAllAttributeNames: util.Collection[String] = values.keys.asJavaCollection
-
-        override def getAttribute(name: String): AttributeValue = values(name)
-
-        override def getAttribute(name: String, defaultValue: AttributeValue): AttributeValue = values.getOrElse(name, defaultValue)
-
-        override def getAttributeObject(name: String): Attribute = new AttributeImpl(name, values(name))
-
-        override def freeMemory(): Unit = {}
-
-        override def toMap(mapToFill: util.Map[String, AnyRef]): Unit = ???
-      }
-    }
-
-    val shpStream = new ByteArrayOutputStream()
-    val shxStream = new ByteArrayOutputStream()
-    val dbfStream = new ByteArrayOutputStream()
-
-    geoms.headOption.foreach {
-      case geometry: GeoJson.SingleGeometry => geometry match {
-        case GeoJson.Point(coordinates) => pointExporter(geoms,attributes,shpStream,shxStream, dbfStream)
-        case GeoJson.LineString(coordinates) => lineExporter(geoms,attributes,shpStream,shxStream, dbfStream)
-        case GeoJson.Polygon(coordinates) => logger.warn(s"Polygon shp exporter not implemented yet")
-      }
-      case GeoJson.MultiPoint(coordinates) => logger.warn(s"MultiPoint shp exporter not implemented yet")
-      case GeoJson.MultiLineString(coordinates) => logger.warn(s"MultiLineString shp exporter not implemented yet")
-      case GeoJson.MultiPolygon(coordinates) => logger.warn(s"MultiPolygon shp exporter not implemented yet")
-      case GeoJson.GeometryCollection(geometries) => logger.warn(s"GeometryCollection shp exporter not implemented yet")
-    }
-
-
-
-    val shpFile = shpStream.toByteArray
-    shpStream.close()
-    val shxFile = shxStream.toByteArray
-    shxStream.close()
-    val dbfFile = dbfStream.toByteArray
-    dbfStream.close()
-
-    ShapeFile(shpFile,shxFile,dbfFile)
-
-
 
   }
 

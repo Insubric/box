@@ -184,7 +184,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   def changedFeatures() = {
     listener.cancel()
-    val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+    val geoJson:js.Any = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
     convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
       import GeoJson.Geometry._
       import GeoJson._

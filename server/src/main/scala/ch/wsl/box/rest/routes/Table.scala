@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayOutputStream
-
 import akka.http.scaladsl.common.EntityStreamingSupport
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling, ToEntityMarshaller, ToResponseMarshaller}
 import akka.http.scaladsl.model.HttpEntity
@@ -16,12 +15,14 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
-import ch.wsl.box.rest.utils.{ JSONSupport, UserProfile}
+import ch.wsl.box.rest.utils.{JSONSupport, Lang, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
+import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.services.Services
 import io.circe.parser.decode
@@ -57,7 +58,9 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
   import io.circe.generic.extras.auto._
   import io.circe.generic.extras.Configuration
+
   implicit val customConfig: Configuration = Configuration.default.withDefaults
+  implicit val l = Lang(lang)
 
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
@@ -90,6 +93,24 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
           XLS.route(table)
         }
         onSuccess(db.run(io))(x => x)
+      }
+    }
+  }
+
+  def shp:Route = path("shp") {
+    get {
+      parameters('q) { q =>
+        val query = parse(q).right.get.as[JSONQuery].right.get
+        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
+          complete {
+            for{
+              data <- PSQLImpl.table(name, query)
+              shapefile <- ShapeFileWriter.writeShapeFile(name,data.get)
+            } yield {
+              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
+            }
+          }
+        }
       }
     }
   }
@@ -258,6 +279,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
       list ~
       xls ~
       csv ~
+      shp ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~
         insert
