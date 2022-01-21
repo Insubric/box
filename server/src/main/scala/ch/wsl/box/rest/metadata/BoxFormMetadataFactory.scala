@@ -12,7 +12,7 @@ import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext, services:Services) extends Logging with MetadataFactory {
+class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext, services:Services) extends Logging with MetadataFactory {
 
 
 

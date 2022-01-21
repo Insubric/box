@@ -162,8 +162,8 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
       ui ~
       uiFile ~
       Cache.resetRoute() ~
-      PublicArea().route ~
-      PrivateArea().route
+      new PublicArea().route ~
+      new PrivateArea().route
   }
 
 }

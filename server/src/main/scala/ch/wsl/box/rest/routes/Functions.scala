@@ -20,7 +20,7 @@ object Functions extends Data {
 
 
 
-  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = FunctionMetadataFactory()
+  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = new FunctionMetadataFactory()
 
   def functions = ch.wsl.box.model.boxentities.BoxFunction
 

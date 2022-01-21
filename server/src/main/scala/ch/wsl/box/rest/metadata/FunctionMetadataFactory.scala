@@ -19,7 +19,7 @@ import ch.wsl.box.services.Services
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
+class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
 
   import io.circe.generic.auto._
 

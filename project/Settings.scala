@@ -32,8 +32,7 @@ object Settings {
   object versions {
 
     //General
-    val scala212 = "2.12.12"
-    val scala213 = "2.13.3"
+    val scala213 = "2.13.8"
     val ficus = "1.4.7"
 
     val macWire = "2.3.7"
@@ -117,8 +116,8 @@ object Settings {
 
   /** Dependencies only used by the JVM project */
   val jvmDependencies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
-    "org.scala-lang"           % "scala-reflect"     % versions.scala212,
-    "org.scala-lang"           % "scala-compiler"    % versions.scala212,
+    "org.scala-lang"           % "scala-reflect"     % versions.scala213,
+    "org.scala-lang"           % "scala-compiler"    % versions.scala213,
     "com.typesafe.akka"        %% "akka-http-core"   % versions.akkaHttp,
     "com.typesafe.akka"        %% "akka-http-caching" % versions.akkaHttp,
     "de.heikoseeberger"        %% "akka-http-circe"  % versions.akkaHttpJson,
@@ -140,14 +139,14 @@ object Settings {
     "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion % "test",
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
-    "ch.wavein"                %% "scala-thumbnailer" % "0.7.1",
+    "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
     "javax.servlet"            % "javax.servlet-api" % "3.1.0" % "provided",
     "org.mitre.dsmiley.httpproxy" % "smiley-http-proxy-servlet" % "1.10",
     "com.openhtmltopdf"        % "openhtmltopdf-pdfbox" % "1.0.9",
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0",
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0-SNAPSHOT",
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "org.flywaydb" % "flyway-core" % "7.9.1",

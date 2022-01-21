@@ -25,7 +25,7 @@ import io.circe.Json
 
 import scala.concurrent.ExecutionContext
 
-case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[BoxSession], mat:Materializer, system:ActorSystem, services: Services) {
+class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[BoxSession], mat:Materializer, system:ActorSystem, services: Services) {
 
   import Directives._
   import ch.wsl.box.jdbc.Connection

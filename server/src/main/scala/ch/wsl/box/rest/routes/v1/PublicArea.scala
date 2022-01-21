@@ -17,7 +17,7 @@ import ch.wsl.box.services.Services
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
+class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
 
   lazy val publicEntities:Future[Seq[BoxPublicEntities.Row]] = services.connection.adminDB.run(BoxPublicEntities.table.result)
 

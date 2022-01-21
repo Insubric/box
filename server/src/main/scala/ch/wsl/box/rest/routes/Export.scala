@@ -21,7 +21,7 @@ object Export extends Data with Logging {
   import io.circe.generic.auto._
 
 
-  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = ExportMetadataFactory()
+  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = new ExportMetadataFactory()
 
 
   override def data(function: String, params: Json, lang: String)(implicit up: UserProfile, mat:Materializer, ec: ExecutionContext,system:ActorSystem,services:Services): Future[Option[DataContainer]] = {

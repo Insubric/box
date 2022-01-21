@@ -29,14 +29,14 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   def form = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,BoxActionsRegistry().tableActions,BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
+        Form(name, lang,BoxActionsRegistry().tableActions,new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
       }
     }
   }
 
   def forms = path(EntityKind.BOX_FORM.plural) {
     get {
-      complete(services.connection.adminDB.run(BoxFormMetadataFactory().list))
+      complete(services.connection.adminDB.run(new BoxFormMetadataFactory().list))
     }
   }
 
