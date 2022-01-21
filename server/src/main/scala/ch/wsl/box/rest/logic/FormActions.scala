@@ -16,6 +16,7 @@ import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
@@ -102,13 +103,25 @@ case class FormActions(metadata:JSONMetadata,
 
 
   def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
-
-
     val columns = metadata.tabularFields.map{f =>
       (f, listRenderer(row,lookupElements,dropHtml)(f))
     }
     Json.obj(columns:_*)
   }}
+
+  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(queryForm(query)).map{ rows =>
+
+    val data: Seq[Seq[Json]] = rows.map { row =>
+      metadata.tabularFields.map { f =>
+        listRenderer(row, lookupElements, dropHtml)(f)
+      }
+    }
+    val fields = metadata.tabularFields.flatMap(f => metadata.fields.find(_.name == f))
+    val geomColumn = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
+    DataResultTable(fields.map(_.title),fields.map(_.`type`),data,geomColumn.map{ case f =>
+      f.name -> rows.flatMap{ row => row.js(f.name).as[Geometry].toOption }
+    }.toMap)
+  }
 
   def csv(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
 
@@ -116,7 +129,6 @@ case class FormActions(metadata:JSONMetadata,
     import kantan.csv.ops._
 
     _list(queryForm(query)).map { rows =>
-
       val csvRows = rows.map { json =>
 
 
@@ -124,12 +136,7 @@ case class FormActions(metadata:JSONMetadata,
       }
       CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
     }
-
-
   }
-
-
-
 
 
   /**

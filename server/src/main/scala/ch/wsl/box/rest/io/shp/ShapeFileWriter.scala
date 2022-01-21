@@ -20,6 +20,7 @@ import org.geotools.data.simple._
 
 import java.nio.file.Files
 import scala.collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
 
 case class ShapeFileElement(extension:String,file:File)
 case class ShapeFileAttributeDef(name:String,typ:String)
@@ -29,7 +30,7 @@ case class ShapeFileRow(geometry: Geometry, attributes:Seq[ShapeFileAttributes])
 object ShapeFileWriter extends Logging {
 
 
-  val geometryFactory = JTSFactoryFinder.getGeometryFactory
+  private val geometryFactory = JTSFactoryFinder.getGeometryFactory
 
   /**
    *
@@ -183,7 +184,7 @@ object ShapeFileWriter extends Logging {
   }
 
 
-  def writeShapeFile(name:String,myData: DataResultTable):Array[Byte] = {
+  def writeShapeFile(name:String,myData: DataResultTable)(implicit ex:ExecutionContext):Future[Array[Byte]] = Future{
 
     val zipFile = new ByteArrayOutputStream()
     val zip = new ZipOutputStream(zipFile)

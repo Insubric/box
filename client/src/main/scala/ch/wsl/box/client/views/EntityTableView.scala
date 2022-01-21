@@ -346,6 +346,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     download("csv")
     e.preventDefault()
   }
+
+  val downloadSHP = (e:Event) => {
+    download("shp")
+    e.preventDefault()
+  }
+
   val downloadXLS = (e:Event) => {
     download("xlsx")
     e.preventDefault()
@@ -587,6 +593,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
+          button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {
             p("loading...").render
           },
