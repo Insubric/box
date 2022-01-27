@@ -43,6 +43,7 @@ object JdbcConnect extends Logging {
         val query = s"SELECT ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
         logger.info(query)
         val dynResultSet = statement.executeQuery(query)
+        dynResultSet.next()
         val dynQuery = dynResultSet.getString(1)
 
         val dynStatement = connection.createStatement()
