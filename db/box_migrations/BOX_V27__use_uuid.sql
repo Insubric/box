@@ -203,9 +203,6 @@ alter table box.export add column export_uuid uuid not null default gen_random_u
 alter table box.export_i18n add column uuid uuid not null default gen_random_uuid();
 alter table box.export_i18n add column export_uuid uuid;
 
-alter table box.export_header_i18n add column uuid uuid not null default gen_random_uuid();
-alter table box.export_header_i18n add column export_uuid uuid;
-
 alter table box.export_field add column field_uuid uuid not null default gen_random_uuid();
 alter table box.export_field add column export_uuid uuid;
 
@@ -226,13 +223,6 @@ where i.export_id = f.export_id;
 
 alter table box.export_field alter column export_uuid set not null;
 
-update box.export_header_i18n as i
-set export_uuid = f.export_uuid
-from box.export as f
-where i.id = f.export_id;
-
-alter table box.export_header_i18n alter column export_uuid set not null;
-
 update box.export_field_i18n as i
 set field_uuid = f.field_uuid
 from box.export_field as f
@@ -243,7 +233,6 @@ alter table box.export_field_i18n alter column field_uuid set not null;
 alter table box.export_i18n drop constraint if exists fkey_export cascade;
 alter table box.export_field drop constraint if exists fkey_export cascade;
 alter table box.export_field_i18n drop constraint if exists fkey_field cascade;
-
 
 alter table box.export drop constraint if exists export_pkey cascade;
 alter table box.export add constraint export_pkey primary key (export_uuid);
