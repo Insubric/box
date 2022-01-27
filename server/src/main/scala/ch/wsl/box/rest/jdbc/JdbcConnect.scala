@@ -2,7 +2,6 @@ package ch.wsl.box.rest.jdbc
 
 import java.sql._
 import ch.wsl.box.model.boxentities.{BoxExportField, BoxLabels}
-import ch.wsl.box.model.boxentities.BoxExportField.BoxExportHeader_i18n_row
 import ch.wsl.box.rest.utils.UserProfile
 import io.circe.Json
 import scribe.Logging

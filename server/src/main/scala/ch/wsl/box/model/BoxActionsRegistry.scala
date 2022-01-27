@@ -30,7 +30,6 @@ class BoxActionsRegistry(implicit ec:ExecutionContext,services:Services)  {
     case "export" => JSONTableActions[BoxExport.BoxExport,BoxExport.BoxExport_row](BoxExport.BoxExportTable)
     case "export_field" => JSONTableActions[BoxExportField.BoxExportField,BoxExportField.BoxExportField_row](BoxExportField.BoxExportFieldTable)
     case "export_field_i18n" => JSONTableActions[BoxExportField.BoxExportField_i18n,BoxExportField.BoxExportField_i18n_row](BoxExportField.BoxExportField_i18nTable)
-    case "export_header_i18n" => JSONTableActions[BoxExportField.BoxExportHeader_i18n,BoxExportField.BoxExportHeader_i18n_row](BoxExportField.BoxExportHeader_i18nTable)
     case "export_i18n" => JSONTableActions[BoxExport.BoxExport_i18n,BoxExport.BoxExport_i18n_row](BoxExport.BoxExport_i18nTable)
     case "field" => JSONTableActions[BoxField.BoxField,BoxField.BoxField_row](BoxField.BoxFieldTable)
     case "field_file" => JSONTableActions[BoxField.BoxFieldFile,BoxField.BoxFieldFile_row](BoxField.BoxFieldFileTable)
