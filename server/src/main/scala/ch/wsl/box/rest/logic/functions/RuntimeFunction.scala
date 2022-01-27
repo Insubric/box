@@ -19,6 +19,7 @@ trait RuntimeWS{
 
 trait RuntimePSQL{
   def function(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,up: UserProfile,services:Services):Future[Option[DataResultTable]]
+  def dynFunction(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,up: UserProfile,services:Services):Future[Option[DataResultTable]]
   def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]]
 }
 

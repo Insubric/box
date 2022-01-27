@@ -20,6 +20,7 @@ object PSQLImpl extends RuntimePSQL {
 
 
   override def function(name: String, parameters: Seq[Json])(implicit lang: Lang,ec: ExecutionContext, up: UserProfile,services:Services): Future[Option[DataResultTable]] = JdbcConnect.function(name,parameters,lang.lang)
+  override def dynFunction(name: String, parameters: Seq[Json])(implicit lang: Lang,ec: ExecutionContext, up: UserProfile,services:Services): Future[Option[DataResultTable]] = JdbcConnect.dynamicFunction(name,parameters,lang.lang)
 
   override def table(name: String, query:JSONQuery)(implicit lang:Lang, ec: ExecutionContext, up: UserProfile, mat:Materializer,services:Services): Future[Option[DataResultTable]] = {
 

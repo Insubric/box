@@ -25,6 +25,45 @@ object JdbcConnect extends Logging {
   import io.circe.syntax._
 
 
+  def dynamicFunction(name:String, args: Seq[Json], lang:String)(implicit ec:ExecutionContext,up:UserProfile,services:Services):Future[Option[DataResultTable]] = {
+
+    val result = Future{
+      // make the connection
+      val connection = services.connection.dbConnection.source.createConnection()
+      val result = Try {
+        connection.setAutoCommit(false)
+        // create the statement, and run the select query
+        val roleStatement = connection.createStatement()
+        roleStatement.execute(s"""SET ROLE "${up.name}" """)
+
+        val statement = connection.createStatement()
+        val argsStr = if (args == null) ""
+        else args.map(_.toString()).mkString(",")
+
+        val query = s"SELECT ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
+        logger.info(query)
+        val dynResultSet = statement.executeQuery(query)
+        val dynQuery = dynResultSet.getString(1)
+
+        val dynStatement = connection.createStatement()
+        val resultSet = dynStatement.executeQuery(dynQuery)
+        connection.commit()
+        val metadata = getColumnMeta(resultSet.getMetaData)
+        val data = getResults(resultSet, metadata)
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
+      } match {
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+        case Success(value) => Some(value)
+      }
+      connection.close()
+      result
+    }
+
+    for{
+      r <- result
+      labels <- useI18nHeader(lang,r.toSeq.flatMap(_.headers))
+    } yield r.map(_.copy(headers = labels))
+  }
 
   def function(name:String, args: Seq[Json], lang:String)(implicit ec:ExecutionContext,up:UserProfile,services:Services):Future[Option[DataResultTable]] = {
 
@@ -60,9 +99,6 @@ object JdbcConnect extends Logging {
       r <- result
       labels <- useI18nHeader(lang,r.toSeq.flatMap(_.headers))
     } yield r.map(_.copy(headers = labels))
-
-
-
   }
 
 
