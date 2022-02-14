@@ -5,6 +5,7 @@ import ch.wsl.box.model.boxentities.BoxField
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{BoxTranslationsFields, Field}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -41,6 +42,7 @@ object Translations {
             lookupTextField = emptyToNone(dest.dynamicLabel)
           )
           case None => BoxField.BoxField_i18n_row(
+            uuid = Some(UUID.randomUUID()),
             field_uuid = s.field_uuid,
             lang = Some(data.destLang),
             label = Some(dest.label),

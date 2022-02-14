@@ -19,7 +19,7 @@ object Lookup {
   def valuesForEntity(metadata:JSONMetadata)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Map[String,Seq[Json]]] = {
       DBIO.sequence{
         metadata.fields.flatMap(_.lookup.map(_.lookupEntity)).map{ lookupEntity =>
-          Registry().actions(lookupEntity).find(JSONQuery.empty).map{ jq => lookupEntity -> jq}
+          Registry().actions(lookupEntity).find(JSONQuery.empty.limit(10000)).map{ jq => lookupEntity -> jq}
         }
       }.map(_.toMap)
 
