@@ -115,8 +115,7 @@ case class Form(
           val io = for {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, jsonActions, metadataFactory)
-            fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-            data <- formActions.list(query, fkValues, true)
+            data <- formActions.list(query, true, true)
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
@@ -135,7 +134,7 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, jsonActions, metadataFactory)
-      csv <- db.run(formActions.csv(query, None))
+      csv <- db.run(formActions.csv(query, false))
     } yield csv
   }
 
@@ -149,7 +148,7 @@ case class Form(
         case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
         case _ => DBIO.successful(None)
       }
-      csv <- formActions.csv(query, fkValues, _.exportFields)
+      csv <- formActions.csv(query, true, _.exportFields)
     } yield csv.copy(
       showHeader = true,
       header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
@@ -348,8 +347,7 @@ case class Form(
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
                 formActions = FormActions(metadata, jsonActions, metadataFactory)
-                fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-                result <- formActions.list(query, fkValues)
+                result <- formActions.list(query, true)
               } yield {
                 result
               }
