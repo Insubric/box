@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.metadata
 
 import java.util.UUID
-
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgColumns, PgInformationSchema}
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
@@ -11,7 +10,7 @@ import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -173,9 +172,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       })
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
-
-      cols <- new PgInformationSchema(services.connection.dbSchema,form.entity)(ec).columns
-      columns = fields.map(f => cols.find(_.column_name == f._1.name))
+      columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name))
       keys <- keys(form)
       jsonFieldsPartial <- fieldsToJsonFields(fields.zip(fieldsFile).zip(columns), lang)
     } yield {
@@ -431,9 +428,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case None => DBIO.successful(None)
   }
 
-  private def fieldsToJsonFields(fields:Seq[(((BoxField_row,Option[BoxField_i18n_row]),Option[BoxFieldFile_row]),Option[PgColumn])], lang:String): DBIO[Seq[JSONField]] = {
+  private def fieldsToJsonFields(fields:Seq[(((BoxField_row,Option[BoxField_i18n_row]),Option[BoxFieldFile_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
 
-    val jsonFields = fields.map{ case (((field,fieldI18n),fieldFile),pgColumn) =>
+    val jsonFields = fields.map{ case (((field,fieldI18n),fieldFile),colType) =>
 
       if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_uuid}) has no translation to $lang")
 
@@ -446,7 +443,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         JSONField(
           `type` = field.`type`,
           name = field.name,
-          nullable = !pgColumn.exists(_.required) && !field.required.getOrElse(false),
+          nullable = colType.required && !field.required.getOrElse(false),
           readOnly = field.read_only,
           label = Some(lab),
           lookup = look,

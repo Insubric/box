@@ -38,8 +38,11 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
 
       val jsonType = pgCol.map(_.jsonType).getOrElse(JSONFieldTypes.STRING)
 
-      val nullable = !pgCol.exists(_.required)
-      s"""      "${c.model.name}" -> ColType("$scalaType","$jsonType",$nullable)"""
+      val required = !pgCol.exists(_.required)
+
+      val nullable = pgCol.exists(_.nullable) || c.model.nullable
+
+      s"""      "${c.model.name}" -> ColType("$scalaType","$jsonType",$required,$nullable)"""
     }
   }
 
