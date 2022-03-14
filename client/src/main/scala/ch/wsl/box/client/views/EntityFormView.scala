@@ -563,17 +563,19 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       div(BootstrapStyles.Visibility.clearfix)
     )
 
-    val formHeader = div(ClientConf.style.formHeader,
+    def formHeader(showId:Boolean) = div(ClientConf.style.formHeader,
       div(BootstrapStyles.Float.left(),
         h3(
           ClientConf.style.noMargin,
           labelTitle,
-          showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
-            small(produce(model.subProp(_.id)) { id =>
-              val subTitle = id.map(" - " + _).getOrElse("")
-              span(subTitle).render
-            }).render
-          },
+          if(showId) {
+            showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
+              small(produce(model.subProp(_.id)) { id =>
+                val subTitle = id.map(" - " + _).getOrElse("")
+                span(subTitle).render
+              }).render
+            }
+          } else frag(),
           showIf(model.subProp(_.changed)) {
             small(id := TestHooks.dataChanged,style := "color: red"," - " + Labels.form.changed).render
           }
@@ -623,11 +625,12 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
         val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
         val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
+        val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
         val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
         div(
           if(showHeader) {
-            formHeader.render
+            formHeader(showId).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
             _form match {
