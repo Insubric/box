@@ -123,8 +123,12 @@ case class FormActions(metadata:JSONMetadata,
     val lookupFields = tabularFields.filter(_.lookup.isDefined)
 
     DBIO.sequence(lookupFields.map{ lf =>
-      val data = rows.map(_.get(lf.lookup.get.map.localValueProperty)).filterNot(_ == "")
-      val fkQuery = JSONQuery.filterWith(JSONQueryFilter.WHERE.in(lf.lookup.get.map.valueProperty,data)).limit(100000)
+      val localFields = lf.lookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
+      val foreignFields = lf.lookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
+
+      val data = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose
+      val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
+      val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
       Registry().actions(lf.lookup.get.lookupEntity).find(fkQuery).map{ fk =>
         lf.lookup.get.lookupEntity -> fk
       }
