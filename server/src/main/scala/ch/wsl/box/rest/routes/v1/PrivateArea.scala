@@ -7,8 +7,8 @@ import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpHead
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.BoxActionsRegistry
-import ch.wsl.box.model.shared.{CSVTable, EntityKind, PDFTable, XLSTable}
+import ch.wsl.box.model.{BoxActionsRegistry, Translations}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, EntityKind, PDFTable, XLSTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.io.pdf.PDFExport
@@ -137,6 +137,29 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  def translations = pathPrefix("translations") {
+    pathPrefix("fields") {
+      path(Segment) { lang =>
+        get {
+
+          import io.circe._
+          import io.circe.generic.auto._
+          import io.circe.syntax._
+
+          complete(Translations.exportFields(lang, services.connection.adminDB).map(_.asJson))
+        }
+      } ~ path("commit") {
+        post {
+          entity(as[BoxTranslationsFields]) { merge =>
+            complete {
+              Translations.updateFields(merge, services.connection.adminDB)
+            }
+          }
+        }
+      }
+    }
+  }
+
   val route = touchOptionalSession(oneOff, usingCookiesOrHeaders) {
     case Some(session) => {
       implicit val up = session.userProfile.get
@@ -156,6 +179,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         renderTable ~
         exportCSV ~
         exportXLS ~
+        translations ~
         auth(session) ~
         new WebsocketNotifications().route ~
         Admin(session).route

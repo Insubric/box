@@ -1,7 +1,7 @@
 package ch.wsl.box.model
 
 import ch.wsl.box.jdbc.UserDatabase
-import ch.wsl.box.model.boxentities.BoxField
+import ch.wsl.box.model.boxentities.{BoxField, BoxForm, BoxLabels}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{BoxTranslationsFields, Field}
 
@@ -10,16 +10,44 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 object Translations {
-  def exportFields(source:String,db:UserDatabase)(implicit ec:ExecutionContext):Future[Seq[Field]] = {
+
+  private val fieldSource = "field_i18n"
+  private val formSource = "form_i18n"
+  private val labelSource = "labels"
+
+  private def getFieldI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxField.BoxField_i18nTable.filter(f => f.lang === langSource && f.label.nonEmpty && f.field_uuid.nonEmpty )
+    .distinctOn(f => (f.label,f.tooltip,f.placeholder,f.lookupTextField))
+    .sortBy(_.label)
+    .result.map {
+    _.groupBy(x => (x.label,x.placeholder,x.tooltip,x.lookupTextField)).map { case ((label,placeholder,tooltip,lookupTextField),g) =>
+      Field(g.flatMap(_.field_uuid.map(_.toString)),fieldSource,label.get, placeholder.getOrElse(""), tooltip.getOrElse(""), lookupTextField.getOrElse(""))
+    }.toSeq
+  }
+
+  private def getLabels(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxLabels.BoxLabelsTable.filter(f => f.lang === langSource && f.label.nonEmpty )
+    .distinctOn(f => f.label)
+    .sortBy(_.label)
+    .result.map { _.map{ f =>
+      Field(Seq(f.key),labelSource,f.label.get, "","","")
+    }}
+
+
+  private def getFormI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxForm.BoxForm_i18nTable.filter(f => f.lang === langSource && f.label.nonEmpty && f.form_uuid.nonEmpty )
+    .distinctOn(f => (f.label,f.dynamic_label))
+    .sortBy(_.label)
+    .result.map {
+    _.groupBy(x => (x.label,x.dynamic_label)).map { case ((label,dynamic_label),g) =>
+      Field(g.flatMap(_.uuid.map(_.toString)),formSource,label.get, "","", dynamic_label.getOrElse(""))
+    }.toSeq
+  }
+
+  def exportFields(langSource:String,db:UserDatabase)(implicit ec:ExecutionContext):Future[Seq[Field]] = {
     db.run {
-      BoxField.BoxField_i18nTable.filter(f => f.lang === source && f.label.nonEmpty && f.field_uuid.nonEmpty )
-        .distinctOn(f => (f.label,f.tooltip,f.placeholder,f.lookupTextField))
-        .sortBy(_.label)
-        .result.map {
-        _.groupBy(x => (x.label,x.placeholder,x.tooltip,x.lookupTextField)).map { case ((label,placeholder,tooltip,lookupTextField),g) =>
-          Field(g.flatMap(_.field_uuid),label.get, placeholder.getOrElse(""), tooltip.getOrElse(""), lookupTextField.getOrElse(""))
-        }.toSeq.sortBy(_.label)
-      }
+      for{
+        fieldI18n <- getFieldI18n(langSource)
+        formI18n <- getFormI18n(langSource)
+        labels <- getLabels(langSource)
+      } yield (fieldI18n ++ formI18n ++ labels).sortBy(_.label.trim)
     }
   }
 
@@ -27,7 +55,7 @@ object Translations {
 
   def updateFields(data:BoxTranslationsFields,db:UserDatabase)(implicit ec:ExecutionContext): Future[Seq[Option[Int]]] = {
 
-    def extractDests(sources:Seq[BoxField.BoxField_i18n_row],dest:Field):DBIO[Seq[BoxField.BoxField_i18n_row]] = {
+    def extractDestsField(sources:Seq[BoxField.BoxField_i18n_row],dest:Field):DBIO[Seq[BoxField.BoxField_i18n_row]] = {
       for{
         existing <- BoxField.BoxField_i18nTable.filter(f =>
           f.lang === data.destLang &&
@@ -54,17 +82,95 @@ object Translations {
       }
     }
 
-    val io = data.translations.map{ t =>
+    val ioField = data.translations.filter(_.dest.source == fieldSource).map{ t =>
       for{
         source <- BoxField.BoxField_i18nTable.filter(f =>
           f.lang === data.sourceLang &&
-            f.field_uuid.inSet(t.source.uuid)
+            f.field_uuid.inSet(t.source.uuid.map(UUID.fromString))
         ).result
-        dests <- extractDests(source,t.dest)
+        dests <- extractDestsField(source,t.dest)
         result <- BoxField.BoxField_i18nTable.insertOrUpdateAll(dests)
       } yield result
     }
-    db.run(DBIO.sequence(io).transactionally).recover{ case t => t.printStackTrace(); throw t }
+
+
+
+    def extractDestsForm(sources:Seq[BoxForm.BoxForm_i18n_row],dest:Field):DBIO[Seq[BoxForm.BoxForm_i18n_row]] = {
+      for{
+        existing <- BoxForm.BoxForm_i18nTable.filter(f =>
+          f.lang === data.destLang &&
+            f.form_uuid.inSet(sources.flatMap(_.form_uuid))
+        ).result
+      } yield sources.map{ s =>
+        existing.find(_.form_uuid == s.form_uuid) match {
+          case Some(value) => value.copy(
+            label = Some(dest.label),
+            dynamic_label = emptyToNone(dest.dynamicLabel)
+          )
+          case None => BoxForm.BoxForm_i18n_row(
+            uuid = Some(UUID.randomUUID()),
+            form_uuid = s.form_uuid,
+            lang = Some(data.destLang),
+            label = Some(dest.label),
+            dynamic_label = emptyToNone(dest.dynamicLabel)
+          )
+        }
+      }
+    }
+
+    val ioForm = data.translations.filter(_.dest.source == formSource).map{ t =>
+      for{
+        source <- BoxForm.BoxForm_i18nTable.filter(f =>
+          f.lang === data.sourceLang &&
+            f.form_uuid.inSet(t.source.uuid.map(UUID.fromString))
+        ).result
+        dests <- extractDestsForm(source,t.dest)
+        result <- BoxForm.BoxForm_i18nTable.insertOrUpdateAll(dests)
+      } yield result
+    }
+
+
+    def extractDestsLabels(sources:Seq[BoxLabels.BoxLabels_row],dest:Field):DBIO[Seq[BoxLabels.BoxLabels_row]] = {
+      for{
+        existing <- BoxLabels.BoxLabelsTable.filter(f =>
+          f.lang === data.destLang &&
+            f.key.inSet(sources.map(_.key))
+        ).result
+      } yield sources.map{ s =>
+        existing.find(_.key == s.key) match {
+          case Some(value) => value.copy(
+            label = Some(dest.label),
+          )
+          case None => BoxLabels.BoxLabels_row(
+            key = s.key,
+            lang = data.destLang,
+            label = Some(dest.label)
+          )
+        }
+      }
+    }
+
+    val ioLabels = data.translations.filter(_.dest.source == labelSource).map{ t =>
+      for{
+        source <- BoxLabels.BoxLabelsTable.filter(f =>
+          f.lang === data.sourceLang &&
+            f.key.inSet(t.source.uuid)
+        ).result
+        dests <- extractDestsLabels(source,t.dest)
+        result <- BoxLabels.BoxLabelsTable.insertOrUpdateAll(dests)
+      } yield result
+    }
+
+
+    db.run{
+      {
+        for{
+          fi <- DBIO.sequence(ioField)
+          fo <- DBIO.sequence(ioForm)
+          l <- DBIO.sequence(ioLabels)
+        } yield fi ++ fo ++ l
+      }.transactionally
+    }.recover{ case t => t.printStackTrace(); throw t }
 
   }
 }

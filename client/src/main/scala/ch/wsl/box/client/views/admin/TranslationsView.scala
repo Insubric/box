@@ -82,7 +82,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
 
     val fieldProp = viewModel.subProp(_.dest).bitransform{ seq =>
       seq.find(_.uuid.intersect(source.uuid).nonEmpty) match {
-        case None => Field(source.uuid,"","","","")
+        case None => Field(source.uuid,source.source,"","","","")
         case Some(f) => f.copy(uuid = f.uuid.union(source.uuid).distinct)
       }
     } { field =>
