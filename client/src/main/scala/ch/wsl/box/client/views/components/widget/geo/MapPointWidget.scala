@@ -177,8 +177,11 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
         WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value,paddingTop := 0.px, paddingBottom := 0.px)(
           onclick :+= {(e: Event) =>
             GPS.coordinates().map{ coords =>
-              val localCoords = projMod.transform(js.Array(coords.x,coords.y),wgs84Proj,defaultProjection)
-              geometry.set(Some(Point(Coordinates(localCoords(0),localCoords(1)))))
+              val point = coords.map { c =>
+                val localCoords = projMod.transform(js.Array(c.x, c.y), wgs84Proj, defaultProjection)
+                Point(Coordinates(localCoords(0),localCoords(1)))
+              }
+              geometry.set(point)
             }
             e.preventDefault() // needed in order to avoid triggering the form validation
           }

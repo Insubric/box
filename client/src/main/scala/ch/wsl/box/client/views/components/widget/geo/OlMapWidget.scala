@@ -667,10 +667,10 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.goToGPS)){
         button(ClientConf.style.mapButton)(
           onclick :+= ((e: Event) => {
-            ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+            ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
               val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
               goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
-            }
+            }}
             e.preventDefault()
           })
         )(Icons.target).render
@@ -684,11 +684,11 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.insertPointGPS)){
         button(ClientConf.style.mapButton)(
           onclick :+= ((e: Event) => {
-            ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+            ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
               val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
               insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
               insertCoordinateHandler(e)
-            }
+            }}
             e.preventDefault()
           })
         )(Icons.target).render
