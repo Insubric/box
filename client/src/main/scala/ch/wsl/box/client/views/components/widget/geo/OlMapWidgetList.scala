@@ -185,6 +185,8 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         val geometry = geo.as[ch.wsl.box.model.shared.GeoJson.Geometry].toOption
 
         val enable = EnabledFeatures(geometry)
+        println(enable)
+        println(enable.point)
 
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,

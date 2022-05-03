@@ -588,34 +588,51 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   }
 
   case class EnabledFeatures(geometry:Option[Geometry]) {
+    println(options.features)
     val point = {
-      options.features.point && geometry.isEmpty ||
-        options.features.multiPoint && geometry.forall{
+      options.features.point &&
+      (
+        geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
+          (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall{ // when gc is enabled check if is the only point
+          case g: Point => false
+          case _ => true
+        })
+      ) ||
+        options.features.multiPoint && geometry.toSeq.flatMap(_.toSingle).forall{
           case g: Point => true
-          case g: MultiPoint => true
-          case _ => false
-        } ||
-        options.features.geometryCollection
+          case _ => options.features.geometryCollection
+        }
     }
 
     val line = {
-      options.features.line && geometry.isEmpty ||
-        options.features.multiLine && geometry.forall{
+      options.features.line  &&
+        (
+          geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
+            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall{ // when gc is enabled check if is the only point
+              case g: LineString => false
+              case g: MultiLineString => false
+              case _ => true
+            })
+          ) ||
+        options.features.multiLine && geometry.toSeq.flatMap(_.toSingle).forall{
           case g: LineString => true
-          case g: MultiLineString => true
-          case _ => false
-        } ||
-        options.features.geometryCollection
+          case _ => options.features.geometryCollection
+        }
     }
 
     val polygon = {
-      options.features.polygon && geometry.isEmpty ||
-        options.features.multiPolygon && geometry.forall{
+      options.features.polygon &&
+        (
+          geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
+            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall{ // when gc is enabled check if is the only point
+              case g: Polygon => false
+              case _ => true
+            })
+          ) ||
+        options.features.multiPolygon && geometry.toSeq.flatMap(_.toSingle).forall{
           case g: Polygon => true
-          case g: MultiPolygon => true
-          case _ => false
-        } ||
-        options.features.geometryCollection
+          case _ => options.features.geometryCollection
+        }
     }
 
     val polygonHole = geometry.exists{
