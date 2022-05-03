@@ -6,6 +6,7 @@ import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget,
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SubLayoutBlock}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
+import io.udash.bootstrap.BootstrapStyles
 import io.udash.{Property, ReadableProperty}
 import scalatags.JsDom
 import scalatags.JsDom.all.{div, h3, minHeight, s}
@@ -169,7 +170,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
 
-  def fixedWidth(widths:Stream[Int],write:Boolean) : JsDom.all.Modifier = div(
+  def fixedWidth(widths:Stream[Int],write:Boolean) : JsDom.all.Modifier = div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,
     widgets.zip(widths).map { case (widget, width) =>
       div(BootstrapCol.md(width), ClientConf.style.field,
         widget.widget.render(write,widget.visibility)
@@ -187,6 +188,8 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
   private def render(write:Boolean): JsDom.all.Modifier = {
+
+    logger.info(s"blockname: $titleSub horizontal: $horizontal")
 
     def ren() = horizontal match {
       case Left(widths) => fixedWidth(widths, write)

@@ -229,6 +229,11 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   )
 
+  val checkboxWidget = style(
+    float.none.important,
+    marginRight(5.px)
+  )
+
   val jsonMetadataRendered = style(
     unsafeChild("input") (
       float.right
@@ -328,9 +333,15 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   val block = style(
     paddingTop.`0`,
     paddingBottom.`0`,
-    paddingRight(20 px),
-    paddingLeft(20 px),
+    paddingRight(10 px),
+    paddingLeft(10 px),
     minHeight.`0`
+  )
+
+  val innerBlock = style(
+    margin.`0`,
+    marginLeft(- 10.px),
+    marginRight(- 10.px)
   )
 
   val withBorder = style(
@@ -340,7 +351,8 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val field = style(
-    padding.`0`,
+    paddingRight(10 px),
+    paddingLeft(10 px),
     minHeight.`0`
   )
 
