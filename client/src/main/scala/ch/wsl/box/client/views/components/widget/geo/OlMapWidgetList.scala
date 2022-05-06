@@ -83,6 +83,14 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
   }
 
+  def geomToString(g:Geometry):String = {
+    val precision = options.precision.getOrElse(0.0)
+    options.formatters match {
+      case Some(value) => value.geomToString(precision,services.clientSession.lang())(g)
+      case None => g.toString(precision)
+    }
+  }
+
   override protected def edit(): JsDom.all.Modifier = {
 
     val mapStyle = MapStyle(field.params)
@@ -185,12 +193,10 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         val geometry = geo.as[ch.wsl.box.model.shared.GeoJson.Geometry].toOption
 
         val enable = EnabledFeatures(geometry)
-        println(enable)
-        println(enable.point)
 
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,
-            span(geom.toString(options.precision.getOrElse(0))),
+            span(geomToString(geom)),
             div(ClientConf.style.mapGeomAction,
               if(!geom.isInstanceOf[Point])
                 controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),
