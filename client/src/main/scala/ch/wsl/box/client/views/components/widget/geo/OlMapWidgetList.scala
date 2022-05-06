@@ -83,14 +83,6 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
   }
 
-  def geomToString(g:Geometry):String = {
-    val precision = options.precision.getOrElse(0.0)
-    options.formatters match {
-      case Some(value) => value.geomToString(precision,services.clientSession.lang())(g)
-      case None => g.toString(precision)
-    }
-  }
-
   override protected def edit(): JsDom.all.Modifier = {
 
     val mapStyle = MapStyle(field.params)
@@ -196,6 +188,8 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,
+            onmouseover :+= {(e:Event) => highlight(geom); e.preventDefault()},
+            onmouseout :+= {(e:Event) => removeHighlight(); e.preventDefault()},
             span(geomToString(geom)),
             div(ClientConf.style.mapGeomAction,
               if(!geom.isInstanceOf[Point])
