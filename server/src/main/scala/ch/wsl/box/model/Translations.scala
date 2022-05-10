@@ -15,30 +15,45 @@ object Translations {
   private val formSource = "form_i18n"
   private val labelSource = "labels"
 
-  private def getFieldI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxField.BoxField_i18nTable.filter(f => f.lang === langSource && f.label.nonEmpty && f.field_uuid.nonEmpty )
-    .distinctOn(f => (f.label,f.tooltip,f.placeholder,f.lookupTextField))
-    .sortBy(_.label)
-    .result.map {
-    _.groupBy(x => (x.label,x.placeholder,x.tooltip,x.lookupTextField)).map { case ((label,placeholder,tooltip,lookupTextField),g) =>
-      Field(g.flatMap(_.field_uuid.map(_.toString)),fieldSource,label.get, placeholder.getOrElse(""), tooltip.getOrElse(""), lookupTextField.getOrElse(""))
-    }.toSeq
+  private def getFieldI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = {
+
+    val q = for{
+      fieldI18n <- BoxField.BoxField_i18nTable if fieldI18n.lang === langSource && fieldI18n.label.nonEmpty && fieldI18n.field_uuid.nonEmpty
+      field <- BoxField.BoxFieldTable if field.field_uuid === fieldI18n.field_uuid
+      f <- BoxForm.BoxFormTable if field.form_uuid === f.form_uuid
+    } yield { (fieldI18n,field,f)}
+
+      q.distinctOn(f => (f._1.label,f._1.tooltip,f._1.placeholder,f._1.lookupTextField))
+      .sortBy(_._1.label)
+      .result.map {
+      _.groupBy(x => (x._1.label,x._1.placeholder,x._1.tooltip,x._1.lookupTextField)).map { case ((label,placeholder,tooltip,lookupTextField),g) =>
+        Field(g.flatMap(_._1.field_uuid.map(_.toString)),g.map{case (_,field,form) => s"${form.name}.${field.name}"},fieldSource,label.get, placeholder.getOrElse(""), tooltip.getOrElse(""), lookupTextField.getOrElse(""))
+      }.toSeq
+    }
   }
 
   private def getLabels(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxLabels.BoxLabelsTable.filter(f => f.lang === langSource && f.label.nonEmpty )
     .distinctOn(f => f.label)
     .sortBy(_.label)
     .result.map { _.map{ f =>
-      Field(Seq(f.key),labelSource,f.label.get, "","","")
+      Field(Seq(f.key),Seq("Global labels"),labelSource,f.label.get, "","","")
     }}
 
 
-  private def getFormI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxForm.BoxForm_i18nTable.filter(f => f.lang === langSource && f.label.nonEmpty && f.form_uuid.nonEmpty )
-    .distinctOn(f => (f.label,f.dynamic_label))
-    .sortBy(_.label)
-    .result.map {
-    _.groupBy(x => (x.label,x.dynamic_label)).map { case ((label,dynamic_label),g) =>
-      Field(g.flatMap(_.uuid.map(_.toString)),formSource,label.get, "","", dynamic_label.getOrElse(""))
-    }.toSeq
+  private def getFormI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = {
+    val q = for{
+      i18n <- BoxForm.BoxForm_i18nTable if i18n.lang === langSource && i18n.label.nonEmpty && i18n.form_uuid.nonEmpty
+      f <- BoxForm.BoxFormTable if i18n.form_uuid === f.form_uuid
+    } yield { (f,i18n)}
+
+      q.distinctOn(f => (f._2.label,f._2.dynamic_label))
+      .sortBy(_._2.label)
+        .result.map {
+        _.groupBy(x => (x._2.label,x._2.dynamic_label)).map { case ((label,dynamic_label),g) =>
+          Field(g.flatMap(_._2.uuid.map(_.toString)),g.map(_._1.name),formSource,label.get, "","", dynamic_label.getOrElse(""))
+        }.toSeq
+      }
+
   }
 
   def exportFields(langSource:String,db:UserDatabase)(implicit ec:ExecutionContext):Future[Seq[Field]] = {
