@@ -327,7 +327,8 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   val subBlock = style(
     padding.`0`,
-    minHeight.`0`
+    minHeight.`0`,
+    marginLeft(10.px)
   )
 
   val block = style(

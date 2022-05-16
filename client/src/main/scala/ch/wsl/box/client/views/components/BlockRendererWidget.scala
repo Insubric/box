@@ -196,15 +196,12 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
       case Right(_) => distribute(write)
     }
 
-    titleSub match {
-      case None => ren()
-      case Some(title) => {
-        div(BootstrapCol.md(12), ClientConf.style.subBlock)(
-          if(title != "") h3(minHeight := 20.px, Labels(title)),  //renders title in subblocks
-          ren()
-        )
-      }
-    }
+
+    div(BootstrapCol.md(12), ClientConf.style.subBlock)(
+      if(titleSub.exists(_ != "")) h3(minHeight := 20.px, Labels(titleSub.get)) else {},  //renders title in subblocks
+      ren()
+    )
+
 
   }
 }
