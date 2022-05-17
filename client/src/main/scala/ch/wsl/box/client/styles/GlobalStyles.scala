@@ -366,6 +366,11 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     alignContent.spaceAround
   )
 
+  val distributionChild = style(
+    padding(10.px),
+    margin(5.px)
+  )
+
   val boxedLink = style(
     Font.bold,
     width(120 px),

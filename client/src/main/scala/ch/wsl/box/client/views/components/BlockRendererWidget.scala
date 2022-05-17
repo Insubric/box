@@ -112,6 +112,11 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   private def saveAll(data:Json, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
     // start to empty and populate
+    logger.debug(
+      s"""
+         |BlockRenderer of ${field.name}
+         |with widgets: ${widgets.map(_.field.name)}
+         |""".stripMargin)
     widgets.foldLeft(Future.successful(Json.Null)){ (result,widget) =>
       for{
         r <- result

@@ -25,6 +25,7 @@ object TrasparentChild extends ChildRendererFactory {
   case class TrasparentChildRenderer(widgetParam:WidgetParams) extends ChildRenderer {
 
     val distribute = field.params.exists(_.js("distribute") == true.asJson)
+    val childWidth = field.params.flatMap(_.js("width").as[Int].toOption)
 
 
     import io.udash.css.CssView._
@@ -39,11 +40,17 @@ object TrasparentChild extends ChildRendererFactory {
               autoRelease(repeat(entity) { e =>
                 val widget = getWidget(e.get)
                 div(
+                  if(distribute) { ClientConf.style.distributionChild } else {},
+                  if(childWidth.isDefined) { width := childWidth.get.px } else {},
                   widget.widget.render(write, Property(true)),
                   removeButton(write,widget,f)
                 ).render
               }),
-              addButton(write,f)
+              if(distribute) {
+                div(ClientConf.style.distributionChild, addButton(write,f))
+              } else {
+                addButton(write, f)
+              }
             )
         }
       }
