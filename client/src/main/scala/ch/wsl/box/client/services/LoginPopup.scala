@@ -22,7 +22,7 @@ object LoginPopup {
   ).render
 
   private def login(model:ModelProperty[LoginData]) = {
-    services.clientSession.createSession(model.get.username,model.get.password).map{
+    services.clientSession.createSessionUserNamePassword(model.get.username,model.get.password).map{
       case true => {
         modal.hide()
       }

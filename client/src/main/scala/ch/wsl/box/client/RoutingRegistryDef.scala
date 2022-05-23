@@ -4,6 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientSession, Labels, Notification}
 import io.udash._
 import org.scalajs.dom
+import org.scalajs.dom.window
 import scribe.Logging
 
 class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
@@ -85,5 +86,6 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "translations" / from / to  => LoginState2params("/admin/translations/$from/$to",from,to)
     case "/admin" / "conf"  => LoginState("/admin/conf")
     case "/admin" / "ui-conf"  => LoginState("/admin/ui-conf")
+    case "/authenticate"  => AuthenticateState
   }
 }

@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import io.udash.{PasswordInput, TextInput, bind}
 import io.udash.bootstrap.BootstrapStyles
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, window}
 import scalatags.JsDom.all._
 import io.udash._
 import scalacss.ScalatagsCss._
@@ -30,6 +30,13 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
     TextInput(model.subProp(_.username))(attr("autocorrect") := "off", attr("autocapitalize") := "none",width := 100.pct),br,br,
     label(Labels.login.password),br,
     PasswordInput(model.subProp(_.password))(width := 100.pct),br,br,
-    button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,`type` := "submit",Labels.login.button)
+    button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,`type` := "submit",Labels.login.button),
+    button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,"SSO",
+      onclick :+= ((e:Event) => {
+        e.preventDefault()
+        window.location.href = "http://localhost:8180/auth/realms/master/protocol/openid-connect/auth?client_id=box&response_type=code&state=fj8o3n7bdy1op5&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthenticate"
+
+        })
+    )
   )
 }

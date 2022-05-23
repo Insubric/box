@@ -120,6 +120,9 @@ class RestMock(values:Values) extends REST with Logging {
     Json.True
   }
 
+
+  override def authenticate(code: String) = ???
+
   override def logout(): Future[String] = {
     println("logout not implemented")
     ???

@@ -30,9 +30,9 @@ class Auth()(implicit services:Services) extends Logging {
     * check if this is a valid user on your system and return his profile,
     * that include his username and the connection to the DB
     */
-  def getUserProfile(name: String, password: String)(implicit executionContext: ExecutionContext): Option[UserProfile] = {
+  def getUserProfile(name: String)(implicit executionContext: ExecutionContext): Option[UserProfile] = {
 
-    val hash = MessageDigest.getInstance("MD5").digest(s"$name $password".getBytes()).map(0xFF & _).map {
+    val hash = MessageDigest.getInstance("MD5").digest(s"$name".getBytes()).map(0xFF & _).map {
       "%02x".format(_)
     }.foldLeft("") {
       _ + _
@@ -40,27 +40,9 @@ class Auth()(implicit services:Services) extends Logging {
 
     Auth.userProfiles.get(hash).orElse {
 
-      logger.info(s"Creating new pool for $name with hash $hash")
+      // Query the database to get the user info
 
-
-      val validUser = Await.result(Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run {
-        sql"""select 1""".as[Int]
-      }.map { _ =>
-        true
-      }.recover { case _ => false }, 2 seconds)
-
-      if (validUser) {
-
-        val up = UserProfile(name)
-
-        Auth.userProfiles += hash -> up
-
-        Some(up)
-      } else {
-        None
-      }
-
-
+      Some(UserProfile(name))
     }
 
   }

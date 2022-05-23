@@ -47,6 +47,7 @@ trait REST{
 
   //other utilsString
   def login(request:LoginRequest):Future[Json]
+  def authenticate(code:String):Future[UserInfo]
   def logout():Future[String]
   def labels(lang:String):Future[Map[String,String]]
   def conf():Future[Map[String,String]]

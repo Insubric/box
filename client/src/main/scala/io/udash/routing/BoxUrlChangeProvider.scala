@@ -98,7 +98,8 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
   }
 
   override def changeFragment(url: Url, replaceCurrent: Boolean): Unit = {
-    val localUrl = addBase(url.value)
+    val _localUrl = addBase(url.value)
+    val localUrl = if(_localUrl.isEmpty) "/" else _localUrl
     (null, "", localUrl) |> (
       if (replaceCurrent) window.history.replaceState(_: js.Any, _: String, _: String)
       else window.history.pushState(_: js.Any, _: String, _: String)

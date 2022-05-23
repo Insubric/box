@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, UserInfo, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
 import kantan.csv._
@@ -91,6 +91,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   //other utilsString
   def login(request:LoginRequest) = httpClient.post[LoginRequest,Json](Routes.apiV1("/login"),request)
+  def authenticate(code:String) = httpClient.get[UserInfo](Routes.apiV1(s"/sso?code=$code"))
   def logout() = httpClient.get[String](Routes.apiV1("/logout"))
   def labels(lang:String):Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/labels/$lang"))
   def conf():Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/conf"))

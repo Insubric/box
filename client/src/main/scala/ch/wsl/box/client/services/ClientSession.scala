@@ -104,7 +104,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def login(username:String,password:String):Future[Boolean] = {
-    createSession(username,password).map{ valid =>
+    createSessionUserNamePassword(username,password).map{ valid =>
       logger.info(s"New session, valid: $valid")
       if(valid) {
         Context.applicationInstance.reload()
@@ -113,10 +113,16 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  def createSession(username:String,password:String):Future[Boolean] = {
+  def createSessionUserNamePassword(username:String,password:String) = {
+    for{
+      _ <- rest.login(LoginRequest(username,password))
+      s <- createSession(username)
+    } yield s
+  }
+
+  def createSession(username:String):Future[Boolean] = {
     dom.window.sessionStorage.setItem(USER,username)
     val fut = for{
-      _ <- rest.login(LoginRequest(username,password))
       ui <- rest.ui()
     } yield {
       UI.load(ui)
@@ -138,6 +144,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def logout() = {
     Navigate.toAction{ () =>
+      println("AAAAA")
       dom.window.sessionStorage.removeItem(USER)
       for{
         _ <- rest.logout()
@@ -149,6 +156,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         Notification.closeWebsocket()
 
         val oldState = Context.applicationInstance.currentState
+        println(oldState)
         Navigate.to(LoginState(""))
 
         logger.info(oldState.toString)
