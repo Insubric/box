@@ -12,9 +12,6 @@ import scribe.Logging
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-object Auth {
-  val userProfiles: scala.collection.mutable.Map[String, UserProfile] = scala.collection.mutable.Map()
-}
 
 class Auth()(implicit services:Services) extends Logging {
 
@@ -24,7 +21,19 @@ class Auth()(implicit services:Services) extends Logging {
   )
 
 
+  def checkUser(name:String,password:String)(implicit executionContext: ExecutionContext) = {
+    val validUser = Await.result(Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run {
+      sql"""select 1""".as[Int]
+    }.map { _ =>
+      true
+    }.recover { case _ => false }, 2 seconds)
 
+    if (validUser) {
+      getUserProfile(name)
+    } else {
+      None
+    }
+  }
 
   /**
     * check if this is a valid user on your system and return his profile,
@@ -32,19 +41,8 @@ class Auth()(implicit services:Services) extends Logging {
     */
   def getUserProfile(name: String)(implicit executionContext: ExecutionContext): Option[UserProfile] = {
 
-    val hash = MessageDigest.getInstance("MD5").digest(s"$name".getBytes()).map(0xFF & _).map {
-      "%02x".format(_)
-    }.foldLeft("") {
-      _ + _
-    }
-
-    Auth.userProfiles.get(hash).orElse {
-
-      // Query the database to get the user info
-
-      Some(UserProfile(name))
-    }
-
+    // Query the database to get the user info
+    Some(UserProfile(name))
   }
 
   def onlyAdminstrator(s: BoxSession)(r: Route)(implicit ec: ExecutionContext): Route = {

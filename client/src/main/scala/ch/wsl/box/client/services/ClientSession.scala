@@ -113,11 +113,17 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  def createSessionUserNamePassword(username:String,password:String) = {
-    for{
-      _ <- rest.login(LoginRequest(username,password))
+  def createSessionUserNamePassword(username:String,password:String):Future[Boolean] = {
+    val fut = for{
+      loginResult <- rest.login(LoginRequest(username,password))
       s <- createSession(username)
     } yield s
+
+    fut.recover{case t =>
+      t.printStackTrace()
+      false
+    }
+
   }
 
   def createSession(username:String):Future[Boolean] = {
@@ -144,7 +150,6 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def logout() = {
     Navigate.toAction{ () =>
-      println("AAAAA")
       dom.window.sessionStorage.removeItem(USER)
       for{
         _ <- rest.logout()

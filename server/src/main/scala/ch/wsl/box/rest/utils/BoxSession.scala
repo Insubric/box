@@ -11,6 +11,8 @@ import scala.util.Try
 
 case class BoxSession(username:String)(implicit services:Services) {
   def userProfile(implicit ec:ExecutionContext): Option[UserProfile] = new Auth().getUserProfile(username)
+
+  def checkLogin(password:String)(implicit ec:ExecutionContext):Option[UserProfile] = new Auth().checkUser(username,password)
 }
 
 object BoxSession {

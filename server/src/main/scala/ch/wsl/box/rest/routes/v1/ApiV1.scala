@@ -64,7 +64,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
     post {
       entity(as[LoginRequest]) { request =>
         val usernamePassword = BoxSession.fromLogin(request)
-        usernamePassword.userProfile match {
+        usernamePassword.checkLogin(request.password) match {
           case Some(up) => boxSetSessionCookie(usernamePassword) {
             complete("ok")
           }
@@ -119,14 +119,32 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
             ).toEntity,
             protocol = HttpProtocols.`HTTP/1.1`
           ))
+          tokenString <- res.entity.dataBytes.runFold(ByteString(""))(_ ++ _).map { body =>
+            body.utf8String
+          }
           token <- Unmarshal(res.entity).to[OpenIDToken]
           userInfoReq <- Http().singleRequest(HttpRequest(
            uri = Uri("http://localhost:8180/auth/realms/master/protocol/openid-connect/userinfo"),
             headers = Seq(RawHeader("Authorization", s"Bearer ${token.access_token}"))
           ))
+          userInfoString <- userInfoReq.entity.dataBytes.runFold(ByteString(""))(_ ++ _).map { body =>
+            body.utf8String
+          }
           userInfo <- Unmarshal(userInfoReq.entity).to[UserInfo]
-        } yield boxSetSessionCookie(BoxSession(userInfo.preferred_username)) {
-          complete(userInfo)
+          userClientRolesReq <- Http().singleRequest(HttpRequest(
+            uri = Uri(s"http://localhost:8180/auth/admin/realms/master/users/${userInfo.sub}/role-mappings/clients/2d13c739-13d5-4655-877f-56944b38e55e"),
+            headers = Seq(RawHeader("Authorization", s"Bearer ${token.access_token}"))
+          ))
+          userClientRolesString <- userClientRolesReq.entity.dataBytes.runFold(ByteString(""))(_ ++ _).map { body =>
+            body.utf8String
+          }
+        } yield {
+          println(tokenString)
+          println(userInfoString)
+          println(userClientRolesString)
+          boxSetSessionCookie(BoxSession(userInfo.preferred_username)) {
+            complete(userInfo)
+          }
         }
         onComplete(fut) {
           case Success(value) => value
@@ -140,7 +158,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
     post {
       entity(as[LoginRequest]) { request =>
         val usernamePassword = BoxSession.fromLogin(request)
-        usernamePassword.userProfile match {
+        usernamePassword.checkLogin(request.password) match {
           case Some(up) => boxSetSessionHeader(usernamePassword) {
             complete("ok")
           }
