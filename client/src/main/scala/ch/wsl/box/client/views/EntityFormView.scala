@@ -201,7 +201,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       updatedData <- widget.beforeSave(data,metadata)
-      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields)
+      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
       afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
     } yield {
 

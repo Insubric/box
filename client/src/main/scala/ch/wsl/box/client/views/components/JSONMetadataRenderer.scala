@@ -52,16 +52,16 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     if(d.js(ChildRenderer.CHANGED_KEY) == Json.True) {
       changed.set(true,true)
       logger.debug(s"${metadata.name} has changes in child")
-    } else if(!currentData.get.removeNonDataFields.equals(d.removeNonDataFields)) {
+    } else if(!currentData.get.removeNonDataFields(metadata,children,false).equals(d.removeNonDataFields(metadata,children,false))) {
       changed.set(true,true)
       logger.debug(s"""
                 ${metadata.name} has changes
 
                 original:
-                ${currentData.get.removeNonDataFields}
+                ${currentData.get.removeNonDataFields(metadata,children,false)}
 
                 new:
-                ${d.removeNonDataFields}
+                ${d.removeNonDataFields(metadata,children,false)}
 
                 """)
 
