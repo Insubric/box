@@ -143,7 +143,7 @@ object JSONUtils extends Logging {
           value
             .filter(!_._1.startsWith("$"))
             .filter(x => keepStatic || metadata.fields.find(_.name == x._1).exists(_.`type` != JSONFieldTypes.STATIC))
-            .filter(x => shownFields.concat(metadata.keys).contains(x._1))
+            //.filter(x => shownFields.concat(metadata.keys).contains(x._1))
             .toMap.map { case (k,v) =>
               val m = for{
                 field <- metadata.fields.find(_.name == k)
