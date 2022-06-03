@@ -135,7 +135,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.loading.set(true)
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
-    val urlQuery:Option[JSONQuery] = URLQuery(state.query,emptyFieldsForm)
+    val urlQuery:Option[JSONQuery] = URLQuery(Routes.urlParams.get("q"),emptyFieldsForm)
     services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
