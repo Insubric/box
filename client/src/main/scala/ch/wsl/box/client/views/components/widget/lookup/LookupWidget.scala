@@ -29,7 +29,7 @@ trait LookupWidget extends Widget with HasData {
   def field:JSONField
   def metadata:JSONMetadata
   def lookup:ReadableProperty[Seq[JSONLookup]] = _lookup.combine(data){case (l,d) =>
-    current() ++ l
+    (current() ++ l).distinct
   }
 
   private val _lookup:Property[Seq[JSONLookup]] = {
@@ -57,7 +57,7 @@ trait LookupWidget extends Widget with HasData {
 
   private def setNewLookup(_newLookup:Seq[JSONLookup],_data:Option[Json]) = {
 
-    val newLookup:Seq[JSONLookup] = current() ++ _newLookup
+    val newLookup:Seq[JSONLookup] = (current() ++ _newLookup).distinct
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
       _lookup.set(newLookup, true)
       _data.foreach{ d =>
@@ -170,7 +170,7 @@ trait LookupWidget extends Widget with HasData {
 
   data.sync[Option[JSONLookup]](model)(
     {json:Json =>
-      val result = (lookup.get ++ current()).find(_.id == json).getOrElse{
+      val result = (lookup.get ++ current()).distinct.find(_.id == json).getOrElse{
         logger.warn(s"Lookup for $json not found on field ${field.name}")
         JSONLookup(json,Seq(json.string))
       }
