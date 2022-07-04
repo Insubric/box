@@ -339,10 +339,13 @@ object EditableTable extends ChildRendererFactory {
                             )
                           }
                         },
-                        if (write && !disableRemove) td(tableStyle.td, colWidth,
-                          a(ClientConf.style.childRemoveButton,
+                        if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
+                          if(!disableRemove) { a(ClientConf.style.childRemoveButton,
                             BootstrapStyles.Float.right(),
-                            onclick :+= removeItem(childWidget), Icons.minusFill)
+                            onclick :+= removeItem(childWidget), Icons.minusFill) } else frag()," ",
+                          if(!disableDuplicate) { a(ClientConf.style.childDuplicateButton,
+                            BootstrapStyles.Float.right(),
+                            onclick :+= duplicateItem(childWidget), Icons.duplicate) } else frag()
                         ) else frag()
                       ).render
                     },

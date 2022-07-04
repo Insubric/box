@@ -69,6 +69,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
+    val disableDuplicate = field.params.exists(_.js("disableDuplicate") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
     def getWidget(id:String):ChildRow = childWidgets.find(_.id == id) match {
@@ -170,6 +171,17 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         childWidgets.update(childToDelete._2, childToDelete._1.copy(deleted = true))
         checkChanges()
       }
+    }
+
+    def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
+      itemToDuplicate.metadata.map { md =>
+        itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
+      } match {
+        case Some(newData) => this.add(newData,true);
+        case None => logger.warn("duplicating invalid object")
+      }
+      checkChanges()
+
     }
 
     def addItemHandler(child: => Child, metadata: => JSONMetadata) = (e:Event) => {

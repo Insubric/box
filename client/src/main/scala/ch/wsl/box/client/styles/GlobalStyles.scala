@@ -846,6 +846,17 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     )
   )
 
+  val childDuplicateButton = style(
+    lineHeight(32 px),
+    fontSize(14 px),
+    unsafeChild("svg")(
+      color(conf.colors.main),
+      height(20 px),
+      width(20 px),
+      marginRight(5 px)
+    )
+  )
+
   val dropFileZone = style(
     height(50 px),
     width(100 %%),
