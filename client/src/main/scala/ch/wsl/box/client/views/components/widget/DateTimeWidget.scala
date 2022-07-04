@@ -49,10 +49,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   val format = field.params.flatMap(_.getOpt("format"))
 
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
-  val style = fullWidth match {
-    case true => ClientConf.style.dateTimePickerFullWidth
-    case false => ClientConf.style.dateTimePicker
-  }
+
   override def edit() = editMe()
   override protected def show(): JsDom.all.Modifier = showMe(field.title)
 
@@ -133,15 +130,15 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
-      tooltip(picker())._1,
+      tooltip(picker(fullWidth))._1,
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   }
 
 
-  override def editOnTable(): JsDom.all.Modifier = picker()
+  override def editOnTable(): JsDom.all.Modifier = picker(true)
 
-  protected def picker():HTMLInputElement = {
+  protected def picker(fullwidth:Boolean):HTMLInputElement = {
 
 
 
@@ -157,6 +154,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
           case None => flatpicker.clear(force)
         }
       }
+    }
+
+    val style = fullwidth match {
+      case true => ClientConf.style.dateTimePickerFullWidth
+      case false => ClientConf.style.dateTimePicker
     }
 
     val picker = input(
