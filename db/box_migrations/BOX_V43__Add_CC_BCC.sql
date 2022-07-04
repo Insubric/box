@@ -1,3 +1,9 @@
+alter domain box.email drop constraint email_check;
+alter domain box.email add
+    constraint email_check check (VALUE OPERATOR (box.~)
+                                  '^([a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)?(.+ <[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*>)?$'::box.citext);
+
+
 alter table box.mails add column mail_cc text[] not null default array[]::text[];
 alter table box.mails add column mail_bcc text[] not null default array[]::text[];
 
