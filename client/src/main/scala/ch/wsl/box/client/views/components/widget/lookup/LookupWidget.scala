@@ -32,6 +32,8 @@ trait LookupWidget extends Widget with HasData {
     (current() ++ l).distinct
   }
 
+  def noBackendCache:Boolean = field.params.exists(_.js("noBackendCache") == Json.True)
+
   private val _lookup:Property[Seq[JSONLookup]] = {
     Property(toSeq(field.lookup.toSeq.flatMap(_.lookup)))
   }
@@ -178,5 +180,9 @@ trait LookupWidget extends Widget with HasData {
     },
     {jsonLookup:Option[JSONLookup] => jsonLookup.map(_.id).asJson}
   )
+
+  if(noBackendCache) {
+    field.lookup.map(l => fetchRemoteLookup(l.lookupQuery.getOrElse("{}"),l))
+  }
 
 }
