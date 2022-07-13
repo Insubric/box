@@ -485,6 +485,53 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     StyleConstants.defaultFontSize
   )
 
+  val boxIconButton = style(
+    Font.regular,
+    whiteSpace.nowrap,
+    padding(3 px, 10 px),
+    fontSize(16 px),
+    margin(3 px, 0 px),
+    border(0 px),
+    color(conf.colors.mainLink),
+    backgroundColor.transparent,
+    unsafeChild("svg") (
+      transform := "scale(1.5)"
+    ),
+    &.hover(
+      color(white),
+      backgroundColor(conf.colors.main)
+    ),
+    &.attrExists("disabled") (
+      backgroundColor(lightgray),
+      color(gray),
+      borderColor(gray)
+    )
+  )
+
+  val boxIconButtonDanger = style(
+    Font.regular,
+    whiteSpace.nowrap,
+    padding(3 px, 10 px),
+    fontSize(16 px),
+    margin(3 px, 0 px),
+    border(0 px),
+    color(conf.colors.danger),
+    backgroundColor.transparent,
+    unsafeChild("svg") (
+      transform := "scale(1.5)"
+    ),
+    &.hover(
+      color(white),
+      backgroundColor(conf.colors.danger)
+    ),
+    &.attrExists("disabled") (
+      backgroundColor(lightgray),
+      color(gray),
+      borderColor(gray)
+    )
+  )
+
+
   val boxButton = style(
     Font.regular,
     whiteSpace.nowrap,
@@ -858,12 +905,13 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val dropFileZone = style(
-    height(50 px),
+    minHeight(50 px),
     width(100 %%),
     borderStyle.dashed,
     borderColor(Colors.Grey),
     borderWidth(1 px),
     display.flex,
+    flexDirection.column,
     justifyContent.center,
     alignItems.center,
     margin.vertical(10 px),
