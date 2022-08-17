@@ -50,7 +50,7 @@ object Translations {
       .sortBy(_._2.label)
         .result.map {
         _.groupBy(x => (x._2.label,x._2.dynamic_label)).map { case ((label,dynamic_label),g) =>
-          Field(g.flatMap(_._2.uuid.map(_.toString)),g.map(_._1.name),formSource,label.get, "","", dynamic_label.getOrElse(""))
+          Field(g.flatMap(_._2.form_uuid.map(_.toString)),g.map(_._1.name),formSource,label.get, "","", dynamic_label.getOrElse(""))
         }.toSeq
       }
 
