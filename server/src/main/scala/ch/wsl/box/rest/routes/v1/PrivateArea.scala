@@ -18,9 +18,9 @@ import ch.wsl.box.rest.routes.{BoxFileRoutes, Export, Form, Functions, Table, Vi
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import ch.wsl.box.services.Services
-import com.softwaremill.session.SessionDirectives.touchOptionalSession
+import com.softwaremill.session.SessionDirectives.{invalidateSession, touchOptionalSession, touchRequiredSession}
 import com.softwaremill.session.SessionManager
-import com.softwaremill.session.SessionOptions.{oneOff, usingCookiesOrHeaders}
+import com.softwaremill.session.SessionOptions.{oneOff, usingCookies, usingCookiesOrHeaders, usingHeaders}
 import io.circe.Json
 
 import scala.concurrent.ExecutionContext
@@ -71,23 +71,31 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
-  def auth(session:BoxSession) = pathPrefix("auth") {
+
+
+
+  def auth = pathPrefix("auth") {
     path("token") {
-      get {
-        respondWithHeader(sessionManager.clientSessionManager.createHeader(session)) {
-          complete("ok")
+      touchRequiredSession(oneOff, usingCookies) { session =>
+        get {
+          respondWithHeader(sessionManager.clientSessionManager.createHeader(session)) {
+            complete("ok")
+          }
         }
       }
     } ~
     path("cookie") {
-      get{
-        setCookie(sessionManager.clientSessionManager.createCookie(session)) {
-          complete("ok")
+      touchRequiredSession(oneOff, usingHeaders) { session =>
+        get {
+          setCookie(sessionManager.clientSessionManager.createCookie(session)) {
+            complete("ok")
+          }
         }
       }
-
     }
   }
+
+
 
   def forms(implicit up:UserProfile) = path(EntityKind.FORM.plural) {
     get {
@@ -160,7 +168,8 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
-  val route = touchOptionalSession(oneOff, usingCookiesOrHeaders) {
+  val route = auth ~
+    touchOptionalSession(oneOff, usingCookiesOrHeaders) {
     case Some(session) => {
       implicit val up = session.userProfile.get
       implicit val db = up.db
@@ -180,10 +189,11 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         exportCSV ~
         exportXLS ~
         translations ~
-        auth(session) ~
         new WebsocketNotifications().route ~
         Admin(session).route
     }
-    case None => complete(StatusCodes.Unauthorized,"User not authenticated or session expired")
+    case None => invalidateSession(oneOff, usingCookies) {
+      complete(StatusCodes.Unauthorized,"User not authenticated or session expired")
+    }
   }
 }
