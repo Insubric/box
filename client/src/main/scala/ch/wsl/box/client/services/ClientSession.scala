@@ -1,5 +1,7 @@
 package ch.wsl.box.client.services
 
+import ch.wsl.box.client.routes.Routes
+
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
 import ch.wsl.box.model.shared.{EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
@@ -231,6 +233,9 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def lang():String = {
 
+    Routes.urlParams.get(LANG).foreach(l =>
+      dom.window.sessionStorage.setItem(LANG,l)
+    )
     val sessionLang = Try(dom.window.sessionStorage.getItem(LANG)).toOption
     val browserLang = dom.window.navigator.language
 
@@ -241,6 +246,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
       case _ => "en"
     }
   }
+
   def setLang(lang:String) = rest.labels(lang).map{ labels =>
     Labels.load(labels)
     dom.window.sessionStorage.setItem(LANG,lang)

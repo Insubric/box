@@ -17,13 +17,33 @@ import ch.wsl.box.services.Services
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
+class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
 
   lazy val publicEntities:Future[Seq[BoxPublicEntities.Row]] = services.connection.adminDB.run(BoxPublicEntities.table.result)
 
   import akka.http.scaladsl.server.Directives._
 
   implicit val up = new Auth().adminUserProfile
+
+  def file:Route = pathPrefix("file") {
+    pathPrefix(Segment) { entity =>
+      pathPrefix(Segment) { field =>
+        val route: Future[Route] = publicEntities.map{ pe =>
+          pe.find(_.entity == entity).map(e => Registry().fileRoutes.routeForField(s"$entity.$field")) match {
+            case Some(action) => action
+            case None => complete(StatusCodes.NotFound,"Entity not found")
+          }
+        }
+        onComplete(route) {
+          case Success(value) => value
+          case Failure(e) => {
+            e.printStackTrace()
+            complete(StatusCodes.InternalServerError,"error")
+          }
+        }
+      }
+    }
+  }
 
   def form:Route = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
@@ -48,23 +68,26 @@ case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:Act
     }
   }
 
-  val route:Route = pathPrefix("public") {
-    form ~
-    pathPrefix(Segment) { entity =>
-      val route: Future[Route] = publicEntities.map{ pe =>
-        pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
-          case Some(action) => EntityRead(entity,action)
-          case None => complete(StatusCodes.NotFound,"Entity not found")
-        }
-      }
-      onComplete(route) {
-        case Success(value) => value
-        case Failure(e) => {
-          e.printStackTrace()
-          complete(StatusCodes.InternalServerError,"error")
-        }
+  def entityRoute:Route = pathPrefix(Segment) { entity =>
+    val route: Future[Route] = publicEntities.map{ pe =>
+      pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
+        case Some(action) => EntityRead(entity,action)
+        case None => complete(StatusCodes.NotFound,"Entity not found")
       }
     }
+    onComplete(route) {
+      case Success(value) => value
+      case Failure(e) => {
+        e.printStackTrace()
+        complete(StatusCodes.InternalServerError,"error")
+      }
+    }
+  }
+
+  val route:Route = pathPrefix("public") {
+    form ~
+    file ~
+    entityRoute
   }
 
 

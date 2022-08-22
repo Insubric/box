@@ -63,14 +63,14 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
   }
 
 
-  val route:Route = UI.clientFiles ~
-    encodeResponseWith(Gzip.withLevel(6)) {
+  val route:Route = encodeResponseWith(Gzip.withLevel(6)) {
       status ~
-        Cache.resetRoute() ~
-        cors.handle {
-          ApiV1(appVersion).route
-        }
-    }
+      Cache.resetRoute() ~
+      cors.handle {
+        ApiV1(appVersion).route
+      }
+    } ~
+    UI.clientFiles
 
 
 }

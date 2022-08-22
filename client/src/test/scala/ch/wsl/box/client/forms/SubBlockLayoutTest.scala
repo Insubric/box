@@ -40,7 +40,7 @@ class SubBlockLayoutTest extends TestBase {
       )
     }
 
-    override def update(id: JSONID, obj: Json): JSONID = {
+    override def update(id: JSONID, obj: Json): Json = {
       println(obj)
 
       Try(obj.get(stringField) shouldBe updatedValue) match {
@@ -48,7 +48,7 @@ class SubBlockLayoutTest extends TestBase {
         case Success(value) => updatedField.success(value)
       }
 
-      jsonId
+      obj
     }
   }
 

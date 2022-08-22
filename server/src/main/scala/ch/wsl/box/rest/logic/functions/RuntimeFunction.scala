@@ -8,7 +8,7 @@ import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.services.Services
 
 
@@ -19,6 +19,7 @@ trait RuntimeWS{
 
 trait RuntimePSQL{
   def function(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,up: UserProfile,services:Services):Future[Option[DataResultTable]]
+  def dynFunction(name:String,parameters:Seq[Json])(implicit lang:Lang, ec:ExecutionContext,up: UserProfile,services:Services):Future[Option[DataResultTable]]
   def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]]
 }
 
@@ -47,6 +48,7 @@ object RuntimeFunction {
                   |import ch.wsl.box.shared.utils.JSONUtils._
                   |import ch.wsl.box.rest.logic.functions.Context
                   |import ch.wsl.box.rest.logic._
+                  |import ch.wsl.box.model.shared._
                   |import ch.wsl.box.jdbc.PostgresProfile.api._
                   |import akka.stream.Materializer
                   |import akka.actor.ActorSystem

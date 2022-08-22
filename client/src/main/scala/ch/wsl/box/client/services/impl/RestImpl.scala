@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{CSVTable, EntityKind, ExportDef, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
 import kantan.csv._
@@ -65,8 +65,14 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   //for entities and forms
   def get(kind:String, lang:String, entity:String, id:JSONID, public:Boolean):Future[Json] = {
-    val prefix = if(public) "/public" else ""
-    httpClient.get[Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"))
+
+    val prefix = (public,EntityKind(kind).isEntity) match {
+      case (true,true) => "/public"
+      case (true,false) => s"/public/${EntityKind(kind).entityOrForm}/$lang"
+      case (false,_) => s"/${EntityKind(kind).entityOrForm}/$lang"
+    }
+
+    httpClient.get[Json](Routes.apiV1(s"$prefix/$entity/id/${id.asString}"))
   }
   def update(kind:String, lang:String, entity:String, id:JSONID, data:Json, public:Boolean):Future[Json] = {
     val prefix = if(public) "/public" else ""
@@ -109,11 +115,17 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   override def exportXLS(table: XLSTable): Future[File] = httpClient.postFileResponse[XLSTable](Routes.apiV1(s"/exportXLS"),table)
 
 
-  override def execute(functionName: String, lang: String, data:Json): Future[String] = httpClient.post[Json,String](Routes.apiV1(s"/function/$functionName/$lang"),data)
+  override def execute(functionName: String, lang: String, data:Json): Future[DataResultTable] = httpClient.post[Json,DataResultTable](Routes.apiV1(s"/function/$functionName/$lang/raw"),data)
 
   //admin
   def generateStub(entity:String) = httpClient.get[Boolean](Routes.apiV1(s"/create-stub/$entity"))
   override def definition(): Future[BoxDefinition] = httpClient.get[BoxDefinition](Routes.apiV1(s"/box-definition"))
   override def definitionDiff(definition: BoxDefinition): Future[BoxDefinitionMerge] = httpClient.post[BoxDefinition,BoxDefinitionMerge](Routes.apiV1(s"/box-definition/diff"),definition)
   override def definitionCommit(merge: BoxDefinitionMerge): Future[Boolean] = httpClient.post[BoxDefinitionMerge,Boolean](Routes.apiV1(s"/box-definition/commit"),merge)
+
+
+  override def translationsFields(lang: String): Future[Seq[Field]] = httpClient.get[Seq[Field]](Routes.apiV1(s"/translations/fields/$lang"))
+  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Boolean] = httpClient.post[BoxTranslationsFields,Boolean](Routes.apiV1(s"/translations/fields/commit"),merge)
+
+
 }

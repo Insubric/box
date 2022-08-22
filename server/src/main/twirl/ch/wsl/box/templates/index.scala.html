@@ -1,7 +1,7 @@
 @import org.webjars.WebJarAssetLocator
 @import scala.util.Try
 @import scala.util.Random
-@(version:String,enableRedactor:Boolean,devServer:Boolean)
+@(version:String,enableRedactor:Boolean,devServer:Boolean,basePath:String)
 
 <!DOCTYPE html>
 <html>
@@ -9,22 +9,41 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+        <!-- remove hash -->
+        <script>
+                if(window.location.hash.startsWith("#/")) {
+                    var queryString = window.location.search
+                    console.log("qs: " + queryString)
+                    var _location = window.location.toString()
+                    console.log("l: " + _location)
+                    _location = _location.replace(queryString,'')
+                    console.log("l: " + _location)
+                    _location = _location.replace('#/', '')
+                    console.log("l: " + _location)
+                    window.location = _location + queryString
+                }
+        </script>
+
         <title></title>
+
+        <base href="@basePath">
 
         <link href="data:image/x-icon;base64,AAABAAEAEBAAAAAAAABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" rel="icon" type="image/x-icon" />
 
             <!-- Latest compiled and minified CSS -->
-        <link rel="stylesheet" href="assets/bootstrap/dist/css/bootstrap.min.css">
-        <link rel="stylesheet" href="assets/flatpickr/dist/flatpickr.min.css">
-        <link rel="stylesheet" href="assets/flatpickr/dist/themes/dark.css">
-        <link rel="stylesheet" href="assets/quill/dist/quill.snow.css">
+        <link rel="stylesheet" href="@{basePath}assets/bootstrap/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="@{basePath}assets/flatpickr/dist/flatpickr.min.css">
+        <link rel="stylesheet" href="@{basePath}assets/flatpickr/dist/themes/dark.css">
+        <link rel="stylesheet" href="@{basePath}assets/quill/dist/quill.snow.css">
 
-        <link rel="stylesheet" href="assets/ol/ol.css" >
-        <link rel="stylesheet" href="assets/open-sans-all/css/open-sans.min.css" >
+        <link rel="stylesheet" href="@{basePath}assets/ol/ol.css" >
+        <link rel="stylesheet" href="@{basePath}assets/open-sans-all/css/open-sans.min.css" >
+
+
 
         @if(enableRedactor) {
-            <link rel="stylesheet" href="redactor.css" />
-            <script src="redactor.js"></script>
+            <link rel="stylesheet" href="@{basePath}redactor.css" />
+            <script src="@{basePath}redactor.js"></script>
         }
 
 
@@ -33,14 +52,14 @@
         <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
 
         @if(devServer) {
-            <script src="devServer/client-fastopt-library.js" type="text/javascript"></script>
+            <script src="@{basePath}devServer/client-fastopt-library.js" type="text/javascript"></script>
             <script language="JavaScript">
                     var exports = window;
                     exports.require = window["ScalaJSBundlerLibrary"].require;
             </script>
-            <script src="devServer/client-fastopt.js?r=@{Random.alphanumeric.take(10).mkString}" type="text/javascript"></script>
+            <script src="@{basePath}devServer/client-fastopt.js?r=@{Random.alphanumeric.take(10).mkString}" type="text/javascript"></script>
         } else {
-            <script src="bundle/box-app.js?version=@version" type="text/javascript"></script>
+            <script src="@{basePath}bundle/box-app.js?version=@version" type="text/javascript"></script>
         }
 
 

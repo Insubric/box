@@ -3,10 +3,14 @@ package ch.wsl.box.client.mocks
 import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
+import scribe.Level
 
 import java.util.UUID
 
 class Values {
+
+  def loggerLevel:Level = Level.Debug
+
   val headerLangEn = "test header en"
   val headerLangIt = "test header it"
 
@@ -21,7 +25,8 @@ class Values {
 
   val conf = Map(
     "langs" -> "it,en",
-    "display.index.html" -> "true"
+    "display.index.html" -> "true",
+    "client.logger.level" -> loggerLevel.name
   )
 
   val testFormName = "test_form"
@@ -72,7 +77,7 @@ class Values {
         JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
-        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue.asJson)))
+        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue).asJson))
       ),
       JSONField(
         JSONFieldTypes.CHILD,

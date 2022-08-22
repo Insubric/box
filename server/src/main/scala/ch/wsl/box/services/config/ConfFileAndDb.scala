@@ -28,7 +28,10 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
       }.toMap
     }, 200 seconds)
 
-    conf = tempConf.filterNot(_._1 == "langs") ++ Map("langs" -> langs.mkString(","))
+    conf = tempConf.filterNot(_._1 == "langs") ++ Map(
+      "langs" -> langs.mkString(","),
+      "frontendUrl" -> frontendUrl
+    )
 
   }
 
@@ -54,8 +57,6 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
   def fksLookupLabels = ConfigFactory.parseString( Try(conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
 
   def fksLookupRowsLimit = Try(conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
-
-
 
 
   def akkaHttpSession = {

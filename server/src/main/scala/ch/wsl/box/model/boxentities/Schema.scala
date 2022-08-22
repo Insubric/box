@@ -10,7 +10,6 @@ object Schema {
       BoxExport.BoxExport_i18nTable.schema ++
       BoxExportField.BoxExportFieldTable.schema ++
       BoxExportField.BoxExportField_i18nTable.schema ++
-      BoxExportField.BoxExportHeader_i18nTable.schema ++
       BoxField.BoxFieldTable.schema ++
       BoxField.BoxFieldFileTable.schema ++
       BoxField.BoxField_i18nTable.schema ++

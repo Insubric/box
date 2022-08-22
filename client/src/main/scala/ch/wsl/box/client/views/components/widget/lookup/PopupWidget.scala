@@ -1,9 +1,10 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.udash._
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
@@ -46,23 +47,22 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     ).render
   })
 
-  override def edit() = {
+  object Status{
+    val Closed = "closed"
+    val Open = "open"
+  }
 
-    object Status{
-      val Closed = "closed"
-      val Open = "open"
-    }
+  def popupEdit(mainRenderer:(UdashModal,Property[String]) => Modifier) = {
 
     val searchProp = Property("")
 
     val modalStatus = Property(Status.Closed)
 
-
     def optionList(nested:NestedInterceptor):Modifier = div(
       label(Labels.popup.search),br,
-      TextInput(searchProp,500.milliseconds)(),br,br,
+      TextInput(searchProp,500.milliseconds)(width := 100.pct),br,br,
       nested(showIf(modalStatus.transform(_ == Status.Open)) {
-        div(nested(produce(searchProp) { searchTerm =>
+        div(ClientConf.style.popupEntiresList,nested(produce(searchProp) { searchTerm =>
           div(
             nested(produce(lookup) { lu =>
               div(
@@ -83,7 +83,8 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     var modal:UdashModal = null
 
     val header = (x:NestedInterceptor) => div(
-      field.title,
+      b(field.title),
+      div(width := 100.pct, textAlign.center,bind(model.transform(_.map(_.value).getOrElse("")))),
       UdashButton()( _ => Seq[Modifier](
         onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
         BootstrapStyles.close, "×"
@@ -97,10 +98,17 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
     ).render
 
     val footer = (x:NestedInterceptor) => div(
+      showIf(model.transform(_.isDefined)) {
+        button(onclick :+= ((e: Event) => {
+          model.set(None)
+          modal.hide()
+          e.preventDefault()
+        }), Labels.popup.remove, ClientConf.style.boxButtonDanger).render
+      },
       button(onclick :+= ((e:Event) => {
         modal.hide()
         e.preventDefault()
-      }), Labels.popup.close)
+      }), Labels.popup.close,ClientConf.style.boxButton)
     ).render
 
     modal = UdashModal(modalSize = Some(Size.Large).toProperty)(
@@ -123,11 +131,31 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
         case Status.Closed => modal.hide()
       }
     }
+
+    mainRenderer(modal,modalStatus)
+
+  }
+
+  override def editOnTable(): JsDom.all.Modifier = popupEdit((modal,modalStatus) => {
+    div(
+      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+      button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
+          modalStatus.set(Status.Open)
+          e.preventDefault()
+        }),
+        bind(model.transform(_.map(_.value).getOrElse("")))
+      ),
+      modal.render
+    )
+  })
+
+  override def edit(): JsDom.all.Modifier = popupEdit((modal,modalStatus) => {
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
       BootstrapStyles.Display.flex(),BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Between))(
       WidgetUtils.toLabel(field),
+      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
         modalStatus.set(Status.Open)
         e.preventDefault()
@@ -135,5 +163,5 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       modal.render
 
     )
-  }
+  })
 }

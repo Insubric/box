@@ -9,7 +9,11 @@ case class EntityActionsRegistryGenerator(tableList:Seq[String], model:Model) ex
 
 
     def mapTable(model:String):Option[String] = tables.find(_.model.name.table == model).map{ table =>
-      s"""   case "${table.model.name.table}" => JSONTableActions[${table.TableClass.name},${table.EntityType.name}](${table.TableClass.name})"""
+
+      val encoder = s"Entities.encode${table.EntityType.name}"
+      val decoder = s"Entities.decode${table.EntityType.name}"
+
+      s"""   case "${table.model.name.table}" => JSONTableActions[${table.TableClass.name},${table.EntityType.name}](${table.TableClass.name})($encoder,$decoder,ec,services)"""
     }
 
 
@@ -29,12 +33,7 @@ case class EntityActionsRegistryGenerator(tableList:Seq[String], model:Model) ex
          |
          |  import $modelPackages._
          |  import io.circe._
-         |  import io.circe.generic.extras.auto._
-         |  import io.circe.generic.extras.Configuration
-         |  implicit val customConfig: Configuration = Configuration.default.withDefaults
          |
-         |  import ch.wsl.box.rest.utils.JSONSupport._
-         |  import Light._
          |
          |  def apply(name:String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {
          |    case FormMetadataFactory.STATIC_PAGE => JSONPageActions

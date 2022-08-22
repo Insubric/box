@@ -122,7 +122,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
     def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key),keyValue.value))
 
-    id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
+    val q = id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
+    q
   }
 
 
@@ -169,7 +170,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     logger.info(s"UPDATE BY ID $id")
     resetMetadataCache()
     for{
-      result <- filter(id).updateReturning(entity,e)
+      _ <- filter(id).update(e)
+      result <- getById(id)
     } yield result.head
   }
 

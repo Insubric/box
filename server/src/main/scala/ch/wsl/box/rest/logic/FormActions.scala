@@ -16,6 +16,7 @@ import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.Registry
@@ -56,7 +57,7 @@ case class FormActions(metadata:JSONMetadata,
     JSONQuery(
       filter = defaultQuery.filter ++ query.filter,
       sort = query.sort ++ defaultQuery.sort,
-      paging = query.paging.orElse(defaultQuery.paging),
+      paging = query.paging,
       lang = defaultQuery.lang
     )
   }.getOrElse(query)
@@ -101,35 +102,77 @@ case class FormActions(metadata:JSONMetadata,
 
 
 
-  def list(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false):DBIO[Seq[Json]] = _list(queryForm(query)).map{ _.map{ row =>
 
 
-    val columns = metadata.tabularFields.map{f =>
-      (f, listRenderer(row,lookupElements,dropHtml)(f))
+  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(queryForm(query)).map{ rows =>
+
+    val data: Seq[Seq[Json]] = rows.map { row =>
+      metadata.exportFields.map { f =>
+        listRenderer(row, lookupElements, dropHtml)(f)
+      }
     }
-    Json.obj(columns:_*)
-  }}
+    val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
+    val geomColumn = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
+    DataResultTable(fields.map(_.title),fields.map(_.`type`),data,geomColumn.map{ case f =>
+      f.name -> rows.flatMap{ row => row.js(f.name).as[Geometry].toOption }
+    }.toMap)
+  }
 
-  def csv(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
+  private def fkDataComplete(tabularFieldsKey:Seq[String], rows:Seq[Json]): DBIO[Option[Seq[(String, Seq[Json])]]] = {
+    val tabularFields = metadata.fields.filter(x => tabularFieldsKey.contains(x.name))
+    val lookupFields = tabularFields.filter(_.lookup.isDefined)
+
+    DBIO.sequence(lookupFields.map{ lf =>
+      val localFields = lf.lookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
+      val foreignFields = lf.lookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
+
+      val data = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose
+      val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
+      val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
+      Registry().actions(lf.lookup.get.lookupEntity).find(fkQuery).map{ fk =>
+        lf.lookup.get.lookupEntity -> fk
+      }
+    }).map(x => Some(x))
+  }
+
+  private def noFkData = DBIO.successful(None)
+
+
+  def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false):DBIO[Seq[Json]] = {
+
+    _list(queryForm(query)).flatMap{ rows =>
+      val fkData = if(resolveLookup) fkDataComplete(metadata.tabularFields,rows) else noFkData
+
+      fkData.map { lookupElements =>
+        rows.map { row =>
+          val columns = metadata.tabularFields.map { f =>
+            (f, listRenderer(row, lookupElements.map(_.toMap), dropHtml)(f))
+          }
+
+          Json.fromFields(columns)
+        }
+      }
+    }
+  }
+
+
+  def csv(query:JSONQuery,resolveLookup:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
 
     import kantan.csv._
     import kantan.csv.ops._
 
-    _list(queryForm(query)).map { rows =>
+    _list(queryForm(query)).flatMap { rows =>
 
-      val csvRows = rows.map { json =>
+      val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
 
-
-        fields(metadata).map(listRenderer(json, lookupElements)).map(_.string)
+      fkData.map{lookupElements =>
+        val csvRows = rows.map { json =>
+          fields(metadata).map(listRenderer(json, lookupElements.map(_.toMap))).map(_.string)
+        }
+        CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
       }
-      CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
     }
-
-
   }
-
-
-
 
 
   /**
@@ -163,9 +206,11 @@ case class FormActions(metadata:JSONMetadata,
 
   def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
 
+    logger.debug(s"Applying sub action to $e")
+
     val result = metadata.fields.filter(_.child.isDefined).filter { field =>
       field.condition match {
-        case Some(value) => alwaysApply || value.conditionValues.contains(e.js(value.conditionFieldId))
+        case Some(condition) => alwaysApply || condition.check(e.js(condition.conditionFieldId))
         case None => true
       }
     }.map{ field =>
@@ -175,7 +220,7 @@ case class FormActions(metadata:JSONMetadata,
         subs = e.seq(field.name)
         subJsonWithIndexs = attachArrayIndex(subs,form)
         subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
-        deleted <- DBIO.sequence(deleteChild(form,subJson,dbSubforms))
+        deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
           action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json)
         })

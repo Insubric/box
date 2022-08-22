@@ -2,13 +2,13 @@ package ch.wsl.box.client.services
 
 import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
-
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
 import ch.wsl.box.client.styles.{GlobalStyles, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import io.circe._
 import io.circe.parser._
+import scribe.Level
 
 import scala.util.Try
 
@@ -29,6 +29,14 @@ object ClientConf {
     _appVersion = appVersion
   }
 
+  def loggerLevel = conf.get("client.logger.level") match {
+    case Some(l) if l.toLowerCase == "debug" => Level.Debug
+    case Some(l) if l.toLowerCase == "info" => Level.Info
+    case Some(l) if l.toLowerCase == "error" => Level.Error
+    case Some(l) if l.toLowerCase == "trace" => Level.Trace
+    case _ => Level.Warn
+  }
+
   def version: String = _version
   def appVersion: String = _appVersion
 
@@ -42,6 +50,7 @@ object ClientConf {
   def displayIndexHtml: Boolean = Try(conf("display.index.html").toBoolean).getOrElse(false)
 
   def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
+  def frontendUrl: String = Try(conf("frontendUrl")).getOrElse("http://localhost:8080")
 
   def colorMain: String = Try(conf("color.main")).getOrElse("#006268")
   def colorMainText: String = Try(conf("color.main.text")).getOrElse("#ffffff")

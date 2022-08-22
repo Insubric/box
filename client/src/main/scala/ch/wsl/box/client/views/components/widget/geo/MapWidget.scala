@@ -1,8 +1,9 @@
 package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.ClientConf
-import ch.wsl.box.client.utils.GeoJson
-import ch.wsl.box.model.shared.JSONField
+import ch.wsl.box.client.viewmodel.{I18n, LangLabel}
+import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.{GeoJson, JSONField}
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.auto._
@@ -51,15 +52,51 @@ case class MapParamsLayers(
                             time:Option[String]
                           )
 
+case class MapFormatters(
+  point:Option[I18n.Label],
+  multiPoint:Option[I18n.Label],
+  line:Option[I18n.Label],
+  multiLine:Option[I18n.Label],
+  polygon:Option[I18n.Label],
+  multiPolygon:Option[I18n.Label]
+) {
+
+  import I18n._
+
+  def geomToString(precision:Double,lang:String)(g:Geometry):String = {
+
+    println(g)
+    println("bla bla")
+
+    def asString(pattern:Option[I18n.Label]) = pattern.flatMap(_.lang(lang)) match {
+      case Some(value) => g.format(value,precision)
+      case None => g.toString(precision)
+    }
+
+    g match {
+      case GeoJson.Point(coordinates) => asString(point)
+      case GeoJson.LineString(coordinates) => asString(line)
+      case GeoJson.Polygon(coordinates) => asString(polygon)
+      case GeoJson.MultiPoint(coordinates) => asString(multiPoint)
+      case GeoJson.MultiLineString(coordinates) => asString(multiLine)
+      case GeoJson.MultiPolygon(coordinates) => asString(multiPolygon)
+      case GeoJson.GeometryCollection(geometries) => g.toString(precision)
+    }
+  }
+}
+
 case class MapParams(
                       features: MapParamsFeatures,
                       defaultProjection: String,
                       projections: Seq[MapParamsProjection],
                       baseLayers: Option[Seq[MapParamsLayers]],
-                      precision: Option[Double]
+                      precision: Option[Double],
+                      formatters: Option[MapFormatters]
                     )
 
 trait MapWidget extends Logging {
+
+  import ch.wsl.box.shared.utils.Formatters._
 
   def field:JSONField
 
@@ -72,6 +109,7 @@ trait MapWidget extends Logging {
       extent = Seq(-20026376.39, -20048966.10, 20026376.39, 20048966.10),
       unit = "m"
     )),
+    None,
     None,
     None
   )

@@ -24,8 +24,6 @@ case class GeneratedRegistry(
 
 object Registry extends Logging {
 
-  private def dropPackage(code:String):String = code.lines.drop(1).mkString("\n")
-
   private var _registry:RegistryInstance = null;
 
 
@@ -39,84 +37,14 @@ object Registry extends Logging {
 
   def load()(implicit services:Services) = {
 
-  try {
-    _registry = Class.forName("ch.wsl.box.generated.GenRegistry")
-                      .newInstance()
-                      .asInstanceOf[RegistryInstance]
-    //logger.warn("Using generated registry, use only in development!")
-  } catch { case t:Throwable =>
-
-      val schema = ConfigFactory.load().as[Option[String]]("db.schema").getOrElse("public")
-      val files = CodeGenerator(schema).generatedFiles(services.connection)
-
-      val entitiesCode =  files.entities.packageCode(
-        profile = "ch.wsl.box.jdbc.PostgresProfile",
-        pkg = "",
-        container = "Entities",
-        parentType = None
-      )
-
-
-      val routeFileCode =  files.fileAccessGenerator.generate(
-        pkg = "",
-        modelPackages = "FileTables",
-        name = "FileRoutes"
-      )
-
-      val routesCode =  files.generatedRoutes.generate(
-        pkg = "",
-        modelPackages = "Entities",
-        name = "GenRoutes"
-      )
-
-      val actionsCode =  files.entityActionsRegistry.generate(
-        pkg = "",
-        modelPackages = "Entities"
-      )
-
-      val fieldsCode =  files.fieldRegistry.generate(
-        pkg = "",
-        modelPackages = ""
-      )
-
-      val source = s"""
-                      |${dropPackage(entitiesCode)}
-                      |                      |
-                      |${dropPackage(routeFileCode)}
-                      |
-                      |${dropPackage(routesCode)}
-                      |
-                      |${dropPackage(actionsCode)}
-                      |
-                      |${dropPackage(fieldsCode)}
-                      |
-                      |ch.wsl.box.rest.runtime.GeneratedRegistry(
-                      | routes = GenRoutes,
-                      | fileRoutes = FileRoutes,
-                      | actions = EntityActionsRegistry,
-                      | fields = FieldAccessRegistry
-                      |)
-                      |""".stripMargin
-
-
-
-      import scala.tools.reflect.ToolBox
-      try {
-//        val dirName = "runtime-target"
-//        val dir = new java.io.File(dirName)
-//        if(!dir.exists()) {
-//          dir.mkdir()
-//        }
-//        val toolbox = currentMirror.mkToolBox(options = s"-d $dirName")
-        val toolbox = currentMirror.mkToolBox()
-        val tree = toolbox.parse(source)
-        val out = toolbox.eval(tree)
-        _registry = out.asInstanceOf[GeneratedRegistry]
-      } catch { case e:Throwable =>
-        e.printStackTrace()
-        reflect.io.File("ErroredRuntimeCompile.scala").writeAll(source)
-        println(s"Saved generated file in: ${new java.io.File(".").getAbsolutePath()}/ErroredRuntimeCompile.scala")
-      }
+    try {
+      _registry = Class.forName("ch.wsl.box.generated.GenRegistry")
+        .newInstance()
+        .asInstanceOf[RegistryInstance]
+      //logger.warn("Using generated registry, use only in development!")
+    } catch {
+      case t: Throwable =>
+        logger.error(s"Model not generated: run generateModel task before running")
     }
   }
 

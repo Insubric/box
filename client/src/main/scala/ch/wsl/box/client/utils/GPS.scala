@@ -2,7 +2,7 @@ package ch.wsl.box.client.utils
 
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.Notification
-import ch.wsl.box.client.utils.GeoJson.Coordinates
+import ch.wsl.box.model.shared.GeoJson.Coordinates
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Position, PositionError, PositionOptions}
 import scribe.Logging
@@ -18,7 +18,7 @@ object GPS extends Logging {
 
   case class CoordinateAccuracy(c:Coordinates,a:Double)
 
-  def fetchCoordinates():Future[CoordinateAccuracy] = {
+  private def fetchCoordinates():Future[CoordinateAccuracy] = {
     val options = js.Dictionary(
       "enableHighAccuracy" -> true,
       "timeout" -> 5000,
@@ -43,7 +43,7 @@ object GPS extends Logging {
 
   }
 
-  def coordinates()(implicit ec:ExecutionContext):Future[Coordinates] = {
+  def coordinates()(implicit ec:ExecutionContext):Future[Option[Coordinates]] = {
 
     services.clientSession.loading.set(true)
 
@@ -56,19 +56,23 @@ object GPS extends Logging {
       }
     }
 
-    retries.map { result =>
-      services.clientSession.loading.set(false)
+    val coordinates = retries.map { result =>
+
       result match {
         case Some(value) => {
           logger.info(s"Got coordinate with accuracy: ${value.a}")
-          value.c
+          Some(value.c)
         }
         case None => {
           Notification.add("Unable to get GPS coordinates")
-          throw new Exception("Unable to get GPS coordinates")
+          None
         }
       }
     }
+
+    coordinates.onComplete{_ => services.clientSession.loading.set(false)}
+
+    coordinates
 
 
   }

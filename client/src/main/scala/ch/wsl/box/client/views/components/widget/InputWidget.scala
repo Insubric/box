@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
@@ -15,7 +15,12 @@ import scala.concurrent.Future
 import scalatags.JsDom.all._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.udash.bindings.modifiers.Binding
-import org.scalajs.dom.Node
+import io.udash.bindings.modifiers.Binding.NestedInterceptor
+import io.udash.bootstrap.button.UdashButton
+import io.udash.bootstrap.modal.UdashModal
+import io.udash.bootstrap.modal.UdashModal.ModalEvent
+import io.udash.bootstrap.utils.BootstrapStyles.Size
+import org.scalajs.dom.{Event, Node}
 import scribe.Logging
 
 object InputWidgetFactory {
@@ -129,6 +134,79 @@ object InputWidget extends Logging {
       TextArea(stringModel)(mod:_*).render
     }
     override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data,field,true,modifiers))
+
+    object Status{
+      val Closed = "closed"
+      val Open = "open"
+    }
+
+    val modalStatus = Property(Status.Closed)
+
+    var modal:UdashModal = null
+
+    val header = (x:NestedInterceptor) => div(
+      b(field.title),
+      div(width := 100.pct, textAlign.center,field.title),
+      UdashButton()( _ => Seq[Modifier](
+        onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
+        BootstrapStyles.close, "×"
+      )).render
+    ).render
+
+    val body = (x:NestedInterceptor) => {
+      val stringModel = Property("")
+      autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
+      div(
+        div(
+          TextArea(stringModel)(WidgetUtils.toNullable(field.nullable), width := 100.pct, height := 300.px)
+        )
+      ).render
+    }
+
+    val footer = (x:NestedInterceptor) => div(
+      button(onclick :+= ((e:Event) => {
+        modal.hide()
+        e.preventDefault()
+      }), Labels.popup.close,ClientConf.style.boxButton)
+    ).render
+
+    modal = UdashModal(modalSize = Some(Size.Large).toProperty)(
+      headerFactory = Some(header),
+      bodyFactory = Some(body),
+      footerFactory = Some(footer)
+    )
+
+    modal.listen { case ev:ModalEvent =>
+      ev.tpe match {
+        case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
+        case _ => {}
+      }
+    }
+
+    modalStatus.listen{ state =>
+      logger.info(s"State changed to:$state")
+      state match {
+        case Status.Open => modal.show()
+        case Status.Closed => modal.hide()
+      }
+    }
+
+    override def editOnTable(): JsDom.all.Modifier = {
+      div(
+        bind(data.transform{ str =>
+          if(str.string.length > 40) {
+            str.string.take(37) + "..."
+          } else if(str.isString) str.string else ""
+        }),
+        " ",
+        a(fontSize := 20.px, "✎",onclick :+= ((e:Event) => {
+          modalStatus.set(Status.Open)
+          e.preventDefault()
+        })),
+        modal.render
+      )
+    }
+
   }
 
   class TwoLines(field:JSONField, prop: Property[Json]) extends Textarea(field,prop) {
@@ -151,7 +229,16 @@ object InputWidget extends Logging {
 
     override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
       val stringModel = Property("")
-      autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
+
+      data.sync[String](stringModel)(jsonToString _,fromString _)
+
+      data.listen(prop => println(s"Input property change to: $prop"))
+      stringModel.listen(prop => println(s"String model property change to: $prop"))
+
+      if(TestHooks.testing) {
+        TestHooks.properties += TestHooks.formField(field.name) -> data
+      }
+
       field.`type` match {
         case JSONFieldTypes.NUMBER => NumberInput(stringModel)((y ++ Seq(step := "any")):_*).render
         case JSONFieldTypes.INTEGER => NumberInput(stringModel)(y:_*).render
@@ -165,7 +252,8 @@ object InputWidget extends Logging {
     override def editOnTable(): JsDom.all.Modifier = {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
-      TextInput(stringModel)(ClientConf.style.simpleInput).render
+      val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
+      TextInput(stringModel)(mod:_*).render
     }
   }
 

@@ -45,7 +45,7 @@ object JSONSupport extends GeoJsonSupport {
     }
   }
 
-  implicit def printer: Json => String = Printer.noSpaces.copy(dropNullValues = true).pretty
+  implicit def printer: Json => String = Printer.spaces2SortKeys.copy(dropNullValues = true).print
 
   implicit val LocalDateTimeFormat : Encoder[LocalDateTime] with Decoder[LocalDateTime] = new Encoder[LocalDateTime] with Decoder[LocalDateTime] {
 

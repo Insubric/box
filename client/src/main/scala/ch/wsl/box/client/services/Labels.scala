@@ -138,6 +138,7 @@ object Labels {
     def confirmRevert = get(SharedLabels.entity.confirmRevert)
     def csv = get(SharedLabels.entity.csv)
     def xls = get(SharedLabels.entity.xls)
+    def shp = get(SharedLabels.entity.shp)
   }
 
   object header{
@@ -154,6 +155,7 @@ object Labels {
   object popup{
     def search = get(SharedLabels.popup.search)
     def close = get(SharedLabels.popup.close)
+    def remove = get(SharedLabels.popup.remove)
   }
 
   object home {

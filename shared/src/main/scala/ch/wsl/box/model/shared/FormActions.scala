@@ -1,5 +1,8 @@
 package ch.wsl.box.model.shared
 
+import io.circe.Json
+import ch.wsl.box.shared.utils.JSONUtils._
+import yamusca.imports._
 
 sealed trait Action
 case object SaveAction extends Action
@@ -52,13 +55,38 @@ case class FormAction(
                       insertOnly:Boolean = false,
                       reload:Boolean = false,
                       confirmText:Option[String] = None,
-                      executeFunction:Option[String] = None
+                      executeFunction:Option[String] = None,
+                      condition:Option[Seq[ConditionalField]] = None,
+                      html5check:Boolean = true
                       ) {
-  def getUrl(kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
-    x .replace("$kind",kind)
+  def getUrl(data:Json,kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
+    val urlInternalSubstitutions = x.replace("$kind",kind)
       .replace("$name",name)
       .replace("$id",id.getOrElse(""))
       .replace("$writable", writable.toString)
+
+    mustache.parse(urlInternalSubstitutions) match {
+      case Left(err) => {
+        println(err._2)
+        urlInternalSubstitutions
+      }
+      case Right(tmpl) => {
+
+        val variables = tmpl.els.flatMap{
+          case Variable(key, _) => Some(key)
+          case Section(key, _, _) => Some(key)
+          case _ => None
+        }
+
+        val values = variables.map{v =>
+          v -> data.js(v).toMustacheValue
+        }
+
+        mustache.render(tmpl)(Context(values:_*))
+      }
+    }
+
+
   }
 }
 

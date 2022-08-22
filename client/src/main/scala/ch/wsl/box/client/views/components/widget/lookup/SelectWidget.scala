@@ -59,7 +59,8 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
 
   override def editOnTable(): JsDom.all.Modifier = {
     produce(lookup) { l =>
-      Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), ClientConf.style.simpleInput).render
+      val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
+      Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value),mod:_*).render
     }
   }
 }

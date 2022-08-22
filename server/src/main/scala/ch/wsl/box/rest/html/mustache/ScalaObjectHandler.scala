@@ -2,11 +2,10 @@ package ch.wsl.box.rest.html.mustache
 
 import java.io.Writer
 import java.lang.reflect.{Field, Method}
-
 import com.github.mustachejava.Iteration
 import com.github.mustachejava.reflect.ReflectionObjectHandler
 
-import scala.collection.JavaConversions.mapAsJavaMap
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.runtime.BoxedUnit
 
@@ -19,7 +18,7 @@ class ScalaObjectHandler extends ReflectionObjectHandler {
 
   override def coerce(value: AnyRef) = {
     value match {
-      case m: collection.Map[_, _] => mapAsJavaMap(m)
+      case m: collection.Map[_, _] => m.asJava
       case u: BoxedUnit => null
       case s: Seq[Any] => new ArrayMap(s)
       case Some(some: AnyRef) => coerce(some)

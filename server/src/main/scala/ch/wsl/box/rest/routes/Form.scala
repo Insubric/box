@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayOutputStream
-
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
@@ -16,8 +15,10 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
-import ch.wsl.box.rest.io.csv.{CSV}
+import ch.wsl.box.rest.io.csv.CSV
+import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
+import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
@@ -114,8 +115,7 @@ case class Form(
           val io = for {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, jsonActions, metadataFactory)
-            fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-            data <- formActions.list(query, fkValues, true)
+            data <- formActions.list(query, true, true)
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
@@ -134,7 +134,7 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, jsonActions, metadataFactory)
-      csv <- db.run(formActions.csv(query, None))
+      csv <- db.run(formActions.csv(query, false))
     } yield csv
   }
 
@@ -148,7 +148,7 @@ case class Form(
         case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
         case _ => DBIO.successful(None)
       }
-      csv <- formActions.csv(query, fkValues, _.exportFields)
+      csv <- formActions.csv(query, true, _.exportFields)
     } yield csv.copy(
       showHeader = true,
       header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
@@ -185,6 +185,26 @@ case class Form(
                 Cache.reset()
               }
               if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def shp:Route = path("shp") {
+    get {
+      parameters('q) { q =>
+        val query = parse(q).right.get.as[JSONQuery].right.get
+        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
+          complete {
+            for {
+              metadata <- boxDb.adminDb.run(tabularMetadata())
+              formActions = FormActions(metadata, jsonActions, metadataFactory)
+              data <- db.run(formActions.dataTable(query, None))
+              shapefile <- ShapeFileWriter.writeShapeFile(name,data)
+            }  yield {
+              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
             }
           }
         }
@@ -347,8 +367,7 @@ case class Form(
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
                 formActions = FormActions(metadata, jsonActions, metadataFactory)
-                fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-                result <- formActions.list(query, fkValues)
+                result <- formActions.list(query, true)
               } yield {
                 result
               }
@@ -363,6 +382,7 @@ case class Form(
     lookup ~
     xls ~
     csv ~
+    shp ~
     pathEnd {
         post {
           entity(as[Json]) { e =>

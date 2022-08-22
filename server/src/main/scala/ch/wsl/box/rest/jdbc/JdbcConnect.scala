@@ -1,18 +1,16 @@
 package ch.wsl.box.rest.jdbc
 
 import java.sql._
-
-import ch.wsl.box.model.boxentities.BoxExportField
-import ch.wsl.box.model.boxentities.BoxExportField.BoxExportHeader_i18n_row
+import ch.wsl.box.model.boxentities.{BoxExportField, BoxLabels}
 import ch.wsl.box.rest.utils.UserProfile
 import io.circe.Json
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.jdbc.{Connection, UserDatabase}
-import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.jdbc.{Connection, TypeMapping, UserDatabase}
+import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.services.Services
 
 
@@ -26,6 +24,46 @@ object JdbcConnect extends Logging {
   import io.circe.syntax._
 
 
+  def dynamicFunction(name:String, args: Seq[Json], lang:String)(implicit ec:ExecutionContext,up:UserProfile,services:Services):Future[Option[DataResultTable]] = {
+
+    val result = Future{
+      // make the connection
+      val connection = services.connection.dbConnection.source.createConnection()
+      val result = Try {
+        connection.setAutoCommit(false)
+        // create the statement, and run the select query
+        val roleStatement = connection.createStatement()
+        roleStatement.execute(s"""SET ROLE "${up.name}" """)
+
+        val statement = connection.createStatement()
+        val argsStr = if (args == null) ""
+        else args.map(_.toString()).mkString(",")
+
+        val query = s"SELECT ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
+        logger.info(query)
+        val dynResultSet = statement.executeQuery(query)
+        dynResultSet.next()
+        val dynQuery = dynResultSet.getString(1)
+
+        val dynStatement = connection.createStatement()
+        val resultSet = dynStatement.executeQuery(dynQuery)
+        connection.commit()
+        val metadata = getColumnMeta(resultSet.getMetaData)
+        val data = getResults(resultSet, metadata)
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
+      } match {
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+        case Success(value) => Some(value)
+      }
+      connection.close()
+      result
+    }
+
+    for{
+      r <- result
+      labels <- useI18nHeader(lang,r.toSeq.flatMap(_.headers))
+    } yield r.map(_.copy(headers = labels))
+  }
 
   def function(name:String, args: Seq[Json], lang:String)(implicit ec:ExecutionContext,up:UserProfile,services:Services):Future[Option[DataResultTable]] = {
 
@@ -42,14 +80,17 @@ object JdbcConnect extends Logging {
         val argsStr = if (args == null) ""
         else args.map(_.toString()).mkString(",")
 
-        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'","\\'").replaceAll("\"","'")
+        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
         logger.info(query)
         val resultSet = statement.executeQuery(query)
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
-        val data = getResults(resultSet,metadata)
-        DataResultTable(metadata.map(_.label),data,Map())
-      }.toOption
+        val data = getResults(resultSet, metadata)
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
+      } match {
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+        case Success(value) => Some(value)
+      }
       connection.close()
       result
     }
@@ -58,18 +99,14 @@ object JdbcConnect extends Logging {
       r <- result
       labels <- useI18nHeader(lang,r.toSeq.flatMap(_.headers))
     } yield r.map(_.copy(headers = labels))
-
-
-
   }
 
 
-  // TODO @boris, could we user the default labels table instead creating a new one just for the export?
   private def useI18nHeader(lang:String,keys: Seq[String])(implicit ec:ExecutionContext,services:Services):Future[Seq[String]] = Future.sequence{
     keys.map{ key =>
-      services.connection.adminDB.run(BoxExportField.BoxExportHeader_i18nTable.filter(e => e.key === key && e.lang === lang).result).map { label =>
-        if(label.isEmpty) logger.warn(s"No translation for $key in $lang, insert translation in table export_header_i18n")
-        label.headOption.map(_.label).getOrElse(key)
+      services.connection.adminDB.run(BoxLabels.BoxLabelsTable.filter(e => e.key === "export-header." + key && e.lang === lang).result).map { label =>
+        if(label.isEmpty) logger.warn(s"No translation for $key in $lang, insert export-header.$key translation in labels")
+        label.headOption.flatMap(_.label).getOrElse(key)
       }
     }
   }

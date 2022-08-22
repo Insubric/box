@@ -17,7 +17,6 @@ case class BoxDefinition(
                         export_i18n: Seq[BoxExport.BoxExport_i18n_row],
                         export_field: Seq[BoxExportField.BoxExportField_row],
                         export_field_i18n: Seq[BoxExportField.BoxExportField_i18n_row],
-                        export_header_i18n: Seq[BoxExportField.BoxExportHeader_i18n_row],
                         form: Seq[BoxForm.BoxForm_row],
                         form_i18n: Seq[BoxForm.BoxForm_i18n_row],
                         form_actions: Seq[BoxForm.BoxForm_actions_row],
@@ -46,7 +45,6 @@ case class BoxDefinitionMerge(
                                export_i18n: MergeElement[BoxExport.BoxExport_i18n_row],
                                export_field: MergeElement[BoxExportField.BoxExportField_row],
                                export_field_i18n: MergeElement[BoxExportField.BoxExportField_i18n_row],
-                               export_header_i18n: MergeElement[BoxExportField.BoxExportHeader_i18n_row],
                                form: MergeElement[BoxForm.BoxForm_row],
                                form_i18n: MergeElement[BoxForm.BoxForm_i18n_row],
                                form_actions: MergeElement[BoxForm.BoxForm_actions_row],
@@ -75,7 +73,6 @@ object BoxDefinition {
       export_i18n <- BoxExport.BoxExport_i18nTable.result
       export_field <- BoxExportField.BoxExportFieldTable.result
       export_field_i18n <- BoxExportField.BoxExportField_i18nTable.result
-      export_header_i18n <- BoxExportField.BoxExportHeader_i18nTable.result
       form <- BoxForm.BoxFormTable.result
       form_i18n <- BoxForm.BoxForm_i18nTable.result
       form_actions <- BoxForm.BoxForm_actions.result
@@ -100,7 +97,6 @@ object BoxDefinition {
       export_i18n,
       export_field,
       export_field_i18n,
-      export_header_i18n,
       form,
       form_i18n,
       form_actions,
@@ -144,7 +140,6 @@ object BoxDefinition {
       merge(_.export_i18n, _.uuid == _.uuid, _ == _),
       merge(_.export_field, _.field_uuid == _.field_uuid, _ == _),
       merge(_.export_field_i18n, _.uuid == _.uuid, _ == _),
-      merge(_.export_header_i18n, _.uuid == _.uuid, _ == _),
       merge(_.form, _.form_uuid == _.form_uuid, _ == _),
       merge(_.form_i18n, _.uuid == _.uuid, _ == _),
       merge(_.form_actions, _.uuid == _.uuid, _ == _),
@@ -202,10 +197,6 @@ object BoxDefinition {
       commit[BoxExportField.BoxExportField_row,BoxExportField.BoxExportField](
         _.export_field,BoxExportField.BoxExportFieldTable,
         x => BoxExportField.BoxExportFieldTable.filter(_.field_uuid === x.field_uuid)
-      ),
-      commit[BoxExportField.BoxExportHeader_i18n_row,BoxExportField.BoxExportHeader_i18n](
-        _.export_header_i18n,BoxExportField.BoxExportHeader_i18nTable,
-        x => BoxExportField.BoxExportHeader_i18nTable.filter(_.uuid === x.uuid)
       ),
       commit[BoxExport.BoxExport_row,BoxExport.BoxExport](
         _.`export`,BoxExport.BoxExportTable,

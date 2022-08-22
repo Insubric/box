@@ -213,6 +213,7 @@ object SharedLabels extends LabelsCollection {
     def confirmRevert = "table.confirmRevert"
     def csv = "table.csv"
     def xls = "table.xls"
+    def shp = "table.shp"
     def all = Seq(
       filters,
       actions,
@@ -224,7 +225,8 @@ object SharedLabels extends LabelsCollection {
       confirmDelete,
       confirmRevert,
       csv,
-      xls
+      xls,
+      shp
     )
   }
 
@@ -252,9 +254,11 @@ object SharedLabels extends LabelsCollection {
   object popup extends LabelsCollection{
     def search = "popup.search"
     def close = "popup.close"
+    def remove = "popup.remove"
     def all = Seq(
       search,
-      close
+      close,
+      remove
     )
   }
 

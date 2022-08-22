@@ -37,8 +37,8 @@ class InsertFormSpec extends BaseSpec {
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
       actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
       i <- up.db.run(actions.insert(json).transactionally)
-      result <- up.db.run(actions.getById(i))
-    } yield result
+      result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
+    } yield (i,result)
   }
 
   def appManagedInsert(id:JSONID, json:Json)(implicit services:Services) = {
@@ -48,8 +48,12 @@ class InsertFormSpec extends BaseSpec {
 
     for{
       _ <- new FormFixtures("app_").insertForm(up.db)
-      result <- insert("app_parent",Some(id),json)
-    } yield result.get shouldBe json
+      (inserted,result) <- insert("app_parent",Some(id),json)
+    } yield {
+      inserted shouldBe result.get
+      inserted shouldBe json
+      result.get shouldBe json
+    }
   }
 
   def dbManagedInsert(json:Json)(assertion:Json => org.scalatest.Assertion)(implicit services:Services) = {
@@ -59,8 +63,12 @@ class InsertFormSpec extends BaseSpec {
 
     for{
       _ <- new FormFixtures("db_").insertForm(up.db)
-      result <- insert("db_parent",None,json)
-    } yield assertion(result.get)
+      (inserted,result) <- insert("db_parent",None,json)
+    } yield {
+      inserted shouldBe result.get
+      assertion(inserted)
+      assertion(result.get)
+    }
   }
 
 

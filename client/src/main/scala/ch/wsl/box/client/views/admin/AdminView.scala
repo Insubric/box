@@ -49,6 +49,10 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
 
   private val entityForStub = Property("")
 
+  private val sourceLang = Property(ClientConf.langs.headOption.getOrElse(""))
+  private val destLang = Property(ClientConf.langs.lift(1).getOrElse(""))
+  private val langs = SeqProperty(ClientConf.langs)
+
   private val content = div(BootstrapStyles.Grid.row)(
     div(BootstrapCol.md(12),h2("Admin")),
     div(BootstrapCol.md(3),h3("Box Set-up"),
@@ -91,6 +95,14 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
         ),
         li(
           a("Labels", Navigate.click(FormPageState(EntityKind.BOX_FORM.kind,"labels","true",false)))
+        ),
+        div(
+          h4("Translations"),
+          "From: ",
+          Select( sourceLang, langs)(Select.defaultLabel,width := 50.px).render,
+          " to: ",
+          Select( destLang, langs)(Select.defaultLabel,width := 50.px).render," ",
+          button(ClientConf.style.boxButtonImportant,"Edit", Navigate.click(AdminTranslationsState(sourceLang.get,destLang.get)))
         )
       )
     )

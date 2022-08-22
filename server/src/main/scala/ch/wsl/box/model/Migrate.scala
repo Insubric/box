@@ -41,11 +41,11 @@ object Migrate {
     }.recoverWith{ case e:FlywayValidateException =>
       if( // Add exception for manually modified Migration 27
         e.getMessage.contains("Migration checksum mismatch for migration version 27") &&
-        e.getMessage.contains("-2039720488")
+        e.getMessage.contains("-495052968")
       ) {
         connection.dbConnection.run {
           sqlu"""
-            update box.flyway_schema_history_box set checksum=-2039720488 where version='27';
+            update box.flyway_schema_history_box set checksum=-495052968 where version='27';
             """
         }.map{ _ =>
           flyway.migrate()

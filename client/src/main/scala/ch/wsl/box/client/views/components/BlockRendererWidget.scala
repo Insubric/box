@@ -6,6 +6,7 @@ import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget,
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SubLayoutBlock}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
+import io.udash.bootstrap.BootstrapStyles
 import io.udash.{Property, ReadableProperty}
 import scalatags.JsDom
 import scalatags.JsDom.all.{div, h3, minHeight, s}
@@ -47,7 +48,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
         def evaluate(d:Json):Boolean = {
           val value = d
-          val r = condition.conditionValues.contains(value)
+          val r = condition.check(value)
           logger.info(s"evaluating condition for field: ${field.name} against $value with accepted values: ${condition.conditionValues} with result: $r")
           r
         }
@@ -111,6 +112,11 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   private def saveAll(data:Json, widgets:Seq[Widget],widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
     // start to empty and populate
+    logger.debug(
+      s"""
+         |BlockRenderer of ${field.name}
+         |with widgets: ${widgets.map(_.field.name)}
+         |""".stripMargin)
     widgets.foldLeft(Future.successful(Json.Null)){ (result,widget) =>
       for{
         r <- result
@@ -146,7 +152,10 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
     }
   }
 
-  override def afterSave(value:Json,metadata:JSONMetadata): Future[Json] = saveAll(value,widgets.map(_.widget),_.afterSave)
+  override def afterSave(value:Json,metadata:JSONMetadata): Future[Json] = {
+    logger.debug(s"Block after save for ${metadata.name} with $value")
+    saveAll(value,widgets.map(_.widget),_.afterSave)
+  }
   override def beforeSave(value:Json,metadata:JSONMetadata) = {
     // WSS-228 when a field is hidden ignore it for persistence
     logger.info(s"metadata: ${metadata.name} All: ${widgets.map(_.widget.field.name)}, visible only: ${widgets.filter(_.visibility.get).map(_.widget.field.name)}")
@@ -166,7 +175,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
 
-  def fixedWidth(widths:Stream[Int],write:Boolean) : JsDom.all.Modifier = div(
+  def fixedWidth(widths:Stream[Int],write:Boolean) : JsDom.all.Modifier = div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,
     widgets.zip(widths).map { case (widget, width) =>
       div(BootstrapCol.md(width), ClientConf.style.field,
         widget.widget.render(write,widget.visibility)
@@ -185,20 +194,19 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   private def render(write:Boolean): JsDom.all.Modifier = {
 
+    logger.info(s"blockname: $titleSub horizontal: $horizontal")
+
     def ren() = horizontal match {
       case Left(widths) => fixedWidth(widths, write)
       case Right(_) => distribute(write)
     }
 
-    titleSub match {
-      case None => ren()
-      case Some(title) => {
-        div(BootstrapCol.md(12), ClientConf.style.subBlock)(
-          if(title != "") h3(minHeight := 20.px, Labels(title)),  //renders title in subblocks
-          ren()
-        )
-      }
-    }
+
+    div(BootstrapCol.md(12), ClientConf.style.subBlock)(
+      if(titleSub.exists(_ != "")) h3(minHeight := 20.px, Labels(titleSub.get)) else {},  //renders title in subblocks
+      ren()
+    )
+
 
   }
 }

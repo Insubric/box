@@ -4,10 +4,12 @@ import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.model.shared._
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.syntax._
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
+import scribe.Level
 import typings.std.HTMLButtonElement
 
 import java.util.UUID
@@ -70,10 +72,10 @@ class MiddleChildDeletion extends TestBase {
     }
 
 
-    override def update(id: JSONID, obj: Json): JSONID = {
-      assert(expectedData == obj.deepDropNullValues.hcursor.downField("$changed").delete.top.get)
+    override def update(id: JSONID, obj: Json): Json = {
+      assert(expectedData == obj.removeNonDataFields)
 
-      JSONID.fromMap(Map("id" -> "1"))
+      obj
     }
 
     override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,parentName,"it",Seq(

@@ -1,6 +1,8 @@
 package ch.wsl.box.shared.utils
 
 import ch.wsl.box.model.shared.{JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata}
+import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
+import ch.wsl.box.model.shared.{JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import io.circe._
 import io.circe.syntax.EncoderOps
 import scribe.Logging
@@ -72,7 +74,14 @@ object JSONUtils extends Logging {
 
     def seq(field:String):Seq[Json] = {
       val result = el.hcursor.get[Seq[Json]](field)
-      result.right.getOrElse(Seq())
+      result match {
+        case Left(value) => {
+          logger.warn(s"Cannot decode seq for $field with error ${value.getMessage()}")
+          logger.debug(s"Original json $el")
+          Seq()
+        }
+        case Right(value) => value
+      }
     }
 
     def get(field: String):String = getOpt(field).getOrElse("")
@@ -80,7 +89,9 @@ object JSONUtils extends Logging {
     def getOpt(field: String):Option[String] = el.hcursor.get[Json](field).fold(
       { _ =>
         None
-      }, { x => Some(x.string) }
+      }, { x =>
+        if(!x.isNull) Some(x.string) else None
+      }
     )
 
     def ID(fields:Seq[String]):Option[JSONID] = {
@@ -108,20 +119,41 @@ object JSONUtils extends Logging {
 
     }
 
-    def removeNonDataFields:Json = {
+    def removeNonDataFields(metadata:JSONMetadata,children:Seq[JSONMetadata],keepStatic:Boolean = true):Json = {
+
+      def layoutFields(fields:Seq[Either[String,SubLayoutBlock]]):Seq[String] = {
+        fields.flatMap {
+          case Left(value) => Seq(value)
+          case Right(value) => layoutFields(value.fields)
+        }
+      }
+
+      val shownFields:Seq[String] = metadata.layout.blocks.flatMap(x => layoutFields(x.fields))
 
       val folder = new Json.Folder[Json] {
         override def onNull: Json = Json.Null
         override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
         override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
         override def onString(value: String): Json = Json.fromString(value)
-        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields).filterNot{ //remove empty array elements
+        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields(metadata,children, keepStatic)).filterNot{ //remove empty array elements
           _.as[JsonObject] match {
             case Left(_) => false
             case Right(value) => value.keys.isEmpty
           }})
-        override def onObject(value: JsonObject): Json = Json.fromJsonObject{
-          value.filter(!_._1.startsWith("$")).mapValues(_.removeNonDataFields)
+        override def onObject(value: JsonObject): Json = Json.fromFields{
+          value
+            .filter(!_._1.startsWith("$"))
+            .filter(x => keepStatic || metadata.fields.find(_.name == x._1).exists(_.`type` != JSONFieldTypes.STATIC))
+            //.filter(x => shownFields.concat(metadata.keys).contains(x._1))
+            .toMap.map { case (k,v) =>
+              val m = for{
+                field <- metadata.fields.find(_.name == k)
+                child <- field.child
+                childMetadata <- children.find(_.objId == child.objId)
+              } yield childMetadata
+              val obj = v.removeNonDataFields(m.getOrElse(metadata), children, keepStatic)
+              k -> obj
+            }
         }
       }
 

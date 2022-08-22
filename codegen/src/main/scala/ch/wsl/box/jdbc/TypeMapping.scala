@@ -19,7 +19,13 @@ object TypeMapping {
           case "_int4" | "int4[]" => Some("List[Int]")
           case "_int2" | "int2[]" => Some("List[Short]")
           case "_decimal" | "decimal[]" | "_numeric" | "numeric[]"  => Some("List[scala.math.BigDecimal]")
-          case _ => None
+          case "_decimal" | "decimal[]" | "_numeric" | "numeric[]"  => Option("List[scala.math.BigDecimal]")
+          case s:String if s.contains("email") => {
+            Some("String")
+          }
+          case _ => {
+            None
+          }
         }
     }.orElse {
       model.tpe match {
@@ -55,6 +61,7 @@ object TypeMapping {
     "jsonb" -> JSONFieldTypes.JSON,
     "name" -> JSONFieldTypes.STRING,
     "uuid" -> JSONFieldTypes.STRING,
+    "citext" -> JSONFieldTypes.STRING,
     "oid" -> JSONFieldTypes.INTEGER
   )
 

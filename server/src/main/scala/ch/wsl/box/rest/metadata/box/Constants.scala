@@ -7,6 +7,7 @@ import java.util.UUID
 object Constants {
   final val FORM = UUID.fromString("41c9b964-7eca-4236-bea1-697d8f77959d")
   final val FORM_FIELD = UUID.fromString("4cad69ca-89c6-4d9d-ab31-5ae05d9bd359")
+  final val FORM_FIELD_NOT_DB = UUID.fromString("4cad69ba-89c6-4d9d-ab31-5ae05d9bd359")
   final val FORM_FIELD_I18N = UUID.fromString("4729aeea-9983-4927-b4e0-0ec8f4ee52d8")
   final val FORM_I18N = UUID.fromString("45082a4d-0882-4757-87df-99678801f1cd")
   final val FORM_FIELD_FILE = UUID.fromString("a8189d2d-173e-48aa-9199-fb243d2e2b3f")
