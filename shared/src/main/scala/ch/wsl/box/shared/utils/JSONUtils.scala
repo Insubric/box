@@ -161,7 +161,7 @@ object JSONUtils extends Logging {
 
     }
 
-    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata], other:Json):JSONDiff = {
+    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
 
       def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el)
 
@@ -173,7 +173,7 @@ object JSONUtils extends Logging {
           def handleObject(obj:JsonObject):Seq[JSONDiffModel] = currentValue.flatMap(_.asObject) match {
             case Some(value) => {
               val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId)
-              value.asJson.diff(childMetadata.get,children,obj.asJson).models
+              value.asJson.diff(childMetadata.get,children)(obj.asJson).models
             }
             case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue,insert = true))))
           }
@@ -185,7 +185,7 @@ object JSONUtils extends Logging {
               val c = currentArray.map(js => (JSONID.fromBoxObjectId(js).map(_.asString),js)).toMap
               val n = newArray.map(js => (JSONID.fromBoxObjectId(js).map(_.asString),js)).toMap
               (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
-                c.get(jsonId).asJson.diff(childMetadata,children,n.get(jsonId).asJson).models
+                c.get(jsonId).asJson.diff(childMetadata,children)(n.get(jsonId).asJson).models
               }
             }
             case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(Some(key),currentValue,newValue,insert = true))))

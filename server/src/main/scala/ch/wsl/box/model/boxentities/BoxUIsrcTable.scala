@@ -2,6 +2,7 @@ package ch.wsl.box.model.boxentities
 
 //import ch.wsl.box.model.FileTables.{Document, profile}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import io.circe.{Decoder, Encoder}
 
 /**
   * Created by andre on 5/15/2017.
@@ -20,6 +21,11 @@ object BoxUIsrcTable {
 //  def ddl = schema
 
   case class BoxUIsrc_row(uuid: Option[java.util.UUID] = None, file: Option[Array[Byte]], mime:Option[String], name:Option[String], accessLevel:Int)
+
+  val decodeUi_src_row:Decoder[BoxUIsrc_row] = Decoder.forProduct5("file","mime","name","accessLevel","uuid")(BoxUIsrc_row.apply)
+  val encodeUi_src_row:Encoder[BoxUIsrc_row] = Encoder.forProduct5("file","mime","name","accessLevel","uuid")(x =>
+    (x.file, x.mime, x.name, x.accessLevel, x.uuid)
+  )
 
   class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,BoxSchema.schema, "ui_src") {
     def * = (Rep.Some(uuid), file, mime, name, accessLevel) <> (BoxUIsrc_row.tupled, BoxUIsrc_row.unapply)

@@ -1,6 +1,6 @@
 package ch.wsl.box.rest.runtime
 
-case class ColType(name:String,jsonType:String,nullable:Boolean)
+case class ColType(name:String,jsonType:String,required:Boolean,nullable:Boolean)
 
 trait FieldRegistry {
 

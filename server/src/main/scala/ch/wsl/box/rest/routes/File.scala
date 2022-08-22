@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayInputStream
-
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.server.{Directives, Route}
@@ -14,7 +13,7 @@ import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.model.shared.JSONID
 import ch.wsl.box.rest.logic.DbActions
 import ch.wsl.box.rest.routes.File.{BoxFile, FileHandler}
-import io.circe.Decoder
+import io.circe.{Decoder, Encoder}
 import nz.co.rossphillips.thumbnailer.Thumbnailer
 import nz.co.rossphillips.thumbnailer.thumbnailers.{DOCXThumbnailer, ImageThumbnailer, PDFThumbnailer, TextThumbnailer}
 import scribe.Logging
@@ -51,7 +50,7 @@ object File{
 
 }
 
-case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services) extends Logging {
+case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services, encoder:Encoder[M]) extends Logging {
   import Directives._
   import ch.wsl.box.rest.utils.JSONSupport._
   import ch.wsl.box.rest.utils.JSONSupport.Full._

@@ -19,21 +19,21 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
-import io.circe.{Decoder, Json}
+import io.circe._
+import io.circe.syntax._
 import org.locationtech.jts.geom.Geometry
 
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,val services: Services) extends TableActions[M] with DBFiltersImpl with Logging {
+class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,val services: Services, encoder: Encoder[M]) extends TableActions[M] with DBFiltersImpl with Logging {
 
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
-
+  import ch.wsl.box.shared.utils.JSONUtils._
 
   implicit class QueryBuilder(base:Query[T,M,Seq]) {
-
 
     def where(filters: Seq[JSONQueryFilter]): Query[T, M, Seq] = {
       filters.foldRight[Query[T, M, Seq]](base) { case (jsFilter, query) =>
@@ -60,6 +60,12 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
 //    def select(fields:Seq[String]): Query[T, _, Seq] =  base.map(x => x.reps(fields))
   }
+
+  lazy val metadata = DBIO.from({
+    val auth = new Auth()
+    val fullDb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"")(auth.adminUserProfile,ec,???,services)
+  })
 
   private def resetMetadataCache(): Unit = {
     FormMetadataFactory.resetCacheForEntity(entity.baseTableRow.tableName)
@@ -164,15 +170,17 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     filter(id).delete.transactionally
   }
 
-  import ch.wsl.box.jdbc.SlickUpdateExt.UpdateReturning._
 
   def update(id:JSONID, e:M) = {
     logger.info(s"UPDATE BY ID $id")
+
     resetMetadataCache()
     for{
-      _ <- filter(id).update(e)
-      result <- getById(id)
-    } yield result.head
+      current <- getById(id)
+      m <- metadata
+      diff = current.map(c => c.asJson.diff(m,Seq())(e.asJson))
+      //_ <- diff.map(d => d.models.map(_.fields.map(_.)))
+    } yield ???
   }
 
 

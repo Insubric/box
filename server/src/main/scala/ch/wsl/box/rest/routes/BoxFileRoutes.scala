@@ -20,6 +20,8 @@ object BoxFileRoutes {
   def route(implicit up:UserProfile, materializer:Materializer,ec:ExecutionContext, services: Services):Route = {
     implicit val db = up.db
 
+    implicit def enc = BoxUIsrcTable.encodeUi_src_row
+
     File("ui_src.file", BoxUIsrcTable.BoxUIsrcTable, new FileHandler[BoxUIsrc_row] {
 
 

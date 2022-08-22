@@ -31,7 +31,7 @@ case class FileAccessGenerator(model:Model,conf:Config) extends slick.codegen.So
        |    case "$table.$bytea" => File("$table.$bytea",$tableTableQuery,new FileHandler[$tableTableRow] {
        |        override def inject(row: $tableTableRow, file: Array[Byte]) = row.copy($bytea = $inj)
        |        override def extract(row: $tableTableRow) = $ext
-       |    }).route""".stripMargin
+       |    })(ec ,materializer, db, services, Entities.encode$tableTableRow).route""".stripMargin
 
   }
 

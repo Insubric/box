@@ -57,7 +57,7 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def of(_schema:String,table:String,lang:String, lookupMaxRows:Int = 100)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
+  def of(_schema:String,table:String,lang:String, lookupMaxRows:Int = 100)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
 
     logger.warn("searching cache table for " + Seq(up.name, table, lang, lookupMaxRows).mkString)
 
