@@ -19,7 +19,7 @@ import typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
 import scala.util.Try
 
 case class UiConfEntry(key:String,value:String,access_level_id:Int) {
-  def id = JSONID.fromMap(Map("key" -> key, "access_level_id" -> access_level_id.toString))
+  def id = JSONID.fromMap(Map("key" -> Json.fromString(key), "access_level_id" -> Json.fromInt(access_level_id)).toSeq)
 }
 case class UiConfEntryCurrent(key:String,value:String)
 case class AccessLevel(access_level_id:Int,access_level:String)

@@ -13,6 +13,7 @@ import slick.basic.DatabasePublisher
 import ch.wsl.box.jdbc.{FullDatabase, PostgresProfile}
 import slick.lifted.{MappedProjection, TableQuery}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.file.FileId
@@ -24,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * Created by andre on 5/19/2017.
   */
 
-class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends ViewActions[Json] {
+class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext, services:Services) extends ViewActions[Json] {
 
   protected val dbActions = new DbActions[T,M](entity)
 
@@ -48,7 +49,7 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Pro
 
 }
 
-case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](table:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
+case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](table:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
 
 
   private def mergeCurrent(id:JSONID,current:Json,json:Json):Future[Json] = {
@@ -75,7 +76,7 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M 
   }
 
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = dbActions.updateField(id, fieldName, value)
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[Json] = dbActions.updateField(id, fieldName, value).map(_.asJson)
 
 
   override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???

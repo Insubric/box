@@ -307,7 +307,7 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = jsonAction.updateField(id, fieldName, value)
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[Json] = jsonAction.updateField(id, fieldName, value)
 
 
   override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???

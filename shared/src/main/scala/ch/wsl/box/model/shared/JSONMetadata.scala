@@ -4,9 +4,9 @@ import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json.{Folder, JArray}
+
 import java.io
 import java.util.UUID
-
 import ch.wsl.box.shared.utils.JSONUtils
 import scribe.Logging
 
@@ -40,16 +40,16 @@ case class JSONMetadata(
                          dynamicLabel:Option[String] = None,
                          params:Option[Json] = None
                        ) {
-  def order:Ordering[JSONID] = new Ordering[JSONID] {
-    override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>
-      val keyY = y.id.find(_.key == keyX.key)
-      val field = fields.find(_.name == keyX.key)
-      field.map(_.`type`) match {
-        case Some(JSONFieldTypes.NUMBER) => Try(keyX.value.toDouble.compare(keyY.get.value.toDouble)).getOrElse(-1)
-        case _ => keyX.value.compare(keyY.map(_.value).getOrElse(""))
-      }
-    }.dropWhile(_ == 0).headOption.getOrElse(0)
-  }
+//  def order:Ordering[JSONID] = new Ordering[JSONID] {
+//    override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>
+//      val keyY = y.id.find(_.key == keyX.key)
+//      val field = fields.find(_.name == keyX.key)
+//      field.map(_.`type`) match {
+//        case Some(JSONFieldTypes.NUMBER) => Try(keyX.value.as[Double].getOrElse(0) - keyY.get.value.as[Double].getOrElse(0))
+//        case _ => keyX.value.string.compare(keyY.map(_.value.string).getOrElse(""))
+//      }
+//    }.dropWhile(_ == 0).headOption.getOrElse(0)
+//  }
 }
 
 object JSONMetadata extends Logging {

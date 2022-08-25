@@ -27,7 +27,7 @@ import scala.util.Random
   * @param field
   * @param entity
   */
-case class FileWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String) extends Widget with HasData with Logging {
+case class FileWidget(id:ReadableProperty[Option[String]], data:Property[Json], field:JSONField, entity:String, metadata:JSONMetadata) extends Widget with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import scalatags.JsDom.all._
@@ -39,7 +39,7 @@ case class FileWidget(id:ReadableProperty[Option[String]], data:Property[Json], 
   val instanceId = UUID.randomUUID().toString
 
   def url(idString:String):Option[String] = {
-    JSONID.fromString(idString).map{ id =>
+    JSONID.fromString(idString,metadata).map{ id =>
       s"/file/${entity}.${field.file.get.file_field}/${idString}"
     }
   }
@@ -127,5 +127,5 @@ object FileWidgetFactory extends ComponentWidgetFactory {
 
   override def name: String = WidgetsNames.fileWithPreview
 
-  override def create(params: WidgetParams): Widget = FileWidget(params.id,params.prop,params.field,params.metadata.entity)
+  override def create(params: WidgetParams): Widget = FileWidget(params.id,params.prop,params.field,params.metadata.entity, params.metadata)
 }

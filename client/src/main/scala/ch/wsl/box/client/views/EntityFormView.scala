@@ -89,7 +89,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       data <- state.id match {
         case Some(id) => {
-          val jsonId = state.id.flatMap(JSONID.fromString) match {
+          val jsonId = state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
             case Some(value) => value
             case None => throw new Exception(s"cannot parse JsonID ${state.id}")
           }
@@ -153,7 +153,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     save(check){ id =>
       reload(id).map{ data =>
         action(data)
-        if(!model.subProp(_.id).get.flatMap(JSONID.fromString).contains(id)) {
+        if(!model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)).contains(id)) {
           goTo(id.asString)
         }
       }
@@ -184,9 +184,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     def saveAction(data:Json):Future[(JSONID,Json)] = {
 
-      logger.info(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
+      logger.info(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
       for {
-        result <- JSONID.fromString(m.id.getOrElse("")) match {
+        result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
           case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
           case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
         }
@@ -258,7 +258,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def revert() = {
-    model.subProp(_.id).get.flatMap(JSONID.fromString) match {
+    model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)) match {
       case Some(id) => reload(id)
       case None => logger.warn("Cannot revert with no ID")
     }
@@ -268,7 +268,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       for{
         name <- model.get.metadata.map(_.name)
-        key <- model.get.id.flatMap(JSONID.fromString)
+        key <- model.get.id.flatMap(x => JSONID.fromString(x,model.get.metadata.get))
       } yield {
         services.rest.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")

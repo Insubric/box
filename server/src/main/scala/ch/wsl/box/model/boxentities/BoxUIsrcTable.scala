@@ -2,7 +2,9 @@ package ch.wsl.box.model.boxentities
 
 //import ch.wsl.box.model.FileTables.{Document, profile}
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import io.circe.{Decoder, Encoder}
+import ch.wsl.box.model.UpdateTable
+import io.circe.{Decoder, Encoder, Json}
+import slick.dbio
 
 /**
   * Created by andre on 5/15/2017.
@@ -27,10 +29,23 @@ object BoxUIsrcTable {
     (x.file, x.mime, x.name, x.accessLevel, x.uuid)
   )
 
-  class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,BoxSchema.schema, "ui_src") {
+  class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,BoxSchema.schema, "ui_src") with UpdateTable[BoxUIsrc_row] {
     def * = (Rep.Some(uuid), file, mime, name, accessLevel) <> (BoxUIsrc_row.tupled, BoxUIsrc_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(uuid),  file, mime, name, accessLevel).shaped.<>({r=>import r._; _1.map(_=> BoxUIsrc_row.tupled((_1, _2, _3, _4, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+
+    override def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[BoxUIsrc_row] = {
+      val kv = keyValueComposer(this)
+      val head = concat(sql"""update box.ui_src set """,kv(fields.head))
+      val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+      val whereBuilder = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+      val returning = sql""" returning uuid,file,mime,name,access_level_id"""
+
+      val sqlActionBuilder = concat(concat(set,whereBuilder),returning)
+      sqlActionBuilder.as[BoxUIsrc_row](GR(r => BoxUIsrc_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))).head
+    }
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val file: Rep[Option[Array[Byte]]] = column[Option[Array[Byte]]]("file")

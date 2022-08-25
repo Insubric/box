@@ -13,13 +13,14 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
 import ch.wsl.box.rest.utils.{JSONSupport, Lang, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
@@ -29,7 +30,8 @@ import io.circe.parser.decode
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 
@@ -38,8 +40,8 @@ import scala.util.{Failure, Success}
  */
 
 
-case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false, schema:Option[String] = None)
-                                                            (implicit
+case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false, schema:Option[String] = None)
+                                                                                                 (implicit
                                                              enc: Encoder[M],
                                                              dec:Decoder[M],
                                                              mat:Materializer,
@@ -75,20 +77,23 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     import io.circe.parser._
     import JSONData._
 
+  def jsonMetadata:JSONMetadata = {
+    val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk)
+    Await.result(fut,20.seconds)
+  }
 
   def xls:Route = path("xlsx") {
     get {
       parameters('q) { q =>
         val query = parse(q).right.get.as[JSONQuery].right.get
         val io = for {
-          metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
           //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
           data <- jsonActions.find(query)
         } yield {
           val table = XLSTable(
             title = name,
-            header = metadata.fields.map(_.name),
-            rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
+            header = jsonMetadata.fields.map(_.name),
+            rows = data.map(row => jsonMetadata.exportFields.map(cell => row.get(cell)))
           )
           XLS.route(table)
         }
@@ -123,13 +128,13 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
   def metadata:Route = path("metadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk) }
+      complete{ jsonMetadata }
     }
   }
 
   def tabularMetadata:Route = path("tabularMetadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk) }
+      complete{ jsonMetadata }
     }
   }
 
@@ -242,9 +247,8 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
         entity(as[JSONQuery]) { query =>
           complete {
             for{
-              m <- EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk)
               lookups <- {
-                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                jsonMetadata.fields.find(_.name == field).flatMap(_.lookup) match {
                   case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
                   case None => throw new Exception(s"$field has no lookup")
                 }
@@ -259,7 +263,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   def route:Route = pathPrefix(name) {
         pathPrefix("id") {
           path(Segment) { strId =>
-            JSONID.fromMultiString(strId) match {
+            JSONID.fromMultiString(strId,jsonMetadata) match {
               case ids if ids.nonEmpty =>
                   getById(ids.head) ~
                   update(ids) ~

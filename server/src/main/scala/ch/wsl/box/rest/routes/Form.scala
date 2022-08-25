@@ -23,7 +23,8 @@ import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /**
@@ -59,13 +60,11 @@ case class Form(
     implicit val implicitDB = db
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
-    val metadata: DBIO[JSONMetadata] = metadataFactory.of(name,lang)
+    def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang)),10.seconds)
 
 
-   private def actions[T](f:FormActions => T):Future[T] = for{
-      form <- boxDb.adminDb.run(metadata)
-      formActions = FormActions(form,jsonActions,metadataFactory)
-    } yield {
+   private def actions[T](f:FormActions => T):T = {
+      val formActions = FormActions(metadata,jsonActions,metadataFactory)
       f(formActions)
     }
 
@@ -86,15 +85,15 @@ case class Form(
 
   }
 
-    def tabularMetadata(fields:Option[Seq[String]] = None) = metadata.flatMap{ m =>
-      val filteredFields = m.view match {
-        case None => DBIO.successful(_tabMetadata(fields,m))
+    def tabularMetadata(fields:Option[Seq[String]] = None) = {
+      val filteredFields = metadata.view match {
+        case None => DBIO.successful(_tabMetadata(fields,metadata))
         case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang).map{ vm =>
-          viewTableMetadata(fields.getOrElse(m.tabularFields),m,vm)
+          viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }
 
-      filteredFields.map( ff => m.copy(fields = ff ))
+      filteredFields.map( ff => metadata.copy(fields = ff ))
 
     }
 
@@ -141,9 +140,8 @@ case class Form(
   def csvTable(q:String,fk:Option[String],fields:Option[String]):DBIO[CSVTable] = {
     val query = parse(q).right.get.as[JSONQuery].right.get
     val tabMetadata = tabularMetadata(fields.map(_.split(",").map(_.trim).toSeq))
+    val formActions = FormActions(metadata, jsonActions, metadataFactory)
     for {
-      metadata <- DBIO.from(boxDb.adminDb.run(tabMetadata))
-      formActions = FormActions(metadata, jsonActions, metadataFactory)
       fkValues <- fk match {
         case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
         case _ => DBIO.successful(None)
@@ -218,9 +216,8 @@ case class Form(
         entity(as[JSONQuery]) { query =>
           complete {
             for{
-              m <- boxDb.adminDb.run(metadata)
               lookups <- {
-                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                metadata.fields.find(_.name == field).flatMap(_.lookup) match {
                   case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
                   case None => throw new Exception(s"$field has no lookup")
                 }
@@ -283,7 +280,7 @@ case class Form(
 
     def route = pathPrefix("id") {
       path(Segment) { strId =>
-        JSONID.fromMultiString(strId) match {
+        JSONID.fromMultiString(strId,metadata) match {
           case ids if ids.nonEmpty =>
               _get(ids) ~
               update(ids) ~
@@ -300,7 +297,7 @@ case class Form(
     path("metadata") {
       get {
         complete {
-          boxDb.adminDb.run(metadata)
+          metadata
         }
       }
     } ~
@@ -314,21 +311,21 @@ case class Form(
     path("schema") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(m => new JSONSchemas().of(m)))
+          boxDb.adminDb.run(new JSONSchemas().of(metadata))
         }
       }
     } ~
     path("children") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap{ f => metadataFactory.children(f)})
+          boxDb.adminDb.run(metadataFactory.children(metadata))
         }
       }
     } ~
     path("keys") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(f => EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),f.entity)))
+          boxDb.adminDb.run( EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),metadata.entity))
         }
       }
     } ~

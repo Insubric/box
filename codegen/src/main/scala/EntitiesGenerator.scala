@@ -29,6 +29,10 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import slick.model.ForeignKeyAction
        |  import slick.collection.heterogeneous._
        |  import slick.collection.heterogeneous.syntax._
+       |  import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
+       |  import org.locationtech.jts.geom.Geometry
+       |
+       |  import ch.wsl.box.model.UpdateTable
        |
        |object $container {
        |
@@ -140,8 +144,32 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       override def code: String =  {
         val prns = parents.map(" with " + _).mkString("")
         val args = model.name.schema.map(n => s"""Some("$n")""") ++ Seq("\""+model.name.table+"\"")
+
+        val getResult = columns.map{c =>
+          c.exposedType match {
+            case "Option[java.util.UUID]" => "r.nextUUIDOption"
+            case "java.util.UUID" => "r.nextUUID"
+            case typ:String if typ.contains("Option[List[") => typ.replace("Option[List[","r.nextArrayOption[").dropRight(1) + ".map(_.toList)"
+            case typ:String if typ.contains("List[") => typ.replace("List[","r.nextArray[") + ".toList"
+            case _ => "r.<<"
+          }
+        }.mkString(",")
+
         s"""
-class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns {
+class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns with UpdateTable[$elementType] {
+
+  def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[$elementType] = {
+      val kv = keyValueComposer(this)
+      val head = concat(sql\"\"\"update ${model.name.schema.map(s => s+".").getOrElse("") + model.name.table} set \"\"\",kv(fields.head))
+      val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+      val whereBuilder = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+      val returning = sql\"\"\" returning ${model.columns.map(_.name).mkString(",")}\"\"\"
+
+      val sqlActionBuilder = concat(concat(set,whereBuilder),returning)
+      sqlActionBuilder.as[$elementType](GR(r => $elementType($getResult))).head
+    }
+
   ${indent(body.map(_.mkString("\n")).mkString("\n\n"))}
 }
         """.trim()

@@ -18,6 +18,7 @@ import slick.sql.FixedSqlStreamingAction
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
@@ -28,7 +29,7 @@ import org.locationtech.jts.geom.Geometry
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,val services: Services, encoder: Encoder[M]) extends TableActions[M] with DBFiltersImpl with Logging {
+class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext, val services: Services, encoder: Encoder[M]) extends TableActions[M] with DBFiltersImpl with Logging {
 
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
   import ch.wsl.box.shared.utils.JSONUtils._
@@ -106,6 +107,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
       data <- find(query)
       keys <- keys()
       n <- count(query)
+      m <- metadata
     } yield {
 
       val last = query.paging match {
@@ -116,7 +118,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
       IDs(
         last,
         query.paging.map(_.currentPage).getOrElse(1),
-        data.map{x => new EnhancedModel(x).ID(keys).asString},
+        data.flatMap{x => JSONID.fromData(x.asJson,m).map(_.asString)},
         n
       )
     }
@@ -126,7 +128,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   private def filter(id:JSONID):Query[T, M, Seq]  = {
     if(id.id.isEmpty) throw new Exception("No key is defined")
 
-    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key),keyValue.value))
+    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key),keyValue.value.string))
 
     val q = id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
     q
@@ -184,34 +186,37 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   }
 
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[(JSONID,Int)] = {
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[M] = {
 
-    def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
-      case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)
-      case (_,Right(v)) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(Some(v))
-      case (_,Left(value)) => throw value
-    }
 
-    import ch.wsl.box.rest.utils.JSONSupport._
+    entity.baseTableRow.updateReturning(Map(fieldName -> value),id.toFields)
 
-    val updateDbIO = entity.baseTableRow.typ(fieldName).name match {
-      case "String" => update[String]()
-      case "Int" => update[Int]()
-      case "Double" => update[Double]()
-      case "BigDecimal" => update[BigDecimal]()
-      case "java.time.LocalDate" => update[java.time.LocalDate]()
-      case "java.time.LocalTime" => update[java.time.LocalTime]()
-      case "java.time.LocalDateTime" => update[java.time.LocalDateTime]()
-      case "io.circe.Json" => update[Json]()
-      case "Array[Byte]" => update[Array[Byte]]()
-      case "org.locationtech.jts.geom.Geometry" => update[Geometry]()
-      case "java.util.UUID" => update[java.util.UUID]()
-      case t:String => throw new Exception(s"$t is not supported for single field update")
-    }
-
-    for{
-      updateCount <- updateDbIO
-    } yield (id.update(fieldName,value),updateCount)
+//    def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
+//      case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)
+//      case (_,Right(v)) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(Some(v))
+//      case (_,Left(value)) => throw value
+//    }
+//
+//    import ch.wsl.box.rest.utils.JSONSupport._
+//
+//    val updateDbIO = entity.baseTableRow.typ(fieldName).name match {
+//      case "String" => update[String]()
+//      case "Int" => update[Int]()
+//      case "Double" => update[Double]()
+//      case "BigDecimal" => update[BigDecimal]()
+//      case "java.time.LocalDate" => update[java.time.LocalDate]()
+//      case "java.time.LocalTime" => update[java.time.LocalTime]()
+//      case "java.time.LocalDateTime" => update[java.time.LocalDateTime]()
+//      case "io.circe.Json" => update[Json]()
+//      case "Array[Byte]" => update[Array[Byte]]()
+//      case "org.locationtech.jts.geom.Geometry" => update[Geometry]()
+//      case "java.util.UUID" => update[java.util.UUID]()
+//      case t:String => throw new Exception(s"$t is not supported for single field update")
+//    }
+//
+//    for{
+//      updateCount <- updateDbIO
+//    } yield (id.update(fieldName,value),updateCount)
 
   }
 

@@ -200,7 +200,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     } yield {
       key -> row.lift(i).getOrElse("")
     }
-    JSONID.fromMap(map.toMap)
+    JSONID.fromMap(map.toMap,model.get.metadata.get)
   }
 
 
