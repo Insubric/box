@@ -190,7 +190,6 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
         field.widget,
         None,
         field.default,
-        None,
         condition
         //      fieldI18n.flatMap(_.tooltip)
       )

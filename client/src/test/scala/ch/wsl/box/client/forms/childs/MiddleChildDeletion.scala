@@ -73,7 +73,7 @@ class MiddleChildDeletion extends TestBase {
 
 
     override def update(id: JSONID, obj: Json): Json = {
-      assert(expectedData == obj.removeNonDataFields)
+      assert(expectedData == obj.removeNonDataFields(metadata,Seq(childMetadata,subchildMetadata)))
 
       obj
     }
@@ -101,8 +101,8 @@ class MiddleChildDeletion extends TestBase {
 
   "Middle child" should "be deleted" in {
 
-    val secondChildOpenButton = TestHooks.tableChildButtonId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
-    val secondChildDeleteButton = TestHooks.deleteChildId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
+    val secondChildOpenButton = TestHooks.tableChildButtonId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", Json.fromInt(2))))))
+    val secondChildDeleteButton = TestHooks.deleteChildId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", Json.fromInt(2))))))
 
     for {
       _ <- Main.setupUI()

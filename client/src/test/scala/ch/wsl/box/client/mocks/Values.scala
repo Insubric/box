@@ -200,11 +200,11 @@ class Values {
 
   object ids {
     object main {
-      val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", "1")))
-      val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id", "2")))
+      val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", Json.fromInt(1))))
+      val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(2))))
     }
     object childs {
-      val thirdChild: JSONID = JSONID(Vector(JSONKeyValue("id", "3")))
+      val thirdChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(3))))
     }
 
   }

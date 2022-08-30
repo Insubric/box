@@ -8,8 +8,16 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import org.locationtech.jts.geom.Geometry
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
+import scala.concurrent.ExecutionContext
+
 trait UpdateTable[T] {
   def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[T]
+
+  def maybeUpdateReturning(fields:Map[String,Json],where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
+    if(fields.nonEmpty && where.nonEmpty)
+      updateReturning(fields, where).map(Some(_))
+    else DBIO.successful(None)
+  }
 
   protected def concat(a: SQLActionBuilder, b: SQLActionBuilder): SQLActionBuilder = {
     SQLActionBuilder(a.queryParts ++ b.queryParts, new SetParameter[Unit] {
@@ -27,7 +35,7 @@ trait UpdateTable[T] {
     def update[T]()(implicit sp:SetParameter[T],dec:Decoder[T]):SQLActionBuilder = {
       value.as[T] match {
         case Left(v) => throw new Exception(s"Error setting key-pair due to json parsing error ${v.message}")
-        case Right(v) => sql" #$key = $v"
+        case Right(v) => sql""" "#$key" = $v """
       }
 
     }

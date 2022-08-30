@@ -5,11 +5,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{BoxActionsRegistry, BoxDefinition, BoxDefinitionMerge, BoxRegistry}
+import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge, BoxRegistry}
 import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.{BoxTranslationsFields, EntityKind}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, StubMetadataFactory}
-import ch.wsl.box.rest.routes.{BoxFileRoutes, Form, Table}
+import ch.wsl.box.rest.routes.{Form, Table}
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
 import ch.wsl.box.services.Services
 import com.softwaremill.session.SessionManager
@@ -29,7 +30,7 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   def form = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,BoxActionsRegistry().tableActions,new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
+        Form(name, lang,Registry.box().actions.apply,new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
       }
     }
   }
@@ -47,7 +48,10 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   }
 
   def file = pathPrefix("boxfile") {
-    BoxFileRoutes.route(session.userProfile.get, mat, ec, services)
+    BoxRegistry.generated match {
+      case Some(value) => value.fileRoutes()
+      case None => complete(StatusCodes.InternalServerError, "Can't find generate routes, run generateModel again")
+    }
   }
 
   def boxentity = pathPrefix(EntityKind.BOX_TABLE.kind) {

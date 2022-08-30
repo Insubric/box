@@ -24,7 +24,6 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import io.circe.generic.extras.semiauto._
        |  import io.circe.generic.extras.Configuration
        |  import ch.wsl.box.rest.utils.JSONSupport._
-       |  import Light._
        |
        |  import slick.model.ForeignKeyAction
        |  import slick.collection.heterogeneous._
@@ -37,6 +36,7 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |object $container {
        |
        |      implicit val customConfig: Configuration = Configuration.default.withDefaults
+       |      implicit def dec:Decoder[Array[Byte]] = Light.fileFormat
        |
        |      import ch.wsl.box.jdbc.PostgresProfile.api._
        |
@@ -69,9 +69,12 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       def encoderDecoder:String =
         s"""
            |val decode$name:Decoder[$name] = Decoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})($name.apply)
-           |val encode$name:Encoder[$name] = Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
-           |  ${columns.map(_.name).mkString("(x.",", x.",")")}
-           |)
+           |val encode$name:EncoderWithBytea[$name] = { e =>
+           |  implicit def byteE = e
+           |  Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
+           |    ${columns.map(_.name).mkString("(x.",", x.",")")}
+           |  )
+           |}
            |""".stripMargin
 
       override def code = {
@@ -97,7 +100,10 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
           result + s"""
 
     val decode$name:Decoder[$name] = deriveConfiguredDecoder[$name]
-    val encode$name:Encoder[$name] = deriveConfiguredEncoder[$name]
+    val encode$name:EncoderWithBytea[$name] = { e =>
+      implicit def byteE = e
+      deriveConfiguredEncoder[$name]
+    }
 
     object ${TableClass.elementType}{
 
@@ -145,6 +151,8 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
         val prns = parents.map(" with " + _).mkString("")
         val args = model.name.schema.map(n => s"""Some("$n")""") ++ Seq("\""+model.name.table+"\"")
 
+        val tableName = model.name.schema.map(s => s+".").getOrElse("") + model.name.table
+
         val getResult = columns.map{c =>
           c.exposedType match {
             case "Option[java.util.UUID]" => "r.nextUUIDOption"
@@ -159,12 +167,14 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
 class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns with UpdateTable[$elementType] {
 
   def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[$elementType] = {
+      if(fields.isEmpty) throw new Exception("No fields to update on $tableName")
+      if(where.isEmpty) throw new Exception("No conditions for update on $tableName")
       val kv = keyValueComposer(this)
-      val head = concat(sql\"\"\"update ${model.name.schema.map(s => s+".").getOrElse("") + model.name.table} set \"\"\",kv(fields.head))
+      val head = concat(sql\"\"\"update "$tableName" set \"\"\",kv(fields.head))
       val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
       val whereBuilder = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
-      val returning = sql\"\"\" returning ${model.columns.map(_.name).mkString(",")}\"\"\"
+      val returning = sql\"\"\" returning ${model.columns.map(_.name).mkString("\"","\",\"","\"")} \"\"\"
 
       val sqlActionBuilder = concat(concat(set,whereBuilder),returning)
       sqlActionBuilder.as[$elementType](GR(r => $elementType($getResult))).head

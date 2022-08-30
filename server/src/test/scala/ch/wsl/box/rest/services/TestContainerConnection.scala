@@ -42,7 +42,5 @@ class TestContainerConnection(container: PostgreSQLContainer) extends Connection
     executor = executor
   )
 
-  override def dataSource(name: String): DataSource = ???
 
-  override def close(): Unit = {}
 }

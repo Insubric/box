@@ -40,7 +40,6 @@ object WidgetsNames {
   val html = "html"
   val linkedForm = "linked_form"
   val lookupForm = "lookup_form"
-  val fileWithPreview = "fileWithPreview"
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
@@ -93,7 +92,6 @@ object WidgetsNames {
     ),
     FILE -> Seq(
       simpleFile,
-      fileWithPreview,
     ),
     DATE -> Seq(
       datepicker,

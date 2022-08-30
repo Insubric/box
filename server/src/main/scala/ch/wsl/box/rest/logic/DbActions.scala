@@ -20,6 +20,7 @@ import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
 import io.circe._
@@ -29,7 +30,7 @@ import org.locationtech.jts.geom.Geometry
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext, val services: Services, encoder: Encoder[M]) extends TableActions[M] with DBFiltersImpl with Logging {
+class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext, val services: Services, encoder: EncoderWithBytea[M]) extends TableActions[M] with DBFiltersImpl with Logging {
 
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
   import ch.wsl.box.shared.utils.JSONUtils._
@@ -65,7 +66,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   lazy val metadata = DBIO.from({
     val auth = new Auth()
     val fullDb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
-    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"")(auth.adminUserProfile,ec,???,services)
+    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"")(auth.adminUserProfile,ec,fullDb,services)
   })
 
   private def resetMetadataCache(): Unit = {
@@ -115,6 +116,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
         case Some(paging) =>  (paging.currentPage * paging.pageLength) >= n
       }
       import ch.wsl.box.shared.utils.JSONUtils._
+      implicit def enc = encoder.light()
       IDs(
         last,
         query.paging.map(_.currentPage).getOrElse(1),
@@ -173,16 +175,21 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   }
 
 
-  def update(id:JSONID, e:M) = {
+  def update(id:JSONID, e:M):DBIO[M] = {
     logger.info(s"UPDATE BY ID $id")
-
+    implicit def enc = encoder.full()
     resetMetadataCache()
     for{
       current <- getById(id)
+      currentJs = current.map(_.asJson)
       m <- metadata
-      diff = current.map(c => c.asJson.diff(m,Seq())(e.asJson))
-      //_ <- diff.map(d => d.models.map(_.fields.map(_.)))
-    } yield ???
+      diff = currentJs.map(c => c.diff(m,Seq())(e.asJson))
+      fields:Seq[(String,Json)] = diff.flatMap(_.models.find(_.model == entity.baseTableRow.tableName)) match {
+        case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
+        case None => Seq()
+      }
+      result <- entity.baseTableRow.maybeUpdateReturning(fields.toMap,id.toFields)
+    } yield result.orElse(current).getOrElse(e)
   }
 
 

@@ -4,7 +4,7 @@ import java.util.UUID
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgColumns, PgInformationSchema}
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
-import ch.wsl.box.model.boxentities.BoxField.{BoxFieldFile_row, BoxField_i18n_row, BoxField_row}
+import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_i18nTable, BoxForm_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.shared._
@@ -167,14 +167,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     val result = for{
       (form,formI18n) <- fQuery.result.map(_.head)
       fields <- fieldQuery(form.form_uuid.get).result
-      fieldsFile <- DBIO.sequence(fields.map { case (f, _) =>
-          BoxField.BoxFieldFileTable.filter(_.field_uuid === f.field_uuid).result.headOption
-      })
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name))
       keys <- keys(form)
-      jsonFieldsPartial <- fieldsToJsonFields(fields.zip(fieldsFile).zip(columns), lang)
+      jsonFieldsPartial <- fieldsToJsonFields(fields.zip(columns), lang)
     } yield {
 
 
@@ -347,7 +344,6 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     json <- Try(parse(values).right.get.as[Json].right.get).toOption
   } yield ConditionalField(fieldId,json)
 
-  private def file(ff:BoxFieldFile_row) = FileReference(ff.name_field, ff.file_field, ff.thumbnail_field)
 
   private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String):DBIO[String] = {
 
@@ -428,9 +424,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case None => DBIO.successful(None)
   }
 
-  private def fieldsToJsonFields(fields:Seq[(((BoxField_row,Option[BoxField_i18n_row]),Option[BoxFieldFile_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
+  private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
 
-    val jsonFields = fields.map{ case (((field,fieldI18n),fieldFile),colType) =>
+    val jsonFields = fields.map{ case ((field,fieldI18n),colType) =>
 
       if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_uuid}) has no translation to $lang")
 
@@ -452,7 +448,6 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           widget = field.widget,
           child = subform,
           default = field.default,
-          file = fieldFile.map(file),
           condition = condition(field),
           tooltip = fieldI18n.flatMap(_.tooltip),
           params = field.params,

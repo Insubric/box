@@ -3,7 +3,7 @@ package ch.wsl.box.model.shared
 import io.circe.Json
 
 case class JSONDiffField(
-                          field:Option[String],
+                          field:String,
                           old:Option[Json],
                           value:Option[Json],
                           insert: Boolean = false,

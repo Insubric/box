@@ -54,7 +54,7 @@ object File{
 
 }
 
-case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services, encoder:Encoder[M],up:UserProfile) extends Logging {
+case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services, encoder:(Encoder[Array[Byte]]) => Encoder[M],up:UserProfile) extends Logging {
   import Directives._
   import ch.wsl.box.rest.utils.JSONSupport._
   import ch.wsl.box.rest.utils.JSONSupport.Full._

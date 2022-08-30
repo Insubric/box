@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
 class DeleteTest extends TestBase {
 
   val id = 1
-  val jsonId = JSONID.fromMap(Map("id" -> id.toString))
+  val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
 
   val deletedField = Promise[Assertion]()
 

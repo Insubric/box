@@ -3,7 +3,7 @@ package ch.wsl.box.rest
 import _root_.io.circe._
 import _root_.io.circe.parser._
 import _root_.io.circe.syntax._
-import ch.wsl.box.model.shared.{Child, JSONField, JSONID, JSONMetadata, JsonDiff, JsonDiffField}
+import ch.wsl.box.model.shared.{Child, JSONDiff, JSONDiffField, JSONDiffModel, JSONField, JSONID, JSONMetadata}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import org.scalatest._
 
@@ -14,8 +14,9 @@ class JsonDiffSpec extends BaseSpec {
 
   val child2Metadata:JSONMetadata = JSONMetadata.simple(
     java.util.UUID.randomUUID(),
-    "child2",
-    "",
+    entity = "child2",
+    lang = "",
+    kind = "table",
     fields = Seq(
       JSONField.string(name = "id"),
       JSONField.string(name = "field"),
@@ -25,6 +26,7 @@ class JsonDiffSpec extends BaseSpec {
 
   val child1Metadata:JSONMetadata = JSONMetadata.simple(
     java.util.UUID.randomUUID(),
+    "table",
     "child1",
     "",
     fields = Seq(
@@ -40,8 +42,7 @@ class JsonDiffSpec extends BaseSpec {
 
   val mainMetadata:JSONMetadata = JSONMetadata.simple(
     java.util.UUID.randomUUID(),
-    "main",
-    "",
+    "table",
     fields = Seq(
       JSONField.number("id1"),
       JSONField.string("id2"),
@@ -50,7 +51,9 @@ class JsonDiffSpec extends BaseSpec {
       JSONField.number("id1"),
       JSONField.child("child1",child1Metadata.objId,"","")
     ),
-    keys = Seq("id1","id2")
+    keys = Seq("id1","id2"),
+    entity = "main",
+    lang = ""
   )
 
   val json1 = parse(
@@ -127,19 +130,21 @@ class JsonDiffSpec extends BaseSpec {
       |}
       |""".stripMargin).toOption.get
 
-  val jsonDiff = JsonDiff(fields = Seq(
-    JsonDiffField(
-      changedModel = "child2",
-      field = Some("id"),
-      id = Some(JSONID.fromMap(Map("id" -> "change-me"))),
-      old = Some(Json.fromString("change-me")),
-      value = Some(Json.fromString("changed"))
+  val jsonDiff = JSONDiff(Seq(JSONDiffModel(
+    model = "child2",
+    id = Some(JSONID.fromMap(Map("id" -> Json.fromString("change-me")).toSeq)),
+    fields = Seq(
+      JSONDiffField(
+        field = Some("id"),
+        old = Some(Json.fromString("change-me")),
+        value = Some(Json.fromString("changed"))
+      )
     )
-  ))
+  )))
 
   "JsonDiff" should "be calculated" in {
 
-    val result = json1.diff(mainMetadata,Seq(child1Metadata,child2Metadata),json2)
+    val result = json1.diff(mainMetadata,Seq(child1Metadata,child2Metadata))(json2)
     println(result.asJson.spaces4)
     result shouldBe jsonDiff
 

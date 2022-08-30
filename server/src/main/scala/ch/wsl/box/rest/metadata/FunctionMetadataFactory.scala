@@ -190,7 +190,6 @@ class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Exec
         field.widget,
         None,
         field.default,
-        None,
         condition
         //      fieldI18n.flatMap(_.tooltip)
       )

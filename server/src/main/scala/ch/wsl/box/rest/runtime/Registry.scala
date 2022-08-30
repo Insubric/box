@@ -25,9 +25,12 @@ case class GeneratedRegistry(
 object Registry extends Logging {
 
   private var _registry:RegistryInstance = null;
+  private var _boxRegistry:RegistryInstance = null;
 
 
   def apply():RegistryInstance = _registry
+
+  def box():RegistryInstance = _boxRegistry
 
   /**
    * Test purposes only
@@ -39,6 +42,19 @@ object Registry extends Logging {
 
     try {
       _registry = Class.forName("ch.wsl.box.generated.GenRegistry")
+        .newInstance()
+        .asInstanceOf[RegistryInstance]
+      //logger.warn("Using generated registry, use only in development!")
+    } catch {
+      case t: Throwable =>
+        logger.error(s"Model not generated: run generateModel task before running")
+    }
+  }
+
+  def loadBox()(implicit services:Services) = {
+
+    try {
+      _boxRegistry = Class.forName("ch.wsl.box.generated.boxentities.GenRegistry")
         .newInstance()
         .asInstanceOf[RegistryInstance]
       //logger.warn("Using generated registry, use only in development!")

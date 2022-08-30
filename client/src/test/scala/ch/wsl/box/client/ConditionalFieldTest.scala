@@ -3,6 +3,7 @@ package ch.wsl.box.client
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{EntityKind, JSONID, JSONKeyValue}
+import io.circe.Json
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
 
@@ -22,7 +23,7 @@ class ConditionalFieldTest extends TestBase {
         _ <- Context.services.clientSession.login("test", "test")
         _ <- waitLoggedIn
         _ <- Future {
-          Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", "1"))).asString), false))
+          Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", Json.fromInt(1)))).asString), false))
         }
         _ <- waitElement(() => document.querySelector(s".${TestHooks.formField(values.conditionerField)}"),s".${TestHooks.formField(values.conditionerField)}")
         conditioner = document.querySelector(s".${TestHooks.formField(values.conditionerField)}").asInstanceOf[HTMLInputElement]

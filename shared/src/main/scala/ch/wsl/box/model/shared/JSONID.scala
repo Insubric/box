@@ -1,5 +1,6 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.parser
@@ -36,22 +37,37 @@ object JSONID {
   def fromMultiString(str:String,form:JSONMetadata):Seq[JSONID] = str.split("&&").toSeq.flatMap(s => fromString(s,form))
 
 
-  def fromString(str:String,form:JSONMetadata): Option[JSONID] = Try{
-    JSONID(
-      str.split(",").map(_.trim).map{ k =>
-        val c = k.split("::")
-        form.fields
-        if(c.length < 2) {
-          throw new Exception(s"Invalid JSONID, $str")
-        }
+  def fromString(str:String,form:JSONMetadata): Option[JSONID] = {
+    if(form.static) return Some(JSONID(Vector(JSONKeyValue("static",Json.fromString("page")))))
+    Try{
+      JSONID(
+        str.split(",").map(_.trim).map{ k =>
+          val c = k.split("::")
 
-        JSONKeyValue(c(0),???)
-      }.toVector
-    )
-  }.toOption
+
+          if(c.length < 2) {
+            throw new Exception(s"Invalid JSONID, $str")
+          }
+
+          val v = for{
+            field <- form.fields.find(_.name == c(0))
+            value <- JSONUtils.toJs(c(1),field.`type`)
+          } yield value
+
+          JSONKeyValue(c(0),v.get)
+        }.toVector
+      )
+    }.toOption
+  }
 
   def fromMap(map:Map[String,String],form:JSONMetadata) = {
-    ???
+    JSONID(map.map{ case (key,strValue) =>
+      val v = for{
+        field <- form.fields.find(_.name == key)
+        value <- JSONUtils.toJs(strValue,field.`type`)
+      } yield value
+      JSONKeyValue(key,v.get)
+    }.toVector)
   }
 
   def fromMap(seq:Seq[(String,Json)]):JSONID = {

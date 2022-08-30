@@ -21,7 +21,6 @@ case class JSONField(
                       widget: Option[String] = None,
                       child: Option[Child] = None,
                       default: Option[String] = None,
-                      file: Option[FileReference] = None,
                       condition: Option[ConditionalField] = None,
                       tooltip: Option[String] = None,
                       params: Option[Json] = None,

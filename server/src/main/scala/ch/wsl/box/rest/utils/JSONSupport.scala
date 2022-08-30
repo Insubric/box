@@ -27,6 +27,17 @@ import scala.util.Try
   */
 object JSONSupport extends GeoJsonSupport {
 
+  type EncoderWithBytea[T] = Encoder[Array[Byte]] => Encoder[T]
+  implicit class ExtEncoder[T](ewb:EncoderWithBytea[T]) {
+    def full() = ewb(Full.fileFormat)
+    def light() = ewb(Light.fileFormat)
+  }
+
+  implicit def jsonEncWithBytea:EncoderWithBytea[Json] = { e =>
+    implicit def eb = e
+    implicitly[Encoder[Json]]
+  }
+
 
   private def jsonContentTypes: List[ContentTypeRange] =
     List(`application/json`)

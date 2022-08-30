@@ -15,6 +15,7 @@ import slick.lifted.{MappedProjection, TableQuery}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.file.FileId
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -25,10 +26,11 @@ import scala.concurrent.{ExecutionContext, Future}
   * Created by andre on 5/19/2017.
   */
 
-class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext, services:Services) extends ViewActions[Json] {
+class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:TableQuery[T])(implicit encoder:EncoderWithBytea[M], decoder: Decoder[M], ec:ExecutionContext, services:Services) extends ViewActions[Json] {
 
   protected val dbActions = new DbActions[T,M](entity)
 
+  private implicit def enc = encoder.light()
 
   def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
   override def find(query: JSONQuery) = for {
@@ -49,8 +51,9 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
 }
 
-case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](table:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
+case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](table:TableQuery[T])(implicit encoder: EncoderWithBytea[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
 
+  private implicit def enc = encoder.light()
 
   private def mergeCurrent(id:JSONID,current:Json,json:Json):Future[Json] = {
     val fileFields = Registry().fields.tableFields.get(table.baseTableRow.tableName).toSeq.flatMap(_.filter{case (k,v) => v.jsonType == JSONFieldTypes.FILE }.keys)

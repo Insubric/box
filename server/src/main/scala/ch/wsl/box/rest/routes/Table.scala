@@ -25,6 +25,7 @@ import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 import io.circe.parser.decode
 import io.circe.syntax._
@@ -42,15 +43,14 @@ import scala.util.{Failure, Success}
 
 case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false, schema:Option[String] = None)
                                                                                                  (implicit
-                                                             enc: Encoder[M],
-                                                             dec:Decoder[M],
-                                                             mat:Materializer,
-                                                             up:UserProfile,
-                                                             ec: ExecutionContext,services:Services) extends enablers.CSVDownload with Logging {
+                                                                                                  enc: EncoderWithBytea[M],
+                                                                                                  dec:Decoder[M],
+                                                                                                  mat:Materializer,
+                                                                                                  up:UserProfile,
+                                                                                                  ec: ExecutionContext, services:Services) extends enablers.CSVDownload with Logging {
 
 
   import JSONSupport._
-  import Light._
   import akka.http.scaladsl.model._
   import akka.http.scaladsl.server.Directives._
   import ch.wsl.box.shared.utils.Formatters._
@@ -63,6 +63,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
 
   implicit val customConfig: Configuration = Configuration.default.withDefaults
   implicit val l = Lang(lang)
+  implicit def encoder = enc.light()
 
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)

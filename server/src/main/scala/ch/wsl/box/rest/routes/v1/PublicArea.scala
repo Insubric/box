@@ -69,6 +69,7 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
   }
 
   def entityRoute:Route = pathPrefix(Segment) { entity =>
+    import ch.wsl.box.rest.utils.JSONSupport._
     val route: Future[Route] = publicEntities.map{ pe =>
       pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
         case Some(action) => EntityRead(entity,action)

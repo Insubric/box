@@ -23,6 +23,7 @@ import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.routes.enablers.CSVDownload
+import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 
 import scala.concurrent.duration.DurationInt
@@ -33,11 +34,11 @@ object EntityRead extends Logging  {
 
   def apply[M](name: String, actions: ViewActions[M], lang: String = "en")
                        (implicit
-                        enc: Encoder[M],
+                        enc: EncoderWithBytea[M],
                         dec: Decoder[M],
                         mat: Materializer,
                         up: UserProfile,
-                        ec: ExecutionContext,services:Services):Route =  {
+                        ec: ExecutionContext, services:Services):Route =  {
 
 
     import JSONSupport._
@@ -52,6 +53,7 @@ object EntityRead extends Logging  {
 
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
+    implicit def encoder = enc.light()
     val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
 
     def jsonMetadata:JSONMetadata = {
