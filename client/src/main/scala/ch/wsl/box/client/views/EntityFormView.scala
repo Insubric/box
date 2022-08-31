@@ -42,8 +42,10 @@ case class EntityFormModel(name:String, kind:String, id:Option[String], metadata
                            error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
-  implicit val blank: Blank[EntityFormModel] =
-    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true))
+
+  val empty = EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true)
+
+  implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
 
 object EntityFormViewPresenter extends ViewFactory[FormState] {
@@ -144,6 +146,14 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   import io.circe.syntax._
 
+
+  override def onClose(): Unit = {
+    model.set(EntityFormModel.empty,true)
+    if (widget != null) {
+      widget.killWidget()
+    }
+
+  }
 
   private var _form:HTMLFormElement = scalatags.JsDom.all.form().render
 
@@ -378,9 +388,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def enableGoAway = {
     Navigate.enable()
     model.subProp(_.changed).set(false)
-    window.onbeforeunload = { (e:BeforeUnloadEvent) =>
-      widget.killWidget()
-    }
   }
 
   val showNavigation:ReadableProperty[Boolean] = model.subProp(_.public).transform(x => !x)

@@ -60,12 +60,12 @@ object Settings {
     val slickPg = "0.19.3"
 
     //frontend
-    val scalaCss = "0.6.1"
+    val scalaCss = "1.0.0"
 
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M18"
+    val udash = "0.9.0-M39"
     val udashJQuery = "3.0.4"
 
     val scribe = "2.7.12"
@@ -175,10 +175,11 @@ object Settings {
     "com.github.japgolly.scalacss" %%% "core" % versions.scalaCss,
     "com.github.japgolly.scalacss" %%% "ext-scalatags" % versions.scalaCss,
     "io.circe" %%% "circe-scalajs" % versions.circe,
-    "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+    "org.scala-js" %%% "scalajs-dom" % "2.2.0",
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "org.scalatest" %%% "scalatest" % "3.2.5" % Test
+    "org.scalatest" %%% "scalatest" % "3.2.5" % Test,
+    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */

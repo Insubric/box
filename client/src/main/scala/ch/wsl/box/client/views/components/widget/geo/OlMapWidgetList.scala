@@ -53,7 +53,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
 
     val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-    convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
+    convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).foreach { collection =>
       import ch.wsl.box.model.shared.GeoJson.Geometry._
       import ch.wsl.box.model.shared.GeoJson._
       val geometries = collection.features.map(_.geometry)

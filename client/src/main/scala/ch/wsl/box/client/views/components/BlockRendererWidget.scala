@@ -31,6 +31,8 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   def data = widgetParams.prop
 
+
+
   private def checkCondition(field: JSONField) = {
     field.condition match {
       case None => Property(true)
@@ -91,7 +93,6 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
   private def simpleField(fieldName:String):WidgetVisibility = {for{
     field <- widgetParams.metadata.fields.find(_.name == fieldName)
   } yield {
-
 
     val fieldData = data.bitransform(_.js(field.name))((fd:Json) => data.get.deepMerge(Json.obj((field.name,fd))))
 

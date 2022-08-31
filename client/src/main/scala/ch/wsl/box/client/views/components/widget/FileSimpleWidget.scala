@@ -43,7 +43,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   import io.circe.syntax._
 
   val field = widgetParams.field
-  val data = widgetParams.prop
+  def data = widgetParams.prop
 
   val mime:Property[Option[String]] = Property(None)
   val source:Property[Option[String]] = Property(None)
@@ -55,7 +55,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val filenameProp = uploadFilenameField.map{f => widgetParams.otherField(f)}
 
   data.listen({js =>
-    val file = data.get.string
+    def file = data.get.string
     if(file.length > 0 && file != FileUtils.keep) {
       val mime = file.take(1) match {
         case "/" => "image/jpeg"
@@ -75,6 +75,11 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     }
   }, true)
 
+
+  override def killWidget(): Unit = {
+    source.set(None)
+    super.killWidget()
+  }
 
   def url(data:Json):Option[(String,String)] = {
     JSONID.fromData(data,widgetParams.metadata).map{ id =>
@@ -108,17 +113,23 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
         nested(produce(urls) {
           case Some((thumb,_download)) => {
 
+            val url:Property[String] = Property("")
+
             val modal: UdashModal = UdashModal(
               modalSize = Some(Size.Large).toProperty,
               backdrop = BackdropType.Active.toProperty
             )(
               headerFactory = None,
-              bodyFactory = Some((interceptor) => img(src := Routes.apiV1(_download)).render),
+              bodyFactory = Some((interceptor) => img(nested(src.bind(url))).render),
               footerFactory = None
             )
 
             div(
-              img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {e.preventDefault(); modal.show()})),
+              img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {
+                e.preventDefault()
+                url.set(Routes.apiV1(_download))
+                modal.show()
+              })),
               modal
               //            div(
               //              a(Icons.download, ClientConf.style.boxIconButton, href := Routes.apiV1(_download),attr("download") := "download"),

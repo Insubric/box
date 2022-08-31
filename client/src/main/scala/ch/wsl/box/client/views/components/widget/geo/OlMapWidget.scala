@@ -235,8 +235,8 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     var changes = false
 
-    val geoJson:js.Any = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-    convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
+    val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+    convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).foreach { collection =>
 
 
       listener.cancel()
@@ -432,7 +432,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
           infoOverlay.element.innerHTML = ""
           val geoJson = new geoJSONMod.default().writeFeaturesObject(features)
           for{
-            json <- convertJsToJson(geoJson).toOption
+            json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
             collection <- FeatureCollection.decode(json).toOption
             feature <- collection.features.headOption
           } yield {
@@ -694,7 +694,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   def findFeature(g:Geometry): Option[olFeatureMod.default[geometryMod.default]] = {
     if(vectorSource!= null) {
       val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-      convertJsToJson(geoJson).flatMap(FeatureCollection.decode).toOption.flatMap { collection =>
+      convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).toOption.flatMap { collection =>
         import ch.wsl.box.model.shared.GeoJson.Geometry._
         import ch.wsl.box.model.shared.GeoJson._
         val geometries = collection.features.map(_.geometry)
