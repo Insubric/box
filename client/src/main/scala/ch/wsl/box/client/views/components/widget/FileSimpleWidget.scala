@@ -113,17 +113,23 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
         nested(produce(urls) {
           case Some((thumb,_download)) => {
 
+            val url:Property[String] = Property("")
+
             val modal: UdashModal = UdashModal(
               modalSize = Some(Size.Large).toProperty,
               backdrop = BackdropType.Active.toProperty
             )(
               headerFactory = None,
-              bodyFactory = Some((interceptor) => img(src := Routes.apiV1(_download)).render),
+              bodyFactory = Some((interceptor) => img(nested(src.bind(url))).render),
               footerFactory = None
             )
 
             div(
-              img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {e.preventDefault(); modal.show()})),
+              img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {
+                e.preventDefault()
+                url.set(Routes.apiV1(_download))
+                modal.show()
+              })),
               modal
               //            div(
               //              a(Icons.download, ClientConf.style.boxIconButton, href := Routes.apiV1(_download),attr("download") := "download"),
