@@ -301,6 +301,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       propListener = prop.listen(i => {
         childWidgets.foreach(_.widget.killWidget())
         childWidgets.foreach(_.changedListener.cancel())
+        childWidgets.foreach(_.data.set(Json.Null)) // Fixes memory leakage on childs
         childWidgets.clear()
         entity.clear()
         val entityData = splitJson(prop.get)

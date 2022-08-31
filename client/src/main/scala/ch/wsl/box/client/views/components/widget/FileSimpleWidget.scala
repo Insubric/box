@@ -43,7 +43,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   import io.circe.syntax._
 
   val field = widgetParams.field
-  val data = widgetParams.prop
+  def data = widgetParams.prop
 
   val mime:Property[Option[String]] = Property(None)
   val source:Property[Option[String]] = Property(None)
@@ -55,7 +55,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val filenameProp = uploadFilenameField.map{f => widgetParams.otherField(f)}
 
   data.listen({js =>
-    val file = data.get.string
+    def file = data.get.string
     if(file.length > 0 && file != FileUtils.keep) {
       val mime = file.take(1) match {
         case "/" => "image/jpeg"
@@ -75,6 +75,11 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     }
   }, true)
 
+
+  override def killWidget(): Unit = {
+    source.set(None)
+    super.killWidget()
+  }
 
   def url(data:Json):Option[(String,String)] = {
     JSONID.fromData(data,widgetParams.metadata).map{ id =>
