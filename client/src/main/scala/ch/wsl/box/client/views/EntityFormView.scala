@@ -152,6 +152,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     if (widget != null) {
       widget.killWidget()
     }
+    enableGoAway
 
   }
 
@@ -388,6 +389,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def enableGoAway = {
     Navigate.enable()
     model.subProp(_.changed).set(false)
+    window.onbeforeunload = { (e:BeforeUnloadEvent) => }
   }
 
   val showNavigation:ReadableProperty[Boolean] = model.subProp(_.public).transform(x => !x)
