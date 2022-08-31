@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.Materializer
-import ch.wsl.box.model.BoxActionsRegistry
 import ch.wsl.box.model.shared.{EntityKind, LoginRequest}
 import ch.wsl.box.rest.logic.{LangHelper, NewsLoader, TableAccess, UIProvider}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
@@ -162,8 +161,8 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
       ui ~
       uiFile ~
       Cache.resetRoute() ~
-      PublicArea().route ~
-      PrivateArea().route
+      new PublicArea().route ~
+      new PrivateArea().route
   }
 
 }

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import ch.wsl.box.model.shared.FunctionKind
 import ch.wsl.box.rest.jdbc.JdbcConnect
-import ch.wsl.box.rest.logic.DataResult
+import ch.wsl.box.model.shared.DataResult
 import ch.wsl.box.rest.utils.{JSONSupport, UserProfile}
 import io.circe.Json
 import scribe.Logging
@@ -21,7 +21,7 @@ object Export extends Data with Logging {
   import io.circe.generic.auto._
 
 
-  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = ExportMetadataFactory()
+  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = new ExportMetadataFactory()
 
 
   override def data(function: String, params: Json, lang: String)(implicit up: UserProfile, mat:Materializer, ec: ExecutionContext,system:ActorSystem,services:Services): Future[Option[DataContainer]] = {

@@ -3,10 +3,14 @@ package ch.wsl.box.client.mocks
 import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
+import scribe.Level
 
 import java.util.UUID
 
 class Values {
+
+  def loggerLevel:Level = Level.Debug
+
   val headerLangEn = "test header en"
   val headerLangIt = "test header it"
 
@@ -21,7 +25,8 @@ class Values {
 
   val conf = Map(
     "langs" -> "it,en",
-    "display.index.html" -> "true"
+    "display.index.html" -> "true",
+    "client.logger.level" -> loggerLevel.name
   )
 
   val testFormName = "test_form"
@@ -72,7 +77,7 @@ class Values {
         JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
-        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue.asJson)))
+        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue).asJson))
       ),
       JSONField(
         JSONFieldTypes.CHILD,
@@ -195,11 +200,11 @@ class Values {
 
   object ids {
     object main {
-      val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", "1")))
-      val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id", "2")))
+      val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", Json.fromInt(1))))
+      val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(2))))
     }
     object childs {
-      val thirdChild: JSONID = JSONID(Vector(JSONKeyValue("id", "3")))
+      val thirdChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(3))))
     }
 
   }
@@ -223,11 +228,11 @@ class Values {
     }
   }
 
-  def insert(data:Json):JSONID = {
-    JSONID(id = Vector(JSONKeyValue("id","1")))
+  def insert(data:Json):Json = {
+    data
   }
 
-  def update(id:JSONID,obj:Json):JSONID = {
+  def update(id:JSONID,obj:Json):Json = {
     println("not implemented")
     ???
   }

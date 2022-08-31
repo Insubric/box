@@ -32,8 +32,7 @@ object Settings {
   object versions {
 
     //General
-    val scala212 = "2.12.12"
-    val scala213 = "2.13.3"
+    val scala213 = "2.13.8"
     val ficus = "1.4.7"
 
     val macWire = "2.3.7"
@@ -53,7 +52,7 @@ object Settings {
 
 
     //json parsers
-    val circe = "0.13.0"
+    val circe = "0.14.1"
 
     //database
     val postgres = "42.2.20"
@@ -61,12 +60,12 @@ object Settings {
     val slickPg = "0.19.3"
 
     //frontend
-    val scalaCss = "0.6.1"
+    val scalaCss = "1.0.0"
 
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M18"
+    val udash = "0.9.0-M39"
     val udashJQuery = "3.0.4"
 
     val scribe = "2.7.12"
@@ -89,7 +88,7 @@ object Settings {
     "io.circe" %%% "circe-generic-extras" % versions.circe,
     "com.outr" %%% "scribe" % versions.scribe,
     "com.nrinaudo" %%% "kantan.csv" % versions.kantan,
-    "com.github.eikek" %%% "yamusca-core" % "0.8.0"
+    "com.github.eikek" %%% "yamusca-core" % "0.8.0",
   ))
 
   val sharedJVMCodegenDependencies = Def.setting(Seq(
@@ -117,8 +116,8 @@ object Settings {
 
   /** Dependencies only used by the JVM project */
   val jvmDependencies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
-    "org.scala-lang"           % "scala-reflect"     % versions.scala212,
-    "org.scala-lang"           % "scala-compiler"    % versions.scala212,
+    "org.scala-lang"           % "scala-reflect"     % versions.scala213,
+    "org.scala-lang"           % "scala-compiler"    % versions.scala213,
     "com.typesafe.akka"        %% "akka-http-core"   % versions.akkaHttp,
     "com.typesafe.akka"        %% "akka-http-caching" % versions.akkaHttp,
     "de.heikoseeberger"        %% "akka-http-circe"  % versions.akkaHttpJson,
@@ -140,15 +139,14 @@ object Settings {
     "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion % "test",
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
-    "ch.wavein"                %% "scala-thumbnailer" % "0.7.1",
+    "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
     "javax.servlet"            % "javax.servlet-api" % "3.1.0" % "provided",
     "org.mitre.dsmiley.httpproxy" % "smiley-http-proxy-servlet" % "1.10",
     "com.openhtmltopdf"        % "openhtmltopdf-pdfbox" % "1.0.9",
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0",
-    "org.arakhne.afc.advanced" % "shapefile" % "16.0", // version 17 requires JDK 11
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0-SNAPSHOT",
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "org.flywaydb" % "flyway-core" % "7.9.1",
@@ -161,8 +159,10 @@ object Settings {
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
     "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
-    "com.github.daddykotex" %% "courier" % "3.0.0-M3a"
-//    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
+    "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
+    "org.geotools" % "gt-shapefile" % "23.2"
+
+    //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
 //    "com.github.andyglow" %% "scala-jsonschema-circe-json" % versions.scalaJsonSchema
   ))
 
@@ -175,10 +175,11 @@ object Settings {
     "com.github.japgolly.scalacss" %%% "core" % versions.scalaCss,
     "com.github.japgolly.scalacss" %%% "ext-scalatags" % versions.scalaCss,
     "io.circe" %%% "circe-scalajs" % versions.circe,
-    "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+    "org.scala-js" %%% "scalajs-dom" % "2.2.0",
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "org.scalatest" %%% "scalatest" % "3.2.5" % Test
+    "org.scalatest" %%% "scalatest" % "3.2.5" % Test,
+    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */

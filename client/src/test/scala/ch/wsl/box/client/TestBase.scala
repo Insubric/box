@@ -15,8 +15,11 @@ import wvlet.airframe.Design
 
 import scala.concurrent.{Await, ExecutionContext, Future, Promise, TimeoutException}
 import scala.concurrent.duration._
+import scala.scalajs.js.timers.setTimeout
 
 trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
+
+  TestHooks.testing = true
 
   Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Debug)).replace()
 
@@ -66,6 +69,12 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
       Try(promise.success(true))
     }
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+    promise.future
+  }
+
+  def waitPropertyChange(name:String):Future[Boolean] = {
+    val promise = Promise[Boolean]
+    TestHooks.properties(name).listen(_ => promise.success(true))
     promise.future
   }
 

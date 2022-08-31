@@ -2,7 +2,7 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
-import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.model.shared.{DataResultTable, JSONQuery}
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeWS}
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class RuntimeFunctionSpec extends BaseSpec {
 
 
-  val dr = DataResultTable(Seq("aa"),Seq(Seq(Json.fromString("aa"),Json.fromString("bb"))))
+  val dr = DataResultTable(Seq("aa"),Seq("string"),Seq(Seq(Json.fromString("aa"),Json.fromString("bb"))))
 
   val context = Context(
       Json.Null,
@@ -26,6 +26,8 @@ class RuntimeFunctionSpec extends BaseSpec {
       },
       new RuntimePSQL {
 
+
+        override def dynFunction(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = ???
 
         override def function(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = {
           Future.successful(Some(dr))

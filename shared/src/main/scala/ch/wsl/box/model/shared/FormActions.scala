@@ -1,5 +1,8 @@
 package ch.wsl.box.model.shared
 
+import io.circe.Json
+import ch.wsl.box.shared.utils.JSONUtils._
+import yamusca.imports._
 
 sealed trait Action
 case object SaveAction extends Action
@@ -52,13 +55,38 @@ case class FormAction(
                       insertOnly:Boolean = false,
                       reload:Boolean = false,
                       confirmText:Option[String] = None,
-                      executeFunction:Option[String] = None
+                      executeFunction:Option[String] = None,
+                      condition:Option[Seq[ConditionalField]] = None,
+                      html5check:Boolean = true
                       ) {
-  def getUrl(kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
-    x .replace("$kind",kind)
+  def getUrl(data:Json,kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
+    val urlInternalSubstitutions = x.replace("$kind",kind)
       .replace("$name",name)
       .replace("$id",id.getOrElse(""))
       .replace("$writable", writable.toString)
+
+    mustache.parse(urlInternalSubstitutions) match {
+      case Left(err) => {
+        println(err._2)
+        urlInternalSubstitutions
+      }
+      case Right(tmpl) => {
+
+        val variables = tmpl.els.flatMap{
+          case Variable(key, _) => Some(key)
+          case Section(key, _, _) => Some(key)
+          case _ => None
+        }
+
+        val values = variables.map{v =>
+          v -> data.js(v).toMustacheValue
+        }
+
+        mustache.render(tmpl)(Context(values:_*))
+      }
+    }
+
+
   }
 }
 
@@ -76,6 +104,18 @@ object FormActionsMetadata {
     FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
   ),Seq(),false)
 
+
+  /*
+
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('SaveAction', 'Primary', null, 'form.save', true, false, true, null,  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('SaveAction', 'Primary', '/box/$kind/$name/row/$writable/$id', 'form.save', false, true, false, null,  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('SaveAction', 'Std', '/box/$kind/$name', 'form.save_table', false, false, false, null,  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('SaveAction', 'Std', '/box/$kind/$name/insert', 'form.save_add', false, false, false, null,  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('NoAction', 'Primary', '/box/$kind/$name/insert', 'entity.new', false, false, false, null,  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('CopyAction', 'Std', null, 'entity.duplicate', true, false, false, null,  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('DeleteAction', 'Danger', '/box/$kind/$name', 'table.delete', true, false, false, 'table.confirmDelete',  '23507498-6137-44ab-a3af-1019de8e5760');
+INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('RevertAction', 'Std', null, 'table.revert', true, false, false, 'table.confirmRevert',  '23507498-6137-44ab-a3af-1019de8e5760');
+   */
   def default:FormActionsMetadata = FormActionsMetadata(
     actions = Seq(
       FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),

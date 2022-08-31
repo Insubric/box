@@ -4,8 +4,8 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
-import ch.wsl.box.client.utils.GeoJson
-import ch.wsl.box.client.utils.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
+import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import io.circe.Json
@@ -53,9 +53,9 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
 
     val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-    convertJsToJson(geoJson).flatMap(FeatureCollection.decode).foreach { collection =>
-      import ch.wsl.box.client.utils.GeoJson.Geometry._
-      import ch.wsl.box.client.utils.GeoJson._
+    convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).foreach { collection =>
+      import ch.wsl.box.model.shared.GeoJson.Geometry._
+      import ch.wsl.box.model.shared.GeoJson._
       val geometries = collection.features.map(_.geometry)
       logger.info(s"$geometries")
 
@@ -125,10 +125,10 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.goToGPS)){
         button(ClientConf.style.mapButton)(
           onclick :+= ((e: Event) => {
-            ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+            ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
               val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
               goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
-            }
+            }}
             e.preventDefault()
           })
         )(Icons.target).render
@@ -141,11 +141,11 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
     val gpsPointButton = a(
       ClientConf.style.childAddButton,
       onclick :+= ((e: Event) => {
-        ch.wsl.box.client.utils.GPS.coordinates().map { coords =>
+        ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
           val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
           insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
           insertCoordinateHandler(e)
-        }
+        }}
         e.preventDefault()
       }),
       Icons.plusFill, buttonLabel(SharedLabels.map.addPointGPS)
@@ -180,15 +180,17 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       ),
       mapDiv,
       produce(data) { geo =>
-        import ch.wsl.box.client.utils.GeoJson.Geometry._
-        import ch.wsl.box.client.utils.GeoJson._
-        val geometry = geo.as[ch.wsl.box.client.utils.GeoJson.Geometry].toOption
+        import ch.wsl.box.model.shared.GeoJson.Geometry._
+        import ch.wsl.box.model.shared.GeoJson._
+        val geometry = geo.as[ch.wsl.box.model.shared.GeoJson.Geometry].toOption
 
         val enable = EnabledFeatures(geometry)
 
         val showGeometries = geometry.toSeq.flatMap(_.toSingle).map { geom =>
           div(ClientConf.style.mapInfoChild,
-            span(geom.toString(options.precision.getOrElse(0))),
+            onmouseover :+= {(e:Event) => highlight(geom); e.preventDefault()},
+            onmouseout :+= {(e:Event) => removeHighlight(); e.preventDefault()},
+            span(geomToString(geom)),
             div(ClientConf.style.mapGeomAction,
               if(!geom.isInstanceOf[Point])
                 controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),

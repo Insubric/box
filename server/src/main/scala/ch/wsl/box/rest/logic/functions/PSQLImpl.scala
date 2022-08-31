@@ -2,15 +2,14 @@ package ch.wsl.box.rest.logic.functions
 
 import akka.stream.Materializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONQuery}
 import ch.wsl.box.rest.jdbc.JdbcConnect
-import ch.wsl.box.rest.logic.{DataResult, DataResultTable}
+import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import ch.wsl.box.services.Services
-import geotrellis.vector.geometryDecoder
 import io.circe.Json
-import org.locationtech.jts.geom.Geometry
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -21,6 +20,7 @@ object PSQLImpl extends RuntimePSQL {
 
 
   override def function(name: String, parameters: Seq[Json])(implicit lang: Lang,ec: ExecutionContext, up: UserProfile,services:Services): Future[Option[DataResultTable]] = JdbcConnect.function(name,parameters,lang.lang)
+  override def dynFunction(name: String, parameters: Seq[Json])(implicit lang: Lang,ec: ExecutionContext, up: UserProfile,services:Services): Future[Option[DataResultTable]] = JdbcConnect.dynamicFunction(name,parameters,lang.lang)
 
   override def table(name: String, query:JSONQuery)(implicit lang:Lang, ec: ExecutionContext, up: UserProfile, mat:Materializer,services:Services): Future[Option[DataResultTable]] = {
 
@@ -38,8 +38,10 @@ object PSQLImpl extends RuntimePSQL {
       rows <- actions.find(query)
     } yield {
       rows.headOption.map { firstRow =>
+        val keys = firstRow.asObject.get.keys.toSeq
         DataResultTable(
-          headers = firstRow.asObject.get.keys.toSeq,
+          headers = keys,
+          headerType = keys.map(k => columns(k).jsonType),
           rows = rows.map{ row =>
             row.asObject.get.values.toSeq
           },

@@ -1,9 +1,12 @@
 package ch.wsl.box.testmodel
 
 
+  import ch.wsl.box.model.UpdateTable
+  import io.circe.Json
   import slick.model.ForeignKeyAction
   import slick.collection.heterogeneous._
   import slick.collection.heterogeneous.syntax._
+  import slick.dbio
 
 object Entities {
 
@@ -25,8 +28,11 @@ object Entities {
 
   
   case class Simple_row(id: Option[Int] = None, name: Option[String] = None)
-  class Simple(_tableTag: Tag) extends profile.api.Table[Simple_row](_tableTag, "simple") {
+  class Simple(_tableTag: Tag) extends profile.api.Table[Simple_row](_tableTag, "simple") with UpdateTable[Simple_row] {
     def * = (Rep.Some(id), name) <> (Simple_row.tupled, Simple_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[Simple_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey, O.SqlType("serial"))
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
   }
@@ -34,8 +40,11 @@ object Entities {
 
 
   case class AppParent_row(id: Int, name: Option[String] = None)
-  class AppParent(_tableTag: Tag) extends profile.api.Table[AppParent_row](_tableTag, "app_parent") {
+  class AppParent(_tableTag: Tag) extends profile.api.Table[AppParent_row](_tableTag, "app_parent") with UpdateTable[AppParent_row] {
     def * = (id, name) <> (AppParent_row.tupled, AppParent_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[AppParent_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.PrimaryKey)
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
   }
@@ -43,8 +52,11 @@ object Entities {
 
 
   case class AppChild_row(id: Int, name: Option[String] = None, parent_id: Option[Int] = None)
-  class AppChild(_tableTag: Tag) extends profile.api.Table[AppChild_row](_tableTag, "app_child") {
+  class AppChild(_tableTag: Tag) extends profile.api.Table[AppChild_row](_tableTag, "app_child") with UpdateTable[AppChild_row] {
     def * = (id, name, parent_id) <> (AppChild_row.tupled, AppChild_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[AppChild_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.PrimaryKey)
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
     val parent_id: Rep[Option[Int]] = column[Option[Int]]("parent_id", O.Default(None))
@@ -53,8 +65,11 @@ object Entities {
   lazy val AppChild = new TableQuery(tag => new AppChild(tag))
 
   case class AppSubchild_row(id: Int, child_id: Option[Int] = None, name: Option[String] = None)
-  class AppSubchild(_tableTag: Tag) extends profile.api.Table[AppSubchild_row](_tableTag, "app_subchild") {
+  class AppSubchild(_tableTag: Tag) extends profile.api.Table[AppSubchild_row](_tableTag, "app_subchild") with UpdateTable[AppSubchild_row] {
     def * = (id, child_id, name) <> (AppSubchild_row.tupled, AppSubchild_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[AppSubchild_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.PrimaryKey)
     val child_id: Rep[Option[Int]] = column[Option[Int]]("child_id", O.Default(None))
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
@@ -64,8 +79,11 @@ object Entities {
 
 
   case class DbParent_row(id: Option[Int] = None, name: Option[String] = None)
-  class DbParent(_tableTag: Tag) extends profile.api.Table[DbParent_row](_tableTag, "db_parent") {
+  class DbParent(_tableTag: Tag) extends profile.api.Table[DbParent_row](_tableTag, "db_parent") with UpdateTable[DbParent_row] {
     def * = (Rep.Some(id), name) <> (DbParent_row.tupled, DbParent_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[DbParent_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.PrimaryKey,O.AutoInc, O.SqlType("serial"))
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
   }
@@ -73,8 +91,11 @@ object Entities {
 
 
   case class DbChild_row(id: Option[Int] = None, name: Option[String] = None, parent_id: Option[Int] = None)
-  class DbChild(_tableTag: Tag) extends profile.api.Table[DbChild_row](_tableTag, "db_child") {
+  class DbChild(_tableTag: Tag) extends profile.api.Table[DbChild_row](_tableTag, "db_child") with UpdateTable[DbChild_row] {
     def * = (Rep.Some(id), name, parent_id) <> (DbChild_row.tupled, DbChild_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[DbChild_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.PrimaryKey,O.AutoInc, O.SqlType("serial"))
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
     val parent_id: Rep[Option[Int]] = column[Option[Int]]("parent_id", O.Default(None))
@@ -83,8 +104,11 @@ object Entities {
   lazy val DbChild = new TableQuery(tag => new DbChild(tag))
 
   case class DbSubchild_row(id: Option[Int] = None, child_id: Option[Int] = None, name: Option[String] = None)
-  class DbSubchild(_tableTag: Tag) extends profile.api.Table[DbSubchild_row](_tableTag, "db_subchild") {
+  class DbSubchild(_tableTag: Tag) extends profile.api.Table[DbSubchild_row](_tableTag, "db_subchild") with UpdateTable[DbSubchild_row] {
     def * = (Rep.Some(id), child_id, name) <> (DbSubchild_row.tupled, DbSubchild_row.unapply)
+
+    override def updateReturning(fields: Map[String, Json], where: Map[String, Json]): dbio.DBIO[DbSubchild_row] = ???
+
     val id: Rep[Int] = column[Int]("id", O.PrimaryKey,O.AutoInc, O.SqlType("serial"))
     val child_id: Rep[Option[Int]] = column[Option[Int]]("child_id", O.Default(None))
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))

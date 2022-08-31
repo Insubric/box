@@ -27,6 +27,17 @@ import scala.util.Try
   */
 object JSONSupport extends GeoJsonSupport {
 
+  type EncoderWithBytea[T] = Encoder[Array[Byte]] => Encoder[T]
+  implicit class ExtEncoder[T](ewb:EncoderWithBytea[T]) {
+    def full() = ewb(Full.fileFormat)
+    def light() = ewb(Light.fileFormat)
+  }
+
+  implicit def jsonEncWithBytea:EncoderWithBytea[Json] = { e =>
+    implicit def eb = e
+    implicitly[Encoder[Json]]
+  }
+
 
   private def jsonContentTypes: List[ContentTypeRange] =
     List(`application/json`)
@@ -45,7 +56,7 @@ object JSONSupport extends GeoJsonSupport {
     }
   }
 
-  implicit def printer: Json => String = Printer.noSpaces.copy(dropNullValues = true).pretty
+  implicit def printer: Json => String = Printer.spaces2SortKeys.copy(dropNullValues = true).print
 
   implicit val LocalDateTimeFormat : Encoder[LocalDateTime] with Decoder[LocalDateTime] = new Encoder[LocalDateTime] with Decoder[LocalDateTime] {
 

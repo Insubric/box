@@ -1,14 +1,21 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.routes.Routes
+import ch.wsl.box.client.services.UI
 import io.udash._
 import ch.wsl.box.client.views._
-import ch.wsl.box.client.views.admin.{AdminViewPresenter, BoxDefinitionViewPresenter, ConfViewPresenter, UiConfViewPresenter}
+import ch.wsl.box.client.views.admin.{AdminViewPresenter, BoxDefinitionViewPresenter, ConfViewPresenter, TranslationsViewPresenter, TranslatorViewPresenter, UiConfViewPresenter}
+import ch.wsl.box.model.shared.EntityKind
 
 class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
   def matchStateToResolver(state: RoutingState): ViewFactory[_ <: RoutingState] = state match {
     case RootState(layout) => RootViewPresenter
-    case IndexState => IndexViewPresenter
+    case IndexState => {
+      UI.indexPage match {
+        case Some(value) => EntityFormViewPresenter
+        case None => IndexViewPresenter
+      }
+    }
     case l:LoginStateAbstract => LoginViewPresenter
     case EntitiesState(kind,currentEntity,layout) => EntitiesViewPresenter(kind,currentEntity,2)
     case EntityTableState(kind,entity,query) => EntityTableViewPresenter(Routes(kind,entity))
@@ -17,8 +24,10 @@ class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
     //case MasterChildState(_,master,child) => MasterChildViewPresenter(master,child)
     case DataState(_,_) => DataViewPresenter
     case DataListState(_,currentExport) => DataListViewPresenter(currentExport)
+    case TranslatorState => TranslatorViewPresenter
     case AdminState => AdminViewPresenter
     case AdminBoxDefinitionState => BoxDefinitionViewPresenter
+    case AdminTranslationsState(_,_) => TranslationsViewPresenter
     case AdminConfState => ConfViewPresenter
     case AdminUiConfState => UiConfViewPresenter
     case _ => ErrorViewPresenter

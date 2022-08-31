@@ -35,7 +35,7 @@ object Main extends Logging {
 
 
 
-    Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Debug)).replace()
+    Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Warn)).replace()
 
     document.addEventListener("DOMContentLoaded", { (e: dom.Event) =>
       setupUI()
@@ -54,6 +54,9 @@ object Main extends Logging {
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
     } yield {
+
+        Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()
+        println(s"Setting logger level to ${ClientConf.loggerLevel}")
 
         //loads datetime picker
         typings.bootstrap.bootstrapRequire

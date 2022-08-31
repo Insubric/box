@@ -1,6 +1,5 @@
-package ch.wsl.box.client.utils
+package ch.wsl.box.model.shared
 
-import ch.wsl.box.client.services.ClientConf
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -24,6 +23,10 @@ object GeoJson {
         (i * precisionFactor).toInt / precisionFactor
       } else i
     }
+
+    def xApprox(precision:Double) = approx(precision,x)
+    def yApprox(precision:Double) = approx(precision,y)
+
     def toString(precision:Double): String = s"${approx(precision,x)} ${approx(precision,y)}"
     def flatten = Seq(x,y)
   }
@@ -47,9 +50,13 @@ object GeoJson {
   sealed trait Geometry {
     def toSingle:Seq[SingleGeometry]
 
+    def geomName:String
+
     def equalsToFlattenCoords(flatCoords:Seq[Double]):Boolean = flattenCoordinates == flatCoords
 
-    def flattenCoordinates:Seq[Double] = toSingle.flatMap(_.flattenCoordinates)
+    def flattenCoordinates:Seq[Double] = allCoordinates.flatMap(_.flatten)
+
+    def allCoordinates:Seq[Coordinates] = toSingle.flatMap(_.allCoordinates)
 
     def toGeom(singleGeometries: Seq[SingleGeometry]):Option[Geometry] = if(singleGeometries.nonEmpty) _toGeom(singleGeometries) else None
     protected def _toGeom(singleGeometries: Seq[SingleGeometry]):Option[Geometry]
@@ -65,22 +72,41 @@ object GeoJson {
     }
 
     def toString(precision:Double):String
+
+    def format(pattern:String,precision:Double) = pattern
+      .replaceAll("%x",allCoordinates.headOption.map(_.xApprox(precision).toString).getOrElse(""))
+      .replaceAll("%y",allCoordinates.headOption.map(_.yApprox(precision).toString).getOrElse(""))
+
   }
 
   case class Point(coordinates: Coordinates) extends SingleGeometry {
-    override def toString(precision:Double): String = s"POINT(${coordinates.toString(precision)})"
 
-    override def flattenCoordinates: Seq[Double] = coordinates.flatten
+    override def allCoordinates: Seq[Coordinates] = Seq(coordinates)
+
+    override def geomName: String = "POINT"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.toString(precision)})"
+
   }
 
   case class LineString(coordinates: Seq[Coordinates]) extends SingleGeometry {
-    override def toString(precision:Double): String = s"LINESTRING(${coordinates.map(_.toString(precision)).mkString(",")})"
+
+    override def allCoordinates: Seq[Coordinates] = coordinates
+
+    override def geomName: String = "LINESTRING"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.toString(precision)).mkString(",")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatten)
   }
 
   case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
-    override def toString(precision:Double): String = s"MULTIPOINT(${coordinates.map(_.toString(precision)).mkString("(","),(",")")})"
+
+    override def allCoordinates: Seq[Coordinates] = coordinates
+
+    override def geomName: String = "MULTIPOINT"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.toString(precision)).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Point(c))
 
@@ -89,7 +115,12 @@ object GeoJson {
   }
 
   case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
-    override def toString(precision:Double): String = s"MULTILINESTRING(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
+
+    override def allCoordinates: Seq[Coordinates] = coordinates.flatten
+
+    override def geomName: String = "MULTILINESTRING"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => LineString(c))
 
@@ -99,13 +130,22 @@ object GeoJson {
   }
 
   case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends SingleGeometry {
-    override def toString(precision:Double): String = s"POLYGON(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
-    override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatMap(_.flatten))
+    override def allCoordinates: Seq[Coordinates] = coordinates.flatten
+
+    override def geomName: String = "POLYGON"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
+
   }
 
   case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
-    override def toString(precision:Double): String = s"MULTIPOLYGON(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
+
+    override def allCoordinates: Seq[Coordinates] = coordinates.flatMap(_.flatten)
+
+    override def geomName: String = "MULTIPOLYGON"
+
+    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
 
     override def toSingle: Seq[SingleGeometry] = coordinates.map(c => Polygon(c))
 
@@ -116,9 +156,12 @@ object GeoJson {
 
   case class GeometryCollection(geometries: Seq[Geometry]) extends Geometry {
 
+
+    override def geomName: String = "GEOMETRYCOLLECTION"
+
     override def toSingle: Seq[SingleGeometry] = geometries.flatMap(_.toSingle)
 
-    override def toString(precision:Double): String = s"GEOMETRYCOLLECTION(${geometries.map(_.toString(precision)).mkString(",")})"
+    override def toString(precision:Double): String = s"$geomName(${geometries.map(_.toString(precision)).mkString(",")})"
 
 
     override protected def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(GeometryCollection(singleGeometries))
@@ -134,13 +177,13 @@ object GeoJson {
     implicit val encoderGeometryCollection: Encoder[GeometryCollection] = Encoder.instance(j => Json.obj("type" -> "GeometryCollection".asJson, "geometries" -> j.geometries.asJson  ))
 
     implicit val encoder: Encoder[Geometry] = Encoder.instance {
-        case j:GeometryCollection => Json.obj("type" -> "GeometryCollection".asJson, "geometries" -> j.geometries.asJson  )
-        case j:Point => Json.obj("type" -> "Point".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:LineString => Json.obj("type" -> "LineString".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:MultiPoint => Json.obj("type" -> "MultiPoint".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:MultiLineString => Json.obj("type" -> "MultiLineString".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:Polygon => Json.obj("type" -> "Polygon".asJson, "coordinates" -> j.coordinates.asJson  )
-        case j:MultiPolygon => Json.obj("type" -> "MultiPolygon".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:GeometryCollection => Json.obj("type" -> "GeometryCollection".asJson, "geometries" -> j.geometries.asJson  )
+      case j:Point => Json.obj("type" -> "Point".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:LineString => Json.obj("type" -> "LineString".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:MultiPoint => Json.obj("type" -> "MultiPoint".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:MultiLineString => Json.obj("type" -> "MultiLineString".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:Polygon => Json.obj("type" -> "Polygon".asJson, "coordinates" -> j.coordinates.asJson  )
+      case j:MultiPolygon => Json.obj("type" -> "MultiPolygon".asJson, "coordinates" -> j.coordinates.asJson  )
     }
 
     implicit val decoder: Decoder[Geometry] = Decoder.instance { c =>

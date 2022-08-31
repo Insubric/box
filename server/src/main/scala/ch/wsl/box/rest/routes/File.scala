@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayInputStream
-
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.server.{Directives, Route}
@@ -11,18 +10,22 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
-import ch.wsl.box.model.shared.JSONID
+import ch.wsl.box.model.shared.{JSONID, JSONMetadata}
 import ch.wsl.box.rest.logic.DbActions
 import ch.wsl.box.rest.routes.File.{BoxFile, FileHandler}
-import io.circe.Decoder
+import io.circe.{Decoder, Encoder}
 import nz.co.rossphillips.thumbnailer.Thumbnailer
 import nz.co.rossphillips.thumbnailer.thumbnailers.{DOCXThumbnailer, ImageThumbnailer, PDFThumbnailer, TextThumbnailer}
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
+import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.file.FileId
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
 
 
@@ -51,7 +54,7 @@ object File{
 
 }
 
-case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services) extends Logging {
+case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](field:String, table: TableQuery[T], handler: FileHandler[M])(implicit ec:ExecutionContext, materializer:Materializer, db:UserDatabase, services: Services, encoder:(Encoder[Array[Byte]]) => Encoder[M],up:UserProfile) extends Logging {
   import Directives._
   import ch.wsl.box.rest.utils.JSONSupport._
   import ch.wsl.box.rest.utils.JSONSupport.Full._
@@ -60,6 +63,12 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
   val dbActions = new DbActions[T,M](table)
   implicit val boxDb = FullDatabase(db,services.connection.adminDB)
+  val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
+
+  def jsonMetadata:JSONMetadata = {
+    val fut = EntityMetadataFactory.of(table.baseTableRow.schemaName.getOrElse(services.connection.dbSchema),table.baseTableRow.tableName, "", 0)
+    Await.result(fut,20.seconds)
+  }
 
   private def boxFile(fileId: FileId,data:Option[Array[Byte]],tpe:String,name:Option[String] = None):BoxFile = {
     val mime = data.map(services.imageCacher.mime)
@@ -79,7 +88,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
           rowWithFile = handler.inject(row.get,bytea)
           result <- dbActions.update(id,rowWithFile)
           _ <- DBIO.from(services.imageCacher.clear(FileId(id,field)))
-        } yield result
+        } yield id
       }.transactionally}
       complete(result)
     }
@@ -151,11 +160,9 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   }
 
   def route:Route = {
-    pathPrefix(field) {
-
       pathPrefix(Segment) { idstr =>
         logger.info(s"Parsing File'JSONID: $idstr")
-        JSONID.fromString(idstr) match {
+        JSONID.fromString(idstr,jsonMetadata) match {
           case Some(id) => {
             val fileId = FileId(id,field)
             upload(id) ~
@@ -167,9 +174,6 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
           }
           case None => complete(StatusCodes.BadRequest,s"JSONID $idstr not valid")
         }
-
-
       }
-    }
   }
 }

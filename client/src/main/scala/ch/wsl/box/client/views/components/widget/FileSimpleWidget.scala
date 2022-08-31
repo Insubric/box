@@ -3,14 +3,19 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.routes.Routes
+import ch.wsl.box.client.services.LoginPopup.{body, header}
 import ch.wsl.box.client.services.{ClientConf, Labels, REST}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
 import ch.wsl.box.client.views.components.Debug
 import ch.wsl.box.model.shared._
 import io.circe.Json
 import io.udash._
 import io.udash.bindings.Bindings
 import io.udash.bootstrap.BootstrapStyles
+import io.udash.bootstrap.modal.UdashModal
+import io.udash.bootstrap.modal.UdashModal.BackdropType
+import io.udash.bootstrap.utils.BootstrapStyles.Size
+import io.udash.properties.single.Property
 import org.scalajs.dom
 import org.scalajs.dom.raw.{DragEvent, HTMLAnchorElement}
 import org.scalajs.dom.{Event, File, FileReader, window}
@@ -38,7 +43,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   import io.circe.syntax._
 
   val field = widgetParams.field
-  val data = widgetParams.prop
+  def data = widgetParams.prop
 
   val mime:Property[Option[String]] = Property(None)
   val source:Property[Option[String]] = Property(None)
@@ -50,7 +55,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val filenameProp = uploadFilenameField.map{f => widgetParams.otherField(f)}
 
   data.listen({js =>
-    val file = data.get.string
+    def file = data.get.string
     if(file.length > 0 && file != FileUtils.keep) {
       val mime = file.take(1) match {
         case "/" => "image/jpeg"
@@ -71,9 +76,19 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   }, true)
 
 
-  def url(idString:String):Option[(String,String)] = {
-    JSONID.fromString(idString).map{ id =>
+  override def killWidget(): Unit = {
+    source.set(None)
+    super.killWidget()
+  }
+
+  def url(data:Json):Option[(String,String)] = {
+    JSONID.fromData(data,widgetParams.metadata).map{ id =>
       val randomString = UUID.randomUUID().toString
+      val idString = id.asString
+      val name = downloadFilenameField.flatMap(data.getOpt) match {
+        case Some(name) => name
+        case None => s"${widgetParams.metadata.name}_$idString"
+      }
       val u = s"/file/${widgetParams.metadata.entity}.${field.name}/$idString"
       (
         s"$u/thumb?rand=$randomString",
@@ -82,7 +97,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     }
   }
 
-  val urls = widgetParams.id.transform(x => x.flatMap(url))
+  val urls = widgetParams.allData.transform(url)
 
   private def showFile = div(BootstrapCol.md(12),ClientConf.style.noPadding)(
     produceWithNested(mime.combine(source)((m,s) => (m,s))) {
@@ -96,12 +111,31 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
       } else span("File loaded").render
       case ((None,Some(source)),nested) => div(
         nested(produce(urls) {
-          case Some((thumb,download)) => div(
-            img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb),
-            div(
-              a("Download", ClientConf.style.boxButton, href := Routes.apiV1(download)),
+          case Some((thumb,_download)) => {
+
+            val url:Property[String] = Property("")
+
+            val modal: UdashModal = UdashModal(
+              modalSize = Some(Size.Large).toProperty,
+              backdrop = BackdropType.Active.toProperty
+            )(
+              headerFactory = None,
+              bodyFactory = Some((interceptor) => img(nested(src.bind(url))).render),
+              footerFactory = None
             )
-          ).render
+
+            div(
+              img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {
+                e.preventDefault()
+                url.set(Routes.apiV1(_download))
+                modal.show()
+              })),
+              modal
+              //            div(
+              //              a(Icons.download, ClientConf.style.boxIconButton, href := Routes.apiV1(_download),attr("download") := "download"),
+              //            )
+            ).render
+          }
           case _ => div().render
         })
       ).render
@@ -118,7 +152,6 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val acceptMultipleFiles = Property(false)
   val selectedFiles = SeqProperty.blank[File]
   val fileInput = FileInput(selectedFiles, acceptMultipleFiles)("files",display.none,onfocus :+= {(e:Event) =>
-    println("äaaaaa")
     e.preventDefault()
   }).render
 
@@ -144,15 +177,24 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding)(
       fileInput,
-      button("Upload",ClientConf.style.boxButton, onclick :+= {(e:Event) =>
+      produce(urls) {
+        case Some((thumb,_download)) =>
+          WidgetUtils.addTooltip(Some("Download")){
+            a(Icons.download, ClientConf.style.boxIconButton, href := Routes.apiV1(_download),attr("download") := "download").render
+          }._1
+        case _ => span().render
+      },
+      WidgetUtils.addTooltip(Some("Upload"))(button(Icons.upload,ClientConf.style.boxIconButton, onclick :+= {(e:Event) =>
         fileInput.click()
         e.preventDefault()
-      } ),
+      } ).render)._1,
       showIf(source.transform(_.isDefined)){
-        button("Delete",ClientConf.style.boxButtonDanger, onclick :+= { (e:Event) =>
-          if(window.confirm(Labels.form.removeMap)) data.set(Json.Null)
-          e.preventDefault()
-        } ).render
+        WidgetUtils.addTooltip(Some("Delete")) {
+          button(Icons.trash, ClientConf.style.boxIconButtonDanger, onclick :+= { (e: Event) =>
+            if (window.confirm(Labels.form.removeMap)) data.set(Json.Null)
+            e.preventDefault()
+          }).render
+        }._1
       },
       div(BootstrapStyles.Visibility.clearfix)
     )
@@ -177,8 +219,10 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   val dragging:Property[Boolean] = Property(false)
 
+
   val dropZone = div(
     ClientConf.style.dropFileZone,
+    showFile,
     ondrop :+= dropHandler,
     ondragover :+= {(e:Event) => dragging.set(true); e.preventDefault()},
     ondragenter :+= ((_:Event) => dragging.set(true)),
@@ -194,7 +238,6 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   override def edit() = {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,
       if(noLabel) frag() else WidgetUtils.toLabel(field),
-      showFile,
       dropZone,
       upload,
       //autoRelease(produce(id) { _ => div(FileInput(selectedFile, Property(false))("file")).render }),

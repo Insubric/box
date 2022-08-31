@@ -1,7 +1,8 @@
 package ch.wsl.box.shared.utils
 
+import ch.wsl.box.model.shared.{JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata}
 import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
-import ch.wsl.box.model.shared.{JSONFieldTypes, JSONID}
+import ch.wsl.box.model.shared.{JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import io.circe._
 import io.circe.syntax.EncoderOps
 import scribe.Logging
@@ -23,6 +24,14 @@ object JSONUtils extends Logging {
         case JSONFieldTypes.NUMBER => value.toDouble.asJson
         case JSONFieldTypes.INTEGER => value.toInt.asJson
         case JSONFieldTypes.BOOLEAN => Json.fromBoolean(value.toBoolean)
+        case JSONFieldTypes.JSON => parser.parse(value) match {
+          case Left(value) => throw new Exception(value.message)
+          case Right(value) => value
+        }
+        case JSONFieldTypes.STATIC => Json.Null
+        case JSONFieldTypes.DATE => DateTimeFormatters.date.parse(value).get.asJson
+        case JSONFieldTypes.DATETIME => DateTimeFormatters.timestamp.parse(value).get.asJson
+        case JSONFieldTypes.TIME => DateTimeFormatters.time.parse(value).get.asJson
         case _ => Json.fromString(value)
       }
       json
@@ -73,7 +82,14 @@ object JSONUtils extends Logging {
 
     def seq(field:String):Seq[Json] = {
       val result = el.hcursor.get[Seq[Json]](field)
-      result.right.getOrElse(Seq())
+      result match {
+        case Left(value) => {
+          logger.warn(s"Cannot decode seq for $field with error ${value.getMessage()}")
+          logger.debug(s"Original json $el")
+          Seq()
+        }
+        case Right(value) => value
+      }
     }
 
     def get(field: String):String = getOpt(field).getOrElse("")
@@ -81,7 +97,9 @@ object JSONUtils extends Logging {
     def getOpt(field: String):Option[String] = el.hcursor.get[Json](field).fold(
       { _ =>
         None
-      }, { x => Some(x.string) }
+      }, { x =>
+        if(!x.isNull) Some(x.string) else None
+      }
     )
 
     def ID(fields:Seq[String]):Option[JSONID] = {
@@ -89,9 +107,9 @@ object JSONUtils extends Logging {
       if(fields.forall(x => getOpt(x).isDefined)) {
 
         val values = fields map { field =>
-          field -> get(field)
+          field -> js(field)
         }
-        Some(JSONID.fromMap(values.toMap))
+        Some(JSONID.fromMap(values))
       } else None
     }
 
@@ -109,25 +127,105 @@ object JSONUtils extends Logging {
 
     }
 
-    def removeNonDataFields:Json = {
+    def removeNonDataFields(metadata:JSONMetadata,children:Seq[JSONMetadata],keepStatic:Boolean = true):Json = {
+
+      def layoutFields(fields:Seq[Either[String,SubLayoutBlock]]):Seq[String] = {
+        fields.flatMap {
+          case Left(value) => Seq(value)
+          case Right(value) => layoutFields(value.fields)
+        }
+      }
+
+      val shownFields:Seq[String] = metadata.layout.blocks.flatMap(x => layoutFields(x.fields))
 
       val folder = new Json.Folder[Json] {
         override def onNull: Json = Json.Null
         override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
         override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
         override def onString(value: String): Json = Json.fromString(value)
-        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields).filterNot{ //remove empty array elements
+        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields(metadata,children, keepStatic)).filterNot{ //remove empty array elements
           _.as[JsonObject] match {
             case Left(_) => false
             case Right(value) => value.keys.isEmpty
           }})
-        override def onObject(value: JsonObject): Json = Json.fromJsonObject{
-          value.filter(!_._1.startsWith("$")).mapValues(_.removeNonDataFields)
+        override def onObject(value: JsonObject): Json = Json.fromFields{
+          value
+            .filter(!_._1.startsWith("$"))
+            .filter(x => keepStatic || metadata.fields.find(_.name == x._1).exists(_.`type` != JSONFieldTypes.STATIC))
+            //.filter(x => shownFields.concat(metadata.keys).contains(x._1))
+            .toMap.map { case (k,v) =>
+              val m = for{
+                field <- metadata.fields.find(_.name == k)
+                child <- field.child
+                childMetadata <- children.find(_.objId == child.objId)
+              } yield childMetadata
+              val obj = v.removeNonDataFields(m.getOrElse(metadata), children, keepStatic)
+              k -> obj
+            }
         }
       }
 
       Json.Null.deepMerge(el).foldWith(folder).deepDropNullValues
 
+    }
+
+    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
+
+      def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata)
+
+      def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JSONDiffModel] = {
+        (t.keys ++ o.keys).toSeq.distinct.map{ k =>
+          (k,t.get(k),o.get(k))
+        }.filterNot(x => x._2 == x._3).flatMap{ case (key,currentValue,newValue) =>
+
+          def handleObject(obj:JsonObject):Seq[JSONDiffModel] = currentValue.flatMap(_.asObject) match {
+            case Some(value) => {
+              metadata.fields.find(_.name == key) match {
+                case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
+                  val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId)
+                  value.asJson.diff(childMetadata.get,children)(obj.asJson).models
+                }
+                case Some(field) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+                case None => Seq()
+              }
+
+            }
+            case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue,insert = true))))
+          }
+
+
+          def handleArray(newArray:Vector[Json]):Seq[JSONDiffModel] = currentValue.flatMap(_.asArray) match {
+            case Some(currentArray) => {
+              val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId).get
+              val c = currentArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
+              val n = newArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
+              (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
+                c.get(jsonId).asJson.diff(childMetadata,children)(n.get(jsonId).asJson).models
+              }
+            }
+            case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue,insert = true))))
+          }
+
+
+          newValue.map{_.fold(
+            Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
+            bool => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
+            num => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
+            str => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
+            handleArray,
+            handleObject
+          )}.getOrElse(Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))))
+
+
+        }
+      }
+
+      (el.asObject,other.asObject) match {
+        case (Some(t),Some(o)) => JSONDiff(_diff(t.toMap,o.toMap))
+        case (None,Some(obj)) => JSONDiff(Seq(JSONDiffModel(metadata.name,JSONID.fromData(other,metadata),obj.toMap.map{case (key, value) => JSONDiffField(key,None,Some(value),insert = true)}.toSeq)))
+        case (Some(obj),None) => JSONDiff(Seq(JSONDiffModel(metadata.name,JSONID.fromData(el,metadata),obj.toMap.map{ case (key, value) => JSONDiffField(key,Some(value),Some(Json.Null),delete = true) }.toSeq)))
+        case _ => throw new Exception("Cannot compare non-object json")
+      }
     }
 
   }

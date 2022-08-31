@@ -91,27 +91,27 @@ trait DBFiltersImpl extends DbFilters with Logging {
   //"USER-DEFINED" -> JSONFieldTypes.STRING
 
   def typ(myType:ColType):Int = myType match{
-    case ColType("Short",_,true) => typOptSHORT
-    case ColType("Double",_,true) => typOptDOUBLE
+    case ColType("Short",_,_,true) => typOptSHORT
+    case ColType("Double",_,_,true) => typOptDOUBLE
     //case "BigDecimal" | "scala.math.BigDecimal" => typBIGDECIMAL //when it's used?
-    case ColType("Int",_,true) => typOptINT
-    case ColType("Long",_,true) => typOptLONG
-    case ColType("String",_,true) => typOptSTRING
-    case ColType("Boolean",_,true) => typOptBOOLEAN
-    case ColType("java.time.LocalDateTime",_,true) => typOptTIMESTAMP
-    case ColType("java.time.LocalDate",_,true) => typOptDATE
-    case ColType("java.time.LocalTime",_,true) => typOptTIME
-    case ColType("java.util.UUID",_,true) => typOptUUID
-    case ColType("Short",_,false) => typSHORT
-    case ColType("Double",_,false) => typDOUBLE
-    case ColType("Int",_,false) => typINT
-    case ColType("Long",_,false) => typLONG
-    case ColType("String",_,false) => typSTRING
-    case ColType("Boolean",_,false) => typBOOLEAN
-    case ColType("java.time.LocalDateTime",_,false) => typTIMESTAMP
-    case ColType("java.time.LocalDate",_,false) => typDATE
-    case ColType("java.time.LocalTime",_,false) => typTIME
-    case ColType("java.util.UUID",_,false) => typUUID
+    case ColType("Int",_,_,true) => typOptINT
+    case ColType("Long",_,_,true) => typOptLONG
+    case ColType("String",_,_,true) => typOptSTRING
+    case ColType("Boolean",_,_,true) => typOptBOOLEAN
+    case ColType("java.time.LocalDateTime",_,_,true) => typOptTIMESTAMP
+    case ColType("java.time.LocalDate",_,_,true) => typOptDATE
+    case ColType("java.time.LocalTime",_,_,true) => typOptTIME
+    case ColType("java.util.UUID",_,_,true) => typOptUUID
+    case ColType("Short",_,_,false) => typSHORT
+    case ColType("Double",_,_,false) => typDOUBLE
+    case ColType("Int",_,_,false) => typINT
+    case ColType("Long",_,_,false) => typLONG
+    case ColType("String",_,_,false) => typSTRING
+    case ColType("Boolean",_,_,false) => typBOOLEAN
+    case ColType("java.time.LocalDateTime",_,_,false) => typTIMESTAMP
+    case ColType("java.time.LocalDate",_,_,false) => typDATE
+    case ColType("java.time.LocalTime",_,_,false) => typTIME
+    case ColType("java.util.UUID",_,_,false) => typUUID
     case _ => {
       logger.error("Type mapping for: " + myType + " not found")
       typError
@@ -162,7 +162,10 @@ trait DBFiltersImpl extends DbFilters with Logging {
           }
           case `typOptDATE` => toDate(v) match {
             case Nil => throw new Error("Invalid date")
-            case single :: Nil => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] === single
+            case single :: Nil => {
+              logger.debug(s"parsed data: $single")
+              c.asInstanceOf[Rep[Option[java.time.LocalDate]]] === single
+            }
             case from :: to :: Nil => c.asInstanceOf[Rep[Option[java.time.LocalDate]]] >= from && c.asInstanceOf[Rep[Option[java.time.LocalDate]]] < to
           }
           case `typOptTIME` => c.asInstanceOf[Rep[Option[java.time.LocalTime]]] === toTime(v).get

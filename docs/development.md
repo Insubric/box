@@ -76,3 +76,19 @@ sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:MaxPermSize=1G -J-XX:+CMSClassUnloa
 
 JavaScript dependencies are managed using webpack npm and [https://scalablytyped.org](https://scalablytyped.org).
 Js dependency are injected in the bundle by webpack, if some css file is needed the library need to be exposed and loaded manually (this could be improved)
+
+# Testing
+
+## Server
+We use [testcontainer](https://www.testcontainers.org/) for testing, so you need docker installed in your machine and the user running the tests should be able to create containers.
+
+In linux if you get Permission error you may want open the socket (WARNING THAT HAS SOME IMPORTANT SECURITY DRAWBACK)
+```
+sudo chmod 666 /var/run/docker.sock
+```
+
+## Client
+We use jsdom node.js implementation of the DOM, so you need to have node.js installed and jsdom:
+```
+npm install jsdom
+```

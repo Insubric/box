@@ -33,7 +33,7 @@ class HttpClientImpl extends HttpClient with Logging {
       //xhr.withCredentials = true
       xhr.setRequestHeader("Cache-Control","no-store")
       if (json) {
-        xhr.setRequestHeader("Content-Type", "application/json")
+        xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8")
       }
       if (file) {
         xhr.setRequestHeader("Content-Type", "application/octet-stream")

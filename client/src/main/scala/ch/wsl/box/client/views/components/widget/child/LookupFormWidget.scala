@@ -29,8 +29,8 @@ object LookupFormWidget extends ComponentWidgetFactory {
     val linked: LinkedForm = field.linked.get
 
     val linkedData: ReadableProperty[JSONID] = params.allData.transform { js =>
-      val parentValues = linked.parentValueFields.map(k => js.get(k))
-      JSONID.fromMap(linked.childValueFields.zip(parentValues).toMap)
+      val parentValues = linked.parentValueFields.map(k => js.js(k))
+      JSONID.fromMap(linked.childValueFields.zip(parentValues))
     }
 
     def _params = params

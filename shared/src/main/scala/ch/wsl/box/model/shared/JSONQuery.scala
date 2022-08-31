@@ -50,6 +50,8 @@ object JSONQueryFilter{
   object WHERE {
     def eq(column: String, value: String) = JSONQueryFilter(column, Some(Filter.EQUALS), value)
 
+    def in(column: String, value: Seq[String]) = JSONQueryFilter(column, Some(Filter.IN), value.mkString(","))
+
     def not(column: String, value: String) = JSONQueryFilter(column, Some(Filter.NOT), value)
 
     def like(column: String, value: String) = JSONQueryFilter(column, Some(Filter.LIKE), value)
@@ -140,6 +142,8 @@ object Filter extends Logging {
   final val IS_NOT_NULL = "isNotNull"
 //  final val TRUE = "true"
 //  final val FALSE = "false"
+
+  final val all = Seq(NONE,EQUALS,NOT,FK_EQUALS,FK_NOT,>,<,>=,<=,LIKE,DISLIKE,FK_LIKE,FK_DISLIKE,IN,NOTIN,BETWEEN,IS_NULL,IS_NOT_NULL)
 
   private def basicOptions(`type`:String) = `type` match {
     case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER  => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT, Filter.IN, Filter.NOTIN, Filter.BETWEEN)

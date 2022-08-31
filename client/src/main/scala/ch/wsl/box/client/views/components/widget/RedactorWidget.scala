@@ -13,6 +13,8 @@ import scalatags.JsDom
 import scribe.Logging
 import io.circe._
 import io.circe.scalajs.convertJsonToJs
+import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
+import org.scalajs.dom.html.TextArea
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -84,13 +86,14 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
   }
 
   val editorId = "redactor"+UUID.randomUUID().toString.take(8)
-  val container = textarea(id := editorId,ph).render
+  val container:TextArea = textarea(id := editorId,ph).render
 
   val redactor = Redactor(editorId)
 
   var started = false;
 
-  override def afterRender() = Future.successful{
+  def loadEditor() = {
+
     val opts:Json = field.params.map(_.js("editorOptions")).getOrElse(Map[String,Json]().asJson)
     logger.debug(s"started: $started, redactor isStarted: ${redactor.isStarted()}")
     if(!started || !redactor.isStarted()) {
@@ -107,9 +110,19 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
     logger.debug(s"field: ${field.name}")
     logger.debug(s"data: ${data.get.toString()}")
 
-    div(
-      container
-    ).render
+    val observer = new MutationObserver({(mutations,observer) =>
+      if(document.contains(container)) {
+        observer.disconnect()
+        loadEditor()
+      }
+    })
+
+    produce(_id) { _ =>
+      observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+      div(
+        container
+      ).render
+    }
   }
 
 }

@@ -1,17 +1,16 @@
 package ch.wsl.box.rest.metadata
 
 import java.util.UUID
-
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.{PgColumn, PgColumns, PgInformationSchema}
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
-import ch.wsl.box.model.boxentities.BoxField.{BoxFieldFile_row, BoxField_i18n_row, BoxField_row}
+import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_i18nTable, BoxForm_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -144,6 +143,16 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     DBIO.successful(x.split(",").toSeq.map(_.trim))
   }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
+  private def toConditions(json:Json):Seq[ConditionalField] = {
+    json.as[Map[String, Json]] match {
+      case Left(value) => {
+        logger.warn(s"Failed to decode condition: ${value.getMessage()} on $json")
+        Seq()
+      }
+      case Right(value) => value.map{ case (k,v) => ConditionalField(k,v)}.toSeq
+    }
+  }
+
   private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String) = {
 
     import io.circe.generic.auto._
@@ -158,16 +167,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     val result = for{
       (form,formI18n) <- fQuery.result.map(_.head)
       fields <- fieldQuery(form.form_uuid.get).result
-      fieldsFile <- DBIO.sequence(fields.map { case (f, _) =>
-          BoxField.BoxFieldFileTable.filter(_.field_uuid === f.field_uuid).result.headOption
-      })
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
-
-      cols <- new PgInformationSchema(services.connection.dbSchema,form.entity)(ec).columns
-      columns = fields.map(f => cols.find(_.column_name == f._1.name))
+      columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name))
       keys <- keys(form)
-      jsonFieldsPartial <- fieldsToJsonFields(fields.zip(fieldsFile).zip(columns), lang)
+      jsonFieldsPartial <- fieldsToJsonFields(fields.zip(columns), lang)
     } yield {
 
 
@@ -218,7 +222,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               insertOnly = a.insert_only,
               reload = a.reload,
               confirmText = a.confirm_text,
-              executeFunction = a.execute_function
+              executeFunction = a.execute_function,
+              condition = a.condition.map(toConditions),
+              html5check = a.html_check
             )
           },
           navigationActions = navigationActions.map{a =>
@@ -335,10 +341,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   private def condition(field:BoxField_row) = for{
     fieldId <- field.conditionFieldId
     values <- field.conditionValues
-    json <- Try(parse(values).right.get.as[Seq[Json]].right.get).toOption
+    json <- Try(parse(values).right.get.as[Json].right.get).toOption
   } yield ConditionalField(fieldId,json)
 
-  private def file(ff:BoxFieldFile_row) = FileReference(ff.name_field, ff.file_field, ff.thumbnail_field)
 
   private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String):DBIO[String] = {
 
@@ -419,9 +424,9 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case None => DBIO.successful(None)
   }
 
-  private def fieldsToJsonFields(fields:Seq[(((BoxField_row,Option[BoxField_i18n_row]),Option[BoxFieldFile_row]),Option[PgColumn])], lang:String): DBIO[Seq[JSONField]] = {
+  private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
 
-    val jsonFields = fields.map{ case (((field,fieldI18n),fieldFile),pgColumn) =>
+    val jsonFields = fields.map{ case ((field,fieldI18n),colType) =>
 
       if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_uuid}) has no translation to $lang")
 
@@ -434,7 +439,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         JSONField(
           `type` = field.`type`,
           name = field.name,
-          nullable = !pgColumn.exists(_.required) && !field.required.getOrElse(false),
+          nullable = colType.required && !field.required.getOrElse(false),
           readOnly = field.read_only,
           label = Some(lab),
           lookup = look,
@@ -443,7 +448,6 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           widget = field.widget,
           child = subform,
           default = field.default,
-          file = fieldFile.map(file),
           condition = condition(field),
           tooltip = fieldI18n.flatMap(_.tooltip),
           params = field.params,

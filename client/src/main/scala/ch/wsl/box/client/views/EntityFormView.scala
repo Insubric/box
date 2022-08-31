@@ -32,7 +32,7 @@ import scalacss.internal.StyleA
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
 import scala.scalajs.js.timers.setTimeout
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andre on 4/24/2017.
@@ -42,8 +42,10 @@ case class EntityFormModel(name:String, kind:String, id:Option[String], metadata
                            error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
-  implicit val blank: Blank[EntityFormModel] =
-    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true))
+
+  val empty = EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true)
+
+  implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
 
 object EntityFormViewPresenter extends ViewFactory[FormState] {
@@ -61,6 +63,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   override def handleState(state: FormState): Unit = {
 
+    logger.warn(state.toString)
+
+    val loaded = Promise[Boolean]()
+    TestHooks.addLoadedPromise(loaded)
+
     services.clientSession.loading.set(true)
 
     val reloadMetadata = {
@@ -77,25 +84,33 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     model.subProp(_.insert).set(state.id.isEmpty)
 
 
-    val jsonId = state.id.flatMap(JSONID.fromString)
+
 
     {for{
       metadata <- if(reloadMetadata) services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public) else Future.successful(model.get.metadata.get)
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       data <- state.id match {
-        case Some(id) => services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId.get,state.public)
+        case Some(id) => {
+          val jsonId = state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
+            case Some(value) => value
+            case None => throw new Exception(s"cannot parse JsonID ${state.id}")
+          }
+          services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
+        }
         case None => Future.successful{
           Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*)
         }
       }
     } yield {
 
+      val dataWithQueryParams = data.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
+
       model.set(EntityFormModel(
         name = state.entity,
         kind = state.kind,
         id = state.id,
         metadata = Some(metadata),
-        data = data,
+        data = dataWithQueryParams,
         "",
         children,
         Navigation.empty1,
@@ -114,39 +129,53 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       setNavigation()
 
       widget.afterRender()
-      widget.afterRender()
 
       services.clientSession.loading.set(false)
 
-      TestHooks.loaded()
+      loaded.success(true)
 
-    }}.recover{ case e => e.printStackTrace() }
+    }}.onComplete {
+      case Failure(exception) => {
+        exception.printStackTrace()
+        throw exception
+      }
+      case Success(value) => true
+    }
 
   }
 
   import io.circe.syntax._
 
 
+  override def onClose(): Unit = {
+    model.set(EntityFormModel.empty,true)
+    if (widget != null) {
+      widget.killWidget()
+    }
+    enableGoAway
+
+  }
+
   private var _form:HTMLFormElement = scalatags.JsDom.all.form().render
 
   def setForm(form:HTMLFormElement)= { _form = form }
 
-  def saveAndReload(action:Json => Unit):Unit = {
-    save{ id =>
+  def saveAndReload(check:Boolean = true)(action:Json => Unit):Unit = {
+    save(check){ id =>
       reload(id).map{ data =>
         action(data)
-        if(!model.subProp(_.id).get.flatMap(JSONID.fromString).contains(id)) {
+        if(!model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)).contains(id)) {
           goTo(id.asString)
         }
       }
     }
   }
 
-  def save(action:JSONID => Unit):Unit  = {
+  def save(check:Boolean = true)(action:JSONID => Unit):Unit  = {
 
     services.clientSession.loading.set(true)
 
-    if(!_form.reportValidity()) {
+    if(check) if(!_form.reportValidity()) {
       services.clientSession.loading.set(false)
       val errors = document.querySelectorAll("*:invalid")
       for(i <- 0 to errors.length) {
@@ -164,21 +193,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     val metadata = m.metadata.get
     val data:Json = m.data
 
-    def saveAction(data:Json) = {
+    def saveAction(data:Json):Future[(JSONID,Json)] = {
 
-      logger.debug(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
+      logger.info(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
       for {
-        id <- JSONID.fromString(m.id.getOrElse("")) match {
+        result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
           case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
           case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
         }
-        result <- m.public match {
-          case false => services.rest.get(m.kind, services.clientSession.lang(), m.name, id,m.public)
-          case true => Future.successful(data)
-        }
       } yield {
         logger.debug("saveAction::Result")
-        (id,result)
+        (JSONID.fromData(result,metadata).getOrElse(JSONID.empty),result)
       }
 
     }
@@ -187,11 +212,23 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       updatedData <- widget.beforeSave(data,metadata)
-      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields)
+      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
       afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
     } yield {
 
-      logger.debug(afterSaveResult.toString())
+      logger.debug(s"""outcome
+
+                 Save outcome:
+
+                 original: $data
+
+                 afterBeforeSave: $updatedData
+
+                 afterSave: $resultBeforeAfterSave
+
+                 afterAfterSave: $afterSaveResult
+
+                 """)
 
       enableGoAway
       model.subProp(_.insert).set(false)
@@ -232,7 +269,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def revert() = {
-    model.subProp(_.id).get.flatMap(JSONID.fromString) match {
+    model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)) match {
       case Some(id) => reload(id)
       case None => logger.warn("Cannot revert with no ID")
     }
@@ -242,7 +279,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       for{
         name <- model.get.metadata.map(_.name)
-        key <- model.get.id.flatMap(JSONID.fromString)
+        key <- model.get.id.flatMap(x => JSONID.fromString(x,model.get.metadata.get))
       } yield {
         services.rest.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")
@@ -300,7 +337,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload),changed,model.subProp(_.public).get)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload()),changed,model.subProp(_.public).get)
     widget
   }
 
@@ -352,9 +389,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def enableGoAway = {
     Navigate.enable()
     model.subProp(_.changed).set(false)
-    window.onbeforeunload = { (e:BeforeUnloadEvent) =>
-      widget.killWidget()
-    }
+    window.onbeforeunload = { (e:BeforeUnloadEvent) => }
   }
 
   val showNavigation:ReadableProperty[Boolean] = model.subProp(_.public).transform(x => !x)
@@ -369,27 +404,40 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
 
     def executeFuntion():Future[Boolean] = action.executeFunction match {
-      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map(_ => true)
+      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
+        result.errorMessage match {
+          case Some(value) => {
+            Notification.add(value)
+            services.clientSession.loading.set(false)
+            false
+          }
+          case None => true
+        }
+      }
       case None => Future.successful(true)
     }
 
     def callBack() = action.action match {
-      case SaveAction => save{ _id =>
-        executeFuntion().map { _ =>
-          if (action.reload) {
-            reload(_id)
-          }
-          action.getUrl(model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
-            logger.info(url)
-            reset()
-            Navigate.toUrl(url)
+      case SaveAction => save(action.html5check){ _id =>
+        executeFuntion().map { functionOk =>
+          if(functionOk) {
+            if (action.reload) {
+              reload(_id)
+            }
+            action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
+              logger.info(url)
+              reset()
+              Navigate.toUrl(url)
+            }
           }
         }
       }
-      case NoAction => action.getUrl(model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-        executeFuntion().map { _ =>
-          reset()
-          Navigate.toUrl(url)
+      case NoAction => action.getUrl(model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
+        executeFuntion().map { functionOk =>
+          if(functionOk) {
+            reset()
+            Navigate.toUrl(url)
+          }
         }
       }
       case CopyAction => duplicate()
@@ -451,11 +499,19 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
 
     if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
-      button(
+      val actionButton = button(
         id := TestHooks.actionButton(action.label),
         importance,
         onclick :+= presenter.actionClick(_id,action)
       )(Labels(action.label)).render
+      action.condition match {
+        case Some(conditions) => {
+          showIf(model.subProp(_.data).transform{ js => conditions.forall{ cond =>
+            cond.check(js.js(cond.conditionFieldId))
+          }})( actionButton )
+        }
+        case None => actionButton
+      }
     } else frag()
 
   }
@@ -516,17 +572,19 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       div(BootstrapStyles.Visibility.clearfix)
     )
 
-    val formHeader = div(ClientConf.style.formHeader,
+    def formHeader(showId:Boolean) = div(ClientConf.style.formHeader,
       div(BootstrapStyles.Float.left(),
         h3(
           ClientConf.style.noMargin,
           labelTitle,
-          showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
-            small(produce(model.subProp(_.id)) { id =>
-              val subTitle = id.map(" - " + _).getOrElse("")
-              span(subTitle).render
-            }).render
-          },
+          if(showId) {
+            showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
+              small(produce(model.subProp(_.id)) { id =>
+                val subTitle = id.map(" - " + _).getOrElse("")
+                span(subTitle).render
+              }).render
+            }
+          } else frag(),
           showIf(model.subProp(_.changed)) {
             small(id := TestHooks.dataChanged,style := "color: red"," - " + Labels.form.changed).render
           }
@@ -576,11 +634,12 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
         val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
         val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
+        val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
         val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
         div(
           if(showHeader) {
-            formHeader.render
+            formHeader(showId).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
             _form match {

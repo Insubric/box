@@ -51,7 +51,6 @@ object WidgetRegistry extends Logging {
     LinkedFormWidget,
 
     FileSimpleWidgetFactory,
-    FileWidgetFactory,
 
     OlMapWidget,
     OlMapListWidget,

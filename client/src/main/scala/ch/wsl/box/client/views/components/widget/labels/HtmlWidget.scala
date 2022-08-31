@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget.labels
 
+import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -39,7 +40,10 @@ object HtmlWidget extends ComponentWidgetFactory {
         val watchedVariables:ReadableProperty[Context] = data.transform{ js =>
           val values = variables.map{v =>
             v -> js.js(v).toMustacheValue
-          }
+          } ++ Seq(
+            "BASE_URI" -> Value.of(Routes.baseUri),
+            "FULL_URL" -> Value.of(Routes.fullUrl)
+          )
           Context(values:_*)
         }
 

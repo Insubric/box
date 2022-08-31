@@ -49,7 +49,7 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
 
   val save = (e:Event) => {
 
-    val keys:Seq[JSONID] = viewModel.get.entries.map(x => JSONID.fromMap(Map("key" -> x.key)))
+    val keys:Seq[JSONID] = viewModel.get.entries.map(x => JSONID.fromMap(Map("key" -> Json.fromString(x.key)).toSeq))
     val data:Seq[Json] = viewModel.get.entries.map(_.asJson)
 
     for {

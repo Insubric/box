@@ -3,6 +3,8 @@ package ch.wsl.box.model.shared
 
 case class EntityKind(kind:String){
 
+  def isEntity:Boolean = entityOrForm == "entity"
+
   def entityOrForm = kind match{
     case "table"|"view" => "entity"
     case _ => kind

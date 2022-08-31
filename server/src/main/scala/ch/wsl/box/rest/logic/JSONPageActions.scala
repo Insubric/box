@@ -1,25 +1,22 @@
 package ch.wsl.box.rest.logic
 
+import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.PostgresProfile
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONKeyValue, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONQuery}
 import io.circe.Json
 import slick.dbio.DBIO
 
 object JSONPageActions extends TableActions[Json] {
-  private val responseId = JSONID(Vector(JSONKeyValue("static","page")))
+  private val responseId = JSONID(Vector(JSONKeyValue("static",Json.fromString("page"))))
 
-  override def insert(obj: Json): PostgresProfile.api.DBIO[JSONID] = DBIO.successful(responseId)
-
-  override def insertReturningModel(obj: Json): jdbc.PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
+  override def insert(obj: Json): PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
 
   override def delete(id: JSONID): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
 
-  override def update(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
+  override def update(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Json] = DBIO.successful(Json.obj())
 
-  override def updateIfNeeded(id: JSONID, obj: Json): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
-
-  override def upsertIfNeeded(id: Option[JSONID], obj: Json): PostgresProfile.api.DBIO[JSONID] = DBIO.successful(responseId)
+  override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = DBIO.successful(Seq(responseId))
 
   override def find(query: JSONQuery) = DBIO.successful(Seq())
 
@@ -30,4 +27,6 @@ object JSONPageActions extends TableActions[Json] {
   override def count(query: JSONQuery): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
 
   override def ids(query: JSONQuery): PostgresProfile.api.DBIO[IDs] = DBIO.successful(IDs(true,0,Seq(),0))
+
+  override def updateField(id: JSONID, fieldName: String, value: Json):DBIO[Json] = DBIO.successful(Json.obj())
 }

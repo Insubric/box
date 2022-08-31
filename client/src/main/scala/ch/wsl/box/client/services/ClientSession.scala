@@ -1,11 +1,14 @@
 package ch.wsl.box.client.services
 
+import ch.wsl.box.client.routes.Routes
+
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
 import ch.wsl.box.model.shared.{EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
 import org.scalajs.dom
+import org.scalajs.dom.experimental.URLSearchParams
 import scribe.Logging
 
 import scala.concurrent.Future
@@ -49,6 +52,19 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   val loading = Property(false)
 
   logger.info("Loading session")
+
+  val parameters = new URLSearchParams(dom.window.location.search)
+  Try(parameters.get("lang")).toOption.foreach { l =>
+    if(l.nonEmpty && l != "null" && l != null) {
+
+      if(l.length > 1) {
+        logger.info(s"Setting language session $l")
+        dom.window.sessionStorage.setItem(LANG, l)
+      }
+      parameters.delete("lang")
+      dom.window.location.href = dom.window.location.href.replace(dom.window.location.search, parameters.toString)
+    }
+  }
 
 
 
@@ -217,6 +233,9 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def lang():String = {
 
+    Routes.urlParams.get(LANG).foreach(l =>
+      dom.window.sessionStorage.setItem(LANG,l)
+    )
     val sessionLang = Try(dom.window.sessionStorage.getItem(LANG)).toOption
     val browserLang = dom.window.navigator.language
 
@@ -227,6 +246,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
       case _ => "en"
     }
   }
+
   def setLang(lang:String) = rest.labels(lang).map{ labels =>
     Labels.load(labels)
     dom.window.sessionStorage.setItem(LANG,lang)

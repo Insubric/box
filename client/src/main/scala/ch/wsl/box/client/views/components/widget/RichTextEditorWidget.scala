@@ -51,6 +51,7 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
   _id.listen(x => logger.info(s"Rich text widget load with ID: $x"))
 
   override protected def edit(): JsDom.all.Modifier = {
+
     logger.debug(s"field: ${field.name} widget mode $mode")
     logger.debug(s"data: ${data.get.toString().take(50)}")
     produce(_id) { _ =>

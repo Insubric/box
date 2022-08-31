@@ -2,6 +2,7 @@ package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
+import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.{Connection, FullDatabase, PostgresProfile}
 import ch.wsl.box.model.shared._
@@ -11,26 +12,30 @@ import slick.ast.Node
 import slick.basic.DatabasePublisher
 import slick.dbio.{DBIOAction, Effect}
 import slick.jdbc.{ResultSetConcurrency, ResultSetType}
-import slick.lifted.{ColumnOrdered, TableQuery}
+import slick.lifted.{ColumnOrdered, FlatShapeLevel, Shape, TableQuery}
 import slick.sql.FixedSqlStreamingAction
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.JSONSupport._
+import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
+import io.circe._
+import io.circe.syntax._
+import org.locationtech.jts.geom.Geometry
 
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext,val services: Services) extends TableActions[M] with DBFiltersImpl with Logging {
+class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:ch.wsl.box.jdbc.PostgresProfile.api.TableQuery[T])(implicit ec:ExecutionContext, val services: Services, encoder: EncoderWithBytea[M]) extends TableActions[M] with DBFiltersImpl with Logging {
 
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
-
+  import ch.wsl.box.shared.utils.JSONUtils._
 
   implicit class QueryBuilder(base:Query[T,M,Seq]) {
-
 
     def where(filters: Seq[JSONQueryFilter]): Query[T, M, Seq] = {
       filters.foldRight[Query[T, M, Seq]](base) { case (jsFilter, query) =>
@@ -57,6 +62,12 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
 //    def select(fields:Seq[String]): Query[T, _, Seq] =  base.map(x => x.reps(fields))
   }
+
+  lazy val metadata = DBIO.from({
+    val auth = new Auth()
+    val fullDb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
+    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"")(auth.adminUserProfile,ec,fullDb,services)
+  })
 
   private def resetMetadataCache(): Unit = {
     FormMetadataFactory.resetCacheForEntity(entity.baseTableRow.tableName)
@@ -90,11 +101,14 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 
+
+  // TODO fetch only keys
   override def ids(query: JSONQuery): DBIO[IDs] = {
     for{
       data <- find(query)
       keys <- keys()
       n <- count(query)
+      m <- metadata
     } yield {
 
       val last = query.paging match {
@@ -102,10 +116,11 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
         case Some(paging) =>  (paging.currentPage * paging.pageLength) >= n
       }
       import ch.wsl.box.shared.utils.JSONUtils._
+      implicit def enc = encoder.light()
       IDs(
         last,
         query.paging.map(_.currentPage).getOrElse(1),
-        data.map{x => new EnhancedModel(x).ID(keys).asString},
+        data.flatMap{x => JSONID.fromData(x.asJson,m).map(_.asString)},
         n
       )
     }
@@ -115,9 +130,10 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
   private def filter(id:JSONID):Query[T, M, Seq]  = {
     if(id.id.isEmpty) throw new Exception("No key is defined")
 
-    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key),keyValue.value))
+    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key),keyValue.value.string))
 
-    id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
+    val q = id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
+    q
   }
 
 
@@ -139,21 +155,16 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     }
   }
 
-  def insert(e: M) = {
-    for{
-      result <-  insertReturningModel(e)
-      keys <- keys()
-    } yield new EnhancedModel(result).ID(keys)
-  }
 
 
-  override def insertReturningModel(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
+
+  override def insert(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
     logger.info(s"INSERT $obj")
     resetMetadataCache()
     for{
       result <-  {
         (entity.returning(entity) += obj)
-      }.transactionally
+      }
     } yield result
   }
 
@@ -163,50 +174,58 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
     filter(id).delete.transactionally
   }
 
-  def update(id:JSONID, e:M) = {
+
+  def update(id:JSONID, e:M):DBIO[M] = {
     logger.info(s"UPDATE BY ID $id")
+    implicit def enc = encoder.full()
     resetMetadataCache()
-    filter(id).update(e).transactionally
-  }
-
-  def updateIfNeeded(id:JSONID, e:M) = {
-    logger.info(s"UPDATE IF NEEDED BY ID $id")
-    resetMetadataCache()
-    for {
+    for{
       current <- getById(id)
-      updated <- if (current.get != e) {
-        update(id,e).transactionally
-      } else {
-        DBIO.successful(0)
+      currentJs = current.map(_.asJson)
+      m <- metadata
+      diff = currentJs.map(c => c.diff(m,Seq())(e.asJson))
+      fields:Seq[(String,Json)] = diff.flatMap(_.models.find(_.model == entity.baseTableRow.tableName)) match {
+        case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
+        case None => Seq()
       }
-    } yield updated
+      result <- entity.baseTableRow.maybeUpdateReturning(fields.toMap,id.toFields)
+    } yield result.orElse(current).getOrElse(e)
   }
 
 
-  def upsertIfNeeded(id:Option[JSONID], e:M) = {
-    logger.info(s"UPSERT IF NEEDED BY ID $id")
-    resetMetadataCache()
-    for {
-      current <- id match {
-        case Some(id) => getById(id)
-        case None => DBIO.successful(None)
-      }
-      upserted <- if (current.isDefined) {
-        if (current.get != e) {
+  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[M] = {
 
-          val result = update(id.get,e).transactionally
-          logger.info(s"UPSERTED (UPDATED) IF NEEDED BY ID $id")
-          result.map(_ => id.get)
-        } else {
-          DBIO.successful(id.get)
-        }
-      }else{
-        val result = insert(e)
-        logger.info(s"UPSERTED (INSERTED) IF NEEDED BY ID $id")
-        result.transactionally
-      }
-    } yield upserted
+
+    entity.baseTableRow.updateReturning(Map(fieldName -> value),id.toFields)
+
+//    def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
+//      case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)
+//      case (_,Right(v)) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(Some(v))
+//      case (_,Left(value)) => throw value
+//    }
+//
+//    import ch.wsl.box.rest.utils.JSONSupport._
+//
+//    val updateDbIO = entity.baseTableRow.typ(fieldName).name match {
+//      case "String" => update[String]()
+//      case "Int" => update[Int]()
+//      case "Double" => update[Double]()
+//      case "BigDecimal" => update[BigDecimal]()
+//      case "java.time.LocalDate" => update[java.time.LocalDate]()
+//      case "java.time.LocalTime" => update[java.time.LocalTime]()
+//      case "java.time.LocalDateTime" => update[java.time.LocalDateTime]()
+//      case "io.circe.Json" => update[Json]()
+//      case "Array[Byte]" => update[Array[Byte]]()
+//      case "org.locationtech.jts.geom.Geometry" => update[Geometry]()
+//      case "java.util.UUID" => update[java.util.UUID]()
+//      case t:String => throw new Exception(s"$t is not supported for single field update")
+//    }
+//
+//    for{
+//      updateCount <- updateDbIO
+//    } yield (id.update(fieldName,value),updateCount)
+
   }
 
-
+  override def updateDiff(diff: JSONDiff): DBIO[Seq[JSONID]]= ???
 }

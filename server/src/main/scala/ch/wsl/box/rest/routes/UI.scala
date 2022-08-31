@@ -22,13 +22,6 @@ object UI {
 
 
   def clientFiles(implicit system:ActorSystem,services:Services):Route =
-    pathSingleSlash {
-      get {
-        complete {
-          ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer)
-        }
-      }
-    } ~
     pathPrefix("devServer") {
       get {
         extractUnmatchedPath { path =>
@@ -53,6 +46,11 @@ object UI {
     pathPrefix("redactor.css") {
       get{
         complete(HttpEntity(ContentType(MediaTypes.`text/css`,HttpCharsets.`UTF-8`) ,services.config.redactorCSS))
+      }
+    } ~
+    get {
+      complete {
+        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath)
       }
     }
 }

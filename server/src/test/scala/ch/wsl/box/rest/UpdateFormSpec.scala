@@ -26,7 +26,7 @@ class UpdateFormSpec extends BaseSpec {
   val dbManagedLayers = DbManagedIdFixtures.layers.mapValues(stringToJson)
 
 
-  val id = JSONID(Vector(JSONKeyValue("id","1")))
+  val id = JSONID(Vector(JSONKeyValue("id",Json.fromInt(1))))
 
 
 
@@ -39,8 +39,10 @@ class UpdateFormSpec extends BaseSpec {
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
       actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
       i <- up.db.run(actions.upsertIfNeeded(id,json).transactionally)
-      result <- up.db.run(actions.getById(i))
-    } yield result
+      result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
+    } yield {
+      (i,result)
+    }
   }
 
   def appManagedUpsert(id:JSONID, json:Json)(implicit services:Services): Future[Assertion] = {
@@ -50,8 +52,12 @@ class UpdateFormSpec extends BaseSpec {
 
     for{
       _ <- new FormFixtures("app_").insertForm(up.db)
-      result <- upsert("app_parent",Some(id),json)
-    } yield result.get shouldBe json
+      (inserted,result) <- upsert("app_parent",Some(id),json)
+    } yield {
+      inserted shouldBe result.get
+      inserted shouldBe json
+      result.get shouldBe json
+    }
   }
 
   def dbManagedUpsert(json:Json)(assertion:Json => org.scalatest.Assertion)(implicit services:Services) = {
@@ -61,8 +67,12 @@ class UpdateFormSpec extends BaseSpec {
 
     for{
       _ <- new FormFixtures("db_").insertForm(up.db)
-      result <- upsert("db_parent",None,json)
-    } yield assertion(result.get)
+      (inserted,result) <- upsert("db_parent",None,json)
+    } yield {
+      inserted shouldBe result.get
+      assertion(inserted)
+      assertion(result.get)
+    }
   }
 
 

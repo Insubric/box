@@ -745,7 +745,7 @@ object DefaultLabels {
     """.stripMargin
 
 
-  val labels:Seq[BoxLabels.BoxLabels_row] = rawLabels.lines.map(_.split("\\t")).filterNot(_.length < 3).map{ line =>
+  val labels:Seq[BoxLabels.BoxLabels_row] = rawLabels.split("\n").toSeq.map(_.split("\\t").toSeq).filterNot(_.length < 3).map{ line =>
     BoxLabels.BoxLabels_row(lang = line(0), key = line(1), label = Some(line.drop(2).mkString(" ")))
   }.toSeq
 }

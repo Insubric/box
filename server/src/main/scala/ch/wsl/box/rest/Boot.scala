@@ -52,6 +52,7 @@ class Box(name:String,version:String)(implicit services: Services) {
     //val preloading: Future[Http.ServerBinding] = Http().bindAndHandle(Preloading.route, host, port)
 
     Registry.load()
+    Registry.loadBox()
 
     val loggerWriter = services.config.logDB match  {
       case false => ConsoleWriter

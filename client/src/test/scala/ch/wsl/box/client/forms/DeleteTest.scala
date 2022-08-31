@@ -9,6 +9,7 @@ import io.circe.Json
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalatest.Assertion
+import scribe.Level
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success, Try}
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success, Try}
 class DeleteTest extends TestBase {
 
   val id = 1
-  val jsonId = JSONID.fromMap(Map("id" -> id.toString))
+  val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
 
   val deletedField = Promise[Assertion]()
 
@@ -29,7 +30,7 @@ class DeleteTest extends TestBase {
       )
     }
 
-    override def update(id: JSONID, obj: Json): JSONID = {
+    override def update(id: JSONID, obj: Json): Json = {
       println(obj)
 
       Try(obj.js(stringField) shouldBe Json.Null) match {
@@ -37,7 +38,7 @@ class DeleteTest extends TestBase {
         case Success(value) => deletedField.success(value)
       }
 
-      jsonId
+      obj
     }
   }
 

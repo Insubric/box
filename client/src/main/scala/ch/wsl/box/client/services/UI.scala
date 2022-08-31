@@ -32,5 +32,15 @@ object UI {
     }.toOption
   }.flatten
 
+  def enabledFilters(filters:Seq[String]):Seq[String] = {
+
+    Try(ui("filters.enable")).toOption match {
+      case Some("all") => filters
+      case Some(value) => value.split(",").toSeq.intersect(filters)
+      case None => filters
+    }
+
+  }
+
 
 }

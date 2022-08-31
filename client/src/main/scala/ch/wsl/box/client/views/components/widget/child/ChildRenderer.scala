@@ -47,8 +47,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def widgetParam:WidgetParams
 
 
+    def child:Child = field.child match {
+      case Some(value) => value
+      case None => throw new Exception(s" ${field.name} does not have a child")
+    }
 
-    def child:Child
     def children:Seq[JSONMetadata] = widgetParam.children
     def masterData:ReadableProperty[Json] = widgetParam.allData
 
@@ -66,8 +69,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
+    val disableDuplicate = field.params.exists(_.js("disableDuplicate") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
+    def getWidget(id:String):ChildRow = childWidgets.find(_.id == id) match {
+      case Some(value) => value
+      case None => throw new Exception(s"Widget not found $id")
+    }
     val entity: SeqProperty[String] = SeqProperty(Seq())
     val metadata = children.find(_.objId == child.objId)
 
@@ -129,7 +137,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       propData.listen{data =>
         val newData = prop.get.as[Seq[Json]].toSeq.flatten.map{x =>
-          if(x.ID(metadata.get.keys) == data.ID(metadata.get.keys)) {
+          if(x.ID(metadata.get.keys).nonEmpty && x.ID(metadata.get.keys) == data.ID(metadata.get.keys)) {
             x.deepMerge(data)
           } else x
         }
@@ -165,6 +173,17 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
     }
 
+    def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
+      itemToDuplicate.metadata.map { md =>
+        itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
+      } match {
+        case Some(newData) => this.add(newData,true);
+        case None => logger.warn("duplicating invalid object")
+      }
+      checkChanges()
+
+    }
+
     def addItemHandler(child: => Child, metadata: => JSONMetadata) = (e:Event) => {
       addItem(child,metadata)
       e.preventDefault()
@@ -195,7 +214,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     private def propagate[T](data: Json,f: (Widget => ((Json, JSONMetadata) => Future[T]))): Future[Seq[T]] = {
 
       val rows = data.seq(child.key)
-      BrowserConsole.log(io.circe.scalajs.convertJsonToJs(rows.asJson))
 
       val out = Future.sequence(childWidgets.filterNot(_.deleted).map{ case cw =>
 
@@ -231,12 +249,20 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
     override def afterSave(data: Json, m: JSONMetadata): Future[Json] = {
-      logger.info(data.toString())
       metadata.foreach { met =>
         //Set new inserted records open by default
         val oldData: Seq[JSONID] = this.prop.get.as[Seq[Json]].getOrElse(Seq()).flatMap(x => JSONID.fromData(x, met))
         val newData: Seq[JSONID] = data.seq(field.name).flatMap(x => JSONID.fromData(x, met))
-
+        logger.debug(
+          s"""
+             |Child after save ${met.name}
+             |
+             |data: $data
+             |
+             |old: $oldData
+             |
+             |new: $newData
+             |""".stripMargin)
         newData.foreach{ id =>
           if(!oldData.contains(id)) {
             services.clientSession.setTableChildOpen(ClientSession.TableChildElement(field.name,met.objId,Some(id)))
@@ -275,6 +301,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       propListener = prop.listen(i => {
         childWidgets.foreach(_.widget.killWidget())
         childWidgets.foreach(_.changedListener.cancel())
+        childWidgets.foreach(_.data.set(Json.Null)) // Fixes memory leakage on childs
         childWidgets.clear()
         entity.clear()
         val entityData = splitJson(prop.get)

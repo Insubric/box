@@ -18,6 +18,7 @@ trait FullConfig extends Config {
   def redactorJs:String
   def redactorCSS:String
   def devServer:Boolean
+  def frontendUrl:String
 
   def clientConf:Map[String, String]
 

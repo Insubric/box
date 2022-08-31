@@ -1,7 +1,6 @@
 package ch.wsl.box.rest.routes
 
 import java.io.ByteArrayOutputStream
-
 import akka.http.scaladsl.marshalling.ToResponseMarshaller
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
@@ -19,8 +18,10 @@ import io.circe.parser.parse
 import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,21 +31,20 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 
 
-case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", schema:Option[String] = None)
-                                                    (implicit
-                                                     enc: Encoder[M],
-                                                     dec:Decoder[M],
-                                                     mat:Materializer,
-                                                     up:UserProfile,
-                                                     ec: ExecutionContext,
-                                                     services:Services
+case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", schema:Option[String] = None)
+                                                                                                (implicit
+                                                                                                 enc: EncoderWithBytea[M],
+                                                                                                 dec:Decoder[M],
+                                                                                                 mat:Materializer,
+                                                                                                 up:UserProfile,
+                                                                                                 ec: ExecutionContext,
+                                                                                                 services:Services
                                                     ) extends enablers.CSVDownload with Logging {
 
 
 
 
   import JSONSupport._
-  import Light._
   import akka.http.scaladsl.model._
   import akka.http.scaladsl.server.Directives._
   import ch.wsl.box.shared.utils.Formatters._
@@ -60,6 +60,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](
 
   implicit val db = up.db
   implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
+  implicit def encoder = enc.light()
 
   val dbActions = new DbActions[T,M](table)
   val jsonActions = JSONTableActions[T,M](table)

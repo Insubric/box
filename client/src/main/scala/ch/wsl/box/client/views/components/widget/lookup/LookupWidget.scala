@@ -28,7 +28,11 @@ trait LookupWidget extends Widget with HasData {
 
   def field:JSONField
   def metadata:JSONMetadata
-  def lookup:ReadableProperty[Seq[JSONLookup]] = _lookup
+  def lookup:ReadableProperty[Seq[JSONLookup]] = _lookup.combine(data){case (l,d) =>
+    (current() ++ l).distinct
+  }
+
+  def noBackendCache:Boolean = field.params.exists(_.js("noBackendCache") == Json.True)
 
   private val _lookup:Property[Seq[JSONLookup]] = {
     Property(toSeq(field.lookup.toSeq.flatMap(_.lookup)))
@@ -49,8 +53,13 @@ trait LookupWidget extends Widget with HasData {
 
   private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = s
 
+  private def current():Seq[JSONLookup] = {
+    field.lookup.toSeq.flatMap(_.allLookup.filter(x => data.get == x.id))
+  }
 
-  private def setNewLookup(newLookup:Seq[JSONLookup],_data:Option[Json]) = {
+  private def setNewLookup(_newLookup:Seq[JSONLookup],_data:Option[Json]) = {
+
+    val newLookup:Seq[JSONLookup] = (current() ++ _newLookup).distinct
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
       _lookup.set(newLookup, true)
       _data.foreach{ d =>
@@ -163,13 +172,17 @@ trait LookupWidget extends Widget with HasData {
 
   data.sync[Option[JSONLookup]](model)(
     {json:Json =>
-      val result = lookup.get.find(_.id == json).getOrElse{
-        logger.warn(s"Lookup for $json not found")
-        JSONLookup(json,json.string)
+      val result = (lookup.get ++ current()).distinct.find(_.id == json).getOrElse{
+        logger.warn(s"Lookup for $json not found on field ${field.name}")
+        JSONLookup(json,Seq(json.string))
       }
       Some(result)
     },
     {jsonLookup:Option[JSONLookup] => jsonLookup.map(_.id).asJson}
   )
+
+  if(noBackendCache) {
+    field.lookup.map(l => fetchRemoteLookup(l.lookupQuery.getOrElse("{}"),l))
+  }
 
 }

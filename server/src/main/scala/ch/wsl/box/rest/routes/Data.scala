@@ -21,7 +21,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.rest.logic.{DataResult, DataResultObject, DataResultTable}
+import ch.wsl.box.model.shared.{DataResult, DataResultObject, DataResultTable}
 import ch.wsl.box.rest.metadata.DataMetadataFactory
 import ch.wsl.box.rest.io.pdf.Pdf
 import ch.wsl.box.rest.io.shp.ShapeFileWriter
@@ -29,11 +29,12 @@ import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class DataContainer(result:DataResult, presenter:Option[String], mode:String) {
-  def asTable:DataResultTable = result.asInstanceOf[DataResultTable]
-  def asObj:Json = result match {
-    case t:DataResultTable => Map("data" -> t.json).asJson
-    case o:DataResultObject => Map("data" -> o.obj).asJson
+case class DataContainer(result: DataResult, presenter: Option[String], mode: String) {
+  def asTable: DataResultTable = result.asInstanceOf[DataResultTable]
+
+  def asObj: Json = result match {
+    case t: DataResultTable => Map("data" -> t.json).asJson
+    case o: DataResultObject => Map("data" -> o.obj).asJson
   }
 
 }
@@ -45,42 +46,42 @@ trait Data extends Logging {
   import ch.wsl.box.shared.utils.Formatters._
   import io.circe.generic.auto._
 
-  def metadataFactory(implicit up: UserProfile,mat:Materializer, ec: ExecutionContext,services:Services):DataMetadataFactory
+  def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, services: Services): DataMetadataFactory
 
-  def data(function:String,params:Json,lang:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext, system:ActorSystem,services:Services):Future[Option[DataContainer]]
+  def data(function: String, params: Json, lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, system: ActorSystem, services: Services): Future[Option[DataContainer]]
 
-  def render(function:String,params:Json,lang:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext, system:ActorSystem,services:Services) = {
-     import ch.wsl.box.model.boxentities.BoxFunction._
+  def render(function: String, params: Json, lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, system: ActorSystem, services: Services) = {
+    import ch.wsl.box.model.boxentities.BoxFunction._
 
-    onSuccess(data(function,params,lang)) {
-      case Some(dc) if dc.mode == FunctionKind.Modes.TABLE  =>
+    onSuccess(data(function, params, lang)) {
+      case Some(dc) if dc.mode == FunctionKind.Modes.TABLE =>
         respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.csv"))) {
           {
             import kantan.csv._
             import kantan.csv.ops._
 
             val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows.map(_.map(_.string))).asCsv(rfc)
-            complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`,ByteString(csv)))
+            complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`, ByteString(csv)))
           }
         }
-      case Some(dc) if dc.mode == FunctionKind.Modes.HTML  => {
-            complete(Html.render(dc.presenter.getOrElse(""),dc.asObj).map(html => HttpEntity(ContentTypes.`text/html(UTF-8)`,html)))
+      case Some(dc) if dc.mode == FunctionKind.Modes.HTML => {
+        complete(Html.render(dc.presenter.getOrElse(""), dc.asObj).map(html => HttpEntity(ContentTypes.`text/html(UTF-8)`, html)))
       }
-      case Some(dc) if dc.mode == FunctionKind.Modes.PDF  => {
-        val pdf = for{
-          html <- Html.render(dc.presenter.getOrElse(""),dc.asObj)
+      case Some(dc) if dc.mode == FunctionKind.Modes.PDF => {
+        val pdf = for {
+          html <- Html.render(dc.presenter.getOrElse(""), dc.asObj)
         } yield Pdf.render(html)
 
         respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.pdf"))) {
-          complete(pdf.map(p => HttpEntity(MediaTypes.`application/pdf`,p)))
+          complete(pdf.map(p => HttpEntity(MediaTypes.`application/pdf`, p)))
         }
       }
-      case Some(dc) if dc.mode == FunctionKind.Modes.SHP  => {
+      case Some(dc) if dc.mode == FunctionKind.Modes.SHP => {
 
-        val shp:Future[Array[Byte]] = Future(ShapeFileWriter.writePoints(dc.asTable))
+        val shp: Future[Array[Byte]] = ShapeFileWriter.writeShapeFile(function,dc.asTable)
 
         respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.zip"))) {
-          complete(shp.map(p => HttpEntity(MediaTypes.`application/zip`,p)))
+          complete(shp.map(p => HttpEntity(MediaTypes.`application/zip`, p)))
         }
       }
       case _ => complete(StatusCodes.BadRequest)
@@ -88,7 +89,7 @@ trait Data extends Logging {
   }
 
 
-  def route(implicit up:UserProfile, ec:ExecutionContext,mat:Materializer, system:ActorSystem,services: Services):Route = {
+  def route(implicit up: UserProfile, ec: ExecutionContext, mat: Materializer, system: ActorSystem, services: Services): Route = {
     pathPrefix("list") {
       //      complete(JSONExportMetadataFactory().list)
       path(Segment) { lang =>
@@ -106,27 +107,37 @@ trait Data extends Logging {
             }
           }
         }
-      }~
+      } ~
       //      pathPrefix("") {
       pathPrefix(Segment) { function =>
         pathPrefix("metadata") {
           path(Segment) { lang =>
             get {
-              complete(metadataFactory.of(services.connection.dbSchema,function, lang))
+              complete(metadataFactory.of(services.connection.dbSchema, function, lang))
             }
           }
         } ~
-          path(Segment) { lang =>
-            get {
-              parameters('q) { q =>
-                val params = parse(q).right.get.as[Json].right.get
-                render(function, params, lang)
-              }
-            } ~
+          pathPrefix(Segment) { lang =>
+            path("raw") {
               post {
                 entity(as[Json]) { params =>
-                  render(function, params, lang)
+                  import ch.wsl.box.model.shared.DataResultTable._
+                  complete(data(function, params, lang).map(_.map(_.asTable.asJson)))
                 }
+              }
+            } ~
+              pathEnd {
+                get {
+                  parameters('q) { q =>
+                    val params = parse(q).right.get.as[Json].right.get
+                    render(function, params, lang)
+                  }
+                } ~
+                  post {
+                    entity(as[Json]) { params =>
+                      render(function, params, lang)
+                    }
+                  }
               }
           }
       }

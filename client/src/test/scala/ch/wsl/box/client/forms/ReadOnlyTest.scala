@@ -3,6 +3,7 @@ package ch.wsl.box.client.forms
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.model.shared.{EntityKind, JSONID, JSONKeyValue}
+import io.circe.Json
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
 
@@ -17,7 +18,7 @@ class ReadOnlyTest extends TestBase {
         _ <- Context.services.clientSession.login("test", "test")
         _ <- waitLoggedIn
         _ <- Future {
-          Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", "1"))).asString),false))
+          Context.applicationInstance.goTo(EntityFormState(EntityKind.FORM.kind, values.testFormName, "true", Some(JSONID(Vector(JSONKeyValue("id", Json.fromInt(1)))).asString),false))
         }
         _ <- waitElement({() =>
           logger.info(s"Looking for .${TestHooks.readOnlyField(values.readOnlyField)}")

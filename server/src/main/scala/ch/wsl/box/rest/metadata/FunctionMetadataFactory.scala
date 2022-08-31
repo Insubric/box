@@ -19,7 +19,7 @@ import ch.wsl.box.services.Services
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
+class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
 
   import io.circe.generic.auto._
 
@@ -168,7 +168,7 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
     val condition = for{
       fieldId <- field.conditionFieldId
       values <- field.conditionValues
-      json <- Try(parse(values).right.get.as[Seq[Json]].right.get).toOption
+      json <- Try(parse(values).right.get.as[Json].right.get).toOption
     } yield ConditionalField(fieldId,json)
 
 
@@ -190,7 +190,6 @@ case class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec
         field.widget,
         None,
         field.default,
-        None,
         condition
         //      fieldI18n.flatMap(_.tooltip)
       )

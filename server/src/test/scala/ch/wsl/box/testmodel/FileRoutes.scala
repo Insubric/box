@@ -18,6 +18,8 @@ object FileRoutes extends GeneratedFileRoutes {
   import akka.http.scaladsl.server.Directives._
 
 
+  override def routeForField(field: String)(implicit up: UserProfile, materializer: Materializer, ec: ExecutionContext, services: Services): Route = ???
+
   override def apply()(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, services: Services): Route = {
     implicit val db = up.db
 

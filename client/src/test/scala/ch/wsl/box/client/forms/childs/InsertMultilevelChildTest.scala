@@ -18,7 +18,7 @@ class InsertMultilevelChildTest extends TestBase {
   val subchildText = "Test Sub"
 
   class ExpectingMock extends RestMock(values) {
-    override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[JSONID] = {
+    override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[Json] = {
 
       logger.info(data.toString())
 
@@ -27,7 +27,7 @@ class InsertMultilevelChildTest extends TestBase {
       val subchild = child.seq("subchild").head
       assert(subchild.get("text_subchild") == subchildText)
 
-      Future.successful(JSONID(id = Vector(JSONKeyValue("id","1"))))
+      Future.successful(data)
     }
   }
 

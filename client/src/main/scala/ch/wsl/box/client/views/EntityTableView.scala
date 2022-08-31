@@ -2,8 +2,8 @@ package ch.wsl.box.client.views
 
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
+import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
 import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
@@ -135,7 +135,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.loading.set(true)
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
-    val urlQuery:Option[JSONQuery] = URLQuery(state.query,emptyFieldsForm)
+    val urlQuery:Option[JSONQuery] = URLQuery(Routes.urlParams.get("q"),emptyFieldsForm)
     services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
@@ -200,7 +200,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     } yield {
       key -> row.lift(i).getOrElse("")
     }
-    JSONID.fromMap(map.toMap)
+    JSONID.fromMap(map.toMap,model.get.metadata.get)
   }
 
 
@@ -346,6 +346,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     download("csv")
     e.preventDefault()
   }
+
+  val downloadSHP = (e:Event) => {
+    download("shp")
+    e.preventDefault()
+  }
+
   val downloadXLS = (e:Event) => {
     download("xlsx")
     e.preventDefault()
@@ -360,9 +366,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     val queryWithFK = FKEncoder(fields,query())
 
+    val queryNoLimits = queryWithFK.copy(paging = None)
+
 
     val url = Routes.apiV1(
-      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${queryWithFK.asJson.toString()}".replaceAll("\n","")
+      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${queryNoLimits.asJson.toString()}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)
@@ -408,7 +416,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     }
 
     val options = SeqProperty{
-      metadata.toSeq.flatMap(_.fields).find(_.name == field).toSeq.flatMap(f => Filter.options(f))
+      metadata.toSeq.flatMap(_.fields).find(_.name == field).toSeq.flatMap(f => UI.enabledFilters(Filter.options(f)))
     }
 
     Select(operator, options)(label,ClientConf.style.fullWidth,ClientConf.style.filterTableSelect)
@@ -492,14 +500,18 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                   metadata.toSeq.flatMap(_.tabularFields).map{ field =>
                     val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field))
                     val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field))
-                    val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => Labels(Sort.label(x.sort))).getOrElse(""))
+                    val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
                     val order:ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
 
                     td(ClientConf.style.smallCells)(
                       a(
                         onclick :+= presenter.sort(fieldQuery),
                         span(bind(title), ClientConf.style.tableHeader), " ",
-                        bind(sort), " ", bind(order)
+                        span(whiteSpace.nowrap,span(produce(sort){
+                          case Sort.ASC => Icons.asc.render
+                          case Sort.DESC => Icons.desc.render
+                          case _ => frag().render
+                        })," ", bind(order))
                       )
                     ).render
                   }
@@ -581,6 +593,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
+          if (metadata.toSeq.flatMap(_.fields).filter(metadata.toSeq.flatMap(_.exportFields) contains _.name).exists(_.`type`==JSONFieldTypes.GEOMETRY)) {
+            button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp)
+          } else frag(),
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {
             p("loading...").render
           },

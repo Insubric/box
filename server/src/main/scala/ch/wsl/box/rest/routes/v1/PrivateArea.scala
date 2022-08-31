@@ -7,25 +7,25 @@ import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpHead
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.BoxActionsRegistry
-import ch.wsl.box.model.shared.{CSVTable, EntityKind, PDFTable, XLSTable}
+import ch.wsl.box.model.{ Translations}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, EntityKind, PDFTable, XLSTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.io.pdf.PDFExport
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.routes.{BoxFileRoutes, Export, Form, Functions, Table, View}
+import ch.wsl.box.rest.routes.{Export, Form, Functions, Table, View}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import ch.wsl.box.services.Services
-import com.softwaremill.session.SessionDirectives.touchOptionalSession
+import com.softwaremill.session.SessionDirectives.{invalidateSession, touchOptionalSession, touchRequiredSession}
 import com.softwaremill.session.SessionManager
-import com.softwaremill.session.SessionOptions.{oneOff, usingCookiesOrHeaders}
+import com.softwaremill.session.SessionOptions.{oneOff, usingCookies, usingCookiesOrHeaders, usingHeaders}
 import io.circe.Json
 
 import scala.concurrent.ExecutionContext
 
-case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[BoxSession], mat:Materializer, system:ActorSystem, services: Services) {
+class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[BoxSession], mat:Materializer, system:ActorSystem, services: Services) {
 
   import Directives._
   import ch.wsl.box.jdbc.Connection
@@ -71,23 +71,31 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     }
   }
 
-  def auth(session:BoxSession) = pathPrefix("auth") {
+
+
+
+  def auth = pathPrefix("auth") {
     path("token") {
-      get {
-        respondWithHeader(sessionManager.clientSessionManager.createHeader(session)) {
-          complete("ok")
+      touchRequiredSession(oneOff, usingCookies) { session =>
+        get {
+          respondWithHeader(sessionManager.clientSessionManager.createHeader(session)) {
+            complete("ok")
+          }
         }
       }
     } ~
     path("cookie") {
-      get{
-        setCookie(sessionManager.clientSessionManager.createCookie(session)) {
-          complete("ok")
+      touchRequiredSession(oneOff, usingHeaders) { session =>
+        get {
+          setCookie(sessionManager.clientSessionManager.createCookie(session)) {
+            complete("ok")
+          }
         }
       }
-
     }
   }
+
+
 
   def forms(implicit up:UserProfile) = path(EntityKind.FORM.plural) {
     get {
@@ -137,7 +145,31 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
     }
   }
 
-  val route = touchOptionalSession(oneOff, usingCookiesOrHeaders) {
+  def translations = pathPrefix("translations") {
+    pathPrefix("fields") {
+      path(Segment) { lang =>
+        get {
+
+          import io.circe._
+          import io.circe.generic.auto._
+          import io.circe.syntax._
+
+          complete(Translations.exportFields(lang, services.connection.adminDB).map(_.asJson))
+        }
+      } ~ path("commit") {
+        post {
+          entity(as[BoxTranslationsFields]) { merge =>
+            complete {
+              Translations.updateFields(merge, services.connection.adminDB)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  val route = auth ~
+    touchOptionalSession(oneOff, usingCookiesOrHeaders) {
     case Some(session) => {
       implicit val up = session.userProfile.get
       implicit val db = up.db
@@ -156,10 +188,12 @@ case class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionMana
         renderTable ~
         exportCSV ~
         exportXLS ~
-        auth(session) ~
+        translations ~
         new WebsocketNotifications().route ~
         Admin(session).route
     }
-    case None => complete(StatusCodes.Unauthorized,"User not authenticated or session expired")
+    case None => invalidateSession(oneOff, usingCookies) {
+      complete(StatusCodes.Unauthorized,"User not authenticated or session expired")
+    }
   }
 }
