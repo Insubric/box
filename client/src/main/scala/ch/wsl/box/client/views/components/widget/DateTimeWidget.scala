@@ -196,12 +196,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-
+    //scala.scalajs.js.Function4[scala.scalajs.js.Array[typings.flatpickr.globalsMod.global.Date],String,typings.flatpickr.instanceMod.Instance,Any | Unit,Unit]
     val onChange:Hook = (
                           selectedDates:js.Array[typings.flatpickr.globalsMod.global.Date],
                           dateStr:String,
                           instance: typings.flatpickr.instanceMod.Instance,
-                          _data:js.UndefOr[js.Any]) => {
+                          _data:js.UndefOr[Any]) => {
       changeListener.cancel()
       logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance ${_data}")
       if(dateStr == "") {

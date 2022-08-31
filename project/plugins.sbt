@@ -1,6 +1,6 @@
 //addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.1.0")
 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.8.0")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.10.1")
 
 addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "4.0.2")
 
@@ -16,7 +16,7 @@ addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
 addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
-addSbtPlugin("org.scalablytyped.converter" % "sbt-converter" % "1.0.0-beta32")
+addSbtPlugin("org.scalablytyped.converter" % "sbt-converter" % "1.0.0-beta39")
 addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.20.0")
 
 addDependencyTreePlugin
