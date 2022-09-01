@@ -14,6 +14,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, JsonNumber, JsonObject}
 import io.udash.bootstrap.badge.UdashBadge
 import io.udash.bootstrap.utils.BootstrapStyles.Color
+import io.udash.bootstrap.utils.UdashIcons
 import io.udash.{showIf, _}
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.component.ComponentId
@@ -523,24 +524,24 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           def navigation = model.subModel(_.navigation)
 
           div(
-            div(ClientConf.style.boxNavigationLabel,
-              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.firstPage, Labels.navigation.firstPage, _.Float.left()),
-              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.prevPage, Labels.navigation.previousPage, _.Float.left()),
-              span(
-                ClientConf.style.boxNavigationLabel,
-                " " + Labels.navigation.page + " ",
-                bind(model.subProp(_.navigation.currentPage)),
-                " " + Labels.navigation.of + " ",
-                bind(model.subProp(_.navigation.pages)),
-                " "
-              ),
-              Navigation.button(navigation.subProp(_.hasNextPage), presenter.lastPage, Labels.navigation.lastPage, _.Float.right()),
-              Navigation.button(navigation.subProp(_.hasNextPage), presenter.nextPage, Labels.navigation.nextPage, _.Float.right())
-            ),
-            div(BootstrapStyles.Visibility.clearfix),
-            div(ClientConf.style.boxNavigationLabel,
-              Navigation.button(navigation.subProp(_.hasPrevious), presenter.first, Labels.navigation.first, _.Float.left()),
-              Navigation.button(navigation.subProp(_.hasPrevious), presenter.prev, Labels.navigation.previous, _.Float.left()),
+//            div(ClientConf.style.boxNavigationLabel,
+//              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.firstPage, Labels.navigation.firstPage, _.Float.left()),
+//              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.prevPage, Labels.navigation.previousPage, _.Float.left()),
+//              span(
+//                ClientConf.style.boxNavigationLabel,
+//                " " + Labels.navigation.page + " ",
+//                bind(model.subProp(_.navigation.currentPage)),
+//                " " + Labels.navigation.of + " ",
+//                bind(model.subProp(_.navigation.pages)),
+//                " "
+//              ),
+//              Navigation.button(navigation.subProp(_.hasNextPage), presenter.lastPage, Labels.navigation.lastPage, _.Float.right()),
+//              Navigation.button(navigation.subProp(_.hasNextPage), presenter.nextPage, Labels.navigation.nextPage, _.Float.right())
+//            ),
+//            div(BootstrapStyles.Visibility.clearfix),
+            div(ClientConf.style.navigationBlock,
+              Navigation.button(navigation.subProp(_.hasPrevious), presenter.first, Labels.navigation.first),
+              Navigation.button(navigation.subProp(_.hasPrevious), presenter.prev, Labels.navigation.previous),
               span(
                 " " + Labels.navigation.record + " ",
                 bind(model.subModel(_.navigation).subProp(_.currentIndex)),
@@ -548,8 +549,8 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 bind(model.subModel(_.navigation).subProp(_.count)),
                 " "
               ),
-              Navigation.button(navigation.subProp(_.hasNext), presenter.last, Labels.navigation.last, _.Float.right()),
-              Navigation.button(navigation.subProp(_.hasNext), presenter.next, Labels.navigation.next, _.Float.right())
+              Navigation.button(navigation.subProp(_.hasNext), presenter.last, Labels.navigation.last),
+              Navigation.button(navigation.subProp(_.hasNext), presenter.next, Labels.navigation.next)
             )
           ).render
     }
@@ -557,7 +558,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
     def actions(selector:FormActionsMetadata => Seq[FormAction], position:CssStyleName = BootstrapStyles.Float.left()) = div(
       produceWithNested(model.subProp(_.write)) { (w,realeser) =>
         if(!w) Seq() else
-        div(position)(
+        div(
           realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
               realeser2(produce(model.subProp(_.id)) { _id =>
@@ -572,37 +573,49 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       div(BootstrapStyles.Visibility.clearfix)
     )
 
-    def formHeader(showId:Boolean) = div(ClientConf.style.formHeader,
-      div(BootstrapStyles.Float.left(),
+    def formHeader(showId:Boolean,metadata:JSONMetadata) = div(ClientConf.style.formHeader,
+      div( ClientConf.style.spaceBetween, marginBottom := 10.px,
         h3(
           ClientConf.style.noMargin,
-          labelTitle,
+          ClientConf.style.formTitle,
+          labelTitle
+        ),
+        div(
+          showIf(model.subProp(_.changed)) {
+            small(id := TestHooks.dataChanged,style := "color: red",Labels.form.changed).render
+          }
+        ),
+        div(
+          ClientConf.style.noMargin,
+          ClientConf.style.formTitle,
           if(showId) {
             showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
-              small(produce(model.subProp(_.id)) { id =>
-                val subTitle = id.map(" - " + _).getOrElse("")
-                span(subTitle).render
+              div(produce(model.subProp(_.id)) { id =>
+                id.flatMap(JSONID.fromString(_,metadata)).toSeq.flatMap{ jsonId =>
+                  jsonId.id.map{ k =>
+                    val label = metadata.fields.find(_.name == k.key).flatMap(_.label).getOrElse(k.key)
+                    span(span(ClientConf.style.formTitleLight,label), " ",k.value.string, " ").render
+                  }
+                }
               }).render
             }
           } else frag(),
-          showIf(model.subProp(_.changed)) {
-            small(id := TestHooks.dataChanged,style := "color: red"," - " + Labels.form.changed).render
-          }
-
         )
       ),
-      showIf(model.transform(_.navigation.count > 1)) {
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
-          recordNavigation
-        ).render
-      } ,
-      showIf(presenter.showNavigation) {
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
-          actions(_.navigationActions,BootstrapStyles.Float.right())
-        ).render
-      },
-      div(BootstrapStyles.Visibility.clearfix),
-      actions(_.actions),
+//      div(ClientConf.style.mobileOnly,
+//        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
+//      ),
+      div(ClientConf.style.spaceBetween,
+        actions(_.actions),
+        div(ClientConf.style.spaceAfter)(
+          showIf(presenter.showNavigation) {
+            div(actions(_.navigationActions)).render
+          },
+          showIf(model.transform(_.navigation.count > 1)) {
+              div(recordNavigation).render
+          }
+        ).render,
+      ),
       produce(model.subProp(_.error)){ error =>
         div(
           if(error.length > 0) {
@@ -638,8 +651,8 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
         div(
-          if(showHeader) {
-            formHeader(showId).render
+          if(showHeader && _form.isDefined) {
+            formHeader(showId,_form.get).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
             _form match {

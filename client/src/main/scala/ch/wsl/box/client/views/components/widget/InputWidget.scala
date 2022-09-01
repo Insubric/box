@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
@@ -20,8 +20,10 @@ import io.udash.bootstrap.button.UdashButton
 import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.ModalEvent
 import io.udash.bootstrap.utils.BootstrapStyles.Size
-import org.scalajs.dom.{Event, Node}
+import org.scalajs.dom.{Event, HTMLTextAreaElement, Node, document}
 import scribe.Logging
+
+import java.util.UUID
 
 object InputWidgetFactory {
 
@@ -129,8 +131,14 @@ object InputWidget extends Logging {
 
     override def edit() = editMe(field,true, false, modifiers){ case y =>
       val stringModel = Property("")
+      val textAreaId = UUID.randomUUID().toString
+      stringModel.listen{_ =>
+        val el = document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement]
+        BrowserConsole.log(el)
+        el.style.height = if(el.scrollHeight > el.clientHeight)  el.scrollHeight+"px" else "30px";
+      }
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
-      val mod = y ++ WidgetUtils.toNullable(field.nullable)
+      val mod = y ++ WidgetUtils.toNullable(field.nullable) ++ Seq(id := textAreaId)
       TextArea(stringModel)(mod:_*).render
     }
     override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data,field,true,modifiers))

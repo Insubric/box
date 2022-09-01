@@ -120,16 +120,30 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     ),
 
     unsafeRoot("textarea")(
-      inputDefaultWidth,
+      width(100 %%),
       borderStyle.solid,
       borderWidth(1 px),
       borderRadius.`0`,
-      backgroundColor.white,
+      borderLeft.`0`,
+      borderRight.`0`,
+      borderTop.`0`,
+      backgroundColor.transparent,
       borderColor(Colors.GreySemi),
       resize.vertical,
+      overflowY.auto,
+      wordWrap.breakWord,
+      minHeight(30 px),
+      maxHeight(200 px),
       media.maxWidth(600 px)( //disable autozoom
         fontSize(16 px)
-      )
+      ),
+      transition := "all .1s linear;",
+      &.focus(
+        inputHighlight
+      ),
+      &.hover(
+        inputHighlight
+      ),
     ),
 
 
@@ -241,6 +255,55 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     )
 
 
+  )
+
+  val spaceBetween = style(
+    display.flex,
+    flexDirection.column,
+    media.minWidth(600 px)(
+      flexDirection.row,
+    ),
+    justifyContent.spaceBetween,
+    alignItems.center,
+    alignContent.center
+  )
+
+  val spaceAfter = style(
+    display.flex,
+    flexDirection.column,
+    media.minWidth(600 px)(
+      flexDirection.row,
+    ),
+    justifyContent.start,
+    alignItems.center,
+    alignContent.center
+  )
+
+  val navigationBlock = style(
+    display.flex,
+    flexDirection.row,
+    justifyContent.spaceBetween,
+    alignItems.center,
+    alignContent.center
+  )
+
+  val textNoWrap = style(
+    whiteSpace.nowrap
+  )
+
+  val dataChanged = style(
+    color(conf.colors.danger),
+    fontSize(14 px)
+  )
+
+  val formTitle = style(
+    fontWeight.bold,
+    fontSize(18 px)
+  )
+
+  val formTitleLight = style(
+    fontWeight.lighter,
+    fontSize(14 px)
   )
 
   val checkboxWidget = style(
@@ -727,8 +790,9 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   )
 
   val hrThin = style(
-    marginTop(2 px),
-    marginBottom(10 px)
+    marginTop(15 px),
+    marginBottom(10 px),
+    border.`0`
   )
 
   val labelRequired = style(

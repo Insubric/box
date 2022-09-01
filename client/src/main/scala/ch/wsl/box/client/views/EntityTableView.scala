@@ -453,9 +453,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
     val pagination = {
 
-      div(ClientConf.style.boxNavigationLabel,
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),Labels.navigation.first,_.Float.left()),
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),Labels.navigation.previous,_.Float.left()),
+      div(ClientConf.style.navigationBlock,
+        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),Labels.navigation.first),
+        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),Labels.navigation.previous),
         span(
           " " + Labels.navigation.page + " ",
           bind(model.subProp(_.ids.currentPage)),
@@ -463,18 +463,19 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           bind(model.subProp(_.pages)),
           " "
         ),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),Labels.navigation.last,_.Float.right()),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),Labels.navigation.next,_.Float.right()),
-        div(Labels.navigation.recordFound," ",bind(model.subProp(_.ids.count)))
+        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),Labels.navigation.last),
+        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),Labels.navigation.next),
+
       )
     }
 
     produce(model.subProp(_.metadata)) { metadata =>
       div(
-        div(BootstrapStyles.Float.left(),
-          h3(ClientConf.style.noMargin, labelTitle(metadata))
-        ),
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea,
+        div(ClientConf.style.spaceBetween,
+          div(
+            h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
+          ),
+          div(Labels.navigation.recordFound," ",bind(model.subProp(_.ids.count))),
           pagination.render
         ),
         div(BootstrapStyles.Visibility.clearfix),

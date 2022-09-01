@@ -89,7 +89,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
         (nodeModules / p).allPaths
       }.value
@@ -143,6 +143,7 @@ lazy val client: Project = (project in file("client"))
       "popper.js" -> "1.16.1",
       "bootstrap" -> "4.1.3",
       "@types/bootstrap" -> "4.1.3",
+      "@fortawesome/fontawesome-free" -> "5.15.4",
       "flatpickr" -> "4.6.3",
       "monaco-editor" -> "0.21.1",
       "quill" -> "1.3.7",
@@ -157,6 +158,7 @@ lazy val client: Project = (project in file("client"))
     ),
     stIgnore += "open-sans-all",
     stIgnore += "ol-ext",
+    stIgnore += "@fortawesome/fontawesome-free",
     stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
     fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
