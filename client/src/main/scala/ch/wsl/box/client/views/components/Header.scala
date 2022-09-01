@@ -86,15 +86,15 @@ object Header {
 
   def navbar(title:Option[String]) = produce(services.clientSession.logged) { logged =>
     header(
-      div(BootstrapStyles.Float.left())(b(id := "headerTitle", title), small(ClientConf.style.noMobile,user.map("   -   " + _))),
-      nav(BootstrapStyles.Float.right(),ClientConf.style.noMobile) (
-        ul(
-          menu(logged).map(m => li(m))
-        )
-      ),
-      div(BootstrapStyles.Float.right(),ClientConf.style.mobileOnly)(
+      div(BootstrapStyles.Float.left())(b(id := "headerTitle",ClientConf.style.headerTitle, title)),
+//      nav(BootstrapStyles.Float.right(),ClientConf.style.noMobile) (
+//        ul(
+//          menu(logged).map(m => li(m))
+//        )
+//      ),
+      div(BootstrapStyles.Float.right())(
         a(ClientConf.style.linkHeaderFooter,
-          produce(showMenu){ if(_) span("❌").render else span("☰").render},
+          produce(showMenu){ if(_) span(fontSize := 22.px, "🗙").render else span(fontSize := 22.px,"☰").render},
           onclick :+= {(e:Event) => showMenu.set(!showMenu.get); e.preventDefault() }
         )
       ),
@@ -102,7 +102,7 @@ object Header {
         div(ClientConf.style.mobileMenu)(
           (links(logged).map(toHtml) ++ uiMenu).map(div(_)),hr,
           user.map(frag(_,br)),otherMenu.map(span(_,br)),hr,
-          Footer.copyright
+          div(ClientConf.style.mobileOnly,Footer.copyright)
         ).render
       }
     ).render

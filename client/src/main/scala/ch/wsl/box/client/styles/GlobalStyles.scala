@@ -10,7 +10,7 @@ import ch.wsl.box.client.styles.utils.{MediaQueries, StyleUtils}
 import scala.language.postfixOps
 import scalacss.ProdDefaults._
 import scalacss.internal.{AV, CanIUse, FontFace}
-import scalacss.internal.CanIUse.Agent
+import scalacss.internal.CanIUse.{Agent, boxshadow}
 import scalacss.internal.LengthUnit.px
 import scalatags.JsDom
 import scalatags.generic.Attr
@@ -140,9 +140,12 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     unsafeRoot("header")(
       clear.both,
       height(50 px),
-      padding(10 px),
+      padding(10 px, 20 px, 10 px, 20 px),
+      media.minWidth(600 px)(
+        paddingLeft(50 px)
+      ),
       lineHeight(29 px),
-      borderBottom(1 px,solid,black),
+      border.`0`,
       color(conf.colors.mainText),
       backgroundColor(conf.colors.main),
       fontSize(0.8.rem),
@@ -153,7 +156,10 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
       unsafeChild("li") (
         display.inline,
         margin(10 px)
-      )
+      ),
+      position.sticky,
+      zIndex(2),
+      boxShadow := "0px 0px 3px #555"
     ),
 
     unsafeRoot("footer")(
@@ -207,7 +213,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
     unsafeRoot("a")(
       &.hover(
-        textDecorationLine.underline.important,
+        textDecorationLine.underline,
         color(conf.colors.mainLink)
       ),
       color(conf.colors.mainLink),
@@ -410,8 +416,23 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
     marginRight(10 px)
   )
 
+  val headerTitle = style(
+    fontSize(20 px),
+    //color.rgba(255,255,255,0.8),
+    //text-shadow: 0px 3px 3px #006268, 0 0px 0px #fff, 0px 3px 3px #006268;
+  )
+
   val linkHeaderFooter = style(
+    textDecorationLine.none.important,
+    unsafeChild("span") (
+      textDecorationLine.none.important,
+      &.hover(
+        textDecorationLine.none.important,
+        color(conf.colors.link)
+      )
+    ),
     &.hover(
+      textDecorationLine.none.important,
       color(conf.colors.link)
     ),
     color(conf.colors.link),
@@ -431,6 +452,7 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   val fullHeight = style(
     height :=! "calc(100vh - 105px)",
     overflow.auto,
+    paddingTop(10 px),
     width(100.%%)
   )
 
@@ -543,12 +565,12 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   val boxButton = style(
     Font.regular,
     whiteSpace.nowrap,
-    height(22 px),
-    padding(3 px, 7 px),
-    fontSize(12 px),
-    lineHeight(12 px),
-    margin(3 px, 1 px),
-    border(1 px,solid,conf.colors.main),
+    height.auto,
+    padding(4 px, 8 px),
+    fontSize(14 px),
+    lineHeight(16 px),
+    margin(9 px, 5 px, 9 px, 0 px),
+    border.`0`,
     color(conf.colors.mainLink),
     backgroundColor(white),
     &.hover(
@@ -577,12 +599,13 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   val boxButtonImportant = style(
     whiteSpace.nowrap,
-    height(22 px),
-    padding(3 px, 7 px),
-    fontSize(12 px),
-    lineHeight(12 px),
-    margin(3 px, 1 px),
-    border(1 px,solid,conf.colors.main),
+    height.auto,
+    padding(4 px, 8 px),
+    fontSize(14 px),
+    lineHeight(16 px),
+    margin(9 px, 5 px, 9 px, 0 px),
+    border.`0`,
+    boxShadow := "0px 0px 2px #555",
     backgroundColor(conf.colors.main),
     color(conf.colors.mainText),
     &.hover(
@@ -593,12 +616,13 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
 
   val boxButtonDanger = style(
     whiteSpace.nowrap,
-    height(22 px),
-    padding(3 px, 7 px),
-    fontSize(12 px),
-    lineHeight(12 px),
-    margin(3 px, 1 px),
-    border(1 px,solid,conf.colors.danger),
+    height.auto,
+    padding(4 px, 8 px),
+    fontSize(14 px),
+    lineHeight(16 px),
+    margin(9 px, 5 px, 9 px, 0 px),
+    border.`0`,
+    boxShadow := "0px 0px 2px #555",
     backgroundColor(conf.colors.danger),
     color.white,
     &.hover(
@@ -682,15 +706,24 @@ case class GlobalStyles(conf:StyleConf) extends StyleSheet.Inline {
   val mobileMenu = style(
     position.absolute,
     padding(10 px),
-    top(50 px),
+    top(49 px),
     left.`0`,
     width(100 %%),
     backgroundColor(conf.colors.main),
     zIndex(10),
     textAlign.right,
-    unsafeChild("a") {
+    unsafeChild("div") (
+      margin.vertical(10 px)
+    ),
+    unsafeChild("a") (
+      fontSize(18 px),
       color(conf.colors.link)
-    }
+    ),
+    unsafeChild("hr") (
+      marginTop(2 rem),
+      border.`0`
+    ),
+    boxShadow := "0px 4px 4px #bbb"
   )
 
   val hrThin = style(
