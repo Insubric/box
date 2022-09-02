@@ -230,8 +230,8 @@ object GlobalStyleFactory{
 
       unsafeRoot("main")(
         media.minWidth(600 px)(
-          paddingLeft(30 px),
-          paddingRight(30 px)
+          paddingLeft(50 px),
+          paddingRight(50 px)
         ),
         backgroundColor.white
       ),
@@ -336,7 +336,7 @@ object GlobalStyleFactory{
     )
 
     val formHeader = style(
-      margin(`0`, 20 px)
+      margin(`0`, 10 px)
     )
 
     val dateTimePicker = style(
@@ -658,14 +658,16 @@ object GlobalStyleFactory{
       border.`0`,
       color(conf.colors.mainLink),
       backgroundColor(white),
+      cursor.pointer,
       &.hover(
         color(white),
         backgroundColor(conf.colors.main)
       ),
       &.attrExists("disabled") (
-        backgroundColor(lightgray),
+        backgroundColor.transparent,
         color(gray),
-        borderColor(gray)
+        cursor.default
+        //borderColor(gray)
       )
     )
 

@@ -542,8 +542,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //            ),
 //            div(BootstrapStyles.Visibility.clearfix),
             div(ClientConf.style.navigationBlock,
-              Navigation.button(navigation.subProp(_.hasPrevious), presenter.first, Labels.navigation.first),
-              Navigation.button(navigation.subProp(_.hasPrevious), presenter.prev, Labels.navigation.previous),
+              Navigation.button(navigation.subProp(_.hasPrevious), presenter.first, i(UdashIcons.FontAwesome.Solid.fastBackward)),
+              //Navigation.button(navigation.subProp(_.hasPrevious), presenter.prevPage, i(UdashIcons.FontAwesome.Solid.backward)),
+              Navigation.button(navigation.subProp(_.hasPrevious), presenter.prev, i(UdashIcons.FontAwesome.Solid.caretLeft)),
               span(
                 " " + Labels.navigation.record + " ",
                 bind(model.subModel(_.navigation).subProp(_.currentIndex)),
@@ -551,8 +552,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 bind(model.subModel(_.navigation).subProp(_.count)),
                 " "
               ),
-              Navigation.button(navigation.subProp(_.hasNext), presenter.last, Labels.navigation.last),
-              Navigation.button(navigation.subProp(_.hasNext), presenter.next, Labels.navigation.next)
+              Navigation.button(navigation.subProp(_.hasNext), presenter.next, i(UdashIcons.FontAwesome.Solid.caretRight)),
+              //Navigation.button(navigation.subProp(_.hasNext), presenter.nextPage, i(UdashIcons.FontAwesome.Solid.forward)),
+              Navigation.button(navigation.subProp(_.hasNext), presenter.last, i(UdashIcons.FontAwesome.Solid.fastForward)),
             )
           ).render
     }
