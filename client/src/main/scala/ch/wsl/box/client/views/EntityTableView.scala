@@ -3,7 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
+import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}

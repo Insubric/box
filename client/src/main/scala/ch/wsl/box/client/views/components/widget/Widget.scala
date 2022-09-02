@@ -2,7 +2,6 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.{Labels, REST}
-import ch.wsl.box.client.styles.GlobalStyles
 import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONID, JSONLookup, JSONMetadata}
 import io.circe._
 import io.circe.syntax._

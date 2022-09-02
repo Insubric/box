@@ -17,6 +17,7 @@ object WidgetsNames {
   val selectBoolean = "selectBoolean"
   val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
+  val slider = "slider"
   val twoLines = "twoLines"
   val popup = "popup"
   val map = "map"
@@ -50,6 +51,7 @@ object WidgetsNames {
     NUMBER -> Seq(
       input,
       select,
+      slider,
       popup,
       checkbox,
       inputDisabled,

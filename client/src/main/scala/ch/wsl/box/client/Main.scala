@@ -1,6 +1,6 @@
 package ch.wsl.box.client
 
-import ch.wsl.box.client.services.{ClientConf, Labels, Notification, REST, UI}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
 import ch.wsl.box.client.styles.OpenLayersStyles
 import ch.wsl.box.client.utils._
 import io.udash.wrappers.jquery._
@@ -60,6 +60,7 @@ object Main extends Logging {
 
         //loads datetime picker
         typings.bootstrap.bootstrapRequire
+        typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
 
 
 

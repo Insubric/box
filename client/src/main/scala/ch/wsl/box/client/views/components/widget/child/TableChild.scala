@@ -82,9 +82,11 @@ object TableChildFactory extends ChildRendererFactory {
                         produce(widget.open) { o =>
                           if (!o) frag().render else
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
-                              div(
-                                widget.widget.render(write, Property(true)),
-                                removeButton(write,widget,f)
+                              div(display.flex,
+                                div(flexGrow := 1, widget.widget.render(write, Property(true))),
+                                div( ClientConf.style.removeFlexChild,
+                                  removeButton(write,widget,f)
+                                )
                               )
                             ).render
                         }

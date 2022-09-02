@@ -63,7 +63,9 @@ object WidgetRegistry extends Logging {
 
     DynamicWidget,
 
-    ExecuteFunctionWidget
+    ExecuteFunctionWidget,
+
+    SliderWidget
 
   )
 

@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.GlobalStyles
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SurrugateKey}
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding

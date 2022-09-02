@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._

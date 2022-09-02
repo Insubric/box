@@ -3,7 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
@@ -150,8 +150,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   override def onClose(): Unit = {
     model.set(EntityFormModel.empty,true)
-    if (widget != null) {
-      widget.killWidget()
+    Try {
+      if (widget != null) {
+        widget.killWidget()
+      }
     }
     enableGoAway
 

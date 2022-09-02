@@ -5,7 +5,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, ClientSession, La
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons, StyleConf}
+import ch.wsl.box.client.styles.{BootstrapCol, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}

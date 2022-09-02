@@ -33,27 +33,34 @@ object TrasparentChild extends ChildRendererFactory {
 
     override protected def render(write: Boolean): JsDom.all.Modifier = {
 
-      metadata match {
-        case None => p("child not found")
-        case Some(f) => {
-            div(if(distribute) { ClientConf.style.distributionContrainer } else frag(),
-              autoRelease(repeat(entity) { e =>
-                val widget = getWidget(e.get)
-                div(
-                  if(distribute) { ClientConf.style.distributionChild } else {},
-                  if(childWidth.isDefined) { width := childWidth.get.px } else {},
-                  widget.widget.render(write, Property(true)),
-                  removeButton(write,widget,f)
-                ).render
-              }),
-              if(distribute) {
-                div(ClientConf.style.distributionChild, addButton(write,f))
-              } else {
-                addButton(write, f)
-              }
-            )
+      div(ClientConf.style.removeFieldMargin,
+        metadata match {
+          case None => p("child not found")
+          case Some(f) => {
+              div(if(distribute) { ClientConf.style.distributionContrainer } else frag(),
+                autoRelease(repeat(entity) { e =>
+                  val widget = getWidget(e.get)
+                  div(
+                    if(distribute) { ClientConf.style.distributionChild } else {},
+                    if(childWidth.isDefined) { width := childWidth.get.px } else {},
+                    div(display.flex,
+                      div(flexGrow := 1, widget.widget.render(write, Property(true))),
+                      div( ClientConf.style.removeFlexChild,
+                        removeButton(write,widget,f)
+                      )
+                    )
+                  ).render
+                }),
+                  if(distribute) {
+                    div(ClientConf.style.distributionChild, addButton(write,f))
+                  } else {
+                    addButton(write, f)
+                  }
+
+              )
+          }
         }
-      }
+      )
     }
   }
 

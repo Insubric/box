@@ -2,7 +2,6 @@ package ch.wsl.box.client.views
 
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.GlobalStyles
 import ch.wsl.box.client.views.components.{LoginData, LoginForm}
 import ch.wsl.box.client.{IndexState, LoginState, LoginStateAbstract}
 import io.udash._

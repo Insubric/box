@@ -203,11 +203,11 @@ object FormUIDef {
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER).asJson))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).asJson))
       ),
       JSONField(JSONFieldTypes.NUMBER,"max",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER).asJson))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).asJson))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,

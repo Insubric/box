@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
-import ch.wsl.box.client.styles.{GlobalStyles, StyleConf}
+import ch.wsl.box.client.styles.{GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import io.circe._
 import io.circe.parser._
@@ -76,7 +76,7 @@ object ClientConf {
     requiredFontSize
   )
 
-  lazy val style = GlobalStyles(styleConf)
+  lazy val style = GlobalStyleFactory.GlobalStyles(styleConf)
 
   def filterPrecisionDatetime: String = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
       case Some("DATE") => JSONFieldTypes.DATE

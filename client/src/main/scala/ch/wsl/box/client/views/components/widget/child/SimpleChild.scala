@@ -40,8 +40,12 @@ object SimpleChildFactory extends ChildRendererFactory {
               autoRelease(repeat(entity) { e =>
                 val widget = getWidget(e.get)
                 div(ClientConf.style.subform,backgroundColor := childBackgroudColor,
-                  widget.widget.render(write, Property(true)),
-                  removeButton(write,widget,f)
+                  div(display.flex,
+                    div(flexGrow := 1, widget.widget.render(write, Property(true))),
+                    div( ClientConf.style.removeFlexChild,
+                      removeButton(write,widget,f)
+                    )
+                  )
                 ).render
               })
             ).render,

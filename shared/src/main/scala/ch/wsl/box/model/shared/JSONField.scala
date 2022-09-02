@@ -27,7 +27,8 @@ case class JSONField(
                       linked: Option[LinkedForm] = None,
                       lookupLabel: Option[LookupLabel] = None,
                       query: Option[JSONQuery] = None,
-                      function:Option[String] = None
+                      function:Option[String] = None,
+                      minMax:Option[MinMax] = None,
                     ) {
   def title = label.getOrElse(name)
 
@@ -55,6 +56,8 @@ object JSONField{
   )
 
 }
+
+case class MinMax(min:Option[Double],max:Option[Double])
 
 case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String])
 

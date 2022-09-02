@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
@@ -134,7 +134,6 @@ object InputWidget extends Logging {
       val textAreaId = UUID.randomUUID().toString
       stringModel.listen{_ =>
         val el = document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement]
-        BrowserConsole.log(el)
         el.style.height = if(el.scrollHeight > el.clientHeight)  el.scrollHeight+"px" else "30px";
       }
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))

@@ -4,7 +4,7 @@ import io.udash._
 import ch.wsl.box.client._
 import ch.wsl.box.client.services.{ClientConf, REST, ServiceModule, UI}
 import org.scalajs.dom.{Element, Event}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.model.shared.{EntityKind, JSONQuery, JSONSort, NewsEntry, Sort}
 import io.circe.Json
 import scalacss.ScalatagsCss._

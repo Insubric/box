@@ -458,7 +458,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
             js <- parse(q).toOption
             query <- js.as[JSONQuery].toOption
           } yield query,
-          function = field.function
+          function = field.function,
+          minMax = Some(MinMax(min = field.min, max = field.max))
         )
       }
 

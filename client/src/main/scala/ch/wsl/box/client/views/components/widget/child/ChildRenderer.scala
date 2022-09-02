@@ -141,7 +141,8 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
             x.deepMerge(data)
           } else x
         }
-        propListener.cancel()
+        if(propListener != null)
+          propListener.cancel()
         prop.set(newData.asJson)
         registerListener(false)
       }
@@ -338,29 +339,26 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       if (write && !disableAdd) {
         autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
           a(id := TestHooks.addChildId(m.objId),
-            ClientConf.style.childAddButton,
+            ClientConf.style.childAddButton, BootstrapStyles.Float.right(),
             onclick :+= addItemHandler(child,m),
-            Icons.plusFill, name
+            name,span(ClientConf.style.field,Icons.plusFill)
           ).render
         })
       } else frag()
     }
 
     def removeButton(write:Boolean,widget: ChildRow,m:JSONMetadata) = {
-      val border = widgetParam.field.params.exists(_.js("noBorder") == Json.True) match {
-        case false => Seq(ClientConf.style.block,ClientConf.style.withBorder)
-        case true => Seq(ClientConf.style.block)
-      }
+
       val name = widgetParam.field.label.getOrElse(widgetParam.field.name)
       if (write && !disableRemove) {
         autoRelease(showIf(entity.transform(_.length > min)) {
           div(
-            BootstrapStyles.Grid.row,
-            div(BootstrapCol.md(12), border,
+            BootstrapStyles.Grid.row,ClientConf.style.field,
+            div(BootstrapCol.md(12),
               div(BootstrapStyles.Float.right(),
                 a(ClientConf.style.childRemoveButton,
                   onclick :+= removeItem(widget),
-                  Icons.minusFill, name,
+                  Icons.minusFill,
                   id.bind(widget.rowId.transform(x => TestHooks.deleteChildId(m.objId,x))))
               )
             )

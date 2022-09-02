@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views
 
 import ch.wsl.box.client.services.{ClientConf, Labels, LoginPopup, Notification, REST, UI}
-import ch.wsl.box.client.styles.GlobalStyles
 import io.udash._
 import ch.wsl.box.client._
 import org.scalajs.dom.Element

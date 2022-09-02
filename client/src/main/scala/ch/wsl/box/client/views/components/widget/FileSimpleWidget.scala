@@ -5,7 +5,7 @@ import java.util.UUID
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.LoginPopup.{body, header}
 import ch.wsl.box.client.services.{ClientConf, Labels, REST}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
+import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.views.components.Debug
 import ch.wsl.box.model.shared._
 import io.circe.Json

@@ -2,7 +2,6 @@ package ch.wsl.box.client.views.components
 
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.GlobalStyles
 import ch.wsl.box.client.{EntityFormState, EntityTableState}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson

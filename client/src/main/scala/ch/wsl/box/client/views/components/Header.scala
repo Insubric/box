@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views.components
 
 import ch.wsl.box.client.{AdminState, DataKind, DataListState, EntitiesState, IndexState, LoginState, RoutingState}
-import ch.wsl.box.client.styles.GlobalStyles
 import org.scalajs.dom.raw.Element
 import scalatags.JsDom.all._
 import scalacss.ScalatagsCss._
