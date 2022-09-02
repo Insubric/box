@@ -1,7 +1,8 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -14,7 +15,7 @@ import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.ModalEvent
 import io.udash.bootstrap.utils.BootstrapStyles.Size
 import io.udash.properties.single.Property
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, HTMLInputElement, document}
 import scalatags.JsDom
 import scribe.Logging
 
@@ -54,13 +55,15 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
 
   def popupEdit(mainRenderer:(UdashModal,Property[String]) => Modifier) = {
 
+    val searchId = TestHooks.popupSearch(field.name,metadata.objId)
+
     val searchProp = Property("")
 
     val modalStatus = Property(Status.Closed)
 
     def optionList(nested:NestedInterceptor):Modifier = div(
       label(Labels.popup.search),br,
-      TextInput(searchProp,500.milliseconds)(width := 100.pct),br,br,
+      TextInput(searchProp,500.milliseconds)(width := 100.pct, id := searchId),br,br,
       nested(showIf(modalStatus.transform(_ == Status.Open)) {
         div(ClientConf.style.popupEntiresList,nested(produce(searchProp) { searchTerm =>
           div(
@@ -117,9 +120,12 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       footerFactory = Some(footer)
     )
 
+
+
     modal.listen { case ev:ModalEvent =>
       ev.tpe match {
         case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
+        case ModalEvent.EventType.Shown => document.getElementById(searchId).asInstanceOf[HTMLInputElement].focus()
         case _ => {}
       }
     }

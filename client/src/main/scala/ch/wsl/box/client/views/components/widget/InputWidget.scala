@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
 import io.udash._
@@ -20,7 +20,7 @@ import io.udash.bootstrap.button.UdashButton
 import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.ModalEvent
 import io.udash.bootstrap.utils.BootstrapStyles.Size
-import org.scalajs.dom.{Event, HTMLTextAreaElement, Node, document}
+import org.scalajs.dom.{Event, HTMLInputElement, HTMLTextAreaElement, Node, document}
 import scribe.Logging
 
 import java.util.UUID
@@ -45,13 +45,13 @@ object InputWidgetFactory {
 
   object TextArea extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.textarea
-    override def create(params: WidgetParams): Widget = new InputWidget.Textarea(params.field, params.prop)
+    override def create(params: WidgetParams): Widget = new InputWidget.Textarea(params.field, params.prop,params.metadata)
 
   }
 
   object TwoLines extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.twoLines
-    override def create(params: WidgetParams): Widget = new InputWidget.TwoLines(params.field, params.prop)
+    override def create(params: WidgetParams): Widget = new InputWidget.TwoLines(params.field, params.prop,params.metadata)
 
   }
 
@@ -125,7 +125,7 @@ object InputWidget extends Logging {
 
 
 
-  class Textarea(val field:JSONField, val data: Property[Json]) extends Widget with HasData {
+  class Textarea(val field:JSONField, val data: Property[Json], metadata:JSONMetadata) extends Widget with HasData {
 
     val modifiers:Seq[Modifier] = Seq()
 
@@ -161,12 +161,14 @@ object InputWidget extends Logging {
       )).render
     ).render
 
+    val textAreaId = TestHooks.popupField(field.name,metadata.objId)
+
     val body = (x:NestedInterceptor) => {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
       div(
         div(
-          TextArea(stringModel)(WidgetUtils.toNullable(field.nullable), width := 100.pct, height := 300.px)
+          TextArea(stringModel)(WidgetUtils.toNullable(field.nullable), width := 100.pct, height := 300.px, id := textAreaId)
         )
       ).render
     }
@@ -187,6 +189,7 @@ object InputWidget extends Logging {
     modal.listen { case ev:ModalEvent =>
       ev.tpe match {
         case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
+        case ModalEvent.EventType.Shown => document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement].focus()
         case _ => {}
       }
     }
@@ -217,7 +220,7 @@ object InputWidget extends Logging {
 
   }
 
-  class TwoLines(field:JSONField, prop: Property[Json]) extends Textarea(field,prop) {
+  class TwoLines(field:JSONField, prop: Property[Json], metadata:JSONMetadata) extends Textarea(field,prop,metadata) {
 
     override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2)
   }
