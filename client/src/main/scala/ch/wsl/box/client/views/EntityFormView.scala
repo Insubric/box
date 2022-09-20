@@ -149,12 +149,12 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   override def onClose(): Unit = {
-    model.set(EntityFormModel.empty,true)
     Try {
       if (widget != null) {
         widget.killWidget()
       }
     }
+    model.set(EntityFormModel.empty,true)
     enableGoAway
 
   }

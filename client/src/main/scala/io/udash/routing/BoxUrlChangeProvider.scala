@@ -1,5 +1,6 @@
 package io.udash.routing
 
+import ch.wsl.box.client.services.BrowserConsole
 import com.avsystem.commons._
 import io.udash.core.Url
 import io.udash.properties.MutableSetRegistration
@@ -76,7 +77,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
   }
 
   private def baseUri = {
-    val bu = dom.document.asInstanceOf[js.Dynamic].baseURI.asInstanceOf[String]
+    val bu = dom.document.baseURI
     if(bu.contains("//")) {
       bu.split("/").drop(3).toList match {
         case Nil => "/"
