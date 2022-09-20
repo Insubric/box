@@ -14,6 +14,8 @@ import scalacss.internal.LengthUnit.px
 import scalatags.JsDom
 import scalatags.generic.Attr
 
+import scala.concurrent.duration.DurationInt
+
 
 case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int)
 
@@ -278,6 +280,54 @@ object GlobalStyleFactory{
       alignItems.center,
       alignContent.center
     )
+
+    val flexContainer = style(
+      display.flex,
+      flexDirection.row,
+      height(100 %%),
+      width(100 %%),
+
+    )
+
+    val sidebarRightContent = style(
+      flex := "1 0 auto",
+      width(100 %%),
+      transitionDuration(300 millis),
+      unsafeExt(_ + ".showSidebar")(
+        media.minWidth(600 px)(
+          width :=! "calc(100% - 250px)",
+          transitionDuration(300 millis),
+        )
+      ),
+    )
+
+    val sidebar = style(
+      marginLeft(-250 px),
+      overflowX.hidden,
+      transitionDuration(300 millis),
+      width(250 px),
+      paddingRight(80 px),
+      unsafeExt(_ + ".showSidebar")(
+        marginLeft.`0`,
+        paddingRight(30 px),
+        transitionDuration(300 millis),
+      ),
+      unsafeChild("input") (
+        width(100 %%),
+      ),
+      unsafeChild("li") (
+        lineHeight(22 px)
+      ),
+      unsafeChild("ul") (
+        marginTop(20 px)
+      ),
+      media.maxWidth(600 px)(
+        display.none,
+      ),
+
+    )
+
+
 
     val spaceAfter = style(
       display.flex,
@@ -653,6 +703,8 @@ object GlobalStyleFactory{
       height.auto,
       padding(4 px, 8 px),
       fontSize(14 px),
+      minWidth(25 px),
+      textAlign.center,
       lineHeight(16 px),
       margin(9 px, 5 px, 9 px, 0 px),
       border.`0`,
@@ -661,7 +713,8 @@ object GlobalStyleFactory{
       cursor.pointer,
       &.hover(
         color(white),
-        backgroundColor(conf.colors.main)
+        backgroundColor(conf.colors.main),
+        opacity(0.5),
       ),
       &.attrExists("disabled") (
         backgroundColor.transparent,
@@ -1058,6 +1111,16 @@ object GlobalStyleFactory{
       unsafeChild("p")(
         color(conf.colors.main)
       )
+    )
+
+    val sidebarButton = style(
+      position.fixed,
+      top(55 px),
+      left(5 px),
+      media.maxWidth(600 px)(
+        display.none
+      )
+
     )
 
 
