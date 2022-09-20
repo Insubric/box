@@ -16,6 +16,7 @@ import scalatags.JsDom.all.{label => lab, _}
 import scribe.Logging
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object SelectWidgetFactory extends ComponentWidgetFactory  {
   override def name: String = WidgetsNames.select
@@ -50,9 +51,7 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       WidgetUtils.toLabel(field),
-      produce(lookup) { l =>
-        tooltip(Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*).render)._1
-      },
+      tooltip(Select.optional[JSONLookup](model, lookup,StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*).render)._1,
       div(BootstrapStyles.Visibility.clearfix)
     )
   }

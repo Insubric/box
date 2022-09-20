@@ -67,17 +67,16 @@ case class PopupWidget(field:JSONField, data: Property[Json],allData:ReadablePro
       nested(showIf(modalStatus.transform(_ == Status.Open)) {
         div(ClientConf.style.popupEntiresList,nested(produce(searchProp) { searchTerm =>
           div(
-            nested(produce(lookup) { lu =>
-              div(
-                lu.filter(opt => searchTerm == "" || opt.value.toLowerCase.contains(searchTerm.toLowerCase)).map { x =>
-                  div(a(x.value, onclick :+= ((e: Event) => {
+            div(
+                nested(repeat(lookup.filter(opt => searchTerm == "" || opt.value.toLowerCase.contains(searchTerm.toLowerCase))) { x =>
+                  div(a(bind(x.transform(_.value)), onclick :+= ((e: Event) => {
                     modalStatus.set(Status.Closed)
-                    model.set(Some(x))
+                    model.set(Some(x.get))
                     e.preventDefault()
-                  })))
+                  }))).render
                 }
-              ).render
-            })
+              )
+            )
           ).render
         })).render
       }

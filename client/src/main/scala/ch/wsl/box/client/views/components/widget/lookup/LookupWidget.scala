@@ -6,7 +6,7 @@ import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSON
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
-import io.udash.properties.seq.ReadableSeqProperty
+import io.udash.properties.Properties.ReadableSeqProperty
 import io.udash.{SeqProperty, bind}
 import io.udash.properties.single.{Property, ReadableProperty}
 import scalatags.JsDom
@@ -28,14 +28,18 @@ trait LookupWidget extends Widget with HasData {
 
   def field:JSONField
   def metadata:JSONMetadata
-  def lookup:ReadableProperty[Seq[JSONLookup]] = _lookup.combine(data){case (l,d) =>
-    (current() ++ l).distinct
-  }
+  def lookup:ReadableSeqProperty[JSONLookup] = _lookup
+//  {
+////    _lookup.combine(data){case (l,d) =>
+////      (current() ++ l).distinct
+////    }
+//
+//  }
 
   def noBackendCache:Boolean = field.params.exists(_.js("noBackendCache") == Json.True)
 
-  private val _lookup:Property[Seq[JSONLookup]] = {
-    Property(toSeq(field.lookup.toSeq.flatMap(_.lookup)))
+  private val _lookup:SeqProperty[JSONLookup] = {
+    SeqProperty(toSeq(field.lookup.toSeq.flatMap(_.lookup)))
   }
 
   val model:Property[Option[JSONLookup]] = Property(None)
@@ -53,15 +57,15 @@ trait LookupWidget extends Widget with HasData {
 
   private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = s
 
-  private def current():Seq[JSONLookup] = {
-    field.lookup.toSeq.flatMap(_.allLookup.filter(x => data.get == x.id))
+  private def current():Option[JSONLookup] = {
+    field.lookup.flatMap(_.allLookup.find(x => data.get == x.id))
   }
 
   private def setNewLookup(_newLookup:Seq[JSONLookup],_data:Option[Json]) = {
 
-    val newLookup:Seq[JSONLookup] = (current() ++ _newLookup).distinct
+    val newLookup:Seq[JSONLookup] = (current().toSeq ++ _newLookup).distinct
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
-      _lookup.set(newLookup, true)
+      _lookup.set(newLookup)
       _data.foreach{ d =>
         newLookup.find(_.id == d).foreach{ newModel =>
           model.set(Some(newModel))
