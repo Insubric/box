@@ -685,6 +685,7 @@ object GlobalStyleFactory{
     )
 
     val boxButtonImportant = style(
+      Font.regular,
       whiteSpace.nowrap,
       height.auto,
       padding(4 px, 8 px),
@@ -702,6 +703,7 @@ object GlobalStyleFactory{
     )
 
     val boxButtonDanger = style(
+      Font.regular,
       whiteSpace.nowrap,
       height.auto,
       padding(4 px, 8 px),
