@@ -151,7 +151,9 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
         val prns = parents.map(" with " + _).mkString("")
         val args = model.name.schema.map(n => s"""Some("$n")""") ++ Seq("\""+model.name.table+"\"")
 
+        val tableNameFull = model.name.schema.map(s => "\""+s+"\".").getOrElse("") + "\"" + model.name.table + "\""
         val tableName = model.name.schema.map(s => s+".").getOrElse("") + model.name.table
+
 
         val getResult = columns.map{c =>
           c.exposedType match {
@@ -170,7 +172,7 @@ class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkStri
       if(fields.isEmpty) throw new Exception("No fields to update on $tableName")
       if(where.isEmpty) throw new Exception("No conditions for update on $tableName")
       val kv = keyValueComposer(this)
-      val head = concat(sql\"\"\"update "$tableName" set \"\"\",kv(fields.head))
+      val head = concat(sql\"\"\"update $tableNameFull set \"\"\",kv(fields.head))
       val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
       val whereBuilder = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
