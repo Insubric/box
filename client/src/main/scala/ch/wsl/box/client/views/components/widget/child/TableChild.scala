@@ -85,8 +85,14 @@ object TableChildFactory extends ChildRendererFactory {
                               div(display.flex,
                                 div(flexGrow := 1, widget.widget.render(write, Property(true))),
                                 div( ClientConf.style.removeFlexChild,
-                                  removeButton(write,widget,f)
-                                )
+                                  removeButton(write,widget,f),
+                                  if(sortable)
+                                    Seq(
+                                      upButton(write,widget,f),
+                                      downButton(write,widget,f)
+                                    ) else Seq[Modifier]()
+                                ),
+
                               )
                             ).render
                         }

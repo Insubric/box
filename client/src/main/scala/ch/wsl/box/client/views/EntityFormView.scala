@@ -2,8 +2,8 @@ package ch.wsl.box.client.views
 
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
@@ -205,7 +205,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
           case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
         }
       } yield {
-        logger.debug("saveAction::Result")
+        logger.debug(s"saveAction::Result")
         (JSONID.fromData(result,metadata).getOrElse(JSONID.empty),result)
       }
 
@@ -229,14 +229,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
                  afterSave: $resultBeforeAfterSave
 
-                 afterAfterSave: $afterSaveResult
+                 afterAfterSave:
 
                  """)
 
       enableGoAway
       model.subProp(_.insert).set(false)
       services.clientSession.loading.set(false)
-
       action(newId)
 
 

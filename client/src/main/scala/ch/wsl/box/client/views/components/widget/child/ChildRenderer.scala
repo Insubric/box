@@ -13,6 +13,7 @@ import io.circe.Json
 import io.circe.generic.auto._
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
+import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
 import org.scalajs.dom.Event
 import scalatags.JsDom
@@ -70,6 +71,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
     val disableDuplicate = field.params.exists(_.js("disableDuplicate") == true.asJson)
+    val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
     def getWidget(id:String):ChildRow = childWidgets.find(_.id == id) match {
@@ -163,15 +165,50 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       js.as[Seq[Json]].right.getOrElse(Seq()) //.map{ js => js.deepMerge(Json.obj((subformInjectedId,Random.alphanumeric.take(16).mkString.asJson)))}
     }
 
+    def findItem(item: => ChildRow) = childWidgets.zipWithIndex.find(x => x._1.rowId.get == item.rowId.get && x._1.id == item.id)
 
     def removeItem(itemToRemove: => ChildRow) = (e:Event) => {
       logger.info("removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
-        val childToDelete = childWidgets.zipWithIndex.find(x => x._1.rowId.get == itemToRemove.rowId.get && x._1.id == itemToRemove.id).get
-        entity.remove(childToDelete._1.id)
-        childWidgets.update(childToDelete._2, childToDelete._1.copy(deleted = true))
-        checkChanges()
+        findItem(itemToRemove).map { case (row, idx) =>
+          entity.remove(row.id)
+          childWidgets.update(idx, row.copy(deleted = true))
+          checkChanges()
+        }
       }
+    }
+
+    def up(item: => ChildRow) = (e:Event) => {
+      findItem(item).map { case (_, idx) =>
+        swapItems(idx - 1, idx)
+      }
+    }
+
+    def down(item: => ChildRow) = (e:Event) => {
+      findItem(item).map { case (_, idx) =>
+        swapItems(idx+1,idx)
+      }
+    }
+
+    private def swapItems(a: Int,b: Int) =  {
+      logger.info("swap item")
+      val itemA = childWidgets(a)
+      val itemB = childWidgets(b)
+
+      childWidgets.mapInPlace{ i =>
+        if(i == itemA) itemB
+        else if(i == itemB) itemA
+        else i
+      }
+      val et = entity.get.map{ i =>
+        if(i == itemA.id) itemB.id
+        else if(i == itemB.id) itemA.id
+        else i
+      }
+      entity.set(et)
+      logger.info(s"Set $$changed on ${metadata.map(_.name).getOrElse("")} because of position swap in ${childWidgets.filter(_.changed.get).map(x => x.metadata.map(_.name).getOrElse("No name"))}")
+      changedField.set(Json.True)
+
     }
 
     def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
@@ -299,13 +336,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     var propListener:Registration = null
 
     def registerListener(immediate:Boolean) {
-      propListener = prop.listen(i => {
+      propListener = prop.listen(propData => {
         childWidgets.foreach(_.widget.killWidget())
         childWidgets.foreach(_.changedListener.cancel())
         childWidgets.foreach(_.data.set(Json.Null)) // Fixes memory leakage on childs
         childWidgets.clear()
         entity.clear()
-        val entityData = splitJson(prop.get)
+        val entityData = splitJson(propData)
 
 
 
@@ -347,9 +384,41 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       } else frag()
     }
 
+    def upButton(write:Boolean,widget: ChildRow,m:JSONMetadata) = {
+
+      if (write && findItem(widget).get._2 > 0) {
+        autoRelease(showIf(entity.transform(_.length > 1)) {
+          div(
+            BootstrapStyles.Grid.row,ClientConf.style.field,
+            div(BootstrapCol.md(12),textAlign.center,
+                a(ClientConf.style.childMoveButton,
+                  onclick :+= up(widget),
+                  i(UdashIcons.FontAwesome.Solid.caretUp),
+                )
+            )
+          ).render
+        })
+      } else frag()
+    }
+    def downButton(write:Boolean,widget: ChildRow,m:JSONMetadata) = {
+
+      if (write && findItem(widget).get._2 < childWidgets.length - 1) {
+        autoRelease(showIf(entity.transform(_.length > 1)) {
+          div(
+            BootstrapStyles.Grid.row,ClientConf.style.field,
+            div(BootstrapCol.md(12),textAlign.center,
+                a(ClientConf.style.childMoveButton,
+                  onclick :+= down(widget),
+                  i(UdashIcons.FontAwesome.Solid.caretDown),
+                )
+            )
+          ).render
+        })
+      } else frag()
+    }
+
     def removeButton(write:Boolean,widget: ChildRow,m:JSONMetadata) = {
 
-      val name = widgetParam.field.label.getOrElse(widgetParam.field.name)
       if (write && !disableRemove) {
         autoRelease(showIf(entity.transform(_.length > min)) {
           div(

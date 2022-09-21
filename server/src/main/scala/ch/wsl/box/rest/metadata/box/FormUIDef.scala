@@ -73,11 +73,13 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.CHILD,"form_actions",true,
         child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"")),
-        widget = Some(WidgetsNames.tableChild)
+        widget = Some(WidgetsNames.tableChild),
+        params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
       JSONField(JSONFieldTypes.CHILD,"form_navigation_actions",true,
         child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"")),
-        widget = Some(WidgetsNames.tableChild)
+        widget = Some(WidgetsNames.tableChild),
+        params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
       CommonField.formFieldChild,
       CommonField.formFieldStatic,

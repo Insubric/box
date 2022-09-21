@@ -1076,6 +1076,17 @@ object GlobalStyleFactory{
       )
     )
 
+    val childMoveButton = style(
+      lineHeight(32 px),
+      fontSize(18 px),
+      unsafeChild("svg")(
+        color(conf.colors.main),
+        height(20 px),
+        width(20 px),
+        marginRight(5 px)
+      )
+    )
+
     val childDuplicateButton = style(
       lineHeight(32 px),
       fontSize(14 px),
