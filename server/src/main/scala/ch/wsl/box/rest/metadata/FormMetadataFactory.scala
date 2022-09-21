@@ -169,7 +169,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       fields <- fieldQuery(form.form_uuid.get).result
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
-      columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name))
+      columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name,Registry()).getOrElse(ColType.unknown))
       keys <- keys(form)
       jsonFieldsPartial <- fieldsToJsonFields(fields.zip(columns), lang)
     } yield {
@@ -278,7 +278,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   }
 
   private def widget(field:BoxField_row,remoteEntity:String,remoteField:String) = field.params.flatMap(_.getOpt("widget")).getOrElse{
-    val jsonType = Registry().fields.field(remoteEntity,remoteField).jsonType
+    val jsonType = Registry().fields.field(remoteEntity,remoteField).getOrElse(ColType.unknown).jsonType
     WidgetsNames.defaults.getOrElse(jsonType,WidgetsNames.input)
   }
 

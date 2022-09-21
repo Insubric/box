@@ -19,6 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
+import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
@@ -35,12 +36,14 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
   import ch.wsl.box.shared.utils.JSONUtils._
 
+  val registry = if(entity.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
+
   implicit class QueryBuilder(base:Query[T,M,Seq]) {
 
     def where(filters: Seq[JSONQueryFilter]): Query[T, M, Seq] = {
       filters.foldRight[Query[T, M, Seq]](base) { case (jsFilter, query) =>
 //        println("--------------------------"+jsFilter)
-        query.filter(x => operator(jsFilter.operator.getOrElse(Filter.EQUALS))(x.col(jsFilter.column), jsFilter))
+        query.filter(x => operator(jsFilter.operator.getOrElse(Filter.EQUALS))(x.col(jsFilter.column,registry), jsFilter))
       }
     }
 
@@ -48,8 +51,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
       sorting.foldRight[Query[T, M, Seq]](base) { case (sort, query) =>
         query.sortBy { x =>
           sort.order match {
-            case Sort.ASC => ColumnOrdered(x.col(sort.column).rep, new slick.ast.Ordering)
-            case Sort.DESC => ColumnOrdered(x.col(sort.column).rep, new slick.ast.Ordering(direction = slick.ast.Ordering.Desc))
+            case Sort.ASC => ColumnOrdered(x.col(sort.column,registry).rep, new slick.ast.Ordering)
+            case Sort.DESC => ColumnOrdered(x.col(sort.column,registry).rep, new slick.ast.Ordering(direction = slick.ast.Ordering.Desc))
           }
         }
       }
@@ -66,7 +69,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   lazy val metadata = DBIO.from({
     val auth = new Auth()
     val fullDb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
-    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"")(auth.adminUserProfile,ec,fullDb,services)
+    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"",registry)(auth.adminUserProfile,ec,fullDb,services)
   })
 
   private def resetMetadataCache(): Unit = {
@@ -130,7 +133,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   private def filter(id:JSONID):Query[T, M, Seq]  = {
     if(id.id.isEmpty) throw new Exception("No key is defined")
 
-    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key),keyValue.value.string))
+    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key,registry),keyValue.value.string))
 
     val q = id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
     q

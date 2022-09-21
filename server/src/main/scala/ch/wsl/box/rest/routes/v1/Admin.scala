@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge, BoxRegistry}
+import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge}
 import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.{BoxTranslationsFields, EntityKind}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, StubMetadataFactory}
@@ -48,22 +48,18 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   }
 
   def file = pathPrefix("boxfile") {
-    BoxRegistry.generated match {
-      case Some(value) => value.fileRoutes()
-      case None => complete(StatusCodes.InternalServerError, "Can't find generate routes, run generateModel again")
-    }
+    Registry.box().fileRoutes()
   }
 
   def boxentity = pathPrefix(EntityKind.BOX_TABLE.kind) {
-    BoxRegistry.generated match {
-      case Some(value) => pathPrefix(Segment) { lang => value.routes(lang) }
-      case None => complete(StatusCodes.InternalServerError, "Can't find generate routes, run generateModel again")
+    pathPrefix(Segment) { lang =>
+      Registry.box().routes(lang)
     }
   }
 
   def entities = path(EntityKind.BOX_TABLE.plural) {
     get {
-      complete((BoxRegistry.generated.toSeq.flatMap(_.fields.tables) ++ BoxRegistry.generated.toSeq.flatMap(_.fields.views)).sorted)
+      complete((Registry.box().fields.tables ++ Registry.box().fields.views).sorted)
     }
   }
 

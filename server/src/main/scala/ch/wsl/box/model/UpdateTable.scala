@@ -5,6 +5,8 @@ import ch.wsl.box.rest.utils.JSONSupport._
 import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.boxentities.BoxSchema
+import ch.wsl.box.rest.runtime.Registry
 import org.locationtech.jts.geom.Geometry
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
@@ -40,7 +42,9 @@ trait UpdateTable[T] {
 
     }
 
-    table.typ(key).name match {
+    val registry = if(table.schemaName == BoxSchema.schema) Registry.box() else Registry()
+
+    table.typ(key,registry).name match {
       case "String" => update[String]()
       case "Int" => update[Int]()
       case "Double" => update[Double]()

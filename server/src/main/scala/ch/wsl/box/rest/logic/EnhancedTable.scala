@@ -8,7 +8,7 @@ import scala.reflect.runtime.universe._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{JSONSort, Sort}
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
-import ch.wsl.box.rest.runtime.{ColType, Registry}
+import ch.wsl.box.rest.runtime.{ColType, Registry, RegistryInstance}
 import ch.wsl.box.rest.utils.UserProfile
 
 import scala.concurrent.ExecutionContext
@@ -48,15 +48,15 @@ object EnhancedTable  extends Logging {
 
     private def rep(field: String) = rm.reflect(t).reflectMethod(accessor(field)).apply().asInstanceOf[ch.wsl.box.jdbc.PostgresProfile.api.Rep[_]]
 
-    def col(field: String)(implicit ec: ExecutionContext): Col = {
+    def col(field: String,registry:RegistryInstance)(implicit ec: ExecutionContext): Col = {
       Col(
         rep(field),
-        typ(field)
+        typ(field,registry)
       )
     }
 
-    def typ(field: String) = {
-      EntityMetadataFactory.fieldType(t.tableName, field)
+    def typ(field: String,registry:RegistryInstance) = {
+      EntityMetadataFactory.fieldType(t.tableName, field,registry).getOrElse(ColType.unknown)
     }
 
 

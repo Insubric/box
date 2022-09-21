@@ -19,8 +19,10 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
+import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 
@@ -62,6 +64,8 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
   implicit def encoder = enc.light()
 
+  val registry = if(table.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
+
   val dbActions = new DbActions[T,M](table)
   val jsonActions = JSONTableActions[T,M](table)
 
@@ -71,7 +75,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
       parameters('q) { q =>
         val query = parse(q).right.get.as[JSONQuery].right.get
         val io = for {
-          metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
+          metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang,registry))
           //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
           data <- jsonActions.find(query)
         } yield {
@@ -109,13 +113,13 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   def metadata:Route = path("metadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang) }
+      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry) }
     }
   }
 
   def tabularMetadata:Route = path("tabularMetadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang) }
+      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry) }
     }
   }
 
@@ -171,7 +175,7 @@ case class View[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
             val query = parse(q).right.get.as[JSONQuery].right.get
             complete {
               for {
-                metadata <- EntityMetadataFactory.of(services.connection.dbSchema, name, lang.getOrElse("en"))
+                metadata <- EntityMetadataFactory.of(services.connection.dbSchema, name, lang.getOrElse("en"), registry)
                 fkValues <- lang match {
                   case None => Future.successful(None)
                   case Some(_) => db.run(Lookup.valuesForEntity(metadata).map(Some(_)))

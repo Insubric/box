@@ -62,6 +62,7 @@ case class Form(
 
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang)),10.seconds)
 
+    val registry = if(schema == BoxSchema.schema) Registry.box() else Registry()
 
    private def actions[T](f:FormActions => T):T = {
       val formActions = FormActions(metadata,jsonActions,metadataFactory)
@@ -88,7 +89,7 @@ case class Form(
     def tabularMetadata(fields:Option[Seq[String]] = None) = {
       val filteredFields = metadata.view match {
         case None => DBIO.successful(_tabMetadata(fields,metadata))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang).map{ vm =>
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang,registry).map{ vm =>
           viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }

@@ -21,10 +21,12 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
+import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 import io.circe.parser.decode
@@ -68,6 +70,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
+  val registry = if(table.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
 
     val dbActions = new DbActions[T,M](table)
     val jsonActions = JSONTableActions[T,M](table)
@@ -79,7 +82,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     import JSONData._
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk)
+    val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry, limitLookupFromFk)
     Await.result(fut,20.seconds)
   }
 
@@ -190,7 +193,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
             import kantan.csv._
             import kantan.csv.ops._
             val query = parse(q).right.get.as[JSONQuery].right.get
-            val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, limitLookupFromFk).map{ metadata =>
+            val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, registry, limitLookupFromFk).map{ metadata =>
               Seq(metadata.fields.map(_.name)).asCsv(rfc)
             }).concat(Source.fromPublisher(db.stream(dbActions.find(query))).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
             complete(csv)

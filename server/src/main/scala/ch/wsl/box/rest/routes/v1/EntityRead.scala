@@ -23,6 +23,7 @@ import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.routes.enablers.CSVDownload
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 
@@ -57,7 +58,7 @@ object EntityRead extends Logging  {
     val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
 
     def jsonMetadata:JSONMetadata = {
-      val fut = EntityMetadataFactory.of(services.connection.dbSchema,name, lang, limitLookupFromFk)
+      val fut = EntityMetadataFactory.of(services.connection.dbSchema,name, lang, Registry(),limitLookupFromFk)
       Await.result(fut,20.seconds)
     }
 
@@ -103,7 +104,7 @@ object EntityRead extends Logging  {
         path("metadata") {
           get {
             complete {
-              EntityMetadataFactory.of(services.connection.dbSchema,name, lang)
+              EntityMetadataFactory.of(services.connection.dbSchema,name, lang, Registry())
             }
           }
         } ~

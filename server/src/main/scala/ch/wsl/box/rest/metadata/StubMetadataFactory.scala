@@ -6,6 +6,7 @@ import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxForm_actions, BoxForm_actions_row, BoxForm_i18n_row, BoxForm_row}
 import ch.wsl.box.model.shared.{FormAction, FormActionsMetadata, JSONField, JSONMetadata, Layout, LayoutBlock}
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 
@@ -25,7 +26,7 @@ object StubMetadataFactory {
 
     val dbio = for{
       langs <- DBIO.from(Future.sequence(services.config.langs.map{ lang =>
-        EntityMetadataFactory.of(services.connection.dbSchema,entity,lang).map(x => (lang,x))
+        EntityMetadataFactory.of(services.connection.dbSchema,entity,lang, Registry()).map(x => (lang,x))
       }))
       metadata = langs.head._2
       form <- {
