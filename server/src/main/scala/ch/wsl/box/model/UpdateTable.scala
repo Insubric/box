@@ -34,28 +34,32 @@ trait UpdateTable[T] {
 
   protected def keyValueComposer(table:Table[_]): ((String,Json)) => SQLActionBuilder = { case (key,value) =>
 
-    def update[T]()(implicit sp:SetParameter[T],dec:Decoder[T]):SQLActionBuilder = {
-      value.as[T] match {
-        case Left(v) => throw new Exception(s"Error setting key-pair due to json parsing error ${v.message}")
-        case Right(v) => sql""" "#$key" = $v """
-      }
+    def update[T](nullable:Boolean)(implicit sp:SetParameter[T],dec:Decoder[T]):SQLActionBuilder = {
+      if(nullable && value == Json.Null) sql""" "#$key" = null """
+      else
+        value.as[T] match {
+          case Left(v) => throw new Exception(s"Error setting key-pair due to json parsing error ${v.message}. Key: $key value: $value")
+          case Right(v) => sql""" "#$key" = $v """
+        }
 
     }
 
     val registry = if(table.schemaName == BoxSchema.schema) Registry.box() else Registry()
 
-    table.typ(key,registry).name match {
-      case "String" => update[String]()
-      case "Int" => update[Int]()
-      case "Double" => update[Double]()
-      case "BigDecimal" => update[BigDecimal]()
-      case "java.time.LocalDate" => update[java.time.LocalDate]()
-      case "java.time.LocalTime" => update[java.time.LocalTime]()
-      case "java.time.LocalDateTime" => update[java.time.LocalDateTime]()
-      case "io.circe.Json" => update[Json]()
-      case "Array[Byte]" => update[Array[Byte]]()
-      case "org.locationtech.jts.geom.Geometry" => update[Geometry]()
-      case "java.util.UUID" => update[java.util.UUID]()
+    val col = table.typ(key,registry)
+
+    col.name match {
+      case "String" => update[String](col.nullable)
+      case "Int" => update[Int](col.nullable)
+      case "Double" => update[Double](col.nullable)
+      case "BigDecimal" => update[BigDecimal](col.nullable)
+      case "java.time.LocalDate" => update[java.time.LocalDate](col.nullable)
+      case "java.time.LocalTime" => update[java.time.LocalTime](col.nullable)
+      case "java.time.LocalDateTime" => update[java.time.LocalDateTime](col.nullable)
+      case "io.circe.Json" => update[Json](col.nullable)
+      case "Array[Byte]" => update[Array[Byte]](col.nullable)
+      case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable)
+      case "java.util.UUID" => update[java.util.UUID](col.nullable)
       case t:String => throw new Exception(s"$t is not supported for single field update")
     }
   }
