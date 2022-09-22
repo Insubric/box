@@ -6,6 +6,7 @@ import scalatags.JsDom.all._
 import scalacss.ScalatagsCss._
 import io.udash.css.CssView._
 import ch.wsl.box.client.services.{ClientConf, ClientSession, Labels, Navigate, ServiceModule, UI}
+import ch.wsl.box.client.styles.Fade
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.dropdown.UdashDropdown
 import io.udash.properties.seq.SeqProperty
@@ -97,8 +98,8 @@ object Header {
           onclick :+= {(e:Event) => showMenu.set(!showMenu.get); e.preventDefault() }
         )
       ),
-      showIf(showMenu) {
-        div(ClientConf.style.mobileMenu)(
+      Fade(showMenu,ClientConf.style.mobileMenu) {
+        div(
           (links(logged).map(toHtml) ++ uiMenu).map(div(_)),hr,
           user.map(frag(_,br)),otherMenu.map(span(_,br)),hr,
           div(ClientConf.style.mobileOnly,Footer.copyright)

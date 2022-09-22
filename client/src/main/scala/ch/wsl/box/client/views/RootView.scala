@@ -3,6 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.services.{ClientConf, Labels, LoginPopup, Notification, REST, UI}
 import io.udash._
 import ch.wsl.box.client._
+import ch.wsl.box.client.styles.Fade
 import org.scalajs.dom.Element
 import scalatags.JsDom.tags2.main
 import ch.wsl.box.client.views.components._
@@ -54,8 +55,8 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
   )
 
 
-  private val loading = showIf(services.clientSession.loading) {
-    div(ClientConf.style.loading,
+  private val loading = Fade(services.clientSession.loading,ClientConf.style.loading) {
+    div(
       raw(
         s"""
           |<div class="loadingio-spinner-ripple-70e2hrz6twv"><div class="ldio-yj9u9ya1q5l">

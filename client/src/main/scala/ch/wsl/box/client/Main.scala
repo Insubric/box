@@ -80,6 +80,30 @@ object Main extends Logging {
         val olStyle = document.createElement("style")
         olStyle.innerText = OpenLayersStyles.render(cssStringRenderer,cssEnv)
 
+        val animations = document.createElement("style")
+        animations.innerText =
+          """
+            |@keyframes fade-in {
+            |  from {
+            |    opacity: 0;
+            |  }
+            |  to {
+            |    opacity: 1;
+            |  }
+            |}
+            |
+            |@keyframes fade-out {
+            |  from {
+            |    opacity: 1;
+            |  }
+            |  to {
+            |    opacity: 0;
+            |  }
+            |}
+            |
+            |""".stripMargin
+
+        document.body.appendChild(animations)
         document.body.appendChild(mainStyle)
         document.body.appendChild(olStyle)
 

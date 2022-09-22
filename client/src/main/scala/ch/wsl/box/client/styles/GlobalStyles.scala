@@ -10,6 +10,7 @@ import ch.wsl.box.client.styles.utils.{MediaQueries, StyleUtils}
 import scala.language.postfixOps
 import scalacss.internal.{AV, CanIUse, FontFace}
 import scalacss.internal.CanIUse.{Agent, boxshadow}
+import scalacss.internal.DslBase.ToStyle
 import scalacss.internal.LengthUnit.px
 import scalatags.JsDom
 import scalatags.generic.Attr
@@ -185,7 +186,7 @@ object GlobalStyleFactory{
           margin(10 px)
         ),
         position.sticky,
-        zIndex(2),
+        zIndex(100),
         boxShadow := "0px 0px 3px #555"
       ),
 
@@ -354,7 +355,10 @@ object GlobalStyleFactory{
       flexDirection.row,
       justifyContent.spaceBetween,
       alignItems.center,
-      alignContent.center
+      alignContent.center,
+      media.maxWidth(600 px)(
+        width(90 %%)
+      )
     )
 
     val textNoWrap = style(
@@ -610,6 +614,7 @@ object GlobalStyleFactory{
       height :=! "calc(100vh - 206px)",
       media.maxWidth(600 px)(
         height :=! "calc(100vh - 110px)",
+        paddingBottom(70 px)
       ),
       overflow.auto
     )
@@ -896,7 +901,42 @@ object GlobalStyleFactory{
       height(50 px),
       width(50 px),
       border.`0`,
-      fontSize(20 px)
+      fontSize(20 px),
+      zIndex(5)
+    )
+
+    val showHide = style(
+      overflow.hidden,
+      opacity(0),
+      transition := "opacity 200ms ease-in-out",
+      unsafeExt(_ + ".hide") (
+        display.none,
+        transition := "opacity 0ms",
+      ),
+      unsafeExt(_ + ".show") (
+        opacity(1),
+        transition := "opacity 200ms ease-in-out",
+      )
+    )
+
+    val mobileBoxActionPanel = style(
+      boxShadow := "0px 0px 2px #555",
+      backgroundColor(conf.colors.main),
+      color(conf.colors.mainText),
+      position.fixed,
+      left(0 px),
+      bottom(0 px),
+      height.auto,
+      width(100 %%),
+      border.`0`,
+      fontSize(20 px),
+      zIndex(21),
+      padding(20 px),
+      unsafeChild("button") (
+        backgroundColor(conf.colors.main).important,
+        color(conf.colors.mainText).important,
+        textTransform.uppercase
+      )
     )
 
     val mobileMenu = style(

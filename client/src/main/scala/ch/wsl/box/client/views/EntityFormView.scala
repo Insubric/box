@@ -3,7 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
-import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.styles.{BootstrapCol, Fade}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
@@ -40,11 +40,11 @@ import scala.util.{Failure, Success, Try}
   */
 
 case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean)
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
 
-  val empty = EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true)
+  val empty = EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false)
 
   implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
@@ -118,7 +118,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         false,
         state.writeable,
         state.public,
-        state.id.isEmpty
+        state.id.isEmpty,
+        false
       ))
 
       resetChanges()
@@ -463,6 +464,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     (ev: Event) => {
       logger.info(s"Execution action $action")
+      model.subProp(_.showActionPanelMobile).set(false)
       confirm(callBack)
       ev.preventDefault()
     }
@@ -524,7 +526,6 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
           def navigation = model.subModel(_.navigation)
 
-          div(
 //            div(ClientConf.style.boxNavigationLabel,
 //              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.firstPage, Labels.navigation.firstPage, _.Float.left()),
 //              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.prevPage, Labels.navigation.previousPage, _.Float.left()),
@@ -554,18 +555,17 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               Navigation.button(navigation.subProp(_.hasNext), presenter.next, i(UdashIcons.FontAwesome.Solid.caretRight)),
               //Navigation.button(navigation.subProp(_.hasNext), presenter.nextPage, i(UdashIcons.FontAwesome.Solid.forward)),
               Navigation.button(navigation.subProp(_.hasNext), presenter.last, i(UdashIcons.FontAwesome.Solid.fastForward)),
-            )
-          ).render
+            ).render
     }
 
-    def actions(selector:FormActionsMetadata => Seq[FormAction], position:CssStyleName = BootstrapStyles.Float.left()) = div(
+    def actions(selector:FormActionsMetadata => Seq[FormAction]) = div(
       produceWithNested(model.subProp(_.write)) { (w,realeser) =>
         if(!w) Seq() else
         div(
           realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
               realeser2(produce(model.subProp(_.id)) { _id =>
-                div(
+                div(ClientConf.style.spaceBetween,
                   form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
                 ).render
               })
@@ -608,7 +608,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //      div(ClientConf.style.mobileOnly,
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
-      div(ClientConf.style.spaceBetween,
+      div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
         actions(_.actions),
         div(ClientConf.style.spaceAfter)(
           showIf(presenter.showNavigation) {
@@ -618,6 +618,24 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               div(recordNavigation).render
           }
         ).render,
+      ),
+      div(ClientConf.style.mobileOnly,
+        showIf(model.transform(_.navigation.count > 1)) {
+          div(ClientConf.style.spaceBetween,recordNavigation).render
+        },
+        button(ClientConf.style.mobileBoxAction)(i(UdashIcons.FontAwesome.Solid.pen), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(true))).render,
+        div(ClientConf.style.mobileOnly,
+          Fade(model.subProp(_.showActionPanelMobile),ClientConf.style.mobileBoxActionPanel){
+            div(
+              actions(_.actions),
+              showIf(presenter.showNavigation) {
+                div(actions(_.navigationActions)).render
+              },
+              button(ClientConf.style.boxIconButton, width := 100.pct, i(UdashIcons.FontAwesome.Solid.angleDown), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(false)))
+            ).render
+          }
+      )
+
       ),
       produce(model.subProp(_.error)){ error =>
         div(
@@ -631,7 +649,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       hr(ClientConf.style.hrThin)
     )
 
-    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,
+    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,
       _maxWidth.map(mw => maxWidth := mw),
       actions(_.actions),
       ul(
@@ -659,7 +677,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
             _form match {
-              case None => p("Loading form")
+              case None => div()
               case Some(f) => {
 
 
