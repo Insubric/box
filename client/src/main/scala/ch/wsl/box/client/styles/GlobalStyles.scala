@@ -244,8 +244,17 @@ object GlobalStyleFactory{
           color(conf.colors.mainLink)
         ),
         color(conf.colors.mainLink),
-        cursor.pointer
+        cursor.pointer,
+
       ),
+
+      unsafeRoot("main a") (
+        media.maxWidth(600 px)(
+          display.inlineBlock,
+          margin.vertical(5 px)
+        ),
+      ),
+
 
       unsafeRoot("#box-table table")(
         backgroundColor.white
@@ -402,10 +411,19 @@ object GlobalStyleFactory{
     )
 
     val tableHeaderFixed = style(
-      unsafeRoot("thead") (
+      unsafeChild("table")(
+        verticalAlign.middle
+      ),
+      unsafeChild("thead") (
         position.sticky,
         top.`0`,
-        backgroundColor.white
+        backgroundColor.white,
+        unsafeChild("td") (
+          border.`0`,
+          media.maxWidth(600 px)(
+            padding.vertical(5 px)
+          )
+        )
       )
     )
 
@@ -413,6 +431,12 @@ object GlobalStyleFactory{
       padding.horizontal(3 px),
       padding.vertical(15 px),
       fontSize(conf.smallCellsSize px),
+      unsafeRoot("input") (
+        media.maxWidth(600 px)(
+          height(22 px),
+          fontSize(14 px)
+        ),
+      ),
       unsafeRoot("p")(
         margin(0 px)
       )
@@ -437,6 +461,9 @@ object GlobalStyleFactory{
 
     val tableHeader = style(
       fontSize(14 px),
+      media.maxWidth(600 px)(
+        fontSize(12 px),
+      ),
       Font.bold
     )
 
@@ -581,11 +608,17 @@ object GlobalStyleFactory{
 
     val fullHeightMax = style(
       height :=! "calc(100vh - 206px)",
+      media.maxWidth(600 px)(
+        height :=! "calc(100vh - 110px)",
+      ),
       overflow.auto
     )
 
     val fullHeight = style(
       height :=! "calc(100vh - 105px)",
+      media.maxWidth(600 px)(
+        height :=! "calc(100vh - 53px)",
+      ),
       overflow.auto,
       paddingTop(10 px),
       width(100.%%)
@@ -737,6 +770,8 @@ object GlobalStyleFactory{
       )
     )
 
+
+
     val boxButtonImportant = style(
       Font.regular,
       whiteSpace.nowrap,
@@ -804,7 +839,11 @@ object GlobalStyleFactory{
     )
 
     val filterTableSelect = style(
-      border.`0`
+      border.`0`,
+      media.maxWidth(600 px)(
+        height(20 px),
+        fontSize(11 px)
+      ),
     )
 
 
@@ -843,6 +882,21 @@ object GlobalStyleFactory{
       media.maxWidth(600 px)(
         display.block
       )
+    )
+
+    val mobileBoxAction = style(
+      mobileOnly,
+      boxShadow := "0px 0px 2px #555",
+      backgroundColor(conf.colors.main),
+      color(conf.colors.mainText),
+      borderRadius(50 px),
+      position.fixed,
+      right(20 px),
+      bottom(20 px),
+      height(50 px),
+      width(50 px),
+      border.`0`,
+      fontSize(20 px)
     )
 
     val mobileMenu = style(

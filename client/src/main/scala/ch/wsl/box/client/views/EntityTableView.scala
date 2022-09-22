@@ -482,12 +482,20 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         div(BootstrapStyles.Visibility.clearfix),
         produceWithNested(model.subProp(_.access)) { (a, releaser) =>
           if (a.insert)
-            div(BootstrapStyles.Float.left())(
-              releaser(produce(model.subProp(_.name)) { m =>
-                div(
-                  button(ClientConf.style.boxButtonImportant, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(Labels.entities.`new`)
-                ).render
-              })
+            Seq(
+              div(BootstrapStyles.Float.left(), ClientConf.style.noMobile)(
+                releaser(produce(model.subProp(_.name)) { m =>
+                  div(
+                    button(ClientConf.style.boxButtonImportant, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(Labels.entities.`new`)
+                  ).render
+                })
+              ),
+              div(
+                releaser(produce(model.subProp(_.name)) { m =>
+
+                  button(ClientConf.style.mobileBoxAction,Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+                })
+              ),
             ).render
           else Seq()
         },
