@@ -62,6 +62,10 @@ case class FormActions(metadata:JSONMetadata,
     )
   }.getOrElse(query)
 
+  private def filterForm(filters: Seq[JSONQueryFilter]):Seq[JSONQueryFilter] = metadata.query.map{ defaultQuery =>
+      defaultQuery.filter ++ filters
+  }.getOrElse(filters)
+
   private def streamSeq(query:JSONQuery):DBIO[Seq[Json]] = {
 
     jsonAction.find(queryForm(query)).flatMap{ rows =>
@@ -70,6 +74,12 @@ case class FormActions(metadata:JSONMetadata,
 
   }
 
+
+  override def findSimple(filters: Seq[JSONQueryFilter]): DBIO[Seq[Json]] = {
+    jsonAction.findSimple(filterForm(filters)).flatMap{ rows =>
+      DBIO.sequence(rows.map(expandJson))
+    }
+  }
 
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
     metadata.view.map(v => Registry().actions(v)) match {
@@ -328,7 +338,7 @@ case class FormActions(metadata:JSONMetadata,
 
   private def getChild(dataJson:Json, metadata:JSONMetadata, child:Child):DBIO[Seq[Json]] = {
     val query = createQuery(dataJson,child)
-    FormActions(metadata,jsonActions,metadataFactory).streamSeq(query)
+    FormActions(metadata,jsonActions,metadataFactory).findSimple(query.filter)
   }
 
   private def expandJson(dataJson:Json):DBIO[Json] = {

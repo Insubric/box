@@ -100,7 +100,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   def thumb(fileId: FileId):Route = path("thumb") {
     get {
-      def file = db.run(dbActions.getById(fileId.rowId)).map(result => handler.extract(result.head))
+      def file = db.run(dbActions.getFullById(fileId.rowId)).map(result => handler.extract(result.head))
       val thumb = services.imageCacher.thumbnail(fileId,file,450,300)
       onSuccess(thumb) { result =>
         File.completeFile(boxFile(fileId,Some(result),"thumb"))
@@ -111,7 +111,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def getFile(fileId: FileId):Route = pathEnd {
     get {
       parameters("name".?) { name =>
-        onSuccess(db.run(dbActions.getById(fileId.rowId))) { result =>
+        onSuccess(db.run(dbActions.getFullById(fileId.rowId))) { result =>
           val f = handler.extract(result.head)
           File.completeFile(boxFile(fileId, f, "file", name))
         }
@@ -122,7 +122,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def width(fileId: FileId):Route = pathPrefix("width") {
     path(Segment) { w =>
       get {
-        def file = db.run(dbActions.getById(fileId.rowId)).map(result => handler.extract(result.head))
+        def file = db.run(dbActions.getFullById(fileId.rowId)).map(result => handler.extract(result.head))
 
         val thumb = services.imageCacher.width(fileId, file, w.toInt)
         onSuccess(thumb) { result =>
@@ -136,7 +136,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
     pathPrefix(Segment) { w =>
       path(Segment) { h =>
         get {
-          def file = db.run(dbActions.getById(fileId.rowId)).map(result => handler.extract(result.head))
+          def file = db.run(dbActions.getFullById(fileId.rowId)).map(result => handler.extract(result.head))
           val thumb = services.imageCacher.cover(fileId, file, w.toInt, h.toInt)
           onSuccess(thumb) { result =>
             File.completeFile(boxFile(fileId, Some(result),"cover"))
@@ -151,7 +151,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
       path(Segment) { h =>
         parameterMap { params =>
           get {
-            def file = db.run(dbActions.getById(fileId.rowId)).map(result => handler.extract(result.head))
+            def file = db.run(dbActions.getFullById(fileId.rowId)).map(result => handler.extract(result.head))
 
             val thumb = services.imageCacher.fit(fileId, file, w.toInt, h.toInt, params.get("color").map(x => "#"+x).getOrElse(""))
             onSuccess(thumb) { result =>

@@ -99,6 +99,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   }
 
+  def findSimple(filters:Seq[JSONQueryFilter]) = entity.baseTableRow.selectLight(filters)
+
   def find(query:JSONQuery) = findQuery(query).result
 
 
@@ -142,6 +144,10 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   def getById(id:JSONID) = {
     logger.info(s"GET BY ID $id")
+    entity.baseTableRow.selectLight(id.toFields).map(_.headOption).transactionally
+  }
+
+  def getFullById(id:JSONID) = {
     Try(filter(id)) match {
       case Success(f) => for {
         result <-  {
@@ -185,13 +191,13 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
     for{
       current <- getById(id)
       currentJs = current.map(_.asJson)
-      m <- metadata
-      diff = currentJs.map(c => c.diff(m,Seq())(e.asJson))
+      met <- metadata
+      diff = currentJs.map(c => c.diff(met,Seq())(e.asJson))
       fields:Seq[(String,Json)] = diff.flatMap(_.models.find(_.model == entity.baseTableRow.tableName)) match {
         case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
         case None => Seq()
       }
-      result <- entity.baseTableRow.maybeUpdateReturning(fields.toMap,id.toFields)
+      result <- entity.baseTableRow.updateReturning(fields.toMap,id.toFields)
     } yield result.orElse(current).getOrElse(e)
   }
 
@@ -199,7 +205,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[M] = {
 
 
-    entity.baseTableRow.updateReturning(Map(fieldName -> value),id.toFields)
+    entity.baseTableRow.updateReturning(Map(fieldName -> value),id.toFields).map(_.get)
 
 //    def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
 //      case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)

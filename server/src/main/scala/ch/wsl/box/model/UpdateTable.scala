@@ -6,18 +6,45 @@ import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
+import ch.wsl.box.model.shared.{Filter, JSONQueryFilter}
 import ch.wsl.box.rest.runtime.Registry
-import org.locationtech.jts.geom.Geometry
+import ch.wsl.box.shared.utils.DateTimeFormatters
+import org.locationtech.jts.geom.{Geometry, GeometryFactory}
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
+import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext
+import scala.util.Try
 
-trait UpdateTable[T] {
-  def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[T]
+trait UpdateTable[T] { t:Table[T] =>
+  protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[T]
+  protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
 
-  def maybeUpdateReturning(fields:Map[String,Json],where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
+  protected def whereBuilder(where: Seq[JSONQueryFilter]): SQLActionBuilder = {
+    val kv = jsonQueryComposer(this)
+    where.tail.foldLeft(concat(sql" where ", kv(where.head))) { case (builder, pair) => concat(builder, concat(sql" and ", kv(pair))) }
+  }
+
+  protected def whereBuilder(where:Map[String,Json]): SQLActionBuilder = {
+    val kv = keyValueComposer(this)
+    where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" and ",kv(pair))) }
+  }
+
+
+
+  def selectLight(where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Seq[T]] = doSelectLight(whereBuilder(where))
+  def selectLight(where: Seq[JSONQueryFilter])(implicit ex:ExecutionContext): DBIO[Seq[T]] = doSelectLight(whereBuilder(where))
+
+
+  def updateReturning(fields:Map[String,Json],where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
     if(fields.nonEmpty && where.nonEmpty)
-      updateReturning(fields, where).map(Some(_))
+      doUpdateReturning(fields, whereBuilder(where)).map(Some(_))
+    else DBIO.successful(None)
+  }
+
+  def updateReturning(fields:Map[String,Json],where:Seq[JSONQueryFilter])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
+    if(fields.nonEmpty && where.nonEmpty)
+      doUpdateReturning(fields, whereBuilder(where)).map(Some(_))
     else DBIO.successful(None)
   }
 
@@ -60,7 +87,55 @@ trait UpdateTable[T] {
       case "Array[Byte]" => update[Array[Byte]](col.nullable)
       case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable)
       case "java.util.UUID" => update[java.util.UUID](col.nullable)
+      case "Boolean" => update[Boolean](col.nullable)
       case t:String => throw new Exception(s"$t is not supported for single field update")
+    }
+  }
+
+
+
+  protected def jsonQueryComposer(table:Table[_]): (JSONQueryFilter) => SQLActionBuilder = { jsonQuery =>
+
+    val key = jsonQuery.column
+
+
+    def update[T](nullable:Boolean, value:Option[T])(implicit sp:SetParameter[T]):SQLActionBuilder = {
+      (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
+        case (Filter.EQUALS,true,None) => sql""" "#$key" is null """
+        case (Filter.LIKE,true,None) => sql""" "#$key" is null """
+        case (Filter.EQUALS,_,Some(v)) => sql""" "#$key" = $v """
+        case (Filter.LIKE,_,Some(v)) => sql""" "#$key" like '%#$v%' """
+        case (Filter.<,_,Some(v)) => sql""" "#$key" < $v """
+        case (Filter.>,_,Some(v)) => sql""" "#$key" > $v """
+        case (Filter.<=,_,Some(v)) => sql""" "#$key" <= $v """
+        case (Filter.>=,_,Some(v)) => sql""" "#$key" >= $v """
+        case (Filter.DISLIKE,_,Some(v)) => sql""" "#$key" not like '%#$v%' """
+        case (Filter.IS_NOT_NULL,_,Some(v)) => sql""" "#$key" is not null """
+        case (Filter.IS_NULL,_,Some(v)) => sql""" "#$key" is null """
+      }
+
+    }
+
+    val registry = if(table.schemaName == BoxSchema.schema) Registry.box() else Registry()
+
+    val col = table.typ(key,registry)
+
+    val v = jsonQuery.value
+
+    col.name match {
+      case "String" => update(col.nullable,Some(v))
+      case "Int" => update[Int](col.nullable,v.toIntOption)
+      case "Double" => update[Double](col.nullable,v.toDoubleOption)
+      case "BigDecimal" => update[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
+      case "java.time.LocalDate" => update[java.time.LocalDate](col.nullable,DateTimeFormatters.toDate(v).headOption)
+      case "java.time.LocalTime" => update[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
+      case "java.time.LocalDateTime" => update[java.time.LocalDateTime](col.nullable,DateTimeFormatters.toTimestamp(v).headOption)
+      case "io.circe.Json" => update[Json](col.nullable,parser.parse(v).toOption)
+      case "Array[Byte]" => update[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
+      case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
+      case "java.util.UUID" => update[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
+      case "Boolean" => update[Boolean](col.nullable,Some(v == "true"))
+      case t:String => throw new Exception(s"$t is not supported for simple query")
     }
   }
 

@@ -1,8 +1,7 @@
 package ch.wsl.box.shared.utils
 
-import ch.wsl.box.model.shared.{JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata}
+import ch.wsl.box.model.shared.{FileUtils, JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
-import ch.wsl.box.model.shared.{JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import io.circe._
 import io.circe.syntax.EncoderOps
 import scribe.Logging
@@ -185,6 +184,10 @@ object JSONUtils extends Logging {
                   val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId)
                   value.asJson.diff(childMetadata.get,children)(obj.asJson).models
                 }
+                case Some(field) if field.`type` == JSONFieldTypes.FILE => {
+                  if(newValue.contains(Json.fromString(FileUtils.keep))) Seq() else
+                  Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+                }
                 case Some(field) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
                 case None => Seq()
               }
@@ -211,7 +214,10 @@ object JSONUtils extends Logging {
             Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
             bool => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
             num => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
-            str => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
+            str => metadata.fields.find(f => f.name == key && f.`type` == JSONFieldTypes.FILE) match {
+              case Some(_) if str == FileUtils.keep => Seq()
+              case _ => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+            },
             handleArray,
             handleObject
           )}.getOrElse(Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))))

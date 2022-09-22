@@ -1,9 +1,10 @@
 package ch.wsl.box.rest.logic
 
+import ch.wsl
 import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.PostgresProfile
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONQuery, JSONQueryFilter}
 import io.circe.Json
 import slick.dbio.DBIO
 
@@ -19,6 +20,8 @@ object JSONPageActions extends TableActions[Json] {
   override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = DBIO.successful(Seq(responseId))
 
   override def find(query: JSONQuery) = DBIO.successful(Seq())
+
+  override def findSimple(filters: Seq[JSONQueryFilter]): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 
   override def getById(id: JSONID): PostgresProfile.api.DBIO[Option[Json]] = DBIO.successful(Some(Json.obj()))
 

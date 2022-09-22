@@ -1,10 +1,12 @@
 package ch.wsl.box.model.boxentities
 
 //import ch.wsl.box.model.FileTables.{Document, profile}
+import ch.wsl.box.generated.boxentities.Entities.Ui_src_row
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
 import io.circe.{Decoder, Encoder, Json}
 import slick.dbio
+import slick.jdbc.SQLActionBuilder
 
 /**
   * Created by andre on 5/15/2017.
@@ -34,17 +36,23 @@ object BoxUIsrcTable {
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(uuid),  file, mime, name, accessLevel).shaped.<>({r=>import r._; _1.map(_=> BoxUIsrc_row.tupled((_1, _2, _3, _4, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
+    def gr = GR(r => BoxUIsrc_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))
 
-    override def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[BoxUIsrc_row] = {
+    override def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[BoxUIsrc_row] = {
       val kv = keyValueComposer(this)
       val head = concat(sql"""update box.ui_src set """,kv(fields.head))
       val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
-      val whereBuilder = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
       val returning = sql""" returning uuid,file,mime,name,access_level_id"""
 
-      val sqlActionBuilder = concat(concat(set,whereBuilder),returning)
-      sqlActionBuilder.as[BoxUIsrc_row](GR(r => BoxUIsrc_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))).head
+      val sqlActionBuilder = concat(concat(set,where),returning)
+      sqlActionBuilder.as[BoxUIsrc_row](gr).head
+    }
+
+
+    override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[BoxUIsrc_row]] = {
+      val sqlActionBuilder = concat(sql"""select  ''::bytea as "file" ,"mime","name","access_level_id","uuid" from "box"."ui_src" """,where)
+      sqlActionBuilder.as[BoxUIsrc_row](gr)
     }
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)

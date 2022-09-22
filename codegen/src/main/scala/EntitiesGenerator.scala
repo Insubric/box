@@ -154,6 +154,10 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
         val tableNameFull = model.name.schema.map(s => "\""+s+"\".").getOrElse("") + "\"" + model.name.table + "\""
         val tableName = model.name.schema.map(s => s+".").getOrElse("") + model.name.table
 
+        val columnsLight = model.columns.map{c =>
+          if(c.tpe == "Array[Byte]") s""" ''::bytea as "${c.name}" """ else
+            "\"" + c.name + "\""
+        }.mkString(",")
 
         val getResult = columns.map{c =>
           c.exposedType match {
@@ -168,18 +172,23 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
         s"""
 class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns with UpdateTable[$elementType] {
 
-  def updateReturning(fields:Map[String,Json],where:Map[String,Json]):DBIO[$elementType] = {
+  def boxGetResult = GR(r => $elementType($getResult))
+
+  def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[$elementType] = {
       if(fields.isEmpty) throw new Exception("No fields to update on $tableName")
-      if(where.isEmpty) throw new Exception("No conditions for update on $tableName")
       val kv = keyValueComposer(this)
       val head = concat(sql\"\"\"update $tableNameFull set \"\"\",kv(fields.head))
       val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
-      val whereBuilder = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
-      val returning = sql\"\"\" returning ${model.columns.map(_.name).mkString("\"","\",\"","\"")} \"\"\"
+      val returning = sql\"\"\" returning $columnsLight \"\"\"
 
-      val sqlActionBuilder = concat(concat(set,whereBuilder),returning)
-      sqlActionBuilder.as[$elementType](GR(r => $elementType($getResult))).head
+      val sqlActionBuilder = concat(concat(set,where),returning)
+      sqlActionBuilder.as[$elementType](boxGetResult).head
+    }
+
+    override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[$elementType]] = {
+      val sqlActionBuilder = concat(sql\"\"\"select $columnsLight from $tableNameFull \"\"\",where)
+      sqlActionBuilder.as[$elementType](boxGetResult)
     }
 
   ${indent(body.map(_.mkString("\n")).mkString("\n\n"))}

@@ -38,6 +38,12 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
     result <- findQuery(query).result
   } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
 
+
+  override def findSimple(filters: Seq[JSONQueryFilter]): DBIO[Seq[Json]] = for {
+    keys <- dbActions.keys()
+    result <- dbActions.findSimple(filters)
+  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
+
   override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = for{
     keys <- dbActions.keys()
     result <- dbActions.getById(id)

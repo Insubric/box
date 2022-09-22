@@ -219,7 +219,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
       afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
     } yield {
-
       logger.debug(s"""outcome
 
                  Save outcome:
