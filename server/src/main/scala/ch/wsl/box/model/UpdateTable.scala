@@ -6,7 +6,7 @@ import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
-import ch.wsl.box.model.shared.{Filter, JSONQueryFilter}
+import ch.wsl.box.model.shared.{Filter, JSONQuery, JSONQueryFilter, JSONSort}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
@@ -20,9 +20,25 @@ trait UpdateTable[T] { t:Table[T] =>
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[T]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
 
-  protected def whereBuilder(where: Seq[JSONQueryFilter]): SQLActionBuilder = {
+  private def orderBlock(order:JSONSort):SQLActionBuilder = sql" #${order.column} #${order.order} "
+
+  protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
-    where.tail.foldLeft(concat(sql" where ", kv(where.head))) { case (builder, pair) => concat(builder, concat(sql" and ", kv(pair))) }
+    val where = if(query.filter.nonEmpty)
+      query.filter.tail.foldLeft(concat(sql" where ", kv(query.filter.head))) { case (builder, pair) => concat(builder, concat(sql" and ", kv(pair))) }
+    else sql""
+
+    val order = if(query.sort.nonEmpty)
+      query.sort.tail.foldLeft(concat(sql" order by ", orderBlock(query.sort.head))) { case (builder, pair) => concat(builder, concat(sql" , ", orderBlock(pair))) }
+    else sql""
+
+    val limit = query.paging match {
+      case Some(p) => sql" limit #${p.pageLength}"
+      case None => sql""
+    }
+
+    concat(concat(where,order),limit)
+
   }
 
   protected def whereBuilder(where:Map[String,Json]): SQLActionBuilder = {
@@ -33,7 +49,7 @@ trait UpdateTable[T] { t:Table[T] =>
 
 
   def selectLight(where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Seq[T]] = doSelectLight(whereBuilder(where))
-  def selectLight(where: Seq[JSONQueryFilter])(implicit ex:ExecutionContext): DBIO[Seq[T]] = doSelectLight(whereBuilder(where))
+  def selectLight(query: JSONQuery)(implicit ex:ExecutionContext): DBIO[Seq[T]] = doSelectLight(whereBuilder(query))
 
 
   def updateReturning(fields:Map[String,Json],where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
@@ -42,9 +58,9 @@ trait UpdateTable[T] { t:Table[T] =>
     else DBIO.successful(None)
   }
 
-  def updateReturning(fields:Map[String,Json],where:Seq[JSONQueryFilter])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
-    if(fields.nonEmpty && where.nonEmpty)
-      doUpdateReturning(fields, whereBuilder(where)).map(Some(_))
+  def updateReturning(fields:Map[String,Json],query: JSONQuery)(implicit ex:ExecutionContext): DBIO[Option[T]] = {
+    if(fields.nonEmpty && query.filter.nonEmpty)
+      doUpdateReturning(fields, whereBuilder(query)).map(Some(_))
     else DBIO.successful(None)
   }
 

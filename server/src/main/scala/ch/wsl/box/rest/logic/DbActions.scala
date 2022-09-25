@@ -99,7 +99,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   }
 
-  def findSimple(filters:Seq[JSONQueryFilter]) = entity.baseTableRow.selectLight(filters)
+  def findSimple(query:JSONQuery) = entity.baseTableRow.selectLight(query)
 
   def find(query:JSONQuery) = findQuery(query).result
 

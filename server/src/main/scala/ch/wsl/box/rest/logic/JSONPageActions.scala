@@ -21,7 +21,7 @@ object JSONPageActions extends TableActions[Json] {
 
   override def find(query: JSONQuery) = DBIO.successful(Seq())
 
-  override def findSimple(filters: Seq[JSONQueryFilter]): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
+  override def findSimple(q:JSONQuery): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 
   override def getById(id: JSONID): PostgresProfile.api.DBIO[Option[Json]] = DBIO.successful(Some(Json.obj()))
 
