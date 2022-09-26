@@ -155,7 +155,8 @@ lazy val client: Project = (project in file("client"))
       "@types/js-md5" -> "0.4.2",
       "print-js" -> "1.6.0",
       "striptags" -> "3.2.0",
-      "toolcool-range-slider" -> "2.0.12"
+      "toolcool-range-slider" -> "2.0.12",
+      "hotkeys-js" -> "3.10.0"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "ol-ext",

@@ -29,6 +29,7 @@ import scala.concurrent.{Future, Promise}
 import scalatags.JsDom
 import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
+import typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
 
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
@@ -148,6 +149,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   import io.circe.syntax._
 
+  val saveKey:KeyHandler = (event:KeyboardEvent,handler:HotkeysEvent) => {
+    event.preventDefault()
+    saveAndReload()(_ => ())
+    false
+  }
+
+  typings.hotkeysJs.mod.default("ctrl+s",saveKey)
 
   override def onClose(): Unit = {
     Try {
@@ -157,6 +165,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
     model.set(EntityFormModel.empty,true)
     enableGoAway
+    typings.hotkeysJs.mod.default.unbind()
 
   }
 
