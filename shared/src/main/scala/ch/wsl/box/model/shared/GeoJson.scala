@@ -23,6 +23,10 @@ object GeoJson {
         (i * precisionFactor).toInt / precisionFactor
       } else i
     }
+
+    def xApprox(precision:Double) = approx(precision,x)
+    def yApprox(precision:Double) = approx(precision,y)
+
     def toString(precision:Double): String = s"${approx(precision,x)} ${approx(precision,y)}"
     def flatten = Seq(x,y)
   }
@@ -50,7 +54,9 @@ object GeoJson {
 
     def equalsToFlattenCoords(flatCoords:Seq[Double]):Boolean = flattenCoordinates == flatCoords
 
-    def flattenCoordinates:Seq[Double] = toSingle.flatMap(_.flattenCoordinates)
+    def flattenCoordinates:Seq[Double] = allCoordinates.flatMap(_.flatten)
+
+    def allCoordinates:Seq[Coordinates] = toSingle.flatMap(_.allCoordinates)
 
     def toGeom(singleGeometries: Seq[SingleGeometry]):Option[Geometry] = if(singleGeometries.nonEmpty) _toGeom(singleGeometries) else None
     protected def _toGeom(singleGeometries: Seq[SingleGeometry]):Option[Geometry]
@@ -66,20 +72,26 @@ object GeoJson {
     }
 
     def toString(precision:Double):String
+
+    def format(pattern:String,precision:Double) = pattern
+      .replaceAll("%x",allCoordinates.headOption.map(_.xApprox(precision).toString).getOrElse(""))
+      .replaceAll("%y",allCoordinates.headOption.map(_.yApprox(precision).toString).getOrElse(""))
+
   }
 
   case class Point(coordinates: Coordinates) extends SingleGeometry {
 
+    override def allCoordinates: Seq[Coordinates] = Seq(coordinates)
 
     override def geomName: String = "POINT"
 
     override def toString(precision:Double): String = s"$geomName(${coordinates.toString(precision)})"
 
-    override def flattenCoordinates: Seq[Double] = coordinates.flatten
   }
 
   case class LineString(coordinates: Seq[Coordinates]) extends SingleGeometry {
 
+    override def allCoordinates: Seq[Coordinates] = coordinates
 
     override def geomName: String = "LINESTRING"
 
@@ -90,6 +102,7 @@ object GeoJson {
 
   case class MultiPoint(coordinates: Seq[Coordinates]) extends Geometry {
 
+    override def allCoordinates: Seq[Coordinates] = coordinates
 
     override def geomName: String = "MULTIPOINT"
 
@@ -103,6 +116,7 @@ object GeoJson {
 
   case class MultiLineString(coordinates: Seq[Seq[Coordinates]]) extends Geometry {
 
+    override def allCoordinates: Seq[Coordinates] = coordinates.flatten
 
     override def geomName: String = "MULTILINESTRING"
 
@@ -117,16 +131,17 @@ object GeoJson {
 
   case class Polygon(coordinates: Seq[Seq[Coordinates]]) extends SingleGeometry {
 
+    override def allCoordinates: Seq[Coordinates] = coordinates.flatten
 
     override def geomName: String = "POLYGON"
 
     override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
-    override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatMap(_.flatten))
   }
 
   case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]]) extends Geometry {
 
+    override def allCoordinates: Seq[Coordinates] = coordinates.flatMap(_.flatten)
 
     override def geomName: String = "MULTIPOLYGON"
 

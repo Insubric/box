@@ -51,7 +51,9 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
       ))
 
       val dataListener:Registration = data.listen({js =>
-          editor.foreach(_.setValue(js.string))
+          Try {
+            editor.foreach(_.setValue(js.string))
+          }
       },true)
 
 

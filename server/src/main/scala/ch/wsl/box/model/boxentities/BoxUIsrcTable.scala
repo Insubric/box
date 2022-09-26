@@ -1,7 +1,12 @@
 package ch.wsl.box.model.boxentities
 
 //import ch.wsl.box.model.FileTables.{Document, profile}
+import ch.wsl.box.generated.boxentities.Entities.Ui_src_row
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
+import io.circe.{Decoder, Encoder, Json}
+import slick.dbio
+import slick.jdbc.SQLActionBuilder
 
 /**
   * Created by andre on 5/15/2017.
@@ -21,10 +26,34 @@ object BoxUIsrcTable {
 
   case class BoxUIsrc_row(uuid: Option[java.util.UUID] = None, file: Option[Array[Byte]], mime:Option[String], name:Option[String], accessLevel:Int)
 
-  class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,BoxSchema.schema, "ui_src") {
+  val decodeUi_src_row:Decoder[BoxUIsrc_row] = Decoder.forProduct5("file","mime","name","accessLevel","uuid")(BoxUIsrc_row.apply)
+  val encodeUi_src_row:Encoder[BoxUIsrc_row] = Encoder.forProduct5("file","mime","name","accessLevel","uuid")(x =>
+    (x.file, x.mime, x.name, x.accessLevel, x.uuid)
+  )
+
+  class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,BoxSchema.schema, "ui_src") with UpdateTable[BoxUIsrc_row] {
     def * = (Rep.Some(uuid), file, mime, name, accessLevel) <> (BoxUIsrc_row.tupled, BoxUIsrc_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(uuid),  file, mime, name, accessLevel).shaped.<>({r=>import r._; _1.map(_=> BoxUIsrc_row.tupled((_1, _2, _3, _4, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    def gr = GR(r => BoxUIsrc_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))
+
+    override def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[BoxUIsrc_row] = {
+      val kv = keyValueComposer(this)
+      val head = concat(sql"""update box.ui_src set """,kv(fields.head))
+      val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+      val returning = sql""" returning uuid,file,mime,name,access_level_id"""
+
+      val sqlActionBuilder = concat(concat(set,where),returning)
+      sqlActionBuilder.as[BoxUIsrc_row](gr).head
+    }
+
+
+    override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[BoxUIsrc_row]] = {
+      val sqlActionBuilder = concat(sql"""select  ''::bytea as "file" ,"mime","name","access_level_id","uuid" from "box"."ui_src" """,where)
+      sqlActionBuilder.as[BoxUIsrc_row](gr)
+    }
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val file: Rep[Option[Array[Byte]]] = column[Option[Array[Byte]]]("file")

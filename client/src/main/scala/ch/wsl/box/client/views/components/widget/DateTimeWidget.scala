@@ -9,7 +9,7 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import io.udash.bootstrap.datepicker.UdashDatePicker.Placement
@@ -49,10 +49,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   val format = field.params.flatMap(_.getOpt("format"))
 
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
-  val style = fullWidth match {
-    case true => ClientConf.style.dateTimePickerFullWidth
-    case false => ClientConf.style.dateTimePicker
-  }
+
   override def edit() = editMe()
   override protected def show(): JsDom.all.Modifier = showMe(field.title)
 
@@ -133,15 +130,15 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
-      tooltip(picker())._1,
+      tooltip(picker(fullWidth))._1,
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   }
 
 
-  override def editOnTable(): JsDom.all.Modifier = picker()
+  override def editOnTable(): JsDom.all.Modifier = picker(true)
 
-  protected def picker():HTMLInputElement = {
+  protected def picker(fullwidth:Boolean):HTMLInputElement = {
 
 
 
@@ -157,6 +154,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
           case None => flatpicker.clear(force)
         }
       }
+    }
+
+    val style = fullwidth match {
+      case true => ClientConf.style.dateTimePickerFullWidth
+      case false => ClientConf.style.dateTimePicker
     }
 
     val picker = input(
@@ -194,12 +196,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-
+    //scala.scalajs.js.Function4[scala.scalajs.js.Array[typings.flatpickr.globalsMod.global.Date],String,typings.flatpickr.instanceMod.Instance,Any | Unit,Unit]
     val onChange:Hook = (
                           selectedDates:js.Array[typings.flatpickr.globalsMod.global.Date],
                           dateStr:String,
                           instance: typings.flatpickr.instanceMod.Instance,
-                          _data:js.UndefOr[js.Any]) => {
+                          _data:js.UndefOr[Any]) => {
       changeListener.cancel()
       logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance ${_data}")
       if(dateStr == "") {

@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.admin
 
 
 import ch.wsl.box.client._
+import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Navigate, Notification}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
@@ -51,10 +52,12 @@ class TranslationsPresenter(viewModel:ModelProperty[TranslationsViewModel]) exte
       source <- services.rest.translationsFields(state.from)
       dest <- services.rest.translationsFields(state.to)
     } yield {
-      viewModel.subProp(_.sourceLang).set(state.from)
-      viewModel.subProp(_.destLang).set(state.to)
-      viewModel.subProp(_.source).set(source)
-      viewModel.subProp(_.dest).set(dest)
+      viewModel.set(TranslationsViewModel(
+        sourceLang = state.from,
+        destLang = state.to,
+        source = source,
+        dest = dest
+      ))
     }
   }
 
@@ -82,7 +85,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
 
     val fieldProp = viewModel.subProp(_.dest).bitransform{ seq =>
       seq.find(_.uuid.intersect(source.uuid).nonEmpty) match {
-        case None => Field(source.uuid,"","","","")
+        case None => Field(source.uuid,source.name,source.source,"","","","")
         case Some(f) => f.copy(uuid = f.uuid.union(source.uuid).distinct)
       }
     } { field =>
@@ -92,7 +95,14 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
 
 
     div(BootstrapStyles.Grid.row, paddingTop := 15.px, paddingBottom := 15.px, borderBottomStyle.solid, borderBottomWidth := 1.px)(
-      div(BootstrapCol.md(2)),
+      div(BootstrapCol.md(2),fontSize := 10.px, source.name.map(n => {
+        source.source match {
+          case "field_i18n" => div(a(Navigate.click(Routes("form",n.split("\\.").headOption.getOrElse("")).add()),n))
+          case "form_i18n" => div(a(Navigate.click(Routes("form",n).add()),n))
+          case _ => div(n)
+        }
+
+      })),
       div(BootstrapCol.md(1),source.label),
       div(BootstrapCol.md(1),source.placeholder),
       div(BootstrapCol.md(1),source.tooltip),

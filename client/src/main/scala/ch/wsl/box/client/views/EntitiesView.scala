@@ -5,15 +5,17 @@ package ch.wsl.box.client.views
   */
 
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, REST, UI}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, REST, UI}
+import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.styles.GlobalStyleFactory.GlobalStyles
 import ch.wsl.box.client.{EntitiesState, EntityFormState, EntityTableState}
 import ch.wsl.box.model.shared.EntityKind
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.form.UdashForm
+import io.udash.bootstrap.utils.UdashIcons
 import io.udash.core.Presenter
-import org.scalajs.dom.{Element, Event}
+import org.scalajs.dom.{Element, Event, HTMLDivElement}
 import scalatags.generic
 
 case class Entities(list:Seq[String], currentEntity:Option[String], kind:Option[String], search:String, filteredList:Seq[String])
@@ -22,7 +24,7 @@ object Entities extends HasModelPropertyCreator[Entities] {
     Blank.Simple(Entities(Seq(),None,None,"",Seq()))
 }
 
-case class EntitiesViewPresenter(kind:String, modelName:String, sidebarWidth:Int) extends ViewFactory[EntitiesState] {
+case class EntitiesViewPresenter(kind:String, modelName:String) extends ViewFactory[EntitiesState] {
 
 
 
@@ -30,7 +32,7 @@ case class EntitiesViewPresenter(kind:String, modelName:String, sidebarWidth:Int
     val model = ModelProperty.blank[Entities]
     val routes = Routes(kind,modelName)
     val presenter = new EntitiesPresenter(model)
-    val view = new EntitiesView(model,presenter,sidebarWidth,routes)
+    val view = new EntitiesView(model,presenter,routes)
     (view,presenter)
   }
 }
@@ -63,14 +65,11 @@ class EntitiesPresenter(model:ModelProperty[Entities]) extends Presenter[Entitie
 
 }
 
-class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, sidebarWidth:Int, routes:Routes) extends ContainerView {
+class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, routes:Routes) extends ContainerView {
   import scalatags.JsDom.all._
   import scalacss.ScalatagsCss._
   import io.udash.css.CssView._
 
-
-  val sidebarGrid = BootstrapCol.md(sidebarWidth)
-  def contentGrid = if(UI.showEntitiesSidebar) BootstrapCol.md(12-sidebarWidth) else BootstrapCol.md(12)
 
   override def renderChild(view: Option[View]): Unit = {
 
@@ -85,8 +84,10 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
 
   private val content: Element = div().render
 
-  private def sidebar: Element = if(UI.showEntitiesSidebar) {
-    div(sidebarGrid)(
+  private val sidebarShow = Property(false)
+
+  private val sidebar:HTMLDivElement =
+    div(ClientConf.style.sidebar)(
       showIf(model.subProp(_.currentEntity).transform(_.isDefined)) {
         div(
           div(Labels.entities.search),
@@ -100,29 +101,52 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
         ).render
       }
     ).render
-  } else div().render
 
-  override def getTemplate: scalatags.generic.Modifier[Element] = div(BootstrapStyles.Grid.row)(
-    sidebar,
-    div(contentGrid)(
-      produce(model.subProp(_.currentEntity))( ce =>
-        ce match {
-          case None => div(
-            h1(Labels.entities.title),
-            p(Labels.entities.select),
-            div(Labels.entities.search),
-            TextInput(model.subProp(_.search))(),
-            ul(ClientConf.style.noBullet,
-              repeat(model.subSeq(_.filteredList)){m =>
-                li(a(Navigate.click(routes.entity(m.get)),m.get)).render
-              }
-            )
+  private val sidebarContentRight:HTMLDivElement = div( ClientConf.style.sidebarRightContent,
+    produce(model.subProp(_.currentEntity))( ce =>
+      ce match {
+        case None => div(
+          h1(Labels.entities.title),
+          p(Labels.entities.select),
+          div(Labels.entities.search),
+          TextInput(model.subProp(_.search))(),
+          ul(ClientConf.style.noBullet,
+            repeat(model.subSeq(_.filteredList)){m =>
+              li(a(Navigate.click(routes.entity(m.get)),m.get)).render
+            }
+          )
 
-          ).render
-          case Some(model) => div().render
-        }
-      ),
-      content
+        ).render
+        case Some(model) => div().render
+      }
+    ),
+    content
+  ).render
+
+  def sidebarButtonCallback = {(e:Event) =>
+    sidebarShow.toggle()
+    if(sidebarShow.get) {
+      sidebar.classList.add("showSidebar")
+      sidebarContentRight.classList.add("showSidebar")
+    } else {
+      sidebar.classList.remove("showSidebar")
+      sidebarContentRight.classList.remove("showSidebar")
+    }
+    BrowserConsole.log(sidebar)
+  }
+
+  def sidebarButton = div(ClientConf.style.sidebarButton,
+    showIfElse(sidebarShow) (
+      button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.times),onclick :+= sidebarButtonCallback).render,
+      button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV),onclick :+= sidebarButtonCallback).render
+    )
+  )
+
+  override def getTemplate: scalatags.generic.Modifier[Element] = div(
+    if(UI.showEntitiesSidebar) sidebarButton else frag(),
+    div(ClientConf.style.flexContainer)(
+      if(UI.showEntitiesSidebar) sidebar else frag(),
+      sidebarContentRight
     )
   )
 }

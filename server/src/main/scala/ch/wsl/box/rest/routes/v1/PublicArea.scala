@@ -17,7 +17,7 @@ import ch.wsl.box.services.Services
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
+class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSystem,services:Services) {
 
   lazy val publicEntities:Future[Seq[BoxPublicEntities.Row]] = services.connection.adminDB.run(BoxPublicEntities.table.result)
 
@@ -69,6 +69,7 @@ case class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:Act
   }
 
   def entityRoute:Route = pathPrefix(Segment) { entity =>
+    import ch.wsl.box.rest.utils.JSONSupport._
     val route: Future[Route] = publicEntities.map{ pe =>
       pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
         case Some(action) => EntityRead(entity,action)

@@ -16,7 +16,7 @@ import ch.wsl.box.services.Services
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
+class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with DataMetadataFactory {
 
   import io.circe.generic.auto._
 
@@ -190,7 +190,6 @@ case class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:E
         field.widget,
         None,
         field.default,
-        None,
         condition
         //      fieldI18n.flatMap(_.tooltip)
       )

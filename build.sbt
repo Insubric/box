@@ -42,7 +42,7 @@ publish / skip := true
 lazy val codegen  = (project in file("codegen")).settings(
   name := "box-codegen",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
-  scalaVersion := Settings.versions.scala212,
+  scalaVersion := Settings.versions.scala213,
   libraryDependencies ++= Settings.codegenDependecies.value,
   resolvers += Resolver.jcenterRepo,
   Compile / resourceDirectory := baseDirectory.value / "../resources",
@@ -52,7 +52,7 @@ lazy val codegen  = (project in file("codegen")).settings(
 lazy val serverServices  = (project in file("server-services")).settings(
   name := "box-server-services",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
-  scalaVersion := Settings.versions.scala212,
+  scalaVersion := Settings.versions.scala213,
   libraryDependencies += "com.iheart" %% "ficus" % Settings.versions.ficus,
   resolvers += Resolver.jcenterRepo,
 ).settings(publishSettings).dependsOn(sharedJVM)
@@ -61,11 +61,12 @@ lazy val server: Project  = project
   .settings(
     name := "box-server",
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
-    scalaVersion := Settings.versions.scala212,
-    scalaBinaryVersion := "2.12",
+    scalaVersion := Settings.versions.scala213,
+    scalaBinaryVersion := "2.13",
     scalacOptions ++= Settings.scalacOptionsServer,
     libraryDependencies ++= Settings.jvmDependencies.value,
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
+    resolvers += "Eclipse" at "https://repo.eclipse.org/content/groups/snapshots",
     slick := slickCodeGenTask.value , // register manual sbt command
     deleteSlick := deleteSlickTask.value,
     Compile / packageBin / mainClass := Some("ch.wsl.box.rest.Boot"),
@@ -88,7 +89,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free").map{ p =>
       npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
         (nodeModules / p).allPaths
       }.value
@@ -114,7 +115,7 @@ lazy val server: Project  = project
 lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   name := "box-server-cache-redis",
   licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
-  scalaVersion := Settings.versions.scala212,
+  scalaVersion := Settings.versions.scala213,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
 ).settings(publishSettings).dependsOn(serverServices)
@@ -142,6 +143,7 @@ lazy val client: Project = (project in file("client"))
       "popper.js" -> "1.16.1",
       "bootstrap" -> "4.1.3",
       "@types/bootstrap" -> "4.1.3",
+      "@fortawesome/fontawesome-free" -> "5.15.4",
       "flatpickr" -> "4.6.3",
       "monaco-editor" -> "0.21.1",
       "quill" -> "1.3.7",
@@ -152,10 +154,12 @@ lazy val client: Project = (project in file("client"))
       "js-md5" -> "0.7.3",
       "@types/js-md5" -> "0.4.2",
       "print-js" -> "1.6.0",
-      "striptags" -> "3.2.0"
+      "striptags" -> "3.2.0",
+      "toolcool-range-slider" -> "2.0.12"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "ol-ext",
+    stIgnore += "@fortawesome/fontawesome-free",
     stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
     fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -228,7 +232,7 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
 
 lazy val sharedJVM: Project = shared.jvm.settings(
   name := "box-shared-jvm",
-  scalaVersion := Settings.versions.scala212,
+  scalaVersion := Settings.versions.scala213,
 )
 
 lazy val sharedJS: Project = shared.js.settings(

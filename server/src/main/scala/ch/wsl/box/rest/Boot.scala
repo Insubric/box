@@ -7,7 +7,7 @@ import akka.stream.ActorMaterializer
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.rest.routes.{BoxExceptionHandler, Preloading, Root}
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.utils.log.DbWriter
+import ch.wsl.box.rest.utils.log.{DbWriter, Log}
 import ch.wsl.box.services.Services
 import com.typesafe.config.Config
 import scribe._
@@ -52,14 +52,9 @@ class Box(name:String,version:String)(implicit services: Services) {
     //val preloading: Future[Http.ServerBinding] = Http().bindAndHandle(Preloading.route, host, port)
 
     Registry.load()
+    Registry.loadBox()
 
-    val loggerWriter = services.config.logDB match  {
-      case false => ConsoleWriter
-      case true => new DbWriter(services.connection.adminDB)
-    }
-    println(s"Logger level: ${services.config.loggerLevel}")
-
-    Logger.root.clearHandlers().withHandler(minimumLevel = Some(services.config.loggerLevel), writer = loggerWriter).replace()
+    Log.load()
 
 
     //Registring handlers

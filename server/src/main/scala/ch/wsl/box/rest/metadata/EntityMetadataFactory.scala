@@ -13,8 +13,7 @@ import net.ceedubs.ficus.Ficus._
 import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{FullDatabase, Managed, TypeMapping}
-import ch.wsl.box.model.BoxRegistry
-import ch.wsl.box.rest.runtime.{ColType, Registry}
+import ch.wsl.box.rest.runtime.{ColType, RegistryInstance}
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -27,8 +26,8 @@ object EntityMetadataFactory extends Logging {
   val excludeFields:Seq[String] = Try{
     com.typesafe.config.ConfigFactory.load().as[Seq[String]]("db.generator.excludeFields")
   }.getOrElse(Seq())
-  private val cacheTable = scala.collection.mutable.Map[(String, String, String, Int), JSONMetadata]()   //  (up.name, table, lang,lookupMaxRows)
-  private val cacheKeys = scala.collection.mutable.Map[String, Seq[String]]()                            //  (table)
+  private val cacheTable = scala.collection.mutable.Map[(String, String, String, String, Int), JSONMetadata]()   //  (up.name, schema, table, lang,lookupMaxRows)
+  private val cacheKeys = scala.collection.mutable.Map[(String,String), Seq[String]]()                            //  (schema,table)
 
   def resetCache() = {
     cacheTable.clear()
@@ -57,16 +56,18 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def of(_schema:String,table:String,lang:String, lookupMaxRows:Int = 100)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
+  def of(_schema:String,table:String,lang:String,registry:RegistryInstance, lookupMaxRows:Int = 100)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
 
-    logger.warn("searching cache table for " + Seq(up.name, table, lang, lookupMaxRows).mkString)
+    val cacheKey = (up.name, _schema, table, lang,lookupMaxRows)
 
-    val cacheKey = (up.name, table, lang,lookupMaxRows)
+    logger.info(s"searching cache table for $cacheKey")
+
+
 
     cacheTable.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
-        logger.info(s"Metadata table cache miss! cache key: ($table, $lang, $lookupMaxRows), cache: ${cacheTable}")
+        logger.warn(s"Metadata table cache miss! cache key: $cacheKey, cache: ${cacheTable.map{case (k,v) => k -> v.name}}")
 
         val schema = new PgInformationSchema(_schema,table, excludeFields)(ec)
 
@@ -82,7 +83,7 @@ object EntityMetadataFactory extends Logging {
               case None => DBIO.successful(None)
             }
             count <- fk match {
-              case Some(fk) => Registry().actions(fk.referencingTable).count().map(_.count)
+              case Some(fk) => registry.actions(fk.referencingTable).count().map(_.count)
               case None => DBIO.successful(0)
             }
           } yield {
@@ -105,7 +106,7 @@ object EntityMetadataFactory extends Logging {
 
                     import ch.wsl.box.shared.utils.JSONUtils._
                     for {
-                      lookupData <- Registry().actions(model).find()
+                      lookupData <- registry.actions(model).find()
                     } yield {
                       val options = lookupData.map { lookupRow =>
                         JSONLookup(lookupRow.js(value), Seq(lookupRow.get(text)))
@@ -188,8 +189,10 @@ object EntityMetadataFactory extends Logging {
   }
 
   def keysOf(schema:String,table:String)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[String]] = {
-    logger.info("Getting " + table + " keys")
-    cacheKeys.get(table) match {
+
+    val cacheKey = (schema,table)
+    logger.info("Getting " + cacheKey + " keys")
+    cacheKeys.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
         logger.info(s"Metadata keys cache miss! cache key: ($table), cache: ${cacheKeys}")
@@ -204,7 +207,7 @@ object EntityMetadataFactory extends Logging {
           keys <- result
         } yield {
           if(services.config.enableCache) {
-            DBIO.successful(cacheKeys.put(table,keys))
+            DBIO.successful(cacheKeys.put(cacheKey,keys))
           }
           keys
         }
@@ -221,23 +224,14 @@ object EntityMetadataFactory extends Logging {
       c <- schema.columns
     } yield
     {
-//      logger.info("PK's " + pks.mkString("-"))
-//      logger.info("Columns " + c.map(_.column_name).mkString("-"))
-//      logger.info("Columns " + c.map(_.column_name).diff(pks).mkString("-") + " that are not PK")
       c.map(_.column_name).diff(pks).headOption
     }
   }
 
 
-  def fieldType(table:String,field:String):ColType = {
-    val dbField = Registry().fields.field(table,field)
-    if(dbField.name != "Unknown") {
-      dbField
-    } else {
-      BoxRegistry.generated.map(_.fields.field(table,field)).getOrElse(dbField)
-    }
+  def fieldType(table:String,field:String,registry:RegistryInstance):Option[ColType] = {
+    registry.fields.field(table,field)
   }
-
 
 
   def isView(schema:String,table:String)(implicit ec:ExecutionContext):DBIO[Boolean] =

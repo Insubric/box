@@ -23,7 +23,8 @@ import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /**
@@ -59,13 +60,12 @@ case class Form(
     implicit val implicitDB = db
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
-    val metadata: DBIO[JSONMetadata] = metadataFactory.of(name,lang)
+    def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang)),10.seconds)
 
+    val registry = if(schema == BoxSchema.schema) Registry.box() else Registry()
 
-   private def actions[T](f:FormActions => T):Future[T] = for{
-      form <- boxDb.adminDb.run(metadata)
-      formActions = FormActions(form,jsonActions,metadataFactory)
-    } yield {
+   private def actions[T](f:FormActions => T):T = {
+      val formActions = FormActions(metadata,jsonActions,metadataFactory)
       f(formActions)
     }
 
@@ -86,15 +86,15 @@ case class Form(
 
   }
 
-    def tabularMetadata(fields:Option[Seq[String]] = None) = metadata.flatMap{ m =>
-      val filteredFields = m.view match {
-        case None => DBIO.successful(_tabMetadata(fields,m))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang).map{ vm =>
-          viewTableMetadata(fields.getOrElse(m.tabularFields),m,vm)
+    def tabularMetadata(fields:Option[Seq[String]] = None) = {
+      val filteredFields = metadata.view match {
+        case None => DBIO.successful(_tabMetadata(fields,metadata))
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang,registry).map{ vm =>
+          viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }
 
-      filteredFields.map( ff => m.copy(fields = ff ))
+      filteredFields.map( ff => metadata.copy(fields = ff ))
 
     }
 
@@ -115,8 +115,7 @@ case class Form(
           val io = for {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, jsonActions, metadataFactory)
-            fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-            data <- formActions.list(query, fkValues, true)
+            data <- formActions.list(query, true, true)
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
@@ -135,27 +134,25 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, jsonActions, metadataFactory)
-      csv <- db.run(formActions.csv(query, None))
+      csv <- db.run(formActions.csv(query, false))
     } yield csv
   }
 
   def csvTable(q:String,fk:Option[String],fields:Option[String]):DBIO[CSVTable] = {
     val query = parse(q).right.get.as[JSONQuery].right.get
     val tabMetadata = tabularMetadata(fields.map(_.split(",").map(_.trim).toSeq))
+    val formActions = FormActions(metadata, jsonActions, metadataFactory)
     for {
-      metadata <- DBIO.from(boxDb.adminDb.run(tabMetadata))
-      formActions = FormActions(metadata, jsonActions, metadataFactory)
       fkValues <- fk match {
         case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
         case _ => DBIO.successful(None)
       }
-      csv <- formActions.csv(query, fkValues, _.exportFields)
+      csv <- formActions.csv(query, true, _.exportFields)
     } yield csv.copy(
       showHeader = true,
       header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
     )
   }
-
 
   def csv:Route = path("csv") {
     post {
@@ -168,6 +165,27 @@ case class Form(
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
           onSuccess(db.run(csvTable(q,fk,fields)))(csv => CSV.download(csv))
+        }
+      }
+    }
+  }
+
+  def updateDiff = put {
+    privateOnly {
+      entity(as[JSONDiff]) { e =>
+        complete {
+          actions { fs =>
+            for {
+              jsonId <- db.run{
+                fs.updateDiff(e).transactionally
+              }
+            } yield {
+              if(schema == BoxSchema.schema) {
+                Cache.reset()
+              }
+              if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+            }
+          }
         }
       }
     }
@@ -199,9 +217,8 @@ case class Form(
         entity(as[JSONQuery]) { query =>
           complete {
             for{
-              m <- boxDb.adminDb.run(metadata)
               lookups <- {
-                m.fields.find(_.name == field).flatMap(_.lookup) match {
+                metadata.fields.find(_.name == field).flatMap(_.lookup) match {
                   case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
                   case None => throw new Exception(s"$field has no lookup")
                 }
@@ -244,7 +261,7 @@ case class Form(
             val values = e.as[Seq[Json]].getOrElse(Seq(e))
             val result = for {
               jsonId <- db.run{
-                DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.upsertIfNeeded(Some(id), x)}).transactionally
+                DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.update(id, x)}).transactionally
               }
             } yield {
               if(schema == BoxSchema.schema) {
@@ -264,7 +281,7 @@ case class Form(
 
     def route = pathPrefix("id") {
       path(Segment) { strId =>
-        JSONID.fromMultiString(strId) match {
+        JSONID.fromMultiString(strId,metadata) match {
           case ids if ids.nonEmpty =>
               _get(ids) ~
               update(ids) ~
@@ -281,7 +298,7 @@ case class Form(
     path("metadata") {
       get {
         complete {
-          boxDb.adminDb.run(metadata)
+          metadata
         }
       }
     } ~
@@ -295,21 +312,21 @@ case class Form(
     path("schema") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(m => new JSONSchemas().of(m)))
+          boxDb.adminDb.run(new JSONSchemas().of(metadata))
         }
       }
     } ~
     path("children") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap{ f => metadataFactory.children(f)})
+          boxDb.adminDb.run(metadataFactory.children(metadata))
         }
       }
     } ~
     path("keys") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(f => EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),f.entity)))
+          boxDb.adminDb.run( EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),metadata.entity))
         }
       }
     } ~
@@ -348,8 +365,7 @@ case class Form(
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
                 formActions = FormActions(metadata, jsonActions, metadataFactory)
-                fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-                result <- formActions.list(query, fkValues)
+                result <- formActions.list(query, true)
               } yield {
                 result
               }

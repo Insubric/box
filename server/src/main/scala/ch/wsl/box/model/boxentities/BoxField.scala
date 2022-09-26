@@ -32,11 +32,13 @@ object BoxField {
                            params:Option[Json] = None,
                            read_only:Boolean = false,
                            required:Option[Boolean] = Some(false),
-                           function:Option[String] = None
+                           function:Option[String] = None,
+                           min: Option[Double] = None,
+                           max: Option[Double] = None
                          )
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,BoxSchema.schema, "field") {
-    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function) <> (BoxField_row.tupled, BoxField_row.unapply)
+    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function,min,max) <> (BoxField_row.tupled, BoxField_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
@@ -66,6 +68,8 @@ object BoxField {
     val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
     val read_only: Rep[Boolean] = column[Boolean]("read_only")
     val required: Rep[Option[Boolean]] = column[Option[Boolean]]("required")
+    val min: Rep[Option[Double]] = column[Option[Double]]("min")
+    val max: Rep[Option[Double]] = column[Option[Double]]("max")
 
     /** Foreign key referencing Form (database name fkey_form) */
     lazy val formFk = foreignKey("fkey_form", form_uuid, BoxForm.BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)

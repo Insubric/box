@@ -17,6 +17,7 @@ object WidgetsNames {
   val selectBoolean = "selectBoolean"
   val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
+  val slider = "slider"
   val twoLines = "twoLines"
   val popup = "popup"
   val map = "map"
@@ -40,7 +41,6 @@ object WidgetsNames {
   val html = "html"
   val linkedForm = "linked_form"
   val lookupForm = "lookup_form"
-  val fileWithPreview = "fileWithPreview"
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
@@ -51,6 +51,7 @@ object WidgetsNames {
     NUMBER -> Seq(
       input,
       select,
+      slider,
       popup,
       checkbox,
       inputDisabled,
@@ -93,7 +94,6 @@ object WidgetsNames {
     ),
     FILE -> Seq(
       simpleFile,
-      fileWithPreview,
     ),
     DATE -> Seq(
       datepicker,

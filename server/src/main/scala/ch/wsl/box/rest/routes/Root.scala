@@ -7,7 +7,6 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, HttpOrigin, `Content-Disposition`}
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.Materializer
-import ch.wsl.box.model.BoxActionsRegistry
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.utils.{BoxSession, Cache}
 import ch.wsl.box.jdbc.PostgresProfile.api._

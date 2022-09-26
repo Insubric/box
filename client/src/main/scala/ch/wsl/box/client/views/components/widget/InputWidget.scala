@@ -1,9 +1,9 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.services.ClientConf
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
+import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
 import io.udash._
@@ -15,8 +15,15 @@ import scala.concurrent.Future
 import scalatags.JsDom.all._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.udash.bindings.modifiers.Binding
-import org.scalajs.dom.Node
+import io.udash.bindings.modifiers.Binding.NestedInterceptor
+import io.udash.bootstrap.button.UdashButton
+import io.udash.bootstrap.modal.UdashModal
+import io.udash.bootstrap.modal.UdashModal.ModalEvent
+import io.udash.bootstrap.utils.BootstrapStyles.Size
+import org.scalajs.dom.{Event, HTMLInputElement, HTMLTextAreaElement, Node, document}
 import scribe.Logging
+
+import java.util.UUID
 
 object InputWidgetFactory {
 
@@ -38,13 +45,13 @@ object InputWidgetFactory {
 
   object TextArea extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.textarea
-    override def create(params: WidgetParams): Widget = new InputWidget.Textarea(params.field, params.prop)
+    override def create(params: WidgetParams): Widget = new InputWidget.Textarea(params.field, params.prop,params.metadata)
 
   }
 
   object TwoLines extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.twoLines
-    override def create(params: WidgetParams): Widget = new InputWidget.TwoLines(params.field, params.prop)
+    override def create(params: WidgetParams): Widget = new InputWidget.TwoLines(params.field, params.prop,params.metadata)
 
   }
 
@@ -118,20 +125,101 @@ object InputWidget extends Logging {
 
 
 
-  class Textarea(val field:JSONField, val data: Property[Json]) extends Widget with HasData {
+  class Textarea(val field:JSONField, val data: Property[Json], metadata:JSONMetadata) extends Widget with HasData {
 
     val modifiers:Seq[Modifier] = Seq()
 
     override def edit() = editMe(field,true, false, modifiers){ case y =>
       val stringModel = Property("")
+      val textAreaId = UUID.randomUUID().toString
+      stringModel.listen{_ =>
+        val el = document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement]
+        el.style.height = if(el.scrollHeight > el.clientHeight)  el.scrollHeight+"px" else "30px";
+      }
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
-      val mod = y ++ WidgetUtils.toNullable(field.nullable)
+      val mod = y ++ WidgetUtils.toNullable(field.nullable) ++ Seq(id := textAreaId)
       TextArea(stringModel)(mod:_*).render
     }
     override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data,field,true,modifiers))
+
+    object Status{
+      val Closed = "closed"
+      val Open = "open"
+    }
+
+    val modalStatus = Property(Status.Closed)
+
+    var modal:UdashModal = null
+
+    val header = (x:NestedInterceptor) => div(
+      b(field.title),
+      div(width := 100.pct, textAlign.center,field.title),
+      UdashButton()( _ => Seq[Modifier](
+        onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
+        BootstrapStyles.close, "×"
+      )).render
+    ).render
+
+    val textAreaId = TestHooks.popupField(field.name,metadata.objId)
+
+    val body = (x:NestedInterceptor) => {
+      val stringModel = Property("")
+      autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
+      div(
+        div(
+          TextArea(stringModel)(WidgetUtils.toNullable(field.nullable), width := 100.pct, height := 300.px, id := textAreaId)
+        )
+      ).render
+    }
+
+    val footer = (x:NestedInterceptor) => div(
+      button(onclick :+= ((e:Event) => {
+        modal.hide()
+        e.preventDefault()
+      }), Labels.popup.close,ClientConf.style.boxButton)
+    ).render
+
+    modal = UdashModal(modalSize = Some(Size.Large).toProperty)(
+      headerFactory = Some(header),
+      bodyFactory = Some(body),
+      footerFactory = Some(footer)
+    )
+
+    modal.listen { case ev:ModalEvent =>
+      ev.tpe match {
+        case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
+        case ModalEvent.EventType.Shown => document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement].focus()
+        case _ => {}
+      }
+    }
+
+    modalStatus.listen{ state =>
+      logger.info(s"State changed to:$state")
+      state match {
+        case Status.Open => modal.show()
+        case Status.Closed => modal.hide()
+      }
+    }
+
+    override def editOnTable(): JsDom.all.Modifier = {
+      div(
+        bind(data.transform{ str =>
+          if(str.string.length > 40) {
+            str.string.take(37) + "..."
+          } else if(str.isString) str.string else ""
+        }),
+        " ",
+        a(fontSize := 20.px, "✎",onclick :+= ((e:Event) => {
+          modalStatus.set(Status.Open)
+          e.preventDefault()
+        })),
+        modal.render
+      )
+    }
+
   }
 
-  class TwoLines(field:JSONField, prop: Property[Json]) extends Textarea(field,prop) {
+  class TwoLines(field:JSONField, prop: Property[Json], metadata:JSONMetadata) extends Textarea(field,prop,metadata) {
 
     override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2)
   }
@@ -153,9 +241,6 @@ object InputWidget extends Logging {
       val stringModel = Property("")
 
       data.sync[String](stringModel)(jsonToString _,fromString _)
-
-      data.listen(prop => println(s"Input property change to: $prop"))
-      stringModel.listen(prop => println(s"String model property change to: $prop"))
 
       if(TestHooks.testing) {
         TestHooks.properties += TestHooks.formField(field.name) -> data

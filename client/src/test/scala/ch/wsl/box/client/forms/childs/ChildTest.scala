@@ -36,7 +36,7 @@ class ChildTest extends TestBase {
 
       val newChild = child.deepMerge(Json.obj("id" -> Json.fromInt(1)))
 
-      JSONID(id = Vector(JSONKeyValue("id","1")))
+      JSONID(id = Vector(JSONKeyValue("id",Json.fromInt(1))))
 
       data.deepMerge(Json.obj("id" -> Json.fromInt(1), "child" -> Json.fromValues(Seq(newChild))))
 

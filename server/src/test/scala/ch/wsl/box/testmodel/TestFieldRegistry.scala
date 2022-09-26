@@ -12,36 +12,36 @@ object TestFieldRegistry extends FieldRegistry with Logging {
 
   val tableFields:Map[String,Map[String,ColType]] = Map(
       "simple"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true),
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false),
       ),
       "app_parent"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true)
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false)
       ),
       "app_child"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true),
-        "parent_id" -> ColType("Int", "number", true)
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false),
+        "parent_id" -> ColType("Int", "number", true, false)
       ),
       "app_subchild"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true),
-        "child_id" -> ColType("Int", "number", true)
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false),
+        "child_id" -> ColType("Int", "number", true, false)
       ),
       "db_parent"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true)
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false)
       ),
       "db_child"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true),
-        "parent_id" -> ColType("Int", "number", true)
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false),
+        "parent_id" -> ColType("Int", "number", true, false)
       ),
       "db_subchild"-> Map(
-        "id" -> ColType("Int", "number", true),
-        "name" -> ColType("String", "string", true),
-        "child_id" -> ColType("Int", "number", true)
+        "id" -> ColType("Int", "number", true, false),
+        "name" -> ColType("String", "string", true, false),
+        "child_id" -> ColType("Int", "number", true, false)
       )
     )
 

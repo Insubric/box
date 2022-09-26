@@ -1,7 +1,7 @@
 package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONMetadata, JSONQuery, JSONQueryFilter}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import slick.basic.DatabasePublisher
 
@@ -17,6 +17,7 @@ import slick.lifted.MappedProjection
 trait ViewActions[T] {
 
   def find(query: JSONQuery=JSONQuery.empty): DBIO[Seq[T]] //enable streaming
+  def findSimple(query:JSONQuery): DBIO[Seq[T]]
 
   def getById(id: JSONID=JSONID.empty):DBIO[Option[T]]
 
@@ -42,9 +43,10 @@ trait TableActions[T] extends ViewActions[T] {
 
   def update(id:JSONID, obj: T): DBIO[T]
 
-  def updateIfNeeded(id:JSONID, obj: T): DBIO[T]
+  def updateDiff(diff:JSONDiff):DBIO[Seq[JSONID]]
 
-  def upsertIfNeeded(id:Option[JSONID], obj: T): DBIO[T]
+  def updateField(id:JSONID, fieldName:String, value:Json): DBIO[T]
+
 }
 
 trait JsonQuery{

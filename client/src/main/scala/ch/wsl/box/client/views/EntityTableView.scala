@@ -3,7 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
+import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
@@ -17,6 +17,7 @@ import io.circe.parser._
 import io.udash._
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.bootstrap.table.UdashTable
+import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
 import io.udash.utils.Registration
 import org.scalajs.dom
@@ -135,7 +136,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.loading.set(true)
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
-    val urlQuery:Option[JSONQuery] = URLQuery(state.query,emptyFieldsForm)
+    val urlQuery:Option[JSONQuery] = URLQuery(Routes.urlParams.get("q"),emptyFieldsForm)
     services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
@@ -200,7 +201,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     } yield {
       key -> row.lift(i).getOrElse("")
     }
-    JSONID.fromMap(map.toMap)
+    JSONID.fromMap(map.toMap,model.get.metadata.get)
   }
 
 
@@ -453,9 +454,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
     val pagination = {
 
-      div(ClientConf.style.boxNavigationLabel,
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),Labels.navigation.first,_.Float.left()),
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),Labels.navigation.previous,_.Float.left()),
+      div(ClientConf.style.navigationBlock,
+        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),i(UdashIcons.FontAwesome.Solid.fastBackward)),
+        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),i(UdashIcons.FontAwesome.Solid.caretLeft)),
         span(
           " " + Labels.navigation.page + " ",
           bind(model.subProp(_.ids.currentPage)),
@@ -463,29 +464,38 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           bind(model.subProp(_.pages)),
           " "
         ),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),Labels.navigation.last,_.Float.right()),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),Labels.navigation.next,_.Float.right()),
-        div(Labels.navigation.recordFound," ",bind(model.subProp(_.ids.count)))
+        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),i(UdashIcons.FontAwesome.Solid.caretRight)),
+        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),i(UdashIcons.FontAwesome.Solid.fastForward)),
+
       )
     }
 
     produce(model.subProp(_.metadata)) { metadata =>
       div(
-        div(BootstrapStyles.Float.left(),
-          h3(ClientConf.style.noMargin, labelTitle(metadata))
-        ),
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea,
+        div(ClientConf.style.spaceBetween,
+          div(
+            h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
+          ),
+          div(Labels.navigation.recordFound," ",bind(model.subProp(_.ids.count))),
           pagination.render
         ),
         div(BootstrapStyles.Visibility.clearfix),
         produceWithNested(model.subProp(_.access)) { (a, releaser) =>
           if (a.insert)
-            div(BootstrapStyles.Float.left())(
-              releaser(produce(model.subProp(_.name)) { m =>
-                div(
-                  button(ClientConf.style.boxButtonImportant, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(Labels.entities.`new`)
-                ).render
-              })
+            Seq(
+              div(BootstrapStyles.Float.left(), ClientConf.style.noMobile)(
+                releaser(produce(model.subProp(_.name)) { m =>
+                  div(
+                    button(ClientConf.style.boxButtonImportant, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(Labels.entities.`new`)
+                  ).render
+                })
+              ),
+              div(
+                releaser(produce(model.subProp(_.name)) { m =>
+
+                  button(ClientConf.style.mobileBoxAction,Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+                })
+              ),
             ).render
           else Seq()
         },
@@ -593,7 +603,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
-          button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
+          if (metadata.toSeq.flatMap(_.fields).filter(metadata.toSeq.flatMap(_.exportFields) contains _.name).exists(_.`type`==JSONFieldTypes.GEOMETRY)) {
+            button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp)
+          } else frag(),
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {
             p("loading...").render
           },

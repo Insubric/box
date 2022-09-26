@@ -1,6 +1,10 @@
 package ch.wsl.box.rest.runtime
 
-case class ColType(name:String,jsonType:String,nullable:Boolean)
+case class ColType(name:String,jsonType:String,required:Boolean,nullable:Boolean)
+
+object ColType{
+    def unknown = ColType("Unknown", "unknown", false, false)
+}
 
 trait FieldRegistry {
 
@@ -11,7 +15,7 @@ trait FieldRegistry {
 
     //def field(table:String,column:String):ColType
 
-    def field(table:String,column:String):ColType = {
-        tableFields.getOrElse(table,Map()).getOrElse(column,ColType("Unknown", "unknown", false))
+    def field(table:String,column:String):Option[ColType] = {
+        tableFields.getOrElse(table,Map()).get(column)
     }
 }

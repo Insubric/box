@@ -7,6 +7,8 @@ import org.postgresql.ds.PGSimpleDataSource
 
 import javax.sql.DataSource
 
+import javax.sql.DataSource
+
 class TestContainerConnection(container: PostgreSQLContainer) extends Connection {
 
   private val executor = AsyncExecutor("public-executor",50,50,1000,50)
@@ -39,7 +41,6 @@ class TestContainerConnection(container: PostgreSQLContainer) extends Connection
     password = dbPassword,
     executor = executor
   )
-
 
 
 }

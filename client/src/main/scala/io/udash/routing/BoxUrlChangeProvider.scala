@@ -1,8 +1,9 @@
 package io.udash.routing
 
+import ch.wsl.box.client.services.BrowserConsole
 import com.avsystem.commons._
 import io.udash.core.Url
-import io.udash.properties.MutableBufferRegistration
+import io.udash.properties.MutableSetRegistration
 import io.udash.utils.Registration
 import org.scalajs.dom
 import org.scalajs.dom.raw.{HTMLAnchorElement, HashChangeEvent}
@@ -17,7 +18,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
   import org.scalajs.dom.experimental.{URL => JSUrl}
   import org.scalajs.dom.raw.{MouseEvent, Node, PopStateEvent}
 
-  private val callbacks: js.Array[Url => Unit] = js.Array()
+  private val callbacks: MLinkedHashSet[Url => Unit] = MLinkedHashSet.empty
 
   @inline
   private def isSameOrigin(loc: Location, url: JSUrl): Boolean =
@@ -71,12 +72,12 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
   }
 
   override def onFragmentChange(callback: Url => Unit): Registration = {
-    callbacks.push(callback)
-    new MutableBufferRegistration(callbacks, callback, Opt.Empty)
+    callbacks += callback
+    new MutableSetRegistration(callbacks, callback, Opt.Empty)
   }
 
   private def baseUri = {
-    val bu = dom.document.asInstanceOf[js.Dynamic].baseURI.asInstanceOf[String]
+    val bu = dom.document.baseURI
     if(bu.contains("//")) {
       bu.split("/").drop(3).toList match {
         case Nil => "/"

@@ -13,7 +13,7 @@ import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONMetadata, JSONQuery}
 import ch.wsl.box.rest.logic.{DbActions, JSONViewActions, Lookup, TableActions, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, UserProfile}
 import io.circe.{Decoder, Encoder}
@@ -23,20 +23,23 @@ import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.routes.enablers.CSVDownload
+import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 object EntityRead extends Logging  {
 
   def apply[M](name: String, actions: ViewActions[M], lang: String = "en")
                        (implicit
-                        enc: Encoder[M],
+                        enc: EncoderWithBytea[M],
                         dec: Decoder[M],
                         mat: Materializer,
                         up: UserProfile,
-                        ec: ExecutionContext,services:Services):Route =  {
+                        ec: ExecutionContext, services:Services):Route =  {
 
 
     import JSONSupport._
@@ -51,6 +54,13 @@ object EntityRead extends Logging  {
 
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
+    implicit def encoder = enc.light()
+    val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
+
+    def jsonMetadata:JSONMetadata = {
+      val fut = EntityMetadataFactory.of(services.connection.dbSchema,name, lang, Registry(),limitLookupFromFk)
+      Await.result(fut,20.seconds)
+    }
 
 
     def getById(id:JSONID):Route = get {
@@ -64,7 +74,7 @@ object EntityRead extends Logging  {
 
     pathPrefix("id") {
       path(Segment) { strId =>
-        JSONID.fromMultiString(strId) match {
+        JSONID.fromMultiString(strId,jsonMetadata) match {
           case ids if ids.nonEmpty =>
             getById(ids.head)
           case Nil => complete(StatusCodes.BadRequest, s"JSONID $strId not valid")
@@ -94,7 +104,7 @@ object EntityRead extends Logging  {
         path("metadata") {
           get {
             complete {
-              EntityMetadataFactory.of(services.connection.dbSchema,name, lang)
+              EntityMetadataFactory.of(services.connection.dbSchema,name, lang, Registry())
             }
           }
         } ~

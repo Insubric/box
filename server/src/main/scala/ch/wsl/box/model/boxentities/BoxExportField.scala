@@ -98,21 +98,6 @@ object BoxExportField {
   lazy val BoxExportField_i18nTable = new TableQuery(tag => new BoxExportField_i18n(tag))
 
 
-  case class BoxExportHeader_i18n_row(uuid: Option[java.util.UUID] = None, key:String, lang:String, label:String)
-
-  class BoxExportHeader_i18n(_tableTag: Tag) extends profile.api.Table[BoxExportHeader_i18n_row](_tableTag,BoxSchema.schema, "export_header_i18n") {
-    def * = (Rep.Some(uuid), key, lang, label) <> (BoxExportHeader_i18n_row.tupled, BoxExportHeader_i18n_row.unapply)
-
-    val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
-    val key: Rep[String] = column[String]("key")
-    val lang: Rep[String] = column[String]("lang")
-    val label: Rep[String] = column[String]("label")
-
-
-  }
-  /** Collection-like TableQuery object for table Field_i18n */
-  lazy val BoxExportHeader_i18nTable = new TableQuery(tag => new BoxExportHeader_i18n(tag))
-
 
 }
 

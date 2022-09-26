@@ -91,7 +91,7 @@ object FunctionUIDef {
       CommonField.name,
       CommonField.widget,
       CommonField.typ(child = false),
-      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_uuid","field_uuid",None,""))),
+      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_uuid","field_uuid",None,"widget"))),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
@@ -141,8 +141,8 @@ object FunctionUIDef {
       CommonField.simpleLabel,
       CommonField.tooltip,
       CommonField.hint,
-      CommonField.placeholder(),
-      CommonField.lookupTextField(),
+      CommonField.placeholder(Seq(WidgetsNames.input)),
+      CommonField.lookupTextField(Seq(WidgetsNames.select,WidgetsNames.popup)),
     ),
     layout = Layout(
       blocks = Seq(

@@ -73,11 +73,13 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.CHILD,"form_actions",true,
         child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"")),
-        widget = Some(WidgetsNames.tableChild)
+        widget = Some(WidgetsNames.tableChild),
+        params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
       JSONField(JSONFieldTypes.CHILD,"form_navigation_actions",true,
         child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"")),
-        widget = Some(WidgetsNames.tableChild)
+        widget = Some(WidgetsNames.tableChild),
+        params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
       CommonField.formFieldChild,
       CommonField.formFieldStatic,
@@ -203,11 +205,11 @@ object FormUIDef {
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER).asJson))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).asJson))
       ),
       JSONField(JSONFieldTypes.NUMBER,"max",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER).asJson))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).asJson))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,

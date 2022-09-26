@@ -2,7 +2,6 @@ package ch.wsl.box.rest.html.mustache
 
 import java.util
 import java.util.Map.Entry
-import scala.collection.JavaConversions._
 
 import scala.util.Try
 
@@ -26,7 +25,7 @@ class ArrayMap(val obj: Seq[Any]) extends java.util.AbstractMap[Any, Any] with j
     override def hasNext: Boolean = index < length
 
     override def next(): Any = {
-      val nextObj = obj.get(index)
+      val nextObj = obj(index)
       index += 1
       nextObj
     }

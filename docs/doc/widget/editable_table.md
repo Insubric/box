@@ -13,9 +13,10 @@ nav_order: 16
 
 #### Params
 
-| Key              | Value             | Default           |
-|:-----------------|:------------------|:------------------|
-| disableAdd       | Disable add button | `false`  |
-| disableRemove    | Disable remove button | `false`  |
-| hideExporters    | Disable export buttons | `false`  |
+| Key              | Value                    | Default           |
+|:-----------------|:-------------------------|:------------------|
+| disableAdd       | Disable add button       | `false`  |
+| disableRemove    | Disable remove button    | `false`  |
+| hideExporters    | Disable export buttons   | `false`  |
+| disableDuplicate    | Disable duplicate button | `false`  |
 

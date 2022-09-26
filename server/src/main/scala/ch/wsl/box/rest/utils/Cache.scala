@@ -5,7 +5,9 @@ import akka.http.scaladsl.server.Directives.{complete, path, pathPrefix}
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.rest.logic.functions.RuntimeFunction
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, FormMetadataFactory}
+import ch.wsl.box.rest.utils.log.Log
 import ch.wsl.box.services.Services
+import scribe.Logger
 
 import scala.concurrent.ExecutionContext
 
@@ -25,5 +27,6 @@ object Cache {
     EntityMetadataFactory.resetCache()
     RuntimeFunction.resetCache()
     services.config.refresh()
+    Log.load()
   }
 }

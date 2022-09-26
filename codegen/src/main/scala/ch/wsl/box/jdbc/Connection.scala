@@ -125,6 +125,7 @@ class ConnectionConfImpl extends Connection {
     .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(maxLifetime))
     .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(idleTimeout))
     .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(leakDetectionThreshold))
+    .withValue("autoCommit", ConfigValueFactory.fromAnyRef(false))
     .withValue("properties",ConfigValueFactory.fromMap(Map(
       "ApplicationName" -> s"BOX Connections - Pool $randomId"
     ).asJava))

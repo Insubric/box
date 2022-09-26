@@ -24,15 +24,19 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import io.circe.generic.extras.semiauto._
        |  import io.circe.generic.extras.Configuration
        |  import ch.wsl.box.rest.utils.JSONSupport._
-       |  import Light._
        |
        |  import slick.model.ForeignKeyAction
        |  import slick.collection.heterogeneous._
        |  import slick.collection.heterogeneous.syntax._
+       |  import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
+       |  import org.locationtech.jts.geom.Geometry
+       |
+       |  import ch.wsl.box.model.UpdateTable
        |
        |object $container {
        |
        |      implicit val customConfig: Configuration = Configuration.default.withDefaults
+       |      implicit def dec:Decoder[Array[Byte]] = Light.fileFormat
        |
        |      import ch.wsl.box.jdbc.PostgresProfile.api._
        |
@@ -65,9 +69,12 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       def encoderDecoder:String =
         s"""
            |val decode$name:Decoder[$name] = Decoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})($name.apply)
-           |val encode$name:Encoder[$name] = Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
-           |  ${columns.map(_.name).mkString("(x.",", x.",")")}
-           |)
+           |val encode$name:EncoderWithBytea[$name] = { e =>
+           |  implicit def byteE = e
+           |  Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
+           |    ${columns.map(_.name).mkString("(x.",", x.",")")}
+           |  )
+           |}
            |""".stripMargin
 
       override def code = {
@@ -93,7 +100,10 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
           result + s"""
 
     val decode$name:Decoder[$name] = deriveConfiguredDecoder[$name]
-    val encode$name:Encoder[$name] = deriveConfiguredEncoder[$name]
+    val encode$name:EncoderWithBytea[$name] = { e =>
+      implicit def byteE = e
+      deriveConfiguredEncoder[$name]
+    }
 
     object ${TableClass.elementType}{
 
@@ -140,8 +150,47 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       override def code: String =  {
         val prns = parents.map(" with " + _).mkString("")
         val args = model.name.schema.map(n => s"""Some("$n")""") ++ Seq("\""+model.name.table+"\"")
+
+        val tableNameFull = model.name.schema.map(s => "\""+s+"\".").getOrElse("") + "\"" + model.name.table + "\""
+        val tableName = model.name.schema.map(s => s+".").getOrElse("") + model.name.table
+
+        val columnsLight = model.columns.map{c =>
+          if(c.tpe == "Array[Byte]") s""" ''::bytea as "${c.name}" """ else
+            "\"" + c.name + "\""
+        }.mkString(",")
+
+        val getResult = columns.map{c =>
+          c.exposedType match {
+            case "Option[java.util.UUID]" => "r.nextUUIDOption"
+            case "java.util.UUID" => "r.nextUUID"
+            case typ:String if typ.contains("Option[List[") => typ.replace("Option[List[","r.nextArrayOption[").dropRight(1) + ".map(_.toList)"
+            case typ:String if typ.contains("List[") => typ.replace("List[","r.nextArray[") + ".toList"
+            case _ => "r.<<"
+          }
+        }.mkString(",")
+
         s"""
-class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns {
+class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns with UpdateTable[$elementType] {
+
+  def boxGetResult = GR(r => $elementType($getResult))
+
+  def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[$elementType] = {
+      if(fields.isEmpty) throw new Exception("No fields to update on $tableName")
+      val kv = keyValueComposer(this)
+      val head = concat(sql\"\"\"update $tableNameFull set \"\"\",kv(fields.head))
+      val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+      val returning = sql\"\"\" returning $columnsLight \"\"\"
+
+      val sqlActionBuilder = concat(concat(set,where),returning)
+      sqlActionBuilder.as[$elementType](boxGetResult).head
+    }
+
+    override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[$elementType]] = {
+      val sqlActionBuilder = concat(sql\"\"\"select $columnsLight from $tableNameFull \"\"\",where)
+      sqlActionBuilder.as[$elementType](boxGetResult)
+    }
+
   ${indent(body.map(_.mkString("\n")).mkString("\n\n"))}
 }
         """.trim()

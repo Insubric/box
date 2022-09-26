@@ -24,7 +24,7 @@ class InsertFormSpec extends BaseSpec {
   val dbManagedLayers = DbManagedIdFixtures.layers.mapValues(stringToJson)
 
 
-  val id = JSONID(Vector(JSONKeyValue("id","1")))
+  val id = JSONID(Vector(JSONKeyValue("id",Json.fromInt(1))))
 
 
 

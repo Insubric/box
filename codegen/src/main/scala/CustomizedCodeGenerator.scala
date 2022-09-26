@@ -65,27 +65,7 @@ object CustomizedCodeGenerator  {
 
     files.fixFiles.createTriggers(connection.dbConnection)
 
-    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq(
-      "export",
-      "export_field",
-      "export_field_i18n",
-      "export_header_i18n",
-      "export_i18n",
-      "field",
-      "field_file",
-      "field_i18n",
-      "form",
-      "form_actions",
-      "form_navigator_actions",
-      "form_i18n",
-      "function",
-      "function_field",
-      "function_field_i18n",
-      "function_i18n",
-      "labels",
-      "news",
-      "news_i18n"
-    )).generatedFiles(connection)
+    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq()).generatedFiles(connection)
 
     val boxFilesAll = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq()).generatedFiles(connection)
 

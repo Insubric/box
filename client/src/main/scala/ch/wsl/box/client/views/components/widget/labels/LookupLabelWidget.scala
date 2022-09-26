@@ -23,7 +23,7 @@ object LookupLabelWidget extends ComponentWidgetFactory {
 
     var value:Json = Json.Null
 
-    val injected = params.otherField("$" + params.field.name)
+    val injected = params.otherField(params.field.name)
 
     def injectValue():Unit = {
       dom.window.setTimeout(() => injected.set(value),0)
@@ -35,7 +35,7 @@ object LookupLabelWidget extends ComponentWidgetFactory {
     }
 
     params.allData.listen({ curr =>
-      if(!curr.js("$" + params.field.name).equals(value)) injectValue()
+      if(!curr.js(params.field.name).equals(value)) injectValue()
     },true)
 
     override protected def show(): JsDom.all.Modifier = {

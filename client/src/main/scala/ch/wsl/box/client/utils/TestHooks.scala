@@ -23,6 +23,8 @@ object TestHooks {
   val dataChanged = "dataChanged"
   def formField(name:String) = s"formField$name"
   def readOnlyField(name:String) = s"readOnlyField$name"
+  def popupSearch(name:String,formId:UUID) = s"popupSearch$name$formId"
+  def popupField(name:String,formId:UUID) = s"popupField$name$formId"
 
   private val loadingListeners = new scala.collection.mutable.ListBuffer[() => Unit]
 
