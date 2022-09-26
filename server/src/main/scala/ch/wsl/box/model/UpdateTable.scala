@@ -114,8 +114,17 @@ trait UpdateTable[T] { t:Table[T] =>
 
     val key = jsonQuery.column
 
+    def filterMany[T](nullable:Boolean, value:Option[Seq[T]])(implicit sp:SetParameter[T]):SQLActionBuilder = {
+      val values = value.toSeq.flatten
+      val list = if(values.nonEmpty) values.tail.foldLeft(sql" ${values.head} ")((a,b) => concat(a, sql" , $b ") )
+      else sql""
+      (jsonQuery.operator.getOrElse(Filter.EQUALS), nullable, value) match {
+        case (Filter.IN, true, values) => concat(concat(sql""" "#$key" in (""",list),sql")")
+        case (Filter.NOTIN, true, values) => concat(concat(sql""" "#$key" not in (""",list),sql")")
+      }
+    }
 
-    def update[T](nullable:Boolean, value:Option[T])(implicit sp:SetParameter[T]):SQLActionBuilder = {
+    def filter[T](nullable:Boolean, value:Option[T])(implicit sp:SetParameter[T]):SQLActionBuilder = {
       (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
         case (Filter.EQUALS,true,None) => sql""" "#$key" is null """
         case (Filter.LIKE,true,None) => sql""" "#$key" is null """
@@ -138,21 +147,35 @@ trait UpdateTable[T] { t:Table[T] =>
 
     val v = jsonQuery.value
 
-    col.name match {
-      case "String" => update(col.nullable,Some(v))
-      case "Int" => update[Int](col.nullable,v.toIntOption)
-      case "Double" => update[Double](col.nullable,v.toDoubleOption)
-      case "BigDecimal" => update[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
-      case "java.time.LocalDate" => update[java.time.LocalDate](col.nullable,DateTimeFormatters.toDate(v).headOption)
-      case "java.time.LocalTime" => update[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
-      case "java.time.LocalDateTime" => update[java.time.LocalDateTime](col.nullable,DateTimeFormatters.toTimestamp(v).headOption)
-      case "io.circe.Json" => update[Json](col.nullable,parser.parse(v).toOption)
-      case "Array[Byte]" => update[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
-      case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
-      case "java.util.UUID" => update[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
-      case "Boolean" => update[Boolean](col.nullable,Some(v == "true"))
-      case t:String => throw new Exception(s"$t is not supported for simple query")
+    if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
+      col.name match {
+        case "String"  => filterMany(col.nullable,Some(v.split(",").toSeq))
+        case "Int" => filterMany[Int](col.nullable,Some(v.split(",").toSeq.flatMap(_.toIntOption)))
+        case "Double" => filterMany[Double](col.nullable,Some(v.split(",").toSeq.flatMap(_.toDoubleOption)))
+        case "BigDecimal" => filterMany[BigDecimal](col.nullable,Some(v.split(",").toSeq.flatMap(x => Try(BigDecimal(x)).toOption)))
+        case "io.circe.Json" => filterMany[Json](col.nullable,Some(v.split(",").toSeq.flatMap(x => parser.parse(x).toOption)))
+        case "java.util.UUID" => filterMany[java.util.UUID](col.nullable,Some(v.split(",").toSeq.flatMap(x => Try(UUID.fromString(x)).toOption)))
+        case t => throw new Exception(s"$t is not supported for simple multi query")
+      }
+    } else {
+      col.name match {
+        case "String"  => filter(col.nullable,Some(v))
+        case "Int" => filter[Int](col.nullable,v.toIntOption)
+        case "Double" => filter[Double](col.nullable,v.toDoubleOption)
+        case "BigDecimal" => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
+        case "java.time.LocalDate" => filter[java.time.LocalDate](col.nullable,DateTimeFormatters.toDate(v).headOption)
+        case "java.time.LocalTime" => filter[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
+        case "java.time.LocalDateTime" => filter[java.time.LocalDateTime](col.nullable,DateTimeFormatters.toTimestamp(v).headOption)
+        case "io.circe.Json" => filter[Json](col.nullable,parser.parse(v).toOption)
+        case "Array[Byte]" => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
+        case "org.locationtech.jts.geom.Geometry" => filter[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
+        case "java.util.UUID" => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
+        case "Boolean" => filter[Boolean](col.nullable,Some(v == "true"))
+        case t => throw new Exception(s"$t is not supported for simple query")
+      }
     }
+
+
   }
 
 }
