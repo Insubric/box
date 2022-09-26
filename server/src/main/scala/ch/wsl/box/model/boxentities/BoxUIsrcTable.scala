@@ -1,7 +1,6 @@
 package ch.wsl.box.model.boxentities
 
 //import ch.wsl.box.model.FileTables.{Document, profile}
-import ch.wsl.box.generated.boxentities.Entities.Ui_src_row
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
 import io.circe.{Decoder, Encoder, Json}
