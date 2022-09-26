@@ -25,6 +25,7 @@ import scalacss.ProdDefaults._
 import typings.printJs.mod.PrintTypes
 import typings.std.global.atob
 
+import java.util.UUID
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.Uint8Array
 
@@ -340,12 +341,18 @@ object EditableTable extends ChildRendererFactory {
                           }
                         },
                         if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
-                          if(!disableRemove) { a(ClientConf.style.childRemoveButton,
-                            BootstrapStyles.Float.right(),
-                            onclick :+= removeItem(childWidget), Icons.minusFill) } else frag()," ",
-                          if(!disableDuplicate) { a(ClientConf.style.childDuplicateButton,
-                            BootstrapStyles.Float.right(),
-                            onclick :+= duplicateItem(childWidget), Icons.duplicate) } else frag()
+                          if(!disableDuplicate) { a(ClientConf.style.childDuplicateButton,tabindex := 0,
+                            onclick :+= duplicateItem(childWidget),
+                            onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e)},
+                            Icons.duplicate) } else frag()
+                          ," ",
+                          if(!disableRemove) { a(ClientConf.style.childRemoveButton,tabindex := 0,id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()),childWidget.id),
+                            onclick :+= removeItem(childWidget),
+                            onkeyup :+= {(e:Event) =>
+                              if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key))
+                                removeItem(childWidget)(e)
+                            },
+                            Icons.minusFill) } else frag()
                         ) else frag()
                       ).render
                     },
@@ -354,9 +361,12 @@ object EditableTable extends ChildRendererFactory {
                         td(tableStyle.td, colspan := cols),
                         td(tableStyle.td, colWidth,
                           a(id := TestHooks.addChildId(m.objId),
+                            tabindex := 0,
                             ClientConf.style.childAddButton,
                             BootstrapStyles.Float.right(),
-                            onclick :+= addItemHandler(child, m), Icons.plusFill)
+                            onclick :+= addItemHandler(child, m),
+                            onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) addItemHandler(child, m)(e)},
+                            Icons.plusFill)
                         ),
                       )
                     } else frag()

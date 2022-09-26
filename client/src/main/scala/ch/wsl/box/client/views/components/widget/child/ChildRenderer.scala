@@ -15,7 +15,7 @@ import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, HTMLAnchorElement, document, window}
 import scalatags.JsDom
 import scribe.Logging
 

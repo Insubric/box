@@ -15,6 +15,7 @@ object TestHooks {
   def tableChildId(id:UUID) = s"tableChildFormId$id"
   val tableChildRow = s"tableChildRow"
   def addChildId(id:UUID) = s"addChildFormId$id"
+  def deleteRowId(formId:UUID,rowId:String) = s"deleteRowId${formId}Row$rowId"
   def deleteChildId(formId:UUID,rowId:Option[JSONID]) = s"deleteChildFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
   def tableChildButtonId(formId:UUID,rowId:Option[JSONID]) = s"tableChildButtonFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
   def tableChildRowId(formId:UUID,rowId:Option[JSONID]) = s"tableChildRowFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
