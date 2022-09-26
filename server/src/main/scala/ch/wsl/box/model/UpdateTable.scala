@@ -94,6 +94,7 @@ trait UpdateTable[T] { t:Table[T] =>
     col.name match {
       case "String" => update[String](col.nullable)
       case "Int" => update[Int](col.nullable)
+      case "Short" => update[Short](col.nullable)
       case "Double" => update[Double](col.nullable)
       case "BigDecimal" => update[BigDecimal](col.nullable)
       case "java.time.LocalDate" => update[java.time.LocalDate](col.nullable)
@@ -151,6 +152,7 @@ trait UpdateTable[T] { t:Table[T] =>
       col.name match {
         case "String"  => filterMany(col.nullable,Some(v.split(",").toSeq))
         case "Int" => filterMany[Int](col.nullable,Some(v.split(",").toSeq.flatMap(_.toIntOption)))
+        case "Short" => filterMany[Short](col.nullable,Some(v.split(",").toSeq.flatMap(_.toShortOption)))
         case "Double" => filterMany[Double](col.nullable,Some(v.split(",").toSeq.flatMap(_.toDoubleOption)))
         case "BigDecimal" => filterMany[BigDecimal](col.nullable,Some(v.split(",").toSeq.flatMap(x => Try(BigDecimal(x)).toOption)))
         case "io.circe.Json" => filterMany[Json](col.nullable,Some(v.split(",").toSeq.flatMap(x => parser.parse(x).toOption)))
@@ -161,6 +163,7 @@ trait UpdateTable[T] { t:Table[T] =>
       col.name match {
         case "String"  => filter(col.nullable,Some(v))
         case "Int" => filter[Int](col.nullable,v.toIntOption)
+        case "Short" => filter[Short](col.nullable,v.toShortOption)
         case "Double" => filter[Double](col.nullable,v.toDoubleOption)
         case "BigDecimal" => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
         case "java.time.LocalDate" => filter[java.time.LocalDate](col.nullable,DateTimeFormatters.toDate(v).headOption)
