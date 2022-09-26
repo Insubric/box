@@ -33,7 +33,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.checkbox),
         default = Some("true")
       ),
-      JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.input)),
+      JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.STRING,"query",true,
         widget = Some(WidgetsNames.code),
         params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
@@ -50,7 +50,7 @@ object FormUIDef {
         placeholder = Some("by default primary key is used"),
         tooltip = Some("Manually enter the fields that should be used as primary key. This is useful mainly for updatable views where the primary key of the entity cannot be calculated. Fields are separated with comma")
       ),
-      JSONField(JSONFieldTypes.STRING,"exportFields",true,widget = Some(WidgetsNames.input)),
+      JSONField(JSONFieldTypes.STRING,"exportFields",true,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(
@@ -96,14 +96,12 @@ object FormUIDef {
             Right(
               SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props","params").map(Left(_)))
             ),
-            Left(""),
-            Right(
-              SubLayoutBlock(Some("Table Info"),Seq(12),Seq("tabularFields","exportFields").map(Left(_)))
-            )
+            Left("")
           ))
         ).map(Right(_))),
         LayoutBlock(Some("Actions"),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
         LayoutBlock(Some("I18n"),4,None,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some("Table Info"),12,None,Seq("tabularFields","exportFields").map(Left(_))),
         LayoutBlock(Some("Fields"),12,None,Seq("fields").map(Left(_))),
         LayoutBlock(Some("Not DB fields"),12,None,Seq("fields_no_db").map(Left(_))),
         LayoutBlock(Some("Linked forms"),12,None,Seq("fields_child").map(Left(_))),
