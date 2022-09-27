@@ -1,8 +1,6 @@
 package ch.wsl.box.testmodel
 
-
-  import ch.wsl.box.generated.Entities.Exploration_row
-  import ch.wsl.box.model.UpdateTable
+ import ch.wsl.box.model.UpdateTable
   import ch.wsl.box.rest.utils.JSONSupport.{EncoderWithBytea, Light}
   import io.circe.generic.extras.Configuration
   import io.circe.{Decoder, Json}
