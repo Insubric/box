@@ -48,7 +48,7 @@ class JsonDiffSpec extends BaseSpec {
       JSONField.string("id2"),
       JSONField.number("field1"),
       JSONField.string("field2"),
-      JSONField.number("id1"),
+      JSONField.number("field3"),
       JSONField.child("child1",child1Metadata.objId,"","")
     ),
     keys = Seq("id1","id2"),
@@ -135,7 +135,7 @@ class JsonDiffSpec extends BaseSpec {
     id = Some(JSONID.fromMap(Map("id" -> Json.fromString("change-me")).toSeq)),
     fields = Seq(
       JSONDiffField(
-        field = Some("id"),
+        field = "id",
         old = Some(Json.fromString("change-me")),
         value = Some(Json.fromString("changed"))
       )
@@ -145,9 +145,50 @@ class JsonDiffSpec extends BaseSpec {
   "JsonDiff" should "be calculated" in {
 
     val result = json1.diff(mainMetadata,Seq(child1Metadata,child2Metadata))(json2)
-    println(result.asJson.spaces4)
     result shouldBe jsonDiff
 
+  }
+
+  it should "catch multiple changes" in {
+    val obj1 = parse(
+      """
+        |{
+        | "field1": 1,
+        | "field2": "test"
+        |}
+        |""".stripMargin).toOption.get
+
+    val obj2 = parse(
+      """
+        |{
+        | "field1": 2,
+        | "field2": "test2"
+        |}
+        |""".stripMargin).toOption.get
+    val diff = obj1.diff(mainMetadata,Seq())(obj2)
+    val fields:Seq[(String,Json)] = diff.models.find(_.model == mainMetadata.name) match {
+      case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
+      case None => Seq()
+    }
+    fields.map(_._1) shouldBe Seq("field1","field2")
+  }
+
+  it should "catch null changes" in {
+    val obj1 = parse(
+      """
+        |{
+        | "field1": 1,
+        | "field2": "test"
+        |}
+        |""".stripMargin).toOption.get
+
+    val obj2 = parse(
+      """
+        |{
+        |}
+        |""".stripMargin).toOption.get
+    val diff = obj1.diff(mainMetadata,Seq())(obj2)
+    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1","field2")
   }
 
 }

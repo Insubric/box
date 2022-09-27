@@ -226,12 +226,17 @@ object JSONUtils extends Logging {
         }
       }
 
-      (el.asObject,other.asObject) match {
+      val fields = (el.asObject,other.asObject) match {
         case (Some(t),Some(o)) => JSONDiff(_diff(t.toMap,o.toMap))
         case (None,Some(obj)) => JSONDiff(Seq(JSONDiffModel(metadata.name,JSONID.fromData(other,metadata),obj.toMap.map{case (key, value) => JSONDiffField(key,None,Some(value),insert = true)}.toSeq)))
         case (Some(obj),None) => JSONDiff(Seq(JSONDiffModel(metadata.name,JSONID.fromData(el,metadata),obj.toMap.map{ case (key, value) => JSONDiffField(key,Some(value),Some(Json.Null),delete = true) }.toSeq)))
         case _ => throw new Exception("Cannot compare non-object json")
       }
+      JSONDiff(
+        fields.models.groupBy(x => (x.model,x.id)).map{ case ((model,id),childs) =>
+          JSONDiffModel(model,id,childs.flatMap(_.fields))
+        }.toSeq
+      )
     }
 
   }
