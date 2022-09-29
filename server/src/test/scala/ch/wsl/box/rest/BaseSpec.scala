@@ -4,25 +4,18 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.rest.utils.{DatabaseSetup, UserProfile}
-import org.scalatest.concurrent.ScalaFutures
 import _root_.io.circe._
 import _root_.io.circe.parser._
 import _root_.io.circe.generic.auto._
 
 import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.boxentities.BoxConf
-import ch.wsl.box.model.{BuildBox, DropBox}
-import ch.wsl.box.rest.routes.v1.NotificationChannels
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.services.{TestContainerConnection, TestModule}
+import ch.wsl.box.rest.services.{TestModule}
 import ch.wsl.box.services.Services
-import ch.wsl.box.services.files.ImageCache
-import ch.wsl.box.services.mail.MailService
-import ch.wsl.box.testmodel.{Entities, GenRegistry}
-import com.dimafeng.testcontainers.scalatest.TestContainerForAll
+import ch.wsl.box.testmodel.{GenRegistry}
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
+import org.scalatest.flatspec.{AsyncFlatSpec}
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.utility.DockerImageName
 import scribe.{Level, Logger, Logging}
@@ -52,7 +45,7 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
     val container = containerDef.start()
     TestModule(container).injector.run[Services, A] { implicit services =>
       val assertion = for{
-        _ <- DatabaseSetup.setUp()
+        _ <- DatabaseSetup.setUpForTests()
         assertion <- run(services)
       } yield assertion
 

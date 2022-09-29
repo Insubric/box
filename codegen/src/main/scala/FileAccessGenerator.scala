@@ -9,7 +9,7 @@ import scala.util.Try
 
 
 
-case class FileAccessGenerator(model:Model,conf:Config) extends slick.codegen.SourceCodeGenerator(model)
+case class FileAccessGenerator(model:Model) extends slick.codegen.SourceCodeGenerator(model)
   with BoxSourceCodeGenerator
   with slick.codegen.OutputHelpers {
 

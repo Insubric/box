@@ -23,12 +23,12 @@ object GeneratedRoutes extends GeneratedRoutes {
 
 
     Table[Simple,Simple_row]("simple",Simple, lang)(Entities.encodeSimple_row,Entities.decodeSimple_row,mat,up,ec,services).route ~
-    Table[AppParent,AppParent_row]("app_parent",AppParent, lang)(Entities.encodeAppParent_row,Entities.decodeAppParent_row,mat,up,ec,services).route ~
-    Table[AppChild,AppChild_row]("app_child",AppChild, lang)(Entities.encodeAppChild_row,Entities.decodeAppChild_row,mat,up,ec,services).route ~
-    Table[AppSubchild,AppSubchild_row]("app_subchild",AppSubchild, lang)(Entities.encodeAppSubchild_row,Entities.decodeAppSubchild_row,mat,up,ec,services).route ~
-    Table[DbParent,DbParent_row]("db_parent",DbParent, lang)(Entities.encodeDbParent_row,Entities.decodeDbParent_row,mat,up,ec,services).route ~
-    Table[DbChild,DbChild_row]("db_child",DbChild, lang)(Entities.encodeDbChild_row,Entities.decodeDbChild_row,mat,up,ec,services).route ~
-    Table[DbSubchild,DbSubchild_row]("db_subchild",DbSubchild, lang)(Entities.encodeDbSubchild_row,Entities.decodeDbSubchild_row,mat,up,ec,services).route
+    Table[App_parent,App_parent_row]("app_parent",App_parent, lang)(Entities.encodeApp_parent_row,Entities.decodeApp_parent_row,mat,up,ec,services).route ~
+    Table[App_child,App_child_row]("app_child",App_child, lang)(Entities.encodeApp_child_row,Entities.decodeApp_child_row,mat,up,ec,services).route ~
+    Table[App_subchild,App_subchild_row]("app_subchild",App_subchild, lang)(Entities.encodeApp_subchild_row,Entities.decodeApp_subchild_row,mat,up,ec,services).route ~
+    Table[Db_parent,Db_parent_row]("db_parent",Db_parent, lang)(Entities.encodeDb_parent_row,Entities.decodeDb_parent_row,mat,up,ec,services).route ~
+    Table[Db_child,Db_child_row]("db_child",Db_child, lang)(Entities.encodeDb_child_row,Entities.decodeDb_child_row,mat,up,ec,services).route ~
+    Table[Db_subchild,Db_subchild_row]("db_subchild",Db_subchild, lang)(Entities.encodeDb_subchild_row,Entities.decodeDb_subchild_row,mat,up,ec,services).route
   }
 }
            

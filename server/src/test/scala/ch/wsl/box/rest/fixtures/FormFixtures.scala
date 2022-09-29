@@ -37,7 +37,7 @@ object FormFixtures{
 
   private def simpleFormFields(simpleFormId:UUID) = Seq(
     BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.NUMBER, name = "id"),
-    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.STRING, name = "name"),
+    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.STRING, name = "name", required = Some(false)),
   )
 
   def insertSimple(implicit db:UserDatabase, ec:ExecutionContext): Future[(String, UUID)] = for{

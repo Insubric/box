@@ -12,7 +12,8 @@ import _root_.io.circe._
 import _root_.io.circe.syntax._
 import _root_.io.circe.generic.auto._
 import ch.wsl.box.rest.fixtures.{DbManagedIdFixtures, FormFixtures}
-import ch.wsl.box.testmodel.Entities.{DbParent_row, Simple_row}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
+import ch.wsl.box.testmodel.Entities.Simple_row
 import org.scalatest.Assertion
 
 import scala.concurrent.Future
@@ -30,7 +31,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
     } yield {
-      assert(i == result.get)
+      assert(i == result.get.dropBoxObjectId)
       (JSONID.fromData(i,form).get,result.get)
     }
   }
@@ -73,13 +74,13 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
          (formName,_) <- FormFixtures.insertSimple(up.db,services.executionContext)
          (idEntry,result) <- insert(formName,base.asJson)
          resultSimple = result.as[Simple_row].toOption.get
-         resultWithDeletion = resultSimple.copy(name = None).asJson
+         resultWithDeletion = resultSimple.copy(name = None).asJson.dropBoxObjectId
          (r1,r2) <- update(formName,idEntry,resultWithDeletion)
        } yield {
          resultSimple.name shouldBe base.name
-         r1 shouldBe r2.get
+         r1 shouldBe r2.get.dropBoxObjectId
          r1 shouldBe resultWithDeletion
-         r2.get shouldBe resultWithDeletion
+         r2.get.dropBoxObjectId shouldBe resultWithDeletion
        }
   }
 
@@ -94,12 +95,12 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     for{
       (formName,_,_,_) <- new FormFixtures("db_").insertForm(up.db)
       (idEntry,result) <- insert(formName,base)
-      resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name"))
+      resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name")).dropBoxObjectId
       (r1,r2) <- update(formName,idEntry,resultWithDeletion)
     } yield {
-      r1 shouldBe r2.get
+      r1 shouldBe r2.get.dropBoxObjectId
       r1.dropNullValues shouldBe resultWithDeletion.dropNullValues
-      r2.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
+      r2.get.dropNullValues.dropBoxObjectId shouldBe resultWithDeletion.dropNullValues
     }
   }
 
@@ -114,12 +115,12 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     for{
       (formName,_,_,_) <- new FormFixtures("db_").insertForm(up.db)
       (idEntry,result) <- insert(formName,base)
-      resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name"))
+      resultWithDeletion = Json.fromFields(result.as[JsonObject].toOption.get.toList.filterNot(_._1 == "name")).dropBoxObjectId
       (r1,r2) <- upsert(formName,idEntry,resultWithDeletion)
     } yield {
-      r1 shouldBe r2.get
+      r1 shouldBe r2.get.dropBoxObjectId
       r1.dropNullValues shouldBe resultWithDeletion.dropNullValues
-      r2.get.dropNullValues shouldBe resultWithDeletion.dropNullValues
+      r2.get.dropNullValues.dropBoxObjectId shouldBe resultWithDeletion.dropNullValues
     }
   }
 

@@ -2,7 +2,7 @@ package ch.wsl.box.codegen
 
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.services.config.ConfigFileImpl
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import schemagen.SchemaGenerator
 import slick.codegen.SourceCodeGenerator
@@ -27,9 +27,9 @@ case class GeneratedFiles(
                        fixFiles: FixFileAccesGenerator
                          )
 
-case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends BaseCodeGenerator {
+case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:GeneratorParams) extends BaseCodeGenerator {
 
-  def generatedFiles(connection:Connection): GeneratedFiles = {
+  def generatedFiles(): GeneratedFiles = {
 
 
 
@@ -40,7 +40,7 @@ case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends Ba
       entities = EntitiesGenerator(connection,dbModel),
       generatedRoutes = RoutesGenerator(calculatedViews, calculatedTables, dbModel),
       entityActionsRegistry = EntityActionsRegistryGenerator(calculatedViews ++ calculatedTables, dbModel),
-      fileAccessGenerator = FileAccessGenerator(dbModel, dbConf),
+      fileAccessGenerator = FileAccessGenerator(dbModel),
       registry = RegistryGenerator(dbModel),
       fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel),
       fixFiles = FixFileAccesGenerator(dbModel,calculatedTables)
@@ -53,6 +53,15 @@ object CustomizedCodeGenerator  {
 
   def main(args: Array[String]):Unit = {
 
+    val dbConf: Config = com.typesafe.config.ConfigFactory.load().as[com.typesafe.config.Config]("db")
+    val params = GeneratorParams(
+      dbConf.as[Seq[String]]("generator.tables"),
+      dbConf.as[Seq[String]]("generator.views"),
+      dbConf.as[Seq[String]]("generator.excludes"),
+      dbConf.as[Seq[String]]("generator.excludeFields")
+    )
+
+
     val connection = new ConnectionConfImpl()
 
     val conf = new ConfigFileImpl()
@@ -61,13 +70,13 @@ object CustomizedCodeGenerator  {
 
 
 
-    val files = CodeGenerator(conf.schemaName).generatedFiles(connection)
+    val files = CodeGenerator(conf.schemaName,connection,params).generatedFiles()
 
     files.fixFiles.createTriggers(connection.dbConnection)
 
-    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq()).generatedFiles(connection)
+    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),connection,params).generatedFiles()
 
-    val boxFilesAll = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq()).generatedFiles(connection)
+    val boxFilesAll = CodeGenerator(conf.boxSchemaName.getOrElse("box"),connection,params).generatedFiles()
 
     files.entities.writeToFile(
       "ch.wsl.box.jdbc.PostgresProfile",

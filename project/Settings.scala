@@ -46,9 +46,9 @@ object Settings {
     //Testing
     val specs2 = "4.3.4"
     val junit = "4.12"
-    val scalatest = "3.2.2"
+    val scalatest = "3.2.13"
     val selenium = "3.14.0"
-    val testcontainersScalaVersion = "0.39.8"
+    val testcontainersScalaVersion = "0.40.10"
 
 
     //json parsers
@@ -158,7 +158,7 @@ object Settings {
     "org.javadelight" % "delight-graaljs-sandbox" % "0.1.2",
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
-    "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
+    "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % Test,
     "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
     "org.geotools" % "gt-shapefile" % "23.2"
 

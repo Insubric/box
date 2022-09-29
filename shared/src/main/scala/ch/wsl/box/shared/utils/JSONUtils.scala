@@ -1,5 +1,6 @@
 package ch.wsl.box.shared.utils
 
+import ch.wsl.box.model.shared.JSONID.BOX_OBJECT_ID
 import ch.wsl.box.model.shared.{FileUtils, JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
 import io.circe._
@@ -167,6 +168,15 @@ object JSONUtils extends Logging {
       Json.Null.deepMerge(el).foldWith(folder).deepDropNullValues
 
     }
+
+    def dropBoxObjectId:Json = el.fold(
+      el,
+      _ => el,
+      _ => el,
+      _ => el,
+      arr => Json.fromValues(arr.map(x => x.dropBoxObjectId )),
+      value => Json.fromFields(value.toMap.filterNot(_._1 == BOX_OBJECT_ID).map{case (k,v) => k -> v.dropBoxObjectId})
+    )
 
     def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
 

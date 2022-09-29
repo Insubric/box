@@ -54,9 +54,9 @@ class UpdateFormSpec extends BaseSpec {
       _ <- new FormFixtures("app_").insertForm(up.db)
       (inserted,result) <- upsert("app_parent",Some(id),json)
     } yield {
-      inserted shouldBe result.get
-      inserted shouldBe json
-      result.get shouldBe json
+      inserted.dropBoxObjectId shouldBe result.get.dropBoxObjectId
+      inserted.dropBoxObjectId shouldBe json.dropBoxObjectId
+      result.get.dropBoxObjectId shouldBe json.dropBoxObjectId
     }
   }
 
@@ -69,9 +69,9 @@ class UpdateFormSpec extends BaseSpec {
       _ <- new FormFixtures("db_").insertForm(up.db)
       (inserted,result) <- upsert("db_parent",None,json)
     } yield {
-      inserted shouldBe result.get
-      assertion(inserted)
-      assertion(result.get)
+      inserted.dropBoxObjectId shouldBe result.get.dropBoxObjectId
+      assertion(inserted.dropBoxObjectId)
+      assertion(result.get.dropBoxObjectId)
     }
   }
 

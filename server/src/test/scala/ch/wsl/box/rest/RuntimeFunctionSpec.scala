@@ -41,16 +41,20 @@ class RuntimeFunctionSpec extends BaseSpec {
 
     implicit val up = UserProfile(services.connection.adminUser)
 
+    val orig = DataResultTable(Seq(),Seq(),Seq(Seq(Json.fromString("test"))))
+
     val code =
       """
-        |Future.successful(DataResultTable(Seq(),Seq(Seq(Json.fromString("test")))))
+        |Future.successful(DataResultTable(Seq(),Seq(),Seq(Seq(Json.fromString("test")))))
       """.stripMargin
 
     assert(true)
 
     val f = RuntimeFunction("test1",code)
     f(context,"en").map{ result =>
-      assert(result.asInstanceOf[DataResultTable].rows.head.head == Json.fromString("test"))
+      val dt = result.asInstanceOf[DataResultTable]
+      dt shouldBe orig
+      dt.rows.head.head shouldBe Json.fromString("test")
     }
   }
 
@@ -77,7 +81,7 @@ class RuntimeFunctionSpec extends BaseSpec {
       """
         |for{
         |  result <- context.ws.get("http://wavein.ch")
-        |} yield DataResultTable(Seq(result),Seq())
+        |} yield DataResultTable(Seq(result),Seq(),Seq())
       """.stripMargin
     val f = RuntimeFunction("test3",code)
     f(RuntimeFunction.context(Json.Null),"en").map{ result =>
@@ -96,7 +100,7 @@ class RuntimeFunctionSpec extends BaseSpec {
       """
         |for{
         |  result <- context.ws.post("https://postman-echo.com/post","data","application/x-www-form-urlencoded; charset=UTF-8")
-        |} yield DataResultTable(Seq(result),Seq())
+        |} yield DataResultTable(Seq(result),Seq(),Seq())
       """.stripMargin
     val f = RuntimeFunction("test4",code)
     f(RuntimeFunction.context(Json.Null),"en").map{ result =>

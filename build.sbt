@@ -75,6 +75,7 @@ lazy val server: Project  = project
     Test / unmanagedResourceDirectories += baseDirectory.value / "../db",
     Test / unmanagedSourceDirectories += baseDirectory.value / "../db",
     Test / fork := true,
+    Test / parallelExecution := false,
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := "boxInfo",
     buildInfoObject := "BoxBuildInfo",

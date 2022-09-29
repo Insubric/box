@@ -50,9 +50,9 @@ class InsertFormSpec extends BaseSpec {
       _ <- new FormFixtures("app_").insertForm(up.db)
       (inserted,result) <- insert("app_parent",Some(id),json)
     } yield {
-      inserted shouldBe result.get
-      inserted shouldBe json
-      result.get shouldBe json
+      inserted.dropBoxObjectId shouldBe result.get.dropBoxObjectId
+      inserted.dropBoxObjectId shouldBe json
+      result.get.dropBoxObjectId shouldBe json
     }
   }
 
@@ -65,9 +65,9 @@ class InsertFormSpec extends BaseSpec {
       _ <- new FormFixtures("db_").insertForm(up.db)
       (inserted,result) <- insert("db_parent",None,json)
     } yield {
-      inserted shouldBe result.get
-      assertion(inserted)
-      assertion(result.get)
+      inserted.dropBoxObjectId shouldBe result.get.dropBoxObjectId
+      assertion(inserted.dropBoxObjectId)
+      assertion(result.get.dropBoxObjectId)
     }
   }
 

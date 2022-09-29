@@ -46,15 +46,17 @@ object DatabaseSetup {
     } yield true
   }
 
-  def setUp()(implicit ec:ExecutionContext,services: Services) = {
+  def setUpForTests()(implicit ec:ExecutionContext,services: Services) = {
 
     for {
+      _ <- services.connection.dbConnection.run(sqlu"""CREATE ROLE postgres;""").recover{case e:Exception => e.printStackTrace()}
       _ <- services.connection.dbConnection.run(DBIO.seq(sqlu"""
             drop schema if exists box cascade;
             create schema if not exists box;
             """))
       _ <- initDb(services.connection.dbConnection)
       _ <- initBox(services.connection.dbConnection, services.connection.adminUser)
+      _ <- services.connection.dbConnection.run(DBIO.seq(sqlu""" create view box.v_labels as select 1"""))
       _ <- Migrate.all(services)
     } yield true
 
