@@ -47,12 +47,6 @@ jobs:
           node-version: 14.18.2
       - name: Setup client test env
         run: npm install
-      - name: Clean
-        run: |
-          export PATH=./node_modules/.bin:$PATH
-          sbt codegen/clean
-          sbt server/clean
-          sbt client/clean
       - name: Run tests client
         env:
           AUTOMATE_USERNAME: ${{secrets.AUTOMATE_USERNAME}}

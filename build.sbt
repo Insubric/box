@@ -91,9 +91,11 @@ lazy val server: Project  = project
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free").map{ p =>
-      npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
-        (nodeModules / p).allPaths
-      }.value
+      if (!sys.env.get("DEV_SERVER").isDefined)
+        npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
+          (nodeModules / p).allPaths
+        }.value
+      else npmAssets := Seq()
     },
     Test / testOptions ++= Seq(
       Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
