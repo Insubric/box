@@ -20,7 +20,6 @@ class BoxFormAdminSpec extends BaseSpec {
 
     implicit val bdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
-    Registry.loadBox()
     for{
       (_,mainId,_,_) <- new FormFixtures("db_").insertForm(services.connection.adminDB)
       form <- services.connection.adminDB.run(new BoxFormMetadataFactory().of("form","it"))
