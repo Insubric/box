@@ -100,4 +100,11 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
   def formChanged: Future[Boolean] = waitId(TestHooks.dataChanged)
   def formUnchanged: Future[Boolean] = waitNotId(TestHooks.dataChanged)
 
+  def withApp(testCase:() => Future[Assertion]) = {
+    document.body.innerHTML = ""
+    Main.setupUI().flatMap { _ =>
+      testCase()
+    }
+  }
+
 }

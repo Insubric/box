@@ -91,7 +91,7 @@ lazy val server: Project  = project
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free").map{ p =>
-      if (!sys.env.get("DEV_SERVER").isDefined)
+      if (!sys.env.get("RUNNING_TEST").isDefined)
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
         }.value
@@ -148,7 +148,7 @@ lazy val client: Project = (project in file("client"))
       "@types/bootstrap" -> "4.1.3",
       "@fortawesome/fontawesome-free" -> "5.15.4",
       "flatpickr" -> "4.6.3",
-      "monaco-editor" -> "0.21.1",
+      "monaco-editor" -> "0.34.0",
       "quill" -> "1.3.7",
       "@types/quill" -> "1.3.10",
       "open-sans-all" -> "0.1.3",
@@ -173,19 +173,19 @@ lazy val client: Project = (project in file("client"))
     fullOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "prod.config.js"),
     Test / webpackConfigFile  := Some(baseDirectory.value / ".." / "test.config.js"),
     Compile / npmDevDependencies ++= Seq(
-      "html-webpack-plugin" -> "4.3.0",
-      "webpack-merge" -> "4.2.2",
-      "style-loader" -> "1.2.1",
-      "css-loader" -> "3.5.3",
-      "mini-css-extract-plugin" -> "0.9.0",
-      "monaco-editor-webpack-plugin" -> "2.0.0",
-      "file-loader" -> "6.1.0",
+      "html-webpack-plugin" -> "5.5.0",
+      "webpack-merge" -> "5.8.0",
+      "style-loader" -> "3.3.1",
+      "css-loader" -> "6.7.1",
+      "mini-css-extract-plugin" -> "2.6.1",
+      "monaco-editor-webpack-plugin" -> "7.0.1",
+      "file-loader" -> "6.2.0",
     ),
     // https://scalacenter.github.io/scalajs-bundler/cookbook.html#webpack-dev-server
     webpackDevServerPort := 8888,
-    webpack / version := "4.43.0",
-    installJsdom / version := "16.4.0",
-    startWebpackDevServer / version  := "3.11.0",
+    webpack / version := "5.74.0",
+    installJsdom / version := "20.0.0",
+    startWebpackDevServer / version  := "4.11.1",
 
 
     //To use jsdom headless browser uncomment the following lines
