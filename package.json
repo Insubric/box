@@ -5,7 +5,7 @@
   "dependencies": {
     "canvas": "2.6.1",
     "jsdom": "^20.0.0",
-    "webpack": "4.44.2",
+    "webpack": "5.74.0",
     "webpack-cli": "3.3.12"
   }
 }
