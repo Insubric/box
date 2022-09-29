@@ -1,4 +1,4 @@
-name: Box CI Server
+name: Box CI Client
 
 on:
   [push, pull_request]
@@ -47,13 +47,19 @@ jobs:
           node-version: 14.18.2
       - name: Setup client test env
         run: npm install
-      - name: Run tests server
+      - name: Clean
         run: |
           export PATH=./node_modules/.bin:$PATH
           sbt codegen/clean
           sbt server/clean
           sbt client/clean
-          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m server/test
+      - name: Run tests client
+        env:
+          AUTOMATE_USERNAME: ${{secrets.AUTOMATE_USERNAME}}
+          AUTOMATE_ACCESS_KEY: ${{secrets.AUTOMATE_ACCESS_KEY}}
+        run: |
+          export PATH=./node_modules/.bin:$PATH
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/test
       - name: Push server result to testspace
-        run: testspace server/target/test-reports/*.xml
+        run: testspace client/target/test-reports/*.xml
         if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
