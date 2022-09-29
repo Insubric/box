@@ -21,7 +21,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   TestHooks.testing = true
 
-  Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Debug)).replace()
+  Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Warn)).replace()
 
   def values = new Values()
 

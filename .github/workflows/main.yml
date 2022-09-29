@@ -41,10 +41,10 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: "adopt@1.8"
-      - name: Node 10.x
+      - name: Node 14.x
         uses: actions/setup-node@v1
         with:
-          node-version: 10.19.0
+          node-version: 14.18.2
       - name: Setup client test env
         run: npm install
       - name: Run tests server
