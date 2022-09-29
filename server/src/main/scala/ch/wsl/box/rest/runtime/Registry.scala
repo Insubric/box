@@ -64,4 +64,7 @@ object Registry extends Logging {
     }
   }
 
+  def inject(ri:RegistryInstance) { _registry = ri }
+  def injectBox(ri:RegistryInstance) { _boxRegistry = ri }
+
 }
