@@ -21,6 +21,7 @@ object TestHooks {
   def tableChildRowId(formId:UUID,rowId:Option[JSONID]) = s"tableChildRowFormId${formId}Row${rowId.map(_.asString).getOrElse("noid")}"
   def actionButton(label:String) = s"formAction${label.replace(" ","").toLowerCase}"
   val logoutButton = "logoutButton"
+  val logged = "loggedDiv"
   val dataChanged = "dataChanged"
   def formField(name:String) = s"formField$name"
   def readOnlyField(name:String) = s"readOnlyField$name"

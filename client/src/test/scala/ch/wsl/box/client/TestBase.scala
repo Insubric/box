@@ -46,7 +46,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   def login: Future[Boolean] = Context.services.clientSession.login("test", "test")
 
-  def waitLoggedIn: Future[Boolean] = waitElement({ () => document.getElementById(TestHooks.logoutButton)},"Logout button")
+  def waitLoggedIn: Future[Boolean] = waitElement({ () => document.getElementById(TestHooks.logged)},"Logged div")
 
   private def waiter(w:() => Boolean,name:String = ""):Future[Boolean] = {
     val promise = Promise[Boolean]()

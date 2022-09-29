@@ -11,13 +11,13 @@ class LoginTest extends TestBase {
     "login" should "be done" in {
       Main.setupUI().flatMap { _ =>
           val beforeLogin = document.body.innerHTML
-          assert(document.querySelectorAll(s"#${TestHooks.logoutButton}").length == 0)
+          assert(document.querySelectorAll(s"#${TestHooks.logged}").length == 0)
           for{
             _ <- Context.services.clientSession.login("test","test")
             _ <- waitLoggedIn
           } yield {
             assert(beforeLogin != document.body.innerHTML)
-            assert(document.querySelectorAll(s"#${TestHooks.logoutButton}").length == 1)
+            assert(document.querySelectorAll(s"#${TestHooks.logged}").length == 1)
             assert(document.getElementById(values.titleId).textContent == values.titleText)
           }
       }
