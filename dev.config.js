@@ -14,13 +14,14 @@ const WebApp = merge(ScalaJS, {
         // Your entry
         "./client-fastopt.js",
     ],
+    output: {
+        filename: "client-fastopt-library.js"
+    },
     stats: {
-        logging: 'verbose',
+        warningsFilter: (warning) => true,
     },
     resolve: {
         fallback: {
-            "path": require.resolve("path-browserify"),
-            "util": require.resolve("util"),
             "stream": require.resolve("stream-browserify"),
             "buffer": require.resolve('buffer'),
             "crypto": require.resolve('crypto-browserify'), //if you want to use this module also don't forget npm i crypto-browserify
@@ -53,7 +54,5 @@ const WebApp = merge(ScalaJS, {
         },
     }
 });
-
-console.log(WebApp)
 
 module.exports = WebApp;
