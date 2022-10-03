@@ -7,10 +7,7 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const WebApp = merge(ScalaJS, {
     mode: "development",
     entry: [
-        // Runtime code for hot module replacement
-        "webpack/hot/dev-server.js",
-        // Dev server client for web socket transport, hot and live reload logic
-        "webpack-dev-server/client/index.js?hot=true&live-reload=true",
+
         // Your entry
         "./client-fastopt.js",
     ],
@@ -47,6 +44,7 @@ const WebApp = merge(ScalaJS, {
     ],
     devServer: {
         client: {
+            reconnect: false,
             overlay: {
                 errors: true,
                 warnings: false,

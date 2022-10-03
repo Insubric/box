@@ -94,6 +94,7 @@ trait UpdateTable[T] { t:Table[T] =>
     col.name match {
       case "String" => update[String](col.nullable)
       case "Int" => update[Int](col.nullable)
+      case "Long" => update[Long](col.nullable)
       case "Short" => update[Short](col.nullable)
       case "Double" => update[Double](col.nullable)
       case "BigDecimal" => update[BigDecimal](col.nullable)
@@ -152,6 +153,7 @@ trait UpdateTable[T] { t:Table[T] =>
       col.name match {
         case "String"  => filterMany(col.nullable,Some(v.split(",").toSeq))
         case "Int" => filterMany[Int](col.nullable,Some(v.split(",").toSeq.flatMap(_.toIntOption)))
+        case "Long" => filterMany[Long](col.nullable,Some(v.split(",").toSeq.flatMap(_.toLongOption)))
         case "Short" => filterMany[Short](col.nullable,Some(v.split(",").toSeq.flatMap(_.toShortOption)))
         case "Double" => filterMany[Double](col.nullable,Some(v.split(",").toSeq.flatMap(_.toDoubleOption)))
         case "BigDecimal" => filterMany[BigDecimal](col.nullable,Some(v.split(",").toSeq.flatMap(x => Try(BigDecimal(x)).toOption)))
@@ -163,6 +165,7 @@ trait UpdateTable[T] { t:Table[T] =>
       col.name match {
         case "String"  => filter(col.nullable,Some(v))
         case "Int" => filter[Int](col.nullable,v.toIntOption)
+        case "Long" => filter[Long](col.nullable,v.toLongOption)
         case "Short" => filter[Short](col.nullable,v.toShortOption)
         case "Double" => filter[Double](col.nullable,v.toDoubleOption)
         case "BigDecimal" => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)

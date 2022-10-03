@@ -916,6 +916,9 @@ object GlobalStyleFactory{
       unsafeExt(_ + ".show") (
         opacity(1),
         transition := "opacity 200ms ease-in-out",
+      ),
+      unsafeExt(_ + ".close") (
+        display.none
       )
     )
 

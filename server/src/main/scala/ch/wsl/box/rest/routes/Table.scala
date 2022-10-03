@@ -227,7 +227,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     }
   }
 
-  def update(ids:Seq[JSONID]):Route = put {
+  def updateDiff(ids:Seq[JSONID]):Route = put {
     entity(as[JSONDiff]) { e =>
       onComplete(db.run(dbActions.updateDiff(e).transactionally)) {
         case Success(rows) => complete{
@@ -237,6 +237,21 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       }
     }
   }
+
+
+  def update(ids:Seq[JSONID]):Route = put {
+    entity(as[Json]) { e =>
+      val rows = e.as[M].toOption.map(Seq(_)).orElse(e.as[Seq[M]].toOption).get
+      onComplete(db.run(DBIO.sequence(rows.zip(ids).map{case (x,id) => dbActions.update(id, x)}).transactionally)) {
+        case Success(entities) => complete{
+          if(entities.length == 1) entities.head.asJson else entities.asJson
+        }
+        case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+      }
+    }
+  }
+
+
 
   def deleteById(ids:Seq[JSONID]):Route = delete {
     onComplete(db.run(DBIO.sequence(ids.map( id => dbActions.delete(id))).transactionally)) {

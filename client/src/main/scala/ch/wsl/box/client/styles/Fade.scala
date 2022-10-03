@@ -16,6 +16,7 @@ object Fade {
     val el = div(ClientConf.style.showHide,stl,obj).render
     condition.listen({ show =>
       if(show) {
+        el.classList.remove("close")
         el.classList.remove("hide")
         window.setTimeout(() => {
           if(!el.classList.contains("hide"))
@@ -32,6 +33,7 @@ object Fade {
         } else {
           el.classList.add("hide")
         }
+        window.setTimeout(() => if(!condition.get) el.classList.add("close"),300)
 
       }
     },true)
