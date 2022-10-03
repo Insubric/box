@@ -12,11 +12,15 @@ const WebApp = merge(ScalaJS, {
         // Dev server client for web socket transport, hot and live reload logic
         "webpack-dev-server/client/index.js?hot=true&live-reload=true",
         // Your entry
-        "./client-fastopt-library.js",
         "./client-fastopt.js",
     ],
+    stats: {
+        logging: 'verbose',
+    },
     resolve: {
         fallback: {
+            "path": require.resolve("path-browserify"),
+            "util": require.resolve("util"),
             "stream": require.resolve("stream-browserify"),
             "buffer": require.resolve('buffer'),
             "crypto": require.resolve('crypto-browserify'), //if you want to use this module also don't forget npm i crypto-browserify
@@ -49,5 +53,7 @@ const WebApp = merge(ScalaJS, {
         },
     }
 });
+
+console.log(WebApp)
 
 module.exports = WebApp;

@@ -163,12 +163,16 @@ lazy val client: Project = (project in file("client"))
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
+      "path-browserify" -> "1.0.1",
+      "util" -> "0.12.4"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "crypto-browserify",
     stIgnore += "ol-ext",
     stIgnore += "@fortawesome/fontawesome-free",
     stIgnore += "stream-browserify",
+    stIgnore += "path-browserify",
+    stIgnore += "util",
     stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
     fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -194,6 +198,7 @@ lazy val client: Project = (project in file("client"))
     startWebpackDevServer / version  := "4.11.1",
 
     //To use jsdom headless browser uncomment the following lines
+    Test / requireJsDomEnv := true,
     Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
     Test / jsEnvInput := Def.task{
       val targetDir = (npmUpdate in Test).value
