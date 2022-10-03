@@ -138,8 +138,8 @@ lazy val client: Project = (project in file("client"))
     Compile / npmDependencies ++= Seq(
       "ol" -> "6.3.1",
       "@types/ol" -> "6.3.1",
-      "proj4" -> "2.5.0",
-      "@types/proj4" -> "2.5.0",
+      "proj4" -> "2.8.0",
+      "@types/proj4" -> "2.5.2",
       "ol-ext" -> "3.1.14",
       "jquery" -> "3.4.1",
       "@types/jquery" -> "3.5.6",
@@ -159,11 +159,16 @@ lazy val client: Project = (project in file("client"))
       "print-js" -> "1.6.0",
       "striptags" -> "3.2.0",
       "toolcool-range-slider" -> "2.0.12",
-      "hotkeys-js" -> "3.10.0"
+      "hotkeys-js" -> "3.10.0",
+      "crypto-browserify" -> "3.12.0",
+      "buffer" -> "6.0.3",
+      "stream-browserify" -> "3.0.0",
     ),
     stIgnore += "open-sans-all",
+    stIgnore += "crypto-browserify",
     stIgnore += "ol-ext",
     stIgnore += "@fortawesome/fontawesome-free",
+    stIgnore += "stream-browserify",
     stTypescriptVersion := "4.2.4",
     // Use library mode for fastOptJS
     fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -184,9 +189,9 @@ lazy val client: Project = (project in file("client"))
     // https://scalacenter.github.io/scalajs-bundler/cookbook.html#webpack-dev-server
     webpackDevServerPort := 8888,
     webpack / version := "5.74.0",
+    webpackCliVersion := "4.10.0",
     installJsdom / version := "20.0.0",
     startWebpackDevServer / version  := "4.11.1",
-
 
     //To use jsdom headless browser uncomment the following lines
     Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
