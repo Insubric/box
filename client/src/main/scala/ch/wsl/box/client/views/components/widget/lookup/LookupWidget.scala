@@ -177,7 +177,8 @@ trait LookupWidget extends Widget with HasData {
   data.sync[Option[JSONLookup]](model)(
     {json:Json =>
       val result = (lookup.get ++ current()).distinct.find(_.id == json).getOrElse{
-        logger.warn(s"Lookup for $json not found on field ${field.name}")
+        if(!json.isNull)
+          logger.warn(s"Lookup for $json not found on field ${field.name}")
         JSONLookup(json,Seq(json.string))
       }
       Some(result)

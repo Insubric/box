@@ -28,9 +28,12 @@ object ClientSession {
   final val LANG = "lang"
   final val LABELS = "labels"
   final val TABLECHILD_OPEN = "tablechild_open"
+  final val SELECTED_TAB = "selected_tab"
   final val URL_QUERY = "urlQuery"
 
   case class TableChildElement(field:String, childFormId:UUID, id:Option[JSONID])
+  case class SelectedTabKey(form:UUID, tabGroup:Option[String])
+  case class SelectedTabElement(key:SelectedTabKey, selected:String)
 }
 
 class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
@@ -219,7 +222,11 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   def setIDs(ids:IDs) = set(IDS, ids)
   def resetIDs() = set(IDS, None)
 
-
+  def selectedTab(key:SelectedTabKey):Option[String] = get[Seq[SelectedTabElement]](SELECTED_TAB).flatMap(_.find(_.key == key)).map(_.selected)
+  def setSelectedTab(key:SelectedTabKey,tab:String):Unit = set(
+    SELECTED_TAB,
+    (get[Seq[SelectedTabElement]](TABLECHILD_OPEN).toSeq.flatten ++ Seq(SelectedTabElement(key,tab))).distinct
+  )
 
   def isTableChildOpen(tc:TableChildElement):Boolean = get[Seq[TableChildElement]](TABLECHILD_OPEN).toSeq.flatten.contains(tc)
   def setTableChildOpen(tc:TableChildElement) = set(

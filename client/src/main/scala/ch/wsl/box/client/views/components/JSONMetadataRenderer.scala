@@ -1,8 +1,9 @@
 package ch.wsl.box.client.views.components
 
 
+import ch.wsl.box.client.services.ClientSession.SelectedTabKey
 import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components
 import ch.wsl.box.client.views.components.widget._
 import ch.wsl.box.client.views.components.widget.child.ChildRenderer
@@ -170,9 +171,10 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     div(
         div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
           renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined)),
-          blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (_,blks) =>
+          blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (tabGroup,blks) =>
             val tabs = blks.map(_._1.tab).distinct
-            val selectedTab = Property(tabs.headOption.flatten)
+            val tabKey = SelectedTabKey(metadata.objId,tabGroup)
+            val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
             div(BootstrapCol.md(12),
               ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
                 tabs.map { name =>
@@ -181,7 +183,10 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
                   li(BootstrapStyles.Navigation.item,
                     a(BootstrapStyles.Navigation.link,
                       BootstrapStyles.active.styleIf(selectedTab.transform(_ == name)),
-                      onclick :+= { (e: Event) => selectedTab.set(name); e.preventDefault() },
+                      onclick :+= { (e: Event) =>
+                        selectedTab.set(name);
+                        name.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
+                        e.preventDefault() },
                       title
                     ).render
                   ).render
