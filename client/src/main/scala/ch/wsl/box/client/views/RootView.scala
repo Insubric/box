@@ -131,7 +131,7 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
           LoginPopup.render
         ).render
       }
-      case Layouts.blank => div(BootstrapStyles.containerFluid,overflowX.hidden)(
+      case Layouts.blank => div(BootstrapStyles.containerFluid,overflowX.hidden,ClientConf.style.showFooterActionOnMobile)(
         notifications,
         child
       ).render

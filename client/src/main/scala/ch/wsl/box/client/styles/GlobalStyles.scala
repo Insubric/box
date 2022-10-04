@@ -882,6 +882,12 @@ object GlobalStyleFactory{
       )
     )
 
+    val showFooterActionOnMobile = style(
+      unsafeChild("#footerActions")(
+        display.block.important
+      )
+    )
+
     val mobileOnly = style(
       display.none,
       media.maxWidth(600 px)(
