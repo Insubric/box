@@ -15,14 +15,14 @@ object GeoJson {
     def decode(j:Json) = j.as[FeatureCollection]
   }
 
-  case class Coordinates(x: Double, y: Double) {
+  def approx(precision:Double,i:Double) = {
+    if(precision > 0.0) {
+      val precisionFactor =  1/precision
+      (i * precisionFactor).toInt / precisionFactor
+    } else i
+  }
 
-    private def approx(precision:Double,i:Double) = {
-      if(precision > 0.0) {
-        val precisionFactor =  1/precision
-        (i * precisionFactor).toInt / precisionFactor
-      } else i
-    }
+  case class Coordinates(x: Double, y: Double) {
 
     def xApprox(precision:Double) = approx(precision,x)
     def yApprox(precision:Double) = approx(precision,y)

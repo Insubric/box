@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
+import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.model.shared.GeoJson
@@ -21,7 +21,7 @@ import org.scalajs.dom.html.Div
 import scalacss.internal.mutable.StyleSheet
 import scalatags.JsDom
 import scribe.Logging
-import typings.ol._
+import typings.ol.{modifyMod, _}
 import typings.ol.coordinateMod.{Coordinate, createStringXY}
 import typings.ol.igcMod.IGCZ.GPS
 import typings.ol.selectMod.SelectEvent
@@ -36,7 +36,6 @@ import scalacss.ProdDefaults._
 import typings.ol.formatMod.WKT
 import typings.ol.mod.Overlay
 import typings.ol.olStrings.singleclick
-
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
 
@@ -182,7 +181,6 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     xhr.onload = { (e: dom.Event) =>
       if (xhr.status == 200) {
         logger.info(s"Recived WMTS layer $layer")
-        BrowserConsole.log(xhr)
         val capabilities = new formatMod.WMTSCapabilities().read(xhr.responseText)
         val wmtsOptions = wmtsMod.optionsFromCapabilities(capabilities, js.Dictionary(
           "layer" -> layer
@@ -312,6 +310,26 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   }
 
+  var modify:modifyMod.default = null
+  var drawPoint:drawMod.default = null
+  var drawLineString:drawMod.default = null
+  var drawPolygon:drawMod.default = null
+  var snap:snapMod.default = null
+  var drag:translateMod.default = null
+  var delete:selectMod.default = null
+  var drawHole:DrawHole = null
+
+  def dynamicInteraction = Seq(
+    modify,
+    drawPoint,
+    drawLineString,
+    drawPolygon,
+    snap,
+    drag,
+    delete,
+    drawHole
+  )
+
   def loadMap(mapDiv:Div) = {
 
 
@@ -354,18 +372,6 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     )
 
 
-    BrowserConsole.log(map)
-    BrowserConsole.log(mapDiv)
-
-
-
-
-
-
-
-
-
-
     val infoOverlay = new Overlay(overlayMod.Options()
       .setElement(div().render)
     )
@@ -380,37 +386,38 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     })
 
 
-    val modify = new modifyMod.default(modifyMod.Options()
+    modify = new modifyMod.default(modifyMod.Options()
       .setSource(vectorSource)
       .setStyle(simpleStyle)
     )
     //modify.on_modifyend(olStrings.modifyend,(e:ModifyEvent) => changedFeatures())
 
-    val drawPoint = new drawMod.default(drawMod.Options(geometryTypeMod.default.POINT)
+    drawPoint = new drawMod.default(drawMod.Options(geometryTypeMod.default.POINT)
       .setSource(vectorSource)
       .setStyle(vectorStyle)
     )
     //drawPoint.on_change(olStrings.change,e => changedFeatures())
 
-    val drawLineString = new drawMod.default(drawMod.Options(geometryTypeMod.default.LINE_STRING)
+    drawLineString = new drawMod.default(drawMod.Options(geometryTypeMod.default.LINE_STRING)
       .setSource(vectorSource)
       .setStyle(simpleStyle)
     )
     //drawLineString.on_change(olStrings.change,e => changedFeatures())
 
-    val drawPolygon = new drawMod.default(drawMod.Options(geometryTypeMod.default.POLYGON)
+    drawPolygon = new drawMod.default(drawMod.Options(geometryTypeMod.default.POLYGON)
       .setSource(vectorSource)
       .setStyle(simpleStyle)
     )
+    drawPolygon.finishDrawing()
     //drawPolygon.on_change(olStrings.change,e => changedFeatures())
 
-    val drag = new translateMod.default(translateMod.Options())
+    drag = new translateMod.default(translateMod.Options())
     //drag.on_translateend(olStrings.translateend, (e:TranslateEvent) => changedFeatures())
 
 
-    val snap = new snapMod.default(snapMod.Options().setSource(vectorSource))
+    snap = new snapMod.default(snapMod.Options().setSource(vectorSource))
 
-    val delete = new selectMod.default(selectMod.Options())
+    delete = new selectMod.default(selectMod.Options())
 
     delete.on_select(olStrings.select, (e: SelectEvent) => {
       if (window.confirm(Labels.form.removeMap)) {
@@ -450,18 +457,9 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       }
     })
 
-    val drawHole = new DrawHole(DrawHoleOptions().setStyle(simpleStyle))
+    drawHole = new DrawHole(DrawHoleOptions().setStyle(simpleStyle))
 
-    val dynamicInteraction = Seq(
-      modify,
-      drawPoint,
-      drawLineString,
-      drawPolygon,
-      snap,
-      drag,
-      delete,
-      drawHole
-    )
+
 
     dynamicInteraction.foreach(x => {
       map.addInteraction(x)
@@ -637,7 +635,6 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   }
 
   case class EnabledFeatures(geometry:Option[Geometry]) {
-    println(options.features)
     val point = {
       options.features.point &&
       (
@@ -714,7 +711,23 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     val precision = options.precision.getOrElse(0.0)
     options.formatters match {
       case Some(value) => value.geomToString(precision,services.clientSession.lang())(g)
-      case None => g.toString(precision)
+      case None => {
+        val center =  Try{
+          val jtsGeom = new typings.jsts.mod.io.WKTReader().read(g.toString(precision))
+          val centroid = jtsGeom.getCentroid()
+          s" (centroid: ${GeoJson.approx(precision,centroid.getX())},${GeoJson.approx(precision,centroid.getY())})"
+        }.getOrElse("")
+
+        g match {
+          case GeoJson.Point(coordinates) => g.toString(precision)
+          case GeoJson.LineString(coordinates) => "LineString" + center //asString(line)
+          case GeoJson.Polygon(coordinates) => "Polygon" + center// asString(polygon)
+          case GeoJson.MultiPoint(coordinates) => "MultiPoint" + center// asString(multiPoint)
+          case GeoJson.MultiLineString(coordinates) => "MultiLineString" + center//asString(multiLine)
+          case GeoJson.MultiPolygon(coordinates) => "MultiPolygon" + center//asString(multiPolygon)
+          case GeoJson.GeometryCollection(geometries) => "GeometryCollection" + center//g.toString(precision)
+        }
+      }
     }
   }
 

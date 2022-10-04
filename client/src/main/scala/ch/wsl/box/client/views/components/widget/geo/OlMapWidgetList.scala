@@ -1,13 +1,12 @@
 package ch.wsl.box.client.views.components.widget.geo
 
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
+import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
-import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.model.shared.{GeoJson, JSONField, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
-import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
@@ -21,8 +20,9 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logger
 import typings.ol.viewMod.FitOptions
-import typings.ol.{geoJSONMod, geomMod, geometryMod, multiPointMod, olFeatureMod, projMod}
+import typings.ol.{drawMod, geoJSONMod, geomMod, geometryMod, multiPointMod, olFeatureMod, projMod}
 
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.Try
 
@@ -47,6 +47,15 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         Icons.plusFill, buttonLabel(labelKey)
       )
 
+  }
+
+
+  override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
+    dynamicInteraction.foreach{
+      case d:drawMod.default => d.finishDrawing()
+      case _ => ()
+    }
+    Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> this.data.get))))
   }
 
   def deleteGeometry(geom:SingleGeometry) = if (window.confirm(Labels.form.removeMap)) {

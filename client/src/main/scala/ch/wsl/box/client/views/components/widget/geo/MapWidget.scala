@@ -65,9 +65,6 @@ case class MapFormatters(
 
   def geomToString(precision:Double,lang:String)(g:Geometry):String = {
 
-    println(g)
-    println("bla bla")
-
     def asString(pattern:Option[I18n.Label]) = pattern.flatMap(_.lang(lang)) match {
       case Some(value) => g.format(value,precision)
       case None => g.toString(precision)

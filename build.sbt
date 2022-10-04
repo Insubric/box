@@ -141,6 +141,8 @@ lazy val client: Project = (project in file("client"))
       "proj4" -> "2.8.0",
       "@types/proj4" -> "2.5.2",
       "ol-ext" -> "3.1.14",
+      "jsts" -> "2.7.1",
+      "@types/jsts" -> "0.17.13",
       "jquery" -> "3.4.1",
       "@types/jquery" -> "3.5.6",
       "popper.js" -> "1.16.1",
