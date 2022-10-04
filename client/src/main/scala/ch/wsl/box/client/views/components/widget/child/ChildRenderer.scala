@@ -105,25 +105,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     protected def render(write: Boolean): JsDom.all.Modifier
 
-    def saveAndThen(id:ReadableProperty[Option[String]])(action:Json => Unit) = {
-      val existingKeys:Seq[String] = childWidgets.toSeq.flatMap(_.data.get.ID(metadata.get.keys).map(_.asString))
-      widgetParam.actions.saveAndThen{ data =>
-        val newRows:Seq[Json] = data.js(field.name).as[Seq[Json]].toOption.getOrElse(Seq())
-        val row = id.get match {
-          case Some(value) => newRows.find( row => row.ID(metadata.get.keys).exists(_.asString == value))
-          case None => {
-
-            val newKeys:Seq[String] = newRows.flatMap(_.ID(metadata.get.keys).map(_.asString))
-            val generatedKeys = newKeys.diff(existingKeys)
-            if(generatedKeys.length == 1) {
-              newRows.find( row => row.ID(metadata.get.keys).exists(_.asString == generatedKeys.head))
-            } else throw new Exception("Unable to find the corresponding child")
-          }
-        }
-
-        row.foreach(action)
-      }
-    }
 
     private def add(data:Json,open:Boolean): Unit = {
 
@@ -150,7 +131,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
 
       val changed = Property(false)
-      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,WidgetCallbackActions(saveAndThen(childId)),changed,widgetParam.public)
+      val actions = widgetParam.actions.copy(save = () => widgetParam.actions.save().map{case (parentId,parentData) =>
+        BrowserConsole.log(parentData)
+        (parentId,parentData.seq(field.name).lift(entity.get.indexOf(id)).getOrElse(Json.Null))
+      } )
+
+      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,actions,changed,widgetParam.public)
 
       val changeListener = changed.listen(_ => checkChanges())
 
@@ -286,32 +272,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       data.deepMerge(Map(child.key -> jsChilds.asJson).asJson)
     }
 
-    override def afterSave(data: Json, m: JSONMetadata): Future[Json] = {
-      metadata.foreach { met =>
-        //Set new inserted records open by default
-        val oldData: Seq[JSONID] = this.prop.get.as[Seq[Json]].getOrElse(Seq()).flatMap(x => JSONID.fromData(x, met))
-        val newData: Seq[JSONID] = data.seq(field.name).flatMap(x => JSONID.fromData(x, met))
-        logger.debug(
-          s"""
-             |Child after save ${met.name}
-             |
-             |data: $data
-             |
-             |old: $oldData
-             |
-             |new: $newData
-             |""".stripMargin)
-        newData.foreach{ id =>
-          if(!oldData.contains(id)) {
-            services.clientSession.setTableChildOpen(ClientSession.TableChildElement(field.name,met.objId,Some(id)))
-          }
-        }
-
-      }
-
-      logger.debug("After save")
-      propagate(data, _.afterSave).map(collectData(data))
-    }
 
     override def beforeSave(data: Json, metadata: JSONMetadata) = {
       logger.debug("Before save")

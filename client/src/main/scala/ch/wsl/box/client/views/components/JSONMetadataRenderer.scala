@@ -139,10 +139,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     )
   }
 
-  override def afterSave(value:Json, metadata:JSONMetadata): Future[Json] = {
-    logger.debug(s"JSONMetadataRenderer after save for ${metadata.name} with $value")
-    saveAll(value,_.afterSave)
-  }
+
   override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value,_.beforeSave)
 
   override def killWidget(): Unit = blocks.foreach(_._2.killWidget())

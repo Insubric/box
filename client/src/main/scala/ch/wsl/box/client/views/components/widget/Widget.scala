@@ -60,7 +60,7 @@ trait Widget extends Logging {
   }
 
   def beforeSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
-  def afterSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
+
   def afterRender():Future[Boolean] = Future.successful(true)
 
   def reload() = {} //recover autoreleased resources
@@ -136,10 +136,10 @@ trait IsCheckBoxWithData extends Widget {
 
 
 
-case class WidgetCallbackActions(saveAndThen: (Json => Unit) => Unit)
+case class WidgetCallbackActions(save: () => Future[(JSONID,Json)], reload: JSONID => Future[Json])
 
 object WidgetCallbackActions{
-  def noAction = new WidgetCallbackActions(_ => ())
+  def noAction = new WidgetCallbackActions(() => Future.successful((JSONID.empty,Json.Null)), _ => Future.successful(Json.Null))
 }
 
 case class WidgetParams(
@@ -162,14 +162,14 @@ case class WidgetParams(
 }
 
 object WidgetParams{
-  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean):WidgetParams = WidgetParams(
+  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,
     field = field,
     metadata = metadata,
     _allData = prop,
     children = Seq(),
-    actions = WidgetCallbackActions.noAction,
+    actions = actions,
     public
   )
 }

@@ -151,7 +151,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   val saveKey:KeyHandler = (event:KeyboardEvent,handler:HotkeysEvent) => {
     event.preventDefault()
-    saveAndReload()(_ => ())
+    save()
     false
   }
 
@@ -173,18 +173,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def setForm(form:HTMLFormElement)= { _form = form }
 
-  def saveAndReload(check:Boolean = true)(action:Json => Unit):Unit = {
-    save(check){ id =>
-      reload(id).map{ data =>
-        action(data)
-        if(!model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)).contains(id)) {
-          goTo(id.asString)
-        }
-      }
-    }
-  }
 
-  def save(check:Boolean = true)(action:JSONID => Unit):Unit  = {
+  def save(check:Boolean = true):Future[(JSONID,Json)]  = {
+
 
     services.clientSession.loading.set(true)
 
@@ -199,7 +190,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
       logger.warn(s"Form validation failed")
 
-      return
+      throw new Exception("Validation failed")
     }
 
     val m = model.get
@@ -225,8 +216,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       updatedData <- widget.beforeSave(data,metadata)
-      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
-      afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
+      (newId,resultAfterAction) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
+
     } yield {
       logger.debug(s"""outcome
 
@@ -236,30 +227,29 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
                  afterBeforeSave: $updatedData
 
-                 afterSave: $resultBeforeAfterSave
+                 afterSave: $resultAfterAction
 
-                 afterAfterSave:
 
                  """)
 
       enableGoAway
       model.subProp(_.insert).set(false)
       services.clientSession.loading.set(false)
-      action(newId)
+
+      (newId,resultAfterAction)
 
 
     }}.recover{ case e =>
       e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
       e.printStackTrace()
       services.clientSession.loading.set(false)
-//        e match {
-//          case sql:SQLExceptionReport
-//        }
+      throw e
     }
 
   }
 
   def reload(id:JSONID): Future[Json] = {
+    println("reload")
     services.clientSession.loading.set(true)
     for{
       resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
@@ -348,7 +338,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload()),changed,model.subProp(_.public).get)
+    val actions = WidgetCallbackActions(() => save(),reload)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,changed,model.subProp(_.public).get)
     widget
   }
 
@@ -429,7 +420,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
 
     def callBack() = action.action match {
-      case SaveAction => save(action.html5check){ _id =>
+      case SaveAction => save(action.html5check).map{ case (_id,data) =>
         executeFuntion().map { functionOk =>
           if(functionOk) {
             if (action.reload) {

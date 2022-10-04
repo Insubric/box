@@ -153,10 +153,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
     }
   }
 
-  override def afterSave(value:Json,metadata:JSONMetadata): Future[Json] = {
-    logger.debug(s"Block after save for ${metadata.name} with $value")
-    saveAll(value,widgets.map(_.widget),_.afterSave)
-  }
+
   override def beforeSave(value:Json,metadata:JSONMetadata) = {
     // WSS-228 when a field is hidden ignore it for persistence
     logger.info(s"metadata: ${metadata.name} All: ${widgets.map(_.widget.field.name)}, visible only: ${widgets.filter(_.visibility.get).map(_.widget.field.name)}")

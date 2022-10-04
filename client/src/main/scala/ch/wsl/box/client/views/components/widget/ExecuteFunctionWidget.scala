@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{ClientConf, Notification}
-import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONID, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.scalajs.dom.Event
@@ -32,22 +32,20 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
 
     val clickHandler = { (e: Event) =>
 
-      def exec(allData:Json) = {
+      def exec(id:Option[JSONID],allData:Json) = {
         services.clientSession.loading.set(true)
         logger.info(s"Exec with params $allData")
         services.rest.execute(field.function.get, services.clientSession.lang(), allData).foreach { result =>
           services.clientSession.loading.set(false)
-          result.errorMessage match {
-            case Some(value) => Notification.add(value)
-            case None => {
-              applicationInstance.reload()
-            }
-          }
+          result.errorMessage.foreach(Notification.add)
+          id.foreach(params.actions.reload)
         }
       }
       saveBefore match {
-        case true => params.actions.saveAndThen(data => exec(data))
-        case false => exec(params.allData.get)
+        case true => params.actions.save().map{ case (id,data) =>
+          exec(Some(id),data)
+        }
+        case false => exec(None,params.allData.get)
       }
       e.preventDefault()
     }
