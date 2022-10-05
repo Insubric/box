@@ -1237,6 +1237,19 @@ object GlobalStyleFactory{
 
     )
 
+    val editableTableEditButton = style(
+      fontSize(12 px),
+      marginLeft(2 px),
+      unsafeChild("svg") (
+        color.gray,
+      ),
+      &.hover(
+        unsafeChild("svg") (
+          color(conf.colors.main)
+        )
+      )
+    )
+
 
   //  val fixedHeader = style(
   //    unsafeRoot("tbody")(

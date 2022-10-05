@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
@@ -20,6 +20,7 @@ import io.udash.bootstrap.button.UdashButton
 import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.ModalEvent
 import io.udash.bootstrap.utils.BootstrapStyles.Size
+import io.udash.bootstrap.utils.UdashIcons
 import org.scalajs.dom.{Event, HTMLInputElement, HTMLTextAreaElement, Node, document}
 import scribe.Logging
 
@@ -211,7 +212,7 @@ object InputWidget extends Logging {
           } else if(str.isString) str.string else ""
         }),
         " ",
-        a(fontSize := 20.px, "✎",onclick :+= ((e:Event) => {
+        a(ClientConf.style.editableTableEditButton, i(UdashIcons.FontAwesome.Regular.edit),onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
         })),
