@@ -127,11 +127,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
 
 
       typ(col.`type`) match {
-          case `typSHORT` => c.asInstanceOf[Rep[Short]] === v.toShort
+          case `typSHORT` => c.asInstanceOf[Rep[Short]] === v.toDouble.toShort
           case `typDOUBLE` => c.asInstanceOf[Rep[Double]] === v.toDouble
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] === BigDecimal(v)
-          case `typINT` => c.asInstanceOf[Rep[Int]] === Try(v.toInt).toOption
-          case `typLONG` => c.asInstanceOf[Rep[Long]] === v.toLong
+          case `typINT` => c.asInstanceOf[Rep[Int]] === Try(v.toDouble.toInt).toOption
+          case `typLONG` => c.asInstanceOf[Rep[Long]] === v.toDouble.toLong
           case `typSTRING` => c.asInstanceOf[Rep[String]] === v
           case `typBOOLEAN` => c.asInstanceOf[Rep[Boolean]] === v.toBoolean
           case `typTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
@@ -147,11 +147,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
           }
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] === toTime(v).get
 
-          case `typOptSHORT` =>  c.asInstanceOf[Rep[Option[Short]]] === Try(v.toShort).toOption
+          case `typOptSHORT` =>  c.asInstanceOf[Rep[Option[Short]]] === Try(v.toDouble.toShort).toOption
           case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]] === Try(v.toDouble).toOption
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] === Try(BigDecimal(v)).toOption
-          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] === Try(v.toInt).toOption
-          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] === Try(v.toLong).toOption
+          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] === Try(v.toDouble.toInt).toOption
+          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] === Try(v.toDouble.toLong).toOption
           case `typOptSTRING` => c.asInstanceOf[Rep[Option[String]]] === v
           case `typOptBOOLEAN` => c.asInstanceOf[Rep[Option[Boolean]]] === Try(v.toBoolean).toOption
           case `typOptTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
@@ -182,9 +182,9 @@ trait DBFiltersImpl extends DbFilters with Logging {
     val c:Rep[_] = col.rep
 
     typ(col.`type`) match {
-          case `typSHORT` => c.asInstanceOf[Rep[Short]] =!= v.toShort
-          case `typINT` => c.asInstanceOf[Rep[Int]] =!= v.toInt
-          case `typLONG` => c.asInstanceOf[Rep[Long]] =!= v.toLong
+          case `typSHORT` => c.asInstanceOf[Rep[Short]] =!= v.toDouble.toShort
+          case `typINT` => c.asInstanceOf[Rep[Int]] =!= v.toDouble.toInt
+          case `typLONG` => c.asInstanceOf[Rep[Long]] =!= v.toDouble.toLong
           case `typDOUBLE` => c.asInstanceOf[Rep[Double]] =!= v.toDouble
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] =!= BigDecimal(v)
           case `typSTRING` => c.asInstanceOf[Rep[String]] =!= v
@@ -202,11 +202,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
           }
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] =!= toTime(v).get
 
-          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] =!= Try(v.toShort).toOption
+          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] =!= Try(v.toDouble.toShort).toOption
           case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]] =!= Try(v.toDouble).toOption
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] =!= Try(BigDecimal(v)).toOption
-          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] =!= Try(v.toInt).toOption
-          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] =!= Try(v.toLong).toOption
+          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] =!= Try(v.toDouble.toInt).toOption
+          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] =!= Try(v.toDouble.toLong).toOption
           case `typOptSTRING` => c.asInstanceOf[Rep[Option[String]]] =!= v
           case `typOptBOOLEAN` => c.asInstanceOf[Rep[Option[Boolean]]] =!= Try(v.toBoolean).toOption
           case `typOptTIMESTAMP` => (toTimestamp(v),services.config.filterPrecisionDatetime) match {
@@ -233,11 +233,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
     val c:Rep[_] = col.rep
 
     typ(col.`type`) match {
-          case `typSHORT` => c.asInstanceOf[Rep[Short]] > v.toShort
+          case `typSHORT` => c.asInstanceOf[Rep[Short]] > v.toDouble.toShort
           case `typDOUBLE` => c.asInstanceOf[Rep[Double]] > v.toDouble
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] > BigDecimal(v)
-          case `typINT` => c.asInstanceOf[Rep[Int]] > v.toInt
-          case `typLONG` => c.asInstanceOf[Rep[Long]] > v.toLong
+          case `typINT` => c.asInstanceOf[Rep[Int]] > v.toDouble.toInt
+          case `typLONG` => c.asInstanceOf[Rep[Long]] > v.toDouble.toLong
           case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] > toTimestamp(v).last
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= services.config.prepareDatetime(toTimestamp(v).last.plus(1, ChronoUnit.DAYS))
@@ -245,11 +245,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] > toDate(v).last
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] > toTime(v).get
 
-          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] > v.toShort
+          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] > v.toDouble.toShort
           case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]] > v.toDouble
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] > BigDecimal(v)
-          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] > v.toInt
-          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] > v.toLong
+          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] > v.toDouble.toInt
+          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] > v.toDouble.toLong
           case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] > toTimestamp(v).last
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= services.config.prepareDatetime(toTimestamp(v).last.plus(1, ChronoUnit.DAYS))
@@ -265,11 +265,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
     val c:Rep[_] = col.rep
 
      typ(col.`type`) match {
-          case `typSHORT` => c.asInstanceOf[Rep[Short]] >= v.toShort
+          case `typSHORT` => c.asInstanceOf[Rep[Short]] >= v.toDouble.toShort
           case `typDOUBLE` => c.asInstanceOf[Rep[Double]] >= v.toDouble
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] >= BigDecimal(v)
-          case `typINT` => c.asInstanceOf[Rep[Int]] >= v.toInt
-          case `typLONG` => c.asInstanceOf[Rep[Long]] >= v.toLong
+          case `typINT` => c.asInstanceOf[Rep[Int]] >= v.toDouble.toInt
+          case `typLONG` => c.asInstanceOf[Rep[Long]] >= v.toDouble.toLong
           case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= toTimestamp(v).last
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] >= services.config.prepareDatetime(toTimestamp(v).last)
@@ -277,11 +277,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] >= toDate(v).last
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] >= toTime(v).get
 
-          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] >= v.toShort
+          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] >= v.toDouble.toShort
           case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]] >= v.toDouble
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] >= BigDecimal(v)
-          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] >= v.toInt
-          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] >= v.toLong
+          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] >= v.toDouble.toInt
+          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] >= v.toDouble.toLong
           case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= toTimestamp(v).last
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] >= services.config.prepareDatetime(toTimestamp(v).last)
@@ -298,11 +298,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
     val c:Rep[_] = col.rep
 
     typ(col.`type`) match {
-          case `typSHORT` => c.asInstanceOf[Rep[Short]] < v.toShort
+          case `typSHORT` => c.asInstanceOf[Rep[Short]] < v.toDouble.toShort
           case `typDOUBLE` => c.asInstanceOf[Rep[Double]] < v.toDouble
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] < BigDecimal(v)
-          case `typINT` => c.asInstanceOf[Rep[Int]] < v.toInt
-          case `typLONG` => c.asInstanceOf[Rep[Long]] < v.toLong
+          case `typINT` => c.asInstanceOf[Rep[Int]] < v.toDouble.toInt
+          case `typLONG` => c.asInstanceOf[Rep[Long]] < v.toDouble.toLong
           case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] < toTimestamp(v).head
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] < services.config.prepareDatetime(toTimestamp(v).head)
@@ -310,11 +310,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] < toDate(v).head
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] < toTime(v).get
 
-          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] < v.toShort
+          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] < v.toDouble.toShort
           case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]] < v.toDouble
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] < BigDecimal(v)
-          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] < v.toInt
-          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] < v.toLong
+          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] < v.toDouble.toInt
+          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] < v.toDouble.toLong
           case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < toTimestamp(v).head
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] < services.config.prepareDatetime(toTimestamp(v).head)
@@ -331,11 +331,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
     val c:Rep[_] = col.rep
 
     typ(col.`type`) match {
-          case `typSHORT` => c.asInstanceOf[Rep[Short]] <= v.toShort
+          case `typSHORT` => c.asInstanceOf[Rep[Short]] <= v.toDouble.toShort
           case `typDOUBLE` => c.asInstanceOf[Rep[Double]] <= v.toDouble
           case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]] <= BigDecimal(v)
-          case `typINT` => c.asInstanceOf[Rep[Int]] <= v.toInt
-          case `typLONG` => c.asInstanceOf[Rep[Long]] <= v.toLong
+          case `typINT` => c.asInstanceOf[Rep[Int]] <= v.toDouble.toInt
+          case `typLONG` => c.asInstanceOf[Rep[Long]] <= v.toDouble.toLong
           case `typTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[java.time.LocalDateTime]] <= toTimestamp(v).head
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[java.time.LocalDateTime]] <= services.config.prepareDatetime(toTimestamp(v).head.plus(1, ChronoUnit.DAYS))
@@ -343,11 +343,11 @@ trait DBFiltersImpl extends DbFilters with Logging {
           case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]] <= toDate(v).head
           case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]] <= toTime(v).get
 
-          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] <= v.toShort
+          case `typOptSHORT` => c.asInstanceOf[Rep[Option[Short]]] <= v.toDouble.toShort
           case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]] <= v.toDouble
           case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]] <= BigDecimal(v)
-          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] <= v.toInt
-          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] <= v.toLong
+          case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]] <= v.toDouble.toInt
+          case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]] <= v.toDouble.toLong
           case `typOptTIMESTAMP` => services.config.filterPrecisionDatetime match{
             case JSONFieldTypes.DATETIME => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] <= toTimestamp(v).head
             case JSONFieldTypes.DATE => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]] <= services.config.prepareDatetime(toTimestamp(v).head.plus(1, ChronoUnit.DAYS))
@@ -417,22 +417,22 @@ trait DBFiltersImpl extends DbFilters with Logging {
 
 
       typ(col.`type`) match {
-        case `typSHORT` => c.asInstanceOf[Rep[Short]].inSet(elements.map(_.toShort))
+        case `typSHORT` => c.asInstanceOf[Rep[Short]].inSet(elements.map(_.toDouble.toShort))
         case `typDOUBLE` => c.asInstanceOf[Rep[Double]].inSet(elements.map(_.toDouble))
         case `typBIGDECIMAL` => c.asInstanceOf[Rep[BigDecimal]].inSet(elements.map(BigDecimal(_)))
-        case `typINT` => c.asInstanceOf[Rep[Int]].inSet(elements.map(_.toInt))
-        case `typLONG` => c.asInstanceOf[Rep[Long]].inSet(elements.map(_.toLong))
+        case `typINT` => c.asInstanceOf[Rep[Int]].inSet(elements.map(_.toDouble.toInt))
+        case `typLONG` => c.asInstanceOf[Rep[Long]].inSet(elements.map(_.toDouble.toLong))
         case `typSTRING` => c.asInstanceOf[Rep[String]].inSet(elements)
         case `typBOOLEAN` => c.asInstanceOf[Rep[Boolean]].inSet(elements.map(_.toBoolean))
         case `typTIMESTAMP` => c.asInstanceOf[Rep[java.time.LocalDateTime]].inSet(elements.map(toTimestamp(_).head)) //timestamp inset should be exact
         case `typDATE` => c.asInstanceOf[Rep[java.time.LocalDate]].inSet(elements.map(toDate(_).head))
         case `typTIME` => c.asInstanceOf[Rep[java.time.LocalTime]].inSet(elements.map(toTime(_).get))
 
-        case `typOptSHORT` =>  c.asInstanceOf[Rep[Option[Short]]].inSet(elements.map(_.toShort))
+        case `typOptSHORT` =>  c.asInstanceOf[Rep[Option[Short]]].inSet(elements.map(_.toDouble.toShort))
         case `typOptDOUBLE` => c.asInstanceOf[Rep[Option[Double]]].inSet(elements.map(_.toDouble))
         case `typOptBIGDECIMAL` => c.asInstanceOf[Rep[Option[BigDecimal]]].inSet(elements.map(BigDecimal(_)))
-        case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]].inSet(elements.map(_.toInt))
-        case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]].inSet(elements.map(_.toLong))
+        case `typOptINT` => c.asInstanceOf[Rep[Option[Int]]].inSet(elements.map(_.toDouble.toInt))
+        case `typOptLONG` => c.asInstanceOf[Rep[Option[Long]]].inSet(elements.map(_.toDouble.toLong))
         case `typOptSTRING` => c.asInstanceOf[Rep[Option[String]]].inSet(elements)
         case `typOptBOOLEAN` => c.asInstanceOf[Rep[Option[Boolean]]].inSet(elements.map(_.toBoolean))
         case `typOptTIMESTAMP` => c.asInstanceOf[Rep[Option[java.time.LocalDateTime]]].inSet(elements.map(toTimestamp(_).head))

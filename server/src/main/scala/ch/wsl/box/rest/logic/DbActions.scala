@@ -135,7 +135,10 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   private def filter(id:JSONID):Query[T, M, Seq]  = {
     if(id.id.isEmpty) throw new Exception("No key is defined")
 
-    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter(x => super.==(x.col(keyValue.key,registry),keyValue.value.string))
+    def fil(t: Query[T,M,Seq],keyValue: JSONKeyValue):Query[T,M,Seq] =  t.filter { x =>
+      val col = x.col(keyValue.key, registry)
+      super.==(col, keyValue.value.string)
+    }
 
     val q = id.id.foldRight[Query[T,M,Seq]](entity){case (jsFilter,query) => fil(query,jsFilter)}
     q
@@ -180,7 +183,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def delete(id:JSONID) = {
     logger.info(s"DELETE BY ID $id")
     resetMetadataCache()
-    filter(id).delete.transactionally
+    val action = filter(id).delete
+    action.transactionally
   }
 
 

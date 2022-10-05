@@ -245,8 +245,10 @@ case class Form(
     privateOnly {
       complete {
         actions { fs =>
+          val action = DBIO.sequence(ids.map(id => fs.delete(id))).transactionally
+          //println(action.statements.mkString("\n"))
           for {
-            count <- db.run(DBIO.sequence(ids.map(id => fs.delete(id))).transactionally)
+            count <- db.run(action)
           } yield JSONCount(count.sum)
         }
       }
