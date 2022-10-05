@@ -18,7 +18,7 @@ import scalatags.generic.Attr
 import scala.concurrent.duration.DurationInt
 
 
-case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int)
+case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int)
 
 object GlobalStyleFactory{
   val CssSettings = scalacss.devOrProdDefaults; import CssSettings._
@@ -496,7 +496,7 @@ object GlobalStyleFactory{
     val mediumBottomMargin = style( marginBottom(15 px) )
 
     val subBlock = style(
-      padding.`0`,
+      padding(conf.paddingBlocks px),
       minHeight.`0`
     )
 

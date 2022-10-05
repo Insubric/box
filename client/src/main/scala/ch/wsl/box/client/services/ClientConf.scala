@@ -69,11 +69,14 @@ object ClientConf {
   def childMarginTopSize: Int = Try(conf("child.marginTop.size").toInt).getOrElse(-1)
   def childBackgroundColor: String = Try(conf("child.backgroundColor")).getOrElse(StyleConstants.Colors.GreyExtra.value)
 
+  def paddingBlocks:Int = Try(conf("form.padding.blocks").toInt).getOrElse(5)
+
   lazy val styleConf = StyleConf(
     colors = Colors(colorMain,colorMainText,colorMainLink,colorLink,colorDanger,colorWarning),
     tableFontSize,
     ChildProperties(childBorderSize, childBorderColor, childPaddingSize, childMarginTopSize, childBackgroundColor),
-    requiredFontSize
+    requiredFontSize,
+    paddingBlocks
   )
 
   lazy val style = GlobalStyleFactory.GlobalStyles(styleConf)
