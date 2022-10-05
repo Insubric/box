@@ -31,7 +31,7 @@ object FunctionUIDef {
           |
           |for{
           |  result <- Future.successful{
-          |     DataResultTable(headers = Seq("demo"), rows = Seq(Seq("demo")))
+          |     DataResultTable(headers = Seq("demo"), headerType = Seq("string"), rows = Seq(Seq(Json.fromString("demo"))))
           |  }
           |} yield result
           |
