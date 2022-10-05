@@ -30,6 +30,17 @@ object TableChildFactory extends ChildRendererFactory {
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
+    val bgColor:Modifier = {for{
+      param <- field.params
+      background <- param.getOpt("background")
+    } yield backgroundColor := background}.getOrElse(Seq[Modifier]())
+
+    val borColor:Modifier = {for{
+      param <- field.params
+      bc <- param.getOpt("borderColor")
+    } yield  border := s"1px solid $bc"}.getOrElse(Seq[Modifier]())
+
+
 
     override protected def render(write: Boolean): Modifier = {
 
@@ -40,8 +51,8 @@ object TableChildFactory extends ChildRendererFactory {
           val fields = f.rawTabularFields.flatMap{fieldId => f.fields.find(_.name == fieldId)}
 
           div(
-            table(id := TestHooks.tableChildId(f.objId),ClientConf.style.childTable,
-              tr(ClientConf.style.childTableTr,ClientConf.style.childTableHeader,
+            table(id := TestHooks.tableChildId(f.objId),ClientConf.style.childTable,bgColor,borColor,
+              tr(ClientConf.style.childTableTr,ClientConf.style.childTableHeader,borColor,
                 td(),
                 fields.map(f => td(ClientConf.style.childTableTd,f.title))
               ),
@@ -63,7 +74,7 @@ object TableChildFactory extends ChildRendererFactory {
                     }
 
                     Seq[Frag](
-                      tr(`class` := TestHooks.tableChildRow,ClientConf.style.childTableTr,
+                      tr(`class` := TestHooks.tableChildRow,ClientConf.style.childTableTr,borColor,
                         td(ClientConf.style.childTableTd, ClientConf.style.childTableAction,
                               a(id.bind(widget.rowId.transform(i => TestHooks.tableChildButtonId(f.objId,i))), autoRelease(produce(widget.open) {
                                 case true => span(Icons.caretDown).render
@@ -78,7 +89,7 @@ object TableChildFactory extends ChildRendererFactory {
 
                         }.render }),
                       ),
-                      tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr, id.bind(widget.rowId.transform(x => TestHooks.tableChildRowId(f.objId,x))),
+                      tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr,borColor, id.bind(widget.rowId.transform(x => TestHooks.tableChildRowId(f.objId,x))),
                         produce(widget.open) { o =>
                           if (!o) frag().render else
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
@@ -103,7 +114,7 @@ object TableChildFactory extends ChildRendererFactory {
                   }
                 })
               ),
-              tr(ClientConf.style.childTableTr,
+              tr(ClientConf.style.childTableTr,borColor,
                 td(ClientConf.style.childTableTd,colspan := fields.length + 1,
                   addButton(write,f)
                 )
