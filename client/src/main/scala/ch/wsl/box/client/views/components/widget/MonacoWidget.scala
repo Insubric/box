@@ -39,8 +39,17 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   val language = field.params.flatMap(_.getOpt("language")).getOrElse(defaultLanguage)
   val containerHeight:Int = field.params.flatMap(_.js("height").as[Int].toOption).getOrElse(200)
 
+  val dataListener:Registration = data.listen({js =>
+    Try {
+      editor.foreach(_.setValue(js.string))
+    }
+  },true)
+
+
+
   def _afterRender(): Unit = {
     logger.info("Editor after render")
+
     if(container != null) {
 
       logger.info(language)
@@ -50,11 +59,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
         .setLanguage(language)
       ))
 
-      val dataListener:Registration = data.listen({js =>
-          Try {
-            editor.foreach(_.setValue(js.string))
-          }
-      },true)
+      editor.foreach(_.setValue(data.get.string))
 
 
       editor.foreach(_.onDidChangeModelContent{e =>
@@ -92,11 +97,10 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
       }
     })
 
-
-
     produce(_id) { _ =>
 
       editor.foreach(_.dispose())
+      if(container != null) container.remove()
 
       val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).forall(x => x) // default true
 
