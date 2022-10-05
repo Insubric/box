@@ -134,7 +134,9 @@ object InputWidget extends Logging {
       val textAreaId = UUID.randomUUID().toString
       stringModel.listen{_ =>
         val el = document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement]
-        el.style.height = if(el.scrollHeight > el.clientHeight)  el.scrollHeight+"px" else "30px";
+        if(el != null) {
+          el.style.height = if (el.scrollHeight > el.clientHeight) el.scrollHeight + "px" else "30px";
+        }
       }
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
       val mod = y ++ WidgetUtils.toNullable(field.nullable) ++ Seq(id := textAreaId)

@@ -441,6 +441,7 @@ object FormUIDef {
           functions.sorted.map(x => JSONLookup(x.asJson,Seq(x)))
         ))
       ),
+      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.hidden))
     ),
     layout = Layout(
       blocks = Seq(
@@ -455,7 +456,8 @@ object FormUIDef {
           "lookupQuery",
           "conditionFieldId",
           "conditionValues",
-          "params"
+          "params",
+          "read_only"
         ).map(Left(_))),
         LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
       )

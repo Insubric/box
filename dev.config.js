@@ -39,7 +39,7 @@ const WebApp = merge(ScalaJS, {
     plugins: [
         new HtmlWebpackPlugin(),
         new MonacoWebpackPlugin({
-            publicPath: "bundle"
+            publicPath: "devServer"
         })
     ],
     devServer: {
