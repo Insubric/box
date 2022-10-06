@@ -38,12 +38,12 @@ object PSQLImpl extends RuntimePSQL {
       rows <- actions.find(query)
     } yield {
       rows.headOption.map { firstRow =>
-        val keys = firstRow.asObject.get.keys.toSeq
+        val keys = firstRow.dropBoxObjectId.asObject.get.keys.toSeq
         DataResultTable(
           headers = keys,
           headerType = keys.map(k => columns(k).jsonType),
           rows = rows.map{ row =>
-            row.asObject.get.values.toSeq
+            keys.flatMap(k => row.asObject.get(k))
           },
           geometry = geomColumn.map{ case (n,_) =>
             n -> rows.flatMap{ row => row.js(n).as[Geometry].toOption }

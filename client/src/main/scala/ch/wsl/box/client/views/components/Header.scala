@@ -87,7 +87,7 @@ object Header {
   def navbar(title:Option[String]) = produce(services.clientSession.logged) { logged =>
     header(
       showIf(services.clientSession.logged) { div(id := TestHooks.logged ,visibility.hidden).render },
-      div(BootstrapStyles.Float.left())(b(id := "headerTitle",ClientConf.style.headerTitle, title)),
+      div(BootstrapStyles.Float.left())(a(Navigate.click(IndexState),b(id := "headerTitle",ClientConf.style.headerTitle, title))),
 //      nav(BootstrapStyles.Float.right(),ClientConf.style.noMobile) (
 //        ul(
 //          menu(logged).map(m => li(m))

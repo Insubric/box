@@ -249,7 +249,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def reload(id:JSONID): Future[Json] = {
-    println("reload")
     services.clientSession.loading.set(true)
     for{
       resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)

@@ -23,14 +23,19 @@ trait RuntimePSQL{
   def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]]
 }
 
-case class Context(data:Json,ws:RuntimeWS,psql:RuntimePSQL)
+trait RuntimeUtils{
+  def qrCode(url:String):String
+}
+
+case class Context(data:Json,ws:RuntimeWS,psql:RuntimePSQL,utils:RuntimeUtils)
 
 object RuntimeFunction {
 
   def context(json:Json) = Context(
     json,
     WSImpl,
-    PSQLImpl
+    PSQLImpl,
+    UtilsImpl
   )
 
   private val compiledFunctions = scala.collection.mutable.Map[String,(ExecutionContext,UserProfile,Materializer,ActorSystem,Services) => ((Context,String) => Future[DataResult])]()
