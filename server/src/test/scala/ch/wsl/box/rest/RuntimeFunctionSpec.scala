@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import ch.wsl.box.model.shared.{DataResultTable, JSONQuery}
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeWS}
+import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeUtils, RuntimeWS}
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import _root_.io.circe.Json
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -34,6 +34,9 @@ class RuntimeFunctionSpec extends BaseSpec {
         }
 
         def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]] = ???
+      },
+      new RuntimeUtils {
+        override def qrCode(url: String): String = ???
       }
     )
 
