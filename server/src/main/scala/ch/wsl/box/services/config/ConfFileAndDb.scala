@@ -71,6 +71,55 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
       s"""akka.http.session {
          |  cookie {
          |    name = "$cookieName"
+         |    domain = none
+         |    path = /
+         |    secure = false
+         |    http-only = true
+         |    same-site = Lax
+         |  }
+         |  header {
+         |    send-to-client-name = "Set-Authorization"
+         |    get-from-client-name = "Authorization"
+         |  }
+         |  jws {
+         |    alg = "HS256"
+         |  }
+         |  jwt {}
+         |  csrf {
+         |    cookie {
+         |      name = "XSRF-TOKEN"
+         |      domain = none
+         |      path = /
+         |      secure = false
+         |      http-only = false
+         |      same-site = Lax
+         |    }
+         |    submitted-name = "X-XSRF-TOKEN"
+         |  }
+         |  refresh-token {
+         |    cookie {
+         |      name = "_refreshtoken_$cookieName"
+         |      domain = none
+         |      path = /
+         |      secure = false
+         |      http-only = true
+         |      same-site = Lax
+         |    }
+         |    header {
+         |      send-to-client-name = "Set-Refresh-Token"
+         |      get-from-client-name = "Refresh-Token"
+         |    }
+         |    max-age = 30 days
+         |    remove-used-token-after = 5 seconds
+         |  }
+         |
+         |  token-migration {
+         |    v0-5-2 {
+         |      enabled = false
+         |    }
+         |    v0-5-3 {
+         |      enabled = false
+         |    }
          |  }
          |  max-age = $maxAge seconds
          |  encrypt-data = true

@@ -32,11 +32,11 @@ object Settings {
   object versions {
 
     //General
-    val scala213 = "2.13.8"
+    val scala213 = "2.13.9"
     val ficus = "1.4.7"
 
     val macWire = "2.3.7"
-    val airframe = "20.12.1"
+    val airframe = "22.9.3"
 
     //HTTP actors
     val akka = "2.6.4"
