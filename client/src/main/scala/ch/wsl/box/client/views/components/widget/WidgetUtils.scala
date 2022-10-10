@@ -68,13 +68,9 @@ object WidgetUtils extends Logging{
 
   def isKeyNotEditable(metadata:JSONMetadata,field:JSONField,id:Option[String]):Boolean = {
     metadata.keys.contains(field.name) &&  //check if field is a key
-      (
-        id.isDefined ||                //if it's an existing record the key cannot be changed, it would be a new record
-          (
-            metadata.keyStrategy == SurrugateKey &&
-              !( ClientConf.manualEditKeyFields || ClientConf.manualEditSingleKeyFields.contains(metadata.entity + "." + field.name))
-            )
-        )
+    metadata.keyStrategy == SurrugateKey &&
+    !( ClientConf.manualEditKeyFields || ClientConf.manualEditSingleKeyFields.contains(metadata.entity + "." + field.name))
+
   }
 
 }
