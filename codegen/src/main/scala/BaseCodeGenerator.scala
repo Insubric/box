@@ -43,7 +43,7 @@ trait BaseCodeGenerator {
     }.filter(_.name.schema.forall(_ == dbSchema)).distinct
 
   val enabledViews = Await.result(db.run{
-    MTable.getTables(None, None, None, Some(Seq("VIEW")))
+    MTable.getTables(None, None, None, Some(Seq("VIEW","MATERIALIZED VIEW")))
   }, 200.seconds)
     .filter { t =>
       if(generatorParams.excludes.exists(e => t.name.name matches e)) {
