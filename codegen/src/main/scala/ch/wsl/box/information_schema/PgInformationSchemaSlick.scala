@@ -43,7 +43,7 @@ case class PgColumn(
 ) {
   def nullable = is_nullable == "YES"
   def updatable = is_updatable == "YES"// || is_trigger_updatable == "YES"
-  def jsonType = TypeMapping.jsonTypesMapping(data_type)
+  def jsonType = TypeMapping.jsonTypesMapping(udt_name)
   def boxName = column_name
   def data_type = if(_data_type == "USER-DEFINED") udt_name else _data_type
   def required = !nullable && column_default.isEmpty
