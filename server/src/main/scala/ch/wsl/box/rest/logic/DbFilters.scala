@@ -93,7 +93,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
   def typ(myType:ColType):Int = myType match{
     case ColType("Short",_,_,true) => typOptSHORT
     case ColType("Double",_,_,true) => typOptDOUBLE
-    //case "BigDecimal" | "scala.math.BigDecimal" => typBIGDECIMAL //when it's used?
+    case ColType("BigDecimal",_,_,true)  | ColType("scala.math.BigDecimal",_,_,true) => typOptBIGDECIMAL
     case ColType("Int",_,_,true) => typOptINT
     case ColType("Long",_,_,true) => typOptLONG
     case ColType("String",_,_,true) => typOptSTRING
@@ -112,6 +112,7 @@ trait DBFiltersImpl extends DbFilters with Logging {
     case ColType("java.time.LocalDate",_,_,false) => typDATE
     case ColType("java.time.LocalTime",_,_,false) => typTIME
     case ColType("java.util.UUID",_,_,false) => typUUID
+    case ColType("BigDecimal",_,_,true)  | ColType("scala.math.BigDecimal",_,_,true) => typBIGDECIMAL
     case _ => {
       logger.error("Type mapping for: " + myType + " not found")
       typError

@@ -164,7 +164,7 @@ object JdbcConnect extends Logging {
     case "java.lang.Long" => obj.asInstanceOf[Long].asJson
     case "java.lang.Double" => obj.asInstanceOf[Double].asJson
     case "java.lang.Float" => obj.asInstanceOf[Float].asJson
-    case "java.lang.BigDecimal" => obj.asInstanceOf[BigDecimal].asJson
+    case "java.lang.BigDecimal" | "scala.math.BigDecimal" => obj.asInstanceOf[BigDecimal].asJson
     case "java.lang.Boolean" =>  obj.asInstanceOf[Boolean].asJson
     case "java.sql.Clob" => {
       val clob = obj.asInstanceOf[Clob]
@@ -172,7 +172,7 @@ object JdbcConnect extends Logging {
     }
     case "java.lang.String" => obj.asInstanceOf[String].asJson
     case "java.sql.Timestamp" | "java.time.LocalDateTime" => obj.toString.asJson               //do not issue warnings for timestamp
-    case "java.math.BigDecimal" => obj.toString.asJson                                         //do not issue warnings for BigDecimal
+    case "java.math.BigDecimal" | "scala.math.BigDecimal" => obj.toString.asJson                                         //do not issue warnings for BigDecimal
     case _ => {
       logger.warn(s"datatype: $datatype not found")
       obj.toString.asJson
