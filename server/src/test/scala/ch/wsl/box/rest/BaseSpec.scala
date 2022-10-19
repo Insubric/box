@@ -2,20 +2,21 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
-import ch.wsl.box.rest.utils.{DatabaseSetup, UserProfile}
+import ch.wsl.box.jdbc.{Connection, ConnectionTestContainerImpl, FullDatabase, PublicSchema, UserDatabase}
+import ch.wsl.box.rest.utils.{UserProfile}
 import _root_.io.circe._
 import _root_.io.circe.parser._
 import _root_.io.circe.generic.auto._
+import ch.wsl.box.codegen.TestDatabase
 
 import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
-import ch.wsl.box.rest.services.{TestModule}
+import ch.wsl.box.rest.services.TestModule
 import ch.wsl.box.services.Services
 import ch.wsl.box.testmodel._
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import org.scalatest.flatspec.{AsyncFlatSpec}
+import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.utility.DockerImageName
 import scribe.{Level, Logger, Logging}
@@ -43,15 +44,13 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
 
   def withServices[A](run:Services => Future[A]):A = {
     val container = containerDef.start()
-    TestModule(container).injector.run[Services, A] { implicit services =>
+    val connection = new ConnectionTestContainerImpl(container,PublicSchema.default)
+    TestDatabase.setUp(connection,"box")
+    TestModule(connection).injector.run[Services, A] { implicit services =>
       Registry.inject(new GenRegistry())
       Registry.injectBox(new boxentities.GenRegistry())
-      val assertion = for{
-        _ <- DatabaseSetup.setUpForTests()
-        assertion <- run(services)
-      } yield assertion
 
-      val result = Await.result(assertion,60.seconds)
+      val result = Await.result(run(services),60.seconds)
 
       container.stop()
 

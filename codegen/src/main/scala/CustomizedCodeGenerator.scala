@@ -23,8 +23,7 @@ case class GeneratedFiles(
                        entityActionsRegistry: EntityActionsRegistryGenerator,
                        fileAccessGenerator: FileAccessGenerator,
                        registry: RegistryGenerator,
-                       fieldRegistry: FieldAccessGenerator,
-                       fixFiles: FixFileAccesGenerator
+                       fieldRegistry: FieldAccessGenerator
                          )
 
 case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:GeneratorParams) extends BaseCodeGenerator {
@@ -43,7 +42,6 @@ case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:
       fileAccessGenerator = FileAccessGenerator(dbModel),
       registry = RegistryGenerator(dbModel),
       fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel),
-      fixFiles = FixFileAccesGenerator(dbModel,calculatedTables)
     )
 
   }
@@ -54,103 +52,20 @@ object CustomizedCodeGenerator  {
   def main(args: Array[String]):Unit = {
 
     val dbConf: Config = com.typesafe.config.ConfigFactory.load().as[com.typesafe.config.Config]("db")
+    val conf = new ConfigFileImpl()
     val params = GeneratorParams(
       dbConf.as[Seq[String]]("generator.tables"),
       dbConf.as[Seq[String]]("generator.views"),
       dbConf.as[Seq[String]]("generator.excludes"),
-      dbConf.as[Seq[String]]("generator.excludeFields")
+      dbConf.as[Seq[String]]("generator.excludeFields"),
+      conf.schemaName,
+      conf.boxSchemaName.getOrElse("box"),
+      conf.langs
     )
-
 
     val connection = new ConnectionConfImpl()
 
-    val conf = new ConfigFileImpl()
-
-    Await.result(new SchemaGenerator(connection,conf.langs).run(),120.seconds)
-
-
-
-    val files = CodeGenerator(conf.schemaName,connection,params).generatedFiles()
-
-    files.fixFiles.createTriggers(connection.dbConnection)
-
-    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),connection,params).generatedFiles()
-
-    val boxFilesAll = CodeGenerator(conf.boxSchemaName.getOrElse("box"),connection,params).generatedFiles()
-
-    files.entities.writeToFile(
-      "ch.wsl.box.jdbc.PostgresProfile",
-      args(0),
-      "ch.wsl.box.generated",
-      "Entities",
-      "Entities.scala"
-    )
-
-    files.generatedRoutes.writeToFile(
-      args(0),
-      "ch.wsl.box.generated",
-      "GeneratedRoutes",
-      "GeneratedRoutes.scala",
-      "Entities"
-    )
-
-    files.entityActionsRegistry.writeToFile(
-      args(0),
-      "ch.wsl.box.generated",
-      "EntityActionsRegistry.scala",
-      "Entities"
-    )
-
-    files.fileAccessGenerator.writeToFile(
-      args(0),
-      "ch.wsl.box.generated",
-      "FileRoutes",
-      "FileRoutes.scala",
-      "Entities"
-    )
-
-    files.fieldRegistry.writeToFile(args(0),"ch.wsl.box.generated","GenFieldRegistry.scala","")
-
-
-    files.registry.writeToFile(args(0),"ch.wsl.box.generated","","GenRegistry.scala")
-
-    boxFilesLimited.entities.writeToFile(
-      "ch.wsl.box.jdbc.PostgresProfile",
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "Entities",
-      "Entities.scala"
-    )
-
-    boxFilesLimited.generatedRoutes.writeToFile(
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "GeneratedRoutes",
-      "GeneratedRoutes.scala",
-      "Entities"
-    )
-
-    boxFilesLimited.entityActionsRegistry.writeToFile(
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "EntityActionsRegistry.scala",
-      "Entities"
-    )
-
-    boxFilesLimited.fileAccessGenerator.writeToFile(
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "FileRoutes",
-      "FileRoutes.scala",
-      "Entities"
-    )
-
-    boxFilesAll.fieldRegistry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","GenFieldRegistry.scala","")
-
-
-    boxFilesAll.registry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","","GenRegistry.scala")
-
-    connection.close()
+    CodeGeneratorWriter.write(connection,params,args(0),"ch.wsl.box.generated")
 
   }
 

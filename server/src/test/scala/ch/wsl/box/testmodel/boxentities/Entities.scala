@@ -1,5 +1,4 @@
 package ch.wsl.box.testmodel.boxentities
-
 // AUTO-GENERATED Slick data model
 /** Stand-alone Slick data model for immediate use */
 
@@ -31,14 +30,14 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(Access_level.schema, Conf.schema, Cron.schema, Export.schema, Export_field.schema, Export_field_i18n.schema, Export_i18n.schema, Field.schema, Field_file.schema, Field_i18n.schema, Flyway_schema_history_box.schema, Form.schema, Form_actions.schema, Form_i18n.schema, Form_navigation_actions.schema, Function.schema, Function_field.schema, Function_field_i18n.schema, Function_i18n.schema, Image_cache.schema, Labels.schema, Mails.schema, News.schema, News_i18n.schema, Public_entities.schema, Ui.schema, Ui_src.schema, Users.schema, V_field.schema, V_labels.schema, V_roles.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(Access_level.schema, Conf.schema, Cron.schema, Export.schema, Export_field.schema, Export_field_i18n.schema, Export_i18n.schema, Field.schema, Field_file.schema, Field_i18n.schema, Flyway_schema_history_box.schema, Form.schema, Form_actions.schema, Form_i18n.schema, Form_navigation_actions.schema, Function.schema, Function_field.schema, Function_field_i18n.schema, Function_i18n.schema, Image_cache.schema, Labels.schema, Log.schema, Mails.schema, News.schema, News_i18n.schema, Public_entities.schema, Ui.schema, Ui_src.schema, Users.schema, V_field.schema, V_labels.schema, V_roles.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
   /** Entity class storing rows of table Access_level
-   *  @param access_level_id Database column access_level_id SqlType(serial), AutoInc, PrimaryKey
-   *  @param access_level Database column access_level SqlType(text) */
-  case class Access_level_row(access_level_id: Option[Int] = None, access_level: String)
+   *  @param access_level_id Database column access_level_id SqlType(int4), PrimaryKey
+   *  @param access_level Database column access_level SqlType(varchar) */
+  case class Access_level_row(access_level_id: Int, access_level: String)
 
 
   val decodeAccess_level_row:Decoder[Access_level_row] = Decoder.forProduct2("access_level_id","access_level")(Access_level_row.apply)
@@ -75,13 +74,13 @@ object Entities {
         sqlActionBuilder.as[Access_level_row](boxGetResult)
       }
 
-    def * = (Rep.Some(access_level_id), access_level) <> (Access_level_row.tupled, Access_level_row.unapply)
+    def * = (access_level_id, access_level) <> (Access_level_row.tupled, Access_level_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(access_level_id), Rep.Some(access_level))).shaped.<>({r=>import r._; _1.map(_=> Access_level_row.tupled((_1, _2.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(access_level_id), Rep.Some(access_level))).shaped.<>({r=>import r._; _1.map(_=> Access_level_row.tupled((_1.get, _2.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column access_level_id SqlType(serial), AutoInc, PrimaryKey */
-    val access_level_id: Rep[Int] = column[Int]("access_level_id", O.AutoInc, O.PrimaryKey)
-    /** Database column access_level SqlType(text) */
+    /** Database column access_level_id SqlType(int4), PrimaryKey */
+    val access_level_id: Rep[Int] = column[Int]("access_level_id", O.PrimaryKey)
+    /** Database column access_level SqlType(varchar) */
     val access_level: Rep[String] = column[String]("access_level")
   }
   /** Collection-like TableQuery object for table Access_level */
@@ -832,18 +831,20 @@ object Entities {
    *  @param exportfields Database column exportfields SqlType(varchar), Default(None)
    *  @param guest_user Database column guest_user SqlType(text), Default(None)
    *  @param edit_key_field Database column edit_key_field SqlType(text), Default(None)
+   *  @param view_table Database column view_table SqlType(text), Default(None)
+   *  @param view_id Database column view_id SqlType(text), Default(None)
    *  @param show_navigation Database column show_navigation SqlType(bool), Default(true)
    *  @param props Database column props SqlType(text), Default(None)
    *  @param form_uuid Database column form_uuid SqlType(uuid), PrimaryKey
    *  @param params Database column params SqlType(jsonb), Default(None) */
-  case class Form_row(name: String, entity: String, description: Option[String] = None, layout: Option[String] = None, tabularFields: Option[String] = None, query: Option[String] = None, exportfields: Option[String] = None, guest_user: Option[String] = None, edit_key_field: Option[String] = None, show_navigation: Boolean = true, props: Option[String] = None, form_uuid: Option[java.util.UUID] = None, params: Option[io.circe.Json] = None)
+  case class Form_row(name: String, entity: String, description: Option[String] = None, layout: Option[String] = None, tabularFields: Option[String] = None, query: Option[String] = None, exportfields: Option[String] = None, guest_user: Option[String] = None, edit_key_field: Option[String] = None, view_table: Option[String] = None, view_id: Option[String] = None, show_navigation: Boolean = true, props: Option[String] = None, form_uuid: Option[java.util.UUID] = None, params: Option[io.circe.Json] = None)
 
 
-  val decodeForm_row:Decoder[Form_row] = Decoder.forProduct13("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params")(Form_row.apply)
+  val decodeForm_row:Decoder[Form_row] = Decoder.forProduct15("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","view_table","view_id","show_navigation","props","form_uuid","params")(Form_row.apply)
   val encodeForm_row:EncoderWithBytea[Form_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct13("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params")(x =>
-      (x.name, x.entity, x.description, x.layout, x.tabularFields, x.query, x.exportfields, x.guest_user, x.edit_key_field, x.show_navigation, x.props, x.form_uuid, x.params)
+    Encoder.forProduct15("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","view_table","view_id","show_navigation","props","form_uuid","params")(x =>
+      (x.name, x.entity, x.description, x.layout, x.tabularFields, x.query, x.exportfields, x.guest_user, x.edit_key_field, x.view_table, x.view_id, x.show_navigation, x.props, x.form_uuid, x.params)
     )
   }
 
@@ -854,7 +855,7 @@ object Entities {
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
   class Form(_tableTag: Tag) extends Table[Form_row](_tableTag, Some("box"), "form") with UpdateTable[Form_row] {
 
-    def boxGetResult = GR(r => Form_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.<<))
+    def boxGetResult = GR(r => Form_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Form_row] = {
         if(fields.isEmpty) throw new Exception("No fields to update on box.form")
@@ -862,20 +863,20 @@ object Entities {
         val head = concat(sql"""update "box"."form" set """,kv(fields.head))
         val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
-        val returning = sql""" returning "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" """
+        val returning = sql""" returning "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","view_table","view_id","show_navigation","props","form_uuid","params" """
 
         val sqlActionBuilder = concat(concat(set,where),returning)
         sqlActionBuilder.as[Form_row](boxGetResult).head
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" from "box"."form" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","view_table","view_id","show_navigation","props","form_uuid","params" from "box"."form" """,where)
         sqlActionBuilder.as[Form_row](boxGetResult)
       }
 
-    def * = (name, entity, description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, show_navigation, props, Rep.Some(form_uuid), params) <> (Form_row.tupled, Form_row.unapply)
+    def * = (name, entity, description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, view_table, view_id, show_navigation, props, Rep.Some(form_uuid), params) <> (Form_row.tupled, Form_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(name), Rep.Some(entity), description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, Rep.Some(show_navigation), props, Rep.Some(form_uuid), params)).shaped.<>({r=>import r._; _1.map(_=> Form_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10.get, _11, _12, _13)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(name), Rep.Some(entity), description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, view_table, view_id, Rep.Some(show_navigation), props, Rep.Some(form_uuid), params)).shaped.<>({r=>import r._; _1.map(_=> Form_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12.get, _13, _14, _15)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column name SqlType(varchar) */
     val name: Rep[String] = column[String]("name")
@@ -895,6 +896,10 @@ object Entities {
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
     /** Database column edit_key_field SqlType(text), Default(None) */
     val edit_key_field: Rep[Option[String]] = column[Option[String]]("edit_key_field", O.Default(None))
+    /** Database column view_table SqlType(text), Default(None) */
+    val view_table: Rep[Option[String]] = column[Option[String]]("view_table", O.Default(None))
+    /** Database column view_id SqlType(text), Default(None) */
+    val view_id: Rep[Option[String]] = column[Option[String]]("view_id", O.Default(None))
     /** Database column show_navigation SqlType(bool), Default(true) */
     val show_navigation: Rep[Boolean] = column[Boolean]("show_navigation", O.Default(true))
     /** Database column props SqlType(text), Default(None) */
@@ -1152,22 +1157,22 @@ object Entities {
 
   /** Entity class storing rows of table Function
    *  @param name Database column name SqlType(varchar)
+   *  @param mode Database column mode SqlType(varchar), Default(table)
    *  @param function Database column function SqlType(varchar)
+   *  @param presenter Database column presenter SqlType(varchar), Default(None)
    *  @param description Database column description SqlType(varchar), Default(None)
    *  @param layout Database column layout SqlType(varchar), Default(None)
    *  @param order Database column order SqlType(float8), Default(None)
    *  @param access_role Database column access_role SqlType(_text), Default(None)
-   *  @param presenter Database column presenter SqlType(text), Default(None)
-   *  @param mode Database column mode SqlType(text), Default(table)
    *  @param function_uuid Database column function_uuid SqlType(uuid), PrimaryKey */
-  case class Function_row(name: String, function: String, description: Option[String] = None, layout: Option[String] = None, order: Option[Double] = None, access_role: Option[List[String]] = None, presenter: Option[String] = None, mode: String = "table", function_uuid: Option[java.util.UUID] = None)
+  case class Function_row(name: String, mode: String = "table", function: String, presenter: Option[String] = None, description: Option[String] = None, layout: Option[String] = None, order: Option[Double] = None, access_role: Option[List[String]] = None, function_uuid: Option[java.util.UUID] = None)
 
 
-  val decodeFunction_row:Decoder[Function_row] = Decoder.forProduct9("name","function","description","layout","order","access_role","presenter","mode","function_uuid")(Function_row.apply)
+  val decodeFunction_row:Decoder[Function_row] = Decoder.forProduct9("name","mode","function","presenter","description","layout","order","access_role","function_uuid")(Function_row.apply)
   val encodeFunction_row:EncoderWithBytea[Function_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct9("name","function","description","layout","order","access_role","presenter","mode","function_uuid")(x =>
-      (x.name, x.function, x.description, x.layout, x.order, x.access_role, x.presenter, x.mode, x.function_uuid)
+    Encoder.forProduct9("name","mode","function","presenter","description","layout","order","access_role","function_uuid")(x =>
+      (x.name, x.mode, x.function, x.presenter, x.description, x.layout, x.order, x.access_role, x.function_uuid)
     )
   }
 
@@ -1178,7 +1183,7 @@ object Entities {
   /** Table description of table function. Objects of this class serve as prototypes for rows in queries. */
   class Function(_tableTag: Tag) extends Table[Function_row](_tableTag, Some("box"), "function") with UpdateTable[Function_row] {
 
-    def boxGetResult = GR(r => Function_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.<<,r.<<,r.nextUUIDOption))
+    def boxGetResult = GR(r => Function_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextUUIDOption))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Function_row] = {
         if(fields.isEmpty) throw new Exception("No fields to update on box.function")
@@ -1186,25 +1191,29 @@ object Entities {
         val head = concat(sql"""update "box"."function" set """,kv(fields.head))
         val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
-        val returning = sql""" returning "name","function","description","layout","order","access_role","presenter","mode","function_uuid" """
+        val returning = sql""" returning "name","mode","function","presenter","description","layout","order","access_role","function_uuid" """
 
         val sqlActionBuilder = concat(concat(set,where),returning)
         sqlActionBuilder.as[Function_row](boxGetResult).head
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Function_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","function","description","layout","order","access_role","presenter","mode","function_uuid" from "box"."function" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","mode","function","presenter","description","layout","order","access_role","function_uuid" from "box"."function" """,where)
         sqlActionBuilder.as[Function_row](boxGetResult)
       }
 
-    def * = (name, function, description, layout, order, access_role, presenter, mode, Rep.Some(function_uuid)) <> (Function_row.tupled, Function_row.unapply)
+    def * = (name, mode, function, presenter, description, layout, order, access_role, Rep.Some(function_uuid)) <> (Function_row.tupled, Function_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(name), Rep.Some(function), description, layout, order, access_role, presenter, Rep.Some(mode), Rep.Some(function_uuid))).shaped.<>({r=>import r._; _1.map(_=> Function_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8.get, _9)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(name), Rep.Some(mode), Rep.Some(function), presenter, description, layout, order, access_role, Rep.Some(function_uuid))).shaped.<>({r=>import r._; _1.map(_=> Function_row.tupled((_1.get, _2.get, _3.get, _4, _5, _6, _7, _8, _9)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column name SqlType(varchar) */
     val name: Rep[String] = column[String]("name")
+    /** Database column mode SqlType(varchar), Default(table) */
+    val mode: Rep[String] = column[String]("mode", O.Default("table"))
     /** Database column function SqlType(varchar) */
     val function: Rep[String] = column[String]("function")
+    /** Database column presenter SqlType(varchar), Default(None) */
+    val presenter: Rep[Option[String]] = column[Option[String]]("presenter", O.Default(None))
     /** Database column description SqlType(varchar), Default(None) */
     val description: Rep[Option[String]] = column[Option[String]]("description", O.Default(None))
     /** Database column layout SqlType(varchar), Default(None) */
@@ -1213,10 +1222,6 @@ object Entities {
     val order: Rep[Option[Double]] = column[Option[Double]]("order", O.Default(None))
     /** Database column access_role SqlType(_text), Default(None) */
     val access_role: Rep[Option[List[String]]] = column[Option[List[String]]]("access_role", O.Default(None))
-    /** Database column presenter SqlType(text), Default(None) */
-    val presenter: Rep[Option[String]] = column[Option[String]]("presenter", O.Default(None))
-    /** Database column mode SqlType(text), Default(table) */
-    val mode: Rep[String] = column[String]("mode", O.Default("table"))
     /** Database column function_uuid SqlType(uuid), PrimaryKey */
     val function_uuid: Rep[java.util.UUID] = column[java.util.UUID]("function_uuid", O.PrimaryKey, O.AutoInc)
   }
@@ -1559,6 +1564,70 @@ object Entities {
   }
   /** Collection-like TableQuery object for table Labels */
   lazy val Labels = new TableQuery(tag => new Labels(tag))
+
+  /** Entity class storing rows of table Log
+   *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
+   *  @param filename Database column filename SqlType(varchar)
+   *  @param classname Database column classname SqlType(varchar)
+   *  @param line Database column line SqlType(int4)
+   *  @param message Database column message SqlType(varchar)
+   *  @param timestamp Database column timestamp SqlType(int8) */
+  case class Log_row(id: Option[Int] = None, filename: String, classname: String, line: Int, message: String, timestamp: Long)
+
+
+  val decodeLog_row:Decoder[Log_row] = Decoder.forProduct6("id","filename","classname","line","message","timestamp")(Log_row.apply)
+  val encodeLog_row:EncoderWithBytea[Log_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct6("id","filename","classname","line","message","timestamp")(x =>
+      (x.id, x.filename, x.classname, x.line, x.message, x.timestamp)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Log_row objects using plain SQL queries */
+
+  /** Table description of table log. Objects of this class serve as prototypes for rows in queries. */
+  class Log(_tableTag: Tag) extends Table[Log_row](_tableTag, Some("box"), "log") with UpdateTable[Log_row] {
+
+    def boxGetResult = GR(r => Log_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Log_row] = {
+        if(fields.isEmpty) throw new Exception("No fields to update on box.log")
+        val kv = keyValueComposer(this)
+        val head = concat(sql"""update "box"."log" set """,kv(fields.head))
+        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+        val returning = sql""" returning "id","filename","classname","line","message","timestamp" """
+
+        val sqlActionBuilder = concat(concat(set,where),returning)
+        sqlActionBuilder.as[Log_row](boxGetResult).head
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Log_row]] = {
+        val sqlActionBuilder = concat(sql"""select "id","filename","classname","line","message","timestamp" from "box"."log" """,where)
+        sqlActionBuilder.as[Log_row](boxGetResult)
+      }
+
+    def * = (Rep.Some(id), filename, classname, line, message, timestamp) <> (Log_row.tupled, Log_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(id), Rep.Some(filename), Rep.Some(classname), Rep.Some(line), Rep.Some(message), Rep.Some(timestamp))).shaped.<>({r=>import r._; _1.map(_=> Log_row.tupled((_1, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(serial), AutoInc, PrimaryKey */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column filename SqlType(varchar) */
+    val filename: Rep[String] = column[String]("filename")
+    /** Database column classname SqlType(varchar) */
+    val classname: Rep[String] = column[String]("classname")
+    /** Database column line SqlType(int4) */
+    val line: Rep[Int] = column[Int]("line")
+    /** Database column message SqlType(varchar) */
+    val message: Rep[String] = column[String]("message")
+    /** Database column timestamp SqlType(int8) */
+    val timestamp: Rep[Long] = column[Long]("timestamp")
+  }
+  /** Collection-like TableQuery object for table Log */
+  lazy val Log = new TableQuery(tag => new Log(tag))
 
   /** Entity class storing rows of table Mails
    *  @param id Database column id SqlType(uuid), PrimaryKey
@@ -2098,17 +2167,15 @@ object Entities {
 
   /** Entity class storing rows of table V_labels
    *  @param key Database column key SqlType(varchar), Default(None)
-   *  @param it Database column it SqlType(varchar), Default(None)
-   *  @param en Database column en SqlType(varchar), Default(None)
-   *  @param de Database column de SqlType(varchar), Default(None) */
-  case class V_labels_row(key: Option[String] = None, it: Option[String] = None, en: Option[String] = None, de: Option[String] = None)
+   *  @param en Database column en SqlType(varchar), Default(None) */
+  case class V_labels_row(key: Option[String] = None, en: Option[String] = None)
 
 
-  val decodeV_labels_row:Decoder[V_labels_row] = Decoder.forProduct4("key","it","en","de")(V_labels_row.apply)
+  val decodeV_labels_row:Decoder[V_labels_row] = Decoder.forProduct2("key","en")(V_labels_row.apply)
   val encodeV_labels_row:EncoderWithBytea[V_labels_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct4("key","it","en","de")(x =>
-      (x.key, x.it, x.en, x.de)
+    Encoder.forProduct2("key","en")(x =>
+      (x.key, x.en)
     )
   }
 
@@ -2119,7 +2186,7 @@ object Entities {
   /** Table description of table v_labels. Objects of this class serve as prototypes for rows in queries. */
   class V_labels(_tableTag: Tag) extends Table[V_labels_row](_tableTag, Some("box"), "v_labels") with UpdateTable[V_labels_row] {
 
-    def boxGetResult = GR(r => V_labels_row(r.<<,r.<<,r.<<,r.<<))
+    def boxGetResult = GR(r => V_labels_row(r.<<,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[V_labels_row] = {
         if(fields.isEmpty) throw new Exception("No fields to update on box.v_labels")
@@ -2127,27 +2194,23 @@ object Entities {
         val head = concat(sql"""update "box"."v_labels" set """,kv(fields.head))
         val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
 
-        val returning = sql""" returning "key","it","en","de" """
+        val returning = sql""" returning "key","en" """
 
         val sqlActionBuilder = concat(concat(set,where),returning)
         sqlActionBuilder.as[V_labels_row](boxGetResult).head
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_labels_row]] = {
-        val sqlActionBuilder = concat(sql"""select "key","it","en","de" from "box"."v_labels" """,where)
+        val sqlActionBuilder = concat(sql"""select "key","en" from "box"."v_labels" """,where)
         sqlActionBuilder.as[V_labels_row](boxGetResult)
       }
 
-    def * = (key, it, en, de) <> (V_labels_row.tupled, V_labels_row.unapply)
+    def * = (key, en) <> (V_labels_row.tupled, V_labels_row.unapply)
 
     /** Database column key SqlType(varchar), Default(None) */
     val key: Rep[Option[String]] = column[Option[String]]("key", O.Default(None))
-    /** Database column it SqlType(varchar), Default(None) */
-    val it: Rep[Option[String]] = column[Option[String]]("it", O.Default(None))
     /** Database column en SqlType(varchar), Default(None) */
     val en: Rep[Option[String]] = column[Option[String]]("en", O.Default(None))
-    /** Database column de SqlType(varchar), Default(None) */
-    val de: Rep[Option[String]] = column[Option[String]]("de", O.Default(None))
   }
   /** Collection-like TableQuery object for table V_labels */
   lazy val V_labels = new TableQuery(tag => new V_labels(tag))

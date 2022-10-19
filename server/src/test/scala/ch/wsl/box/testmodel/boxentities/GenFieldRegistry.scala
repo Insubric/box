@@ -26,6 +26,7 @@ object FieldAccessRegistry extends FieldRegistry {
       "function_i18n",
       "image_cache",
       "labels",
+      "log",
       "mails",
       "news",
       "news_i18n",
@@ -43,7 +44,7 @@ object FieldAccessRegistry extends FieldRegistry {
 
   val tableFields:Map[String,Map[String,ColType]] = Map(
         "access_level" -> Map(
-              "access_level_id" -> ColType("Int","integer",true,false),
+              "access_level_id" -> ColType("Int","integer",false,false),
               "access_level" -> ColType("String","string",false,false)
         ),
         "conf" -> Map(
@@ -62,7 +63,7 @@ object FieldAccessRegistry extends FieldRegistry {
               "layout" -> ColType("String","string",true,true),
               "parameters" -> ColType("String","string",true,true),
               "order" -> ColType("Double","number",true,true),
-              "access_role" -> ColType("List[String]","string",true,true),
+              "access_role" -> ColType("List[String]","null",true,true),
               "export_uuid" -> ColType("java.util.UUID","string",true,false)
         ),
         "export_field" -> Map(
@@ -158,6 +159,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "exportfields" -> ColType("String","string",true,true),
               "guest_user" -> ColType("String","string",true,true),
               "edit_key_field" -> ColType("String","string",true,true),
+              "view_table" -> ColType("String","string",true,true),
+              "view_id" -> ColType("String","string",true,true),
               "show_navigation" -> ColType("Boolean","boolean",true,false),
               "props" -> ColType("String","string",true,true),
               "form_uuid" -> ColType("java.util.UUID","string",true,false),
@@ -203,13 +206,13 @@ object FieldAccessRegistry extends FieldRegistry {
         ),
         "function" -> Map(
               "name" -> ColType("String","string",false,false),
+              "mode" -> ColType("String","string",true,false),
               "function" -> ColType("String","string",false,false),
+              "presenter" -> ColType("String","string",true,true),
               "description" -> ColType("String","string",true,true),
               "layout" -> ColType("String","string",true,true),
               "order" -> ColType("Double","number",true,true),
-              "access_role" -> ColType("List[String]","string",true,true),
-              "presenter" -> ColType("String","string",true,true),
-              "mode" -> ColType("String","string",true,false),
+              "access_role" -> ColType("List[String]","null",true,true),
               "function_uuid" -> ColType("java.util.UUID","string",true,false)
         ),
         "function_field" -> Map(
@@ -253,20 +256,28 @@ object FieldAccessRegistry extends FieldRegistry {
               "key" -> ColType("String","string",false,false),
               "label" -> ColType("String","string",true,true)
         ),
+        "log" -> Map(
+              "id" -> ColType("Int","integer",true,false),
+              "filename" -> ColType("String","string",false,false),
+              "classname" -> ColType("String","string",false,false),
+              "line" -> ColType("Int","integer",false,false),
+              "message" -> ColType("String","string",false,false),
+              "timestamp" -> ColType("Long","integer",false,false)
+        ),
         "mails" -> Map(
               "id" -> ColType("java.util.UUID","string",true,false),
               "send_at" -> ColType("java.time.LocalDateTime","datetime",false,false),
               "sent_at" -> ColType("java.time.LocalDateTime","datetime",true,true),
               "mail_from" -> ColType("String","string",false,false),
-              "mail_to" -> ColType("List[String]","string",false,false),
+              "mail_to" -> ColType("List[String]","null",false,false),
               "subject" -> ColType("String","string",false,false),
               "html" -> ColType("String","string",false,false),
               "text" -> ColType("String","string",true,true),
               "params" -> ColType("io.circe.Json","json",true,true),
               "created" -> ColType("java.time.LocalDateTime","datetime",false,false),
               "wished_send_at" -> ColType("java.time.LocalDateTime","datetime",false,false),
-              "mail_cc" -> ColType("List[String]","string",true,false),
-              "mail_bcc" -> ColType("List[String]","string",true,false)
+              "mail_cc" -> ColType("List[String]","null",true,false),
+              "mail_bcc" -> ColType("List[String]","null",true,false)
         ),
         "news" -> Map(
               "datetime" -> ColType("java.time.LocalDateTime","datetime",true,false),
@@ -324,9 +335,7 @@ object FieldAccessRegistry extends FieldRegistry {
         ),
         "v_labels" -> Map(
               "key" -> ColType("String","string",true,true),
-              "it" -> ColType("String","string",true,true),
-              "en" -> ColType("String","string",true,true),
-              "de" -> ColType("String","string",true,true)
+              "en" -> ColType("String","string",true,true)
         ),
         "v_roles" -> Map(
               "rolname" -> ColType("String","string",true,true),
@@ -336,8 +345,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "rolcreatedb" -> ColType("Boolean","boolean",true,true),
               "rolcanlogin" -> ColType("Boolean","boolean",true,true),
               "rolconnlimit" -> ColType("Int","integer",true,true),
-              "rolvaliduntil" -> ColType("java.time.LocalDateTime","datetime",true,true),
-              "memberof" -> ColType("String","string",true,true),
+              "rolvaliduntil" -> ColType("java.time.LocalDateTime","null",true,true),
+              "memberof" -> ColType("String","null",true,true),
               "rolreplication" -> ColType("Boolean","boolean",true,true),
               "rolbypassrls" -> ColType("Boolean","boolean",true,true)
         ),

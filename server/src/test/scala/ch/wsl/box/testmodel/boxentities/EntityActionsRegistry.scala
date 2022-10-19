@@ -5,6 +5,7 @@ import scala.util.Try
 import ch.wsl.box.rest.logic.{JSONPageActions, JSONTableActions, JSONViewActions, TableActions, ViewActions}
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.services.Services
+
 import ch.wsl.box.rest.runtime._
 
 object EntityActionsRegistry extends ActionRegistry {
@@ -39,6 +40,7 @@ object EntityActionsRegistry extends ActionRegistry {
    case "function_i18n" => JSONTableActions[Function_i18n,Function_i18n_row](Function_i18n)(Entities.encodeFunction_i18n_row,Entities.decodeFunction_i18n_row,ec,services)
    case "image_cache" => JSONTableActions[Image_cache,Image_cache_row](Image_cache)(Entities.encodeImage_cache_row,Entities.decodeImage_cache_row,ec,services)
    case "labels" => JSONTableActions[Labels,Labels_row](Labels)(Entities.encodeLabels_row,Entities.decodeLabels_row,ec,services)
+   case "log" => JSONTableActions[Log,Log_row](Log)(Entities.encodeLog_row,Entities.decodeLog_row,ec,services)
    case "mails" => JSONTableActions[Mails,Mails_row](Mails)(Entities.encodeMails_row,Entities.decodeMails_row,ec,services)
    case "news" => JSONTableActions[News,News_row](News)(Entities.encodeNews_row,Entities.decodeNews_row,ec,services)
    case "news_i18n" => JSONTableActions[News_i18n,News_i18n_row](News_i18n)(Entities.encodeNews_i18n_row,Entities.decodeNews_i18n_row,ec,services)

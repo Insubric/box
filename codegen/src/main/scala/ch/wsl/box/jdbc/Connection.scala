@@ -10,6 +10,7 @@ import slick.dbio.{DBIOAction, NoStream}
 import slick.jdbc.{ResultSetConcurrency, ResultSetType}
 import slick.sql.SqlAction
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import com.dimafeng.testcontainers.PostgreSQLContainer
 
 import javax.sql.DataSource
 import org.postgresql.ds.PGSimpleDataSource
@@ -120,6 +121,61 @@ class ConnectionConfImpl extends Connection {
     .withValue("numThreads", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("connectionPool", connectionPool)
+    //https://github.com/brettwooldridge/HikariCP/issues/1237
+    //https://stackoverflow.com/questions/58098979/connections-not-being-closedhikaricp-postgres/58101472#58101472
+    .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(maxLifetime))
+    .withValue("idleTimeout", ConfigValueFactory.fromAnyRef(idleTimeout))
+    .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(leakDetectionThreshold))
+    .withValue("autoCommit", ConfigValueFactory.fromAnyRef(false))
+    .withValue("properties",ConfigValueFactory.fromMap(Map(
+      "ApplicationName" -> s"BOX Connections - Pool $randomId"
+    ).asJava))
+  )
+
+  override def close(): Unit = dbConnection.close()
+}
+
+class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:PublicSchema) extends Connection {
+  val dbPath = container.jdbcUrl
+  val dbPassword = container.password
+  val dbSchema = schema.name
+  val adminPoolSize = 15
+  val adminUser = container.username
+  val leakDetectionThreshold =  100000
+  val maxLifetime =  600000
+  val idleTimeout =  300000
+
+
+
+
+
+
+  override def dataSource(name:String): DataSource = {
+    val ds = new PGSimpleDataSource()
+    ds.setUrl(dbPath)
+    ds.setUser(adminUser)
+    ds.setPassword(dbPassword)
+    ds.setApplicationName(s"BOX Temp datasource - $name")
+    ds
+  }
+
+  /**
+   * Admin DB connection, useful for quering the information Schema
+   *
+   * @return
+   */
+
+  val randomId = UUID.randomUUID().toString.take(4)
+
+  val dbConnection = Database.forConfig("", ConfigFactory.empty()
+    .withValue("driver", ConfigValueFactory.fromAnyRef("org.postgresql.Driver"))
+    .withValue("url", ConfigValueFactory.fromAnyRef(dbPath))
+    .withValue("keepAliveConnection", ConfigValueFactory.fromAnyRef(true))
+    .withValue("user", ConfigValueFactory.fromAnyRef(adminUser))
+    .withValue("password", ConfigValueFactory.fromAnyRef(container.password))
+    .withValue("numThreads", ConfigValueFactory.fromAnyRef(adminPoolSize))
+    .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(adminPoolSize))
+    .withValue("connectionPool", ConfigValueFactory.fromAnyRef("disabled"))
     //https://github.com/brettwooldridge/HikariCP/issues/1237
     //https://stackoverflow.com/questions/58098979/connections-not-being-closedhikaricp-postgres/58101472#58101472
     .withValue("maxLifetime", ConfigValueFactory.fromAnyRef(maxLifetime))

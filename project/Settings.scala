@@ -102,6 +102,8 @@ object Settings {
     "io.circe"                 %% "circe-core" % versions.circe,
     "com.github.tminglei"      %% "slick-pg_circe-json"     % versions.slickPg,
     "org.locationtech.jts" % "jts-core" % "1.16.1",
+    "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion,
+    "org.flywaydb" % "flyway-core" % "7.9.1",
   ))
 
   val codegenDependecies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
@@ -136,7 +138,6 @@ object Settings {
     "com.typesafe.akka"        %% "akka-testkit"     % versions.akka      % "test",
     "com.typesafe.akka"        %% "akka-http-testkit"% versions.akkaHttp  % "test",
     "com.dimafeng"             %% "testcontainers-scala-scalatest" % versions.testcontainersScalaVersion % "test",
-    "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion % "test",
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
     "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
@@ -149,7 +150,6 @@ object Settings {
     "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0-SNAPSHOT",
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
-    "org.flywaydb" % "flyway-core" % "7.9.1",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.apache.tika" % "tika-core" % "1.25",
