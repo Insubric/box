@@ -27,6 +27,7 @@ object EntityActionsRegistry extends ActionRegistry {
    case "flyway_schema_history" => JSONTableActions[Flyway_schema_history,Flyway_schema_history_row](Flyway_schema_history)(Entities.encodeFlyway_schema_history_row,Entities.decodeFlyway_schema_history_row,ec,services)
    case "simple" => JSONTableActions[Simple,Simple_row](Simple)(Entities.encodeSimple_row,Entities.decodeSimple_row,ec,services)
    case "spatial_ref_sys" => JSONTableActions[Spatial_ref_sys,Spatial_ref_sys_row](Spatial_ref_sys)(Entities.encodeSpatial_ref_sys_row,Entities.decodeSpatial_ref_sys_row,ec,services)
+   case "test_list_types" => JSONTableActions[Test_list_types,Test_list_types_row](Test_list_types)(Entities.encodeTest_list_types_row,Entities.decodeTest_list_types_row,ec,services)
   }
 
 }

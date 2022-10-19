@@ -13,7 +13,8 @@ object FieldAccessRegistry extends FieldRegistry {
       "db_subchild",
       "flyway_schema_history",
       "simple",
-      "spatial_ref_sys"
+      "spatial_ref_sys",
+      "test_list_types"
   )
 
   override def views: Seq[String] = Seq(
@@ -72,6 +73,12 @@ object FieldAccessRegistry extends FieldRegistry {
               "auth_srid" -> ColType("Int","integer",true,true),
               "srtext" -> ColType("String","string",true,true),
               "proj4text" -> ColType("String","string",true,true)
+        ),
+        "test_list_types" -> Map(
+              "id" -> ColType("Int","integer",true,false),
+              "texts" -> ColType("List[String]","null",true,true),
+              "ints" -> ColType("List[Int]","array_number",true,true),
+              "numbers" -> ColType("List[Double]","array_number",true,true)
         ),
         "geography_columns" -> Map(
               "f_table_catalog" -> ColType("String","string",true,true),

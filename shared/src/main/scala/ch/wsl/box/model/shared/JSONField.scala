@@ -47,6 +47,7 @@ object JSONField{
 
   def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
   def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))
+  def json(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.JSON,name,nullable,widget = Some(WidgetsNames.code))
   def child(name:String, childId:UUID, parentKey:String,childFields:String) = JSONField(
     JSONFieldTypes.CHILD,
     name,

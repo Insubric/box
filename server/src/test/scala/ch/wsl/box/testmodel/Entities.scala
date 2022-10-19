@@ -30,7 +30,7 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Flyway_schema_history.schema, Geography_columns.schema, Geometry_columns.schema, Simple.schema, Spatial_ref_sys.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Flyway_schema_history.schema, Geography_columns.schema, Geometry_columns.schema, Simple.schema, Spatial_ref_sys.schema, Test_list_types.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -697,4 +697,62 @@ object Entities {
   }
   /** Collection-like TableQuery object for table Spatial_ref_sys */
   lazy val Spatial_ref_sys = new TableQuery(tag => new Spatial_ref_sys(tag))
+
+  /** Entity class storing rows of table Test_list_types
+   *  @param id Database column id SqlType(serial), AutoInc
+   *  @param texts Database column texts SqlType(_text), Default(None)
+   *  @param ints Database column ints SqlType(_int4), Default(None)
+   *  @param numbers Database column numbers SqlType(_float8), Default(None) */
+  case class Test_list_types_row(id: Int, texts: Option[List[String]] = None, ints: Option[List[Int]] = None, numbers: Option[List[Double]] = None)
+
+
+  val decodeTest_list_types_row:Decoder[Test_list_types_row] = Decoder.forProduct4("id","texts","ints","numbers")(Test_list_types_row.apply)
+  val encodeTest_list_types_row:EncoderWithBytea[Test_list_types_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct4("id","texts","ints","numbers")(x =>
+      (x.id, x.texts, x.ints, x.numbers)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Test_list_types_row objects using plain SQL queries */
+
+  /** Table description of table test_list_types. Objects of this class serve as prototypes for rows in queries. */
+  class Test_list_types(_tableTag: Tag) extends Table[Test_list_types_row](_tableTag, "test_list_types") with UpdateTable[Test_list_types_row] {
+
+    def boxGetResult = GR(r => Test_list_types_row(r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[Int].map(_.toList),r.nextArrayOption[Double].map(_.toList)))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Test_list_types_row] = {
+        if(fields.isEmpty) throw new Exception("No fields to update on test_list_types")
+        val kv = keyValueComposer(this)
+        val head = concat(sql"""update "test_list_types" set """,kv(fields.head))
+        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+        val returning = sql""" returning "id","texts","ints","numbers" """
+
+        val sqlActionBuilder = concat(concat(set,where),returning)
+        sqlActionBuilder.as[Test_list_types_row](boxGetResult).head
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Test_list_types_row]] = {
+        val sqlActionBuilder = concat(sql"""select "id","texts","ints","numbers" from "test_list_types" """,where)
+        sqlActionBuilder.as[Test_list_types_row](boxGetResult)
+      }
+
+    def * = (id, texts, ints, numbers) <> (Test_list_types_row.tupled, Test_list_types_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(id), texts, ints, numbers)).shaped.<>({r=>import r._; _1.map(_=> Test_list_types_row.tupled((_1.get, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(serial), AutoInc */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc)
+    /** Database column texts SqlType(_text), Default(None) */
+    val texts: Rep[Option[List[String]]] = column[Option[List[String]]]("texts", O.Default(None))
+    /** Database column ints SqlType(_int4), Default(None) */
+    val ints: Rep[Option[List[Int]]] = column[Option[List[Int]]]("ints", O.Default(None))
+    /** Database column numbers SqlType(_float8), Default(None) */
+    val numbers: Rep[Option[List[Double]]] = column[Option[List[Double]]]("numbers", O.Default(None))
+  }
+  /** Collection-like TableQuery object for table Test_list_types */
+  lazy val Test_list_types = new TableQuery(tag => new Test_list_types(tag))
 }

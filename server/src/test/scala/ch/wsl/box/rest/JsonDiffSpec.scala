@@ -191,4 +191,34 @@ class JsonDiffSpec extends BaseSpec {
     diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1","field2")
   }
 
+  val complexTypeMetadata:JSONMetadata = JSONMetadata.simple(
+    java.util.UUID.randomUUID(),
+    "table",
+    fields = Seq(
+      JSONField.json("complex"),
+    ),
+    keys = Seq(),
+    entity = "main",
+    lang = ""
+  )
+
+  it should "handle complex types" in {
+    val obj1 = parse(
+      """
+        |{
+        | "complex": {"a": true, "b": true}
+        |}
+        |""".stripMargin).toOption.get
+
+    val obj2 = parse(
+      """
+        |{
+        |  "complex": {"a": true}
+        |}
+        |""".stripMargin).toOption.get
+    val diff = obj1.diff(complexTypeMetadata,Seq())(obj2)
+    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("complex")
+    diff.models.head.fields.head.value.get shouldBe Json.fromFields(Map("a" -> Json.True))
+  }
+
 }

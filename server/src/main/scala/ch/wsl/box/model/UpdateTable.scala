@@ -106,6 +106,11 @@ trait UpdateTable[T] { t:Table[T] =>
       case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable)
       case "java.util.UUID" => update[java.util.UUID](col.nullable)
       case "Boolean" => update[Boolean](col.nullable)
+      case "List[Double]" => update[List[Double]](col.nullable)
+      case "List[Int]" => update[List[Int]](col.nullable)
+      case "List[Short]" => update[List[Short]](col.nullable)
+      case "List[Long]" => update[List[Long]](col.nullable)
+      case "List[String]" => update[List[String]](col.nullable)
       case t:String => throw new Exception(s"$t is not supported for single field update")
     }
   }
