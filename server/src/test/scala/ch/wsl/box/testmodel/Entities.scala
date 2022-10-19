@@ -30,7 +30,7 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Flyway_schema_history.schema, Geography_columns.schema, Geometry_columns.schema, Simple.schema, Spatial_ref_sys.schema, Test_list_types.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Flyway_schema_history.schema, Geography_columns.schema, Geometry_columns.schema, Json_test.schema, Simple.schema, Spatial_ref_sys.schema, Test_list_types.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -584,6 +584,58 @@ object Entities {
   }
   /** Collection-like TableQuery object for table Geometry_columns */
   lazy val Geometry_columns = new TableQuery(tag => new Geometry_columns(tag))
+
+  /** Entity class storing rows of table Json_test
+   *  @param id Database column id SqlType(serial), AutoInc
+   *  @param obj Database column obj SqlType(jsonb), Default(None) */
+  case class Json_test_row(id: Int, obj: Option[io.circe.Json] = None)
+
+
+  val decodeJson_test_row:Decoder[Json_test_row] = Decoder.forProduct2("id","obj")(Json_test_row.apply)
+  val encodeJson_test_row:EncoderWithBytea[Json_test_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct2("id","obj")(x =>
+      (x.id, x.obj)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Json_test_row objects using plain SQL queries */
+
+  /** Table description of table json_test. Objects of this class serve as prototypes for rows in queries. */
+  class Json_test(_tableTag: Tag) extends Table[Json_test_row](_tableTag, "json_test") with UpdateTable[Json_test_row] {
+
+    def boxGetResult = GR(r => Json_test_row(r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Json_test_row] = {
+        if(fields.isEmpty) throw new Exception("No fields to update on json_test")
+        val kv = keyValueComposer(this)
+        val head = concat(sql"""update "json_test" set """,kv(fields.head))
+        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+
+        val returning = sql""" returning "id","obj" """
+
+        val sqlActionBuilder = concat(concat(set,where),returning)
+        sqlActionBuilder.as[Json_test_row](boxGetResult).head
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Json_test_row]] = {
+        val sqlActionBuilder = concat(sql"""select "id","obj" from "json_test" """,where)
+        sqlActionBuilder.as[Json_test_row](boxGetResult)
+      }
+
+    def * = (id, obj) <> (Json_test_row.tupled, Json_test_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(id), obj)).shaped.<>({r=>import r._; _1.map(_=> Json_test_row.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(serial), AutoInc */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc)
+    /** Database column obj SqlType(jsonb), Default(None) */
+    val obj: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("obj", O.Default(None))
+  }
+  /** Collection-like TableQuery object for table Json_test */
+  lazy val Json_test = new TableQuery(tag => new Json_test(tag))
 
   /** Entity class storing rows of table Simple
    *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey

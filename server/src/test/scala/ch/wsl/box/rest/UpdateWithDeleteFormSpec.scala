@@ -11,6 +11,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import _root_.io.circe._
 import _root_.io.circe.syntax._
 import _root_.io.circe.generic.auto._
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.rest.fixtures.{DbManagedIdFixtures, FormFixtures}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import ch.wsl.box.testmodel.Entities.Simple_row

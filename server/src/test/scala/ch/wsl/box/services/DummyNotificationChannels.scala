@@ -1,4 +1,4 @@
-package ch.wsl.box.rest.services
+package ch.wsl.box.services
 
 import akka.stream.Materializer
 import ch.wsl.box.rest.routes.v1.{NotificationChannel, NotificationChannels}

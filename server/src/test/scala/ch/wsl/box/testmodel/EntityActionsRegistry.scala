@@ -25,6 +25,7 @@ object EntityActionsRegistry extends ActionRegistry {
    case "db_parent" => JSONTableActions[Db_parent,Db_parent_row](Db_parent)(Entities.encodeDb_parent_row,Entities.decodeDb_parent_row,ec,services)
    case "db_subchild" => JSONTableActions[Db_subchild,Db_subchild_row](Db_subchild)(Entities.encodeDb_subchild_row,Entities.decodeDb_subchild_row,ec,services)
    case "flyway_schema_history" => JSONTableActions[Flyway_schema_history,Flyway_schema_history_row](Flyway_schema_history)(Entities.encodeFlyway_schema_history_row,Entities.decodeFlyway_schema_history_row,ec,services)
+   case "json_test" => JSONTableActions[Json_test,Json_test_row](Json_test)(Entities.encodeJson_test_row,Entities.decodeJson_test_row,ec,services)
    case "simple" => JSONTableActions[Simple,Simple_row](Simple)(Entities.encodeSimple_row,Entities.decodeSimple_row,ec,services)
    case "spatial_ref_sys" => JSONTableActions[Spatial_ref_sys,Spatial_ref_sys_row](Spatial_ref_sys)(Entities.encodeSpatial_ref_sys_row,Entities.decodeSpatial_ref_sys_row,ec,services)
    case "test_list_types" => JSONTableActions[Test_list_types,Test_list_types_row](Test_list_types)(Entities.encodeTest_list_types_row,Entities.decodeTest_list_types_row,ec,services)

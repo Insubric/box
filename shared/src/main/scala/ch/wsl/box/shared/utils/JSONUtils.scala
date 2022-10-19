@@ -178,6 +178,31 @@ object JSONUtils extends Logging {
       value => Json.fromFields(value.toMap.filterNot(_._1 == BOX_OBJECT_ID).map{case (k,v) => k -> v.dropBoxObjectId})
     )
 
+    def merge(metadata: JSONMetadata, children:Seq[JSONMetadata] = Seq())(other:Json):Json = {
+      el.asObject match {
+        case Some(obj) => {
+          val fields = obj.toMap.map{case (k,js) =>
+            metadata.fields.find(_.name == k) match {
+              case Some(field) if field.`type` == JSONFieldTypes.JSON => k -> other.js(k)
+              case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
+                val met = for{
+                  child <- field.child
+                  childMetadata <- children.find(_.objId == child.objId)
+                } yield  childMetadata
+                met match {
+                  case Some(value) => k -> js.merge(value,children)(other.js(k))
+                  case None => k -> js.deepMerge(other.js(k))
+                }
+              }
+              case _ => k -> js.merge(metadata,children)(other.js(k))
+            }
+          }
+          Json.fromFields(fields)
+        }
+        case None => el.deepMerge(other)
+      }
+    }
+
     def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
 
       def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata)

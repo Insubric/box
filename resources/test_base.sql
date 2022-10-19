@@ -18,3 +18,8 @@ create table test_list_types(
     ints int[],
     numbers double precision[]
 );
+
+create table json_test(
+        id serial,
+        obj jsonb
+);

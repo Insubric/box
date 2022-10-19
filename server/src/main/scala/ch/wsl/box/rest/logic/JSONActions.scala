@@ -61,26 +61,12 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] wi
 
   private implicit def enc = encoder.light()
 
-  private def mergeCurrent(id:JSONID,current:Json,json:Json):Future[Json] = {
-    val fileFields = Registry().fields.tableFields.get(table.baseTableRow.tableName).toSeq.flatMap(_.filter{case (k,v) => v.jsonType == JSONFieldTypes.FILE }.keys)
-    val noKeepImage = fileFields.foldRight(json){ (fileField,js) => if(js.get(fileField) == FileUtils.keep) {
-      Json.fromJsonObject(js.asObject.get.filter(_._1 != fileField))
-    } else js }
-
-    Future.sequence{
-      fileFields.filter(ff => json.get(ff) != FileUtils.keep).map{ field =>
-        services.imageCacher.clear(FileId(id,s"${table.baseTableRow.tableName}.$field"))
-      }
-    }.map { _ =>
-      current.deepMerge(noKeepImage)
-    }
-  }
-
   override def update(id:JSONID, json: Json):DBIO[Json] = {
     for{
-      current <- getById(id) //retrieve values in db
-      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updated <- dbActions.update(id, toM(merged)).map(_.asJson)
+      //metadata <- dbActions.metadata
+      //current <- getById(id) //retrieve values in db
+      //merged <- DBIO.from(mergeCurrent(metadata,id,current.get,json)) //merge old and new json
+      updated <- dbActions.update(id, toM(json)).map(_.asJson)
     } yield updated
   }
 

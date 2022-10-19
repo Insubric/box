@@ -1,6 +1,6 @@
 package ch.wsl
 
-import ch.wsl.box.rest.BaseSpec
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.shared.utils.DateTimeFormatters
 
 class DateParserSpec extends BaseSpec {

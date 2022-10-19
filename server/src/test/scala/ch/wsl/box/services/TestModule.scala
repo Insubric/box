@@ -1,4 +1,4 @@
-package ch.wsl.box.rest.services
+package ch.wsl.box.services
 
 import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl, ConnectionTestContainerImpl, PublicSchema}

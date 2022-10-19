@@ -6,6 +6,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import _root_.io.circe._
 import _root_.io.circe.syntax._
 import _root_.io.circe.generic.auto._
+import ch.wsl.box.BaseSpec
 
 class ListTypesSpec extends BaseSpec {
 

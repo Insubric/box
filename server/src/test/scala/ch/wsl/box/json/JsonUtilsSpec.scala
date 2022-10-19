@@ -1,7 +1,8 @@
-package ch.wsl.box.rest
+package ch.wsl.box.json
 
-import _root_.io.circe.parser._
 import _root_.io.circe._
+import _root_.io.circe.parser._
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.shared.utils.JSONUtils._
 
 class JsonUtilsSpec extends BaseSpec {

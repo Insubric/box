@@ -12,6 +12,7 @@ object FieldAccessRegistry extends FieldRegistry {
       "db_parent",
       "db_subchild",
       "flyway_schema_history",
+      "json_test",
       "simple",
       "spatial_ref_sys",
       "test_list_types"
@@ -62,6 +63,10 @@ object FieldAccessRegistry extends FieldRegistry {
               "installed_on" -> ColType("java.time.LocalDateTime","datetime",true,false),
               "execution_time" -> ColType("Int","integer",false,false),
               "success" -> ColType("Boolean","boolean",false,false)
+        ),
+        "json_test" -> Map(
+              "id" -> ColType("Int","integer",true,false),
+              "obj" -> ColType("io.circe.Json","json",true,true)
         ),
         "simple" -> Map(
               "id" -> ColType("Int","integer",true,false),

@@ -1,14 +1,14 @@
-package ch.wsl.box.rest
+package ch.wsl.box.json
 
-import _root_.io.circe._
-import _root_.io.circe.syntax._
-
+import io.circe._
+import io.circe.syntax._
+import ch.wsl.box.BaseSpec
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
-import org.scalatest._
+
 
 class GeoJsonSpec extends BaseSpec {
   import _root_.ch.wsl.box.rest.utils.JSONSupport._
-  import _root_.io.circe.generic.auto._
+  import io.circe.generic.auto._
 
   case class Test_row(id: Option[Int] = None, name: Option[String] = None, geom: Option[org.locationtech.jts.geom.Geometry] = None)
 

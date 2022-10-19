@@ -7,6 +7,7 @@ import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeUtils, RuntimeWS}
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import _root_.io.circe.Json
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.services.Services
 
