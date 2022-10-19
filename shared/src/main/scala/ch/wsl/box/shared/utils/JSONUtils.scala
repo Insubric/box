@@ -209,12 +209,19 @@ object JSONUtils extends Logging {
 
           def handleArray(newArray:Vector[Json]):Seq[JSONDiffModel] = currentValue.flatMap(_.asArray) match {
             case Some(currentArray) => {
-              val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId).get
-              val c = currentArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
-              val n = newArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
-              (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
-                c.get(jsonId).asJson.diff(childMetadata,children)(n.get(jsonId).asJson).models
+              metadata.fields.find(_.name == key) match {
+                case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
+                  val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId).get
+                  val c = currentArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
+                  val n = newArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
+                  (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
+                    c.get(jsonId).asJson.diff(childMetadata,children)(n.get(jsonId).asJson).models
+                  }
+                }
+                case Some(filed) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+                case None => Seq()
               }
+
             }
             case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue,insert = true))))
           }

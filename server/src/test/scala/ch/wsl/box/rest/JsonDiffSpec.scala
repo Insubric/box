@@ -191,18 +191,21 @@ class JsonDiffSpec extends BaseSpec {
     diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1","field2")
   }
 
-  val complexTypeMetadata:JSONMetadata = JSONMetadata.simple(
-    java.util.UUID.randomUUID(),
-    "table",
-    fields = Seq(
-      JSONField.json("complex"),
-    ),
-    keys = Seq(),
-    entity = "main",
-    lang = ""
-  )
+
 
   it should "handle complex types" in {
+
+    val complexTypeMetadata:JSONMetadata = JSONMetadata.simple(
+      java.util.UUID.randomUUID(),
+      "table",
+      fields = Seq(
+        JSONField.json("complex"),
+      ),
+      keys = Seq(),
+      entity = "main",
+      lang = ""
+    )
+
     val obj1 = parse(
       """
         |{
@@ -219,6 +222,43 @@ class JsonDiffSpec extends BaseSpec {
     val diff = obj1.diff(complexTypeMetadata,Seq())(obj2)
     diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("complex")
     diff.models.head.fields.head.value.get shouldBe Json.fromFields(Map("a" -> Json.True))
+
+    val equal = obj1.diff(complexTypeMetadata,Seq())(obj1)
+    equal.models.flatMap(_.fields.map(_.field)) shouldBe Seq()
+
+  }
+
+  it should "handle list types" in {
+
+    val complexTypeMetadata:JSONMetadata = JSONMetadata.simple(
+      java.util.UUID.randomUUID(),
+      "table",
+      fields = Seq(
+        JSONField.array_number("list"),
+      ),
+      keys = Seq(),
+      entity = "main",
+      lang = ""
+    )
+
+    val obj1 = parse(
+      """
+        |{
+        | "list": [1,2,3]
+        |}
+        |""".stripMargin).toOption.get
+
+    val obj2 = parse(
+      """
+        |{
+        |  "list": [1,2]
+        |}
+        |""".stripMargin).toOption.get
+    val diff = obj1.diff(complexTypeMetadata,Seq())(obj2)
+    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("list")
+    diff.models.head.fields.head.value.get shouldBe Seq(1,2).asJson
+    val equal = obj1.diff(complexTypeMetadata,Seq())(obj1)
+    equal.models.flatMap(_.fields.map(_.field)) shouldBe Seq()
   }
 
 }
