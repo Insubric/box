@@ -20,7 +20,7 @@ object StubMetadataFactory {
   import Layout._
   import ch.wsl.box.jdbc.PostgresProfile.api._
 
-  def forEntity(entity:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services):Future[Boolean] = {
+  def forEntity(entity:String)(implicit up:UserProfile, ec:ExecutionContext,services:Services):Future[Boolean] = {
 
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 

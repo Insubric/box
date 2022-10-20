@@ -67,8 +67,8 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
     runTest(FullDatabase(services.connection.adminDB, services.connection.adminDB))
   }
 
-  def withUserProfile[A](runTest: UserProfile => Future[A]): A = withServices { services =>
-    runTest(createUserProfile(services))
+  def withUserProfile[A](runTest: (Services,UserProfile) => Future[A]): A = withServices { services =>
+    runTest(services,createUserProfile(services))
   }
 
   def stringToJson(str: String): Json = parse(str) match {
