@@ -91,7 +91,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free","choices.js").map{ p =>
       if (!sys.env.get("RUNNING_TEST").isDefined)
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -166,8 +166,10 @@ lazy val client: Project = (project in file("client"))
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
+      "choices.js" -> "10.0.0"
     ),
     stIgnore += "open-sans-all",
+    stIgnore += "redux",
     stIgnore += "crypto-browserify",
     stIgnore += "ol-ext",
     stIgnore += "@fortawesome/fontawesome-free",

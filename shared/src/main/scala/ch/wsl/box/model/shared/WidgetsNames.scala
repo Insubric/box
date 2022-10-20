@@ -18,6 +18,8 @@ object WidgetsNames {
   val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
   val slider = "slider"
+  val inputMultipleText = "inputMultipleText"
+  val multipleLookup = "multipleLookup"
   val twoLines = "twoLines"
   val popup = "popup"
   val map = "map"
@@ -127,10 +129,13 @@ object WidgetsNames {
     ),
     ARRAY_NUMBER -> Seq(
       input,
+      multipleLookup,
       hidden,
       dynamicWidget,
     ),
     ARRAY_STRING -> Seq(
+      inputMultipleText,
+      multipleLookup,
       input,
       hidden,
       dynamicWidget,

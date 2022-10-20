@@ -494,7 +494,7 @@ object FormUIDef {
         WidgetsNames.richTextEditor,
         WidgetsNames.redactor
       )),
-      CommonField.lookupTextField(Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input)),
+      CommonField.lookupTextField(Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.multipleLookup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input)),
     ),
     layout = Layout(
       blocks = Seq(
