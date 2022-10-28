@@ -1,13 +1,13 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
-import ch.wsl.box.client.services.Labels
+import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONMetadata}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONMetadata, JSONQuery}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
 import io.udash.properties.Properties.ReadableSeqProperty
-import io.udash.{SeqProperty, bind}
+import io.udash.{Registration, SeqProperty, bind}
 import io.udash.properties.single.{Property, ReadableProperty}
 import scalatags.JsDom
 
@@ -27,6 +27,10 @@ trait LookupWidget extends Widget with HasData {
 
 
   def field:JSONField
+  val fieldLookup:JSONFieldLookup = field.lookup match {
+    case Some(value) => value
+    case None => throw new Exception(s"Lookupwidget on a non lookup field. Field ${field.name} form ${metadata.name}")
+  }
   def metadata:JSONMetadata
   def lookup:ReadableSeqProperty[JSONLookup] = _lookup
 //  {
@@ -36,10 +40,9 @@ trait LookupWidget extends Widget with HasData {
 //
 //  }
 
-  def noBackendCache:Boolean = field.params.exists(_.js("noBackendCache") == Json.True)
 
   private val _lookup:SeqProperty[JSONLookup] = {
-    SeqProperty(toSeq(field.lookup.toSeq.flatMap(_.lookup)))
+    SeqProperty(Seq())
   }
 
   val model:Property[Option[JSONLookup]] = Property(None)
@@ -57,13 +60,9 @@ trait LookupWidget extends Widget with HasData {
 
   private def toSeq(s:Seq[JSONLookup]):Seq[JSONLookup] = s
 
-  private def current():Option[JSONLookup] = {
-    field.lookup.flatMap(_.allLookup.find(x => data.get == x.id))
-  }
 
-  private def setNewLookup(_newLookup:Seq[JSONLookup],_data:Option[Json]) = {
+  private def setNewLookup(newLookup:Seq[JSONLookup],_data:Option[Json]) = {
 
-    val newLookup:Seq[JSONLookup] = (current().toSeq ++ _newLookup).distinct
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
       _lookup.set(newLookup)
       _data.foreach{ d =>
@@ -71,6 +70,7 @@ trait LookupWidget extends Widget with HasData {
           model.set(Some(newModel))
         }
       }
+      registerDataSync()
 //      if(!newLookup.exists(_.id == data.get)) {
 //        logger.info("Old value not exists")
 //        newLookup.headOption.foreach{x =>
@@ -83,44 +83,33 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
-  var widgetCacheKeys:scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+  var dataSyncRegistration:Option[Registration] = None
 
-  def fetchRemoteLookup(q:String,look:JSONFieldLookup) = {
-
+  def fetchRemoteLookup(q:JSONQuery) = {
+    dataSyncRegistration.foreach(_.cancel())
     logger.debug(s"Fetching remote lookup $q")
 
-    val cacheKey = typings.jsMd5.mod.^(look.lookupEntity + look.map + q)
+    val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
-    val currentModel = model.get
     val currentData = data.get
 
     _lookup.set(Seq(), true) //reset lookup state
 
-    widgetCacheKeys.add(q)
 
-    if (q.nonEmpty) {
       LookupWidget.remoteLookup.get(cacheKey) match {
         case Some(value) => setNewLookup(value,Some(currentData))
         case _ => {
-          val jsonQuery = parser.parse(q) match {
-            case Left(e) => {
-              logger.error(e.message)
-              Json.Null
-            }
-            case Right(j) => j
-          }
 
-          logger.debug(s"Calling lookup with $jsonQuery")
+          logger.debug(s"Calling lookup with $q")
 
-          services.rest.lookup( metadata.kind,services.clientSession.lang(), metadata.name, field.name, jsonQuery, public).map { lookups =>
-            logger.debug(s"Lookup $lookups fetched")
+          services.rest.lookup( metadata.kind,services.clientSession.lang(), metadata.name, field.name, q, public).map { lookups =>
+            logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
             if (lookups.nonEmpty) {
               LookupWidget.remoteLookup.put(cacheKey, toSeq(lookups))
             }
             val newLookup = toSeq(lookups)
             setNewLookup(newLookup,Some(currentData))
           }
-        }
       }
     }
   }
@@ -129,8 +118,7 @@ trait LookupWidget extends Widget with HasData {
 
 
   override def killWidget(): Unit = {
-    widgetCacheKeys.foreach(k => LookupWidget.remoteLookup.remove(k))
-    widgetCacheKeys.clear()
+    LookupWidget.remoteLookup.filter(_._1.startsWith(metadata.name)).foreach(k => LookupWidget.remoteLookup.remove(k._1))
     super.killWidget()
   }
 
@@ -148,46 +136,43 @@ trait LookupWidget extends Widget with HasData {
     },true)
   }
 
-  for {
-    look <- field.lookup
-    query <- look.lookupQuery
-  } yield {
-    if (query.find(_ == '#').nonEmpty) {
+
+    if (fieldLookup.lookupQuery.isDefined &&  fieldLookup.lookupQuery.get.find(_ == '#').nonEmpty) {
+
+      val query = fieldLookup.lookupQuery.get
 
       val variables = extractVariables(query)
 
-      val variableData = allData.transform { js =>
-        variables.map(v => (v, js.js(v))).toMap
-      }
-      logger.debug(s"Variables: ${variableData.get}")
 
-      variableData.listen({ vars =>
-        if(vars.values.forall(!_.isNull)) {
+      allData.listen({ allJs =>
+
           val q = variables.foldRight(query) { (variable, finalQuery) =>
-            finalQuery.replaceAll("#" + variable, "\"" + vars(variable).string + "\"")
+            finalQuery.replaceAll("#" + variable, "\"" + allJs.get(variable) + "\"")
           }
-          fetchRemoteLookup(q,look)
-        } else {
-          _lookup.set(Seq())
-        }
+          fetchRemoteLookup(JSONQuery.fromString(q).getOrElse(JSONQuery.empty.limit(1000)))
+
       }, true)
+    } else {
+      fetchRemoteLookup(fieldLookup.lookupQuery.flatMap(JSONQuery.fromString).getOrElse(JSONQuery.empty.limit(1000)))
     }
+
+
+
+  def registerDataSync() = {
+    dataSyncRegistration.foreach(_.cancel())
+    dataSyncRegistration = Some(data.sync[Option[JSONLookup]](model)(
+      { json: Json =>
+        val result = lookup.get.find(_.id == json).getOrElse {
+          if (!json.isNull)
+            logger.warn(s"Lookup for $json not found on field ${field.name}")
+          JSONLookup(json, Seq(json.string))
+        }
+        Some(result)
+      },
+      { jsonLookup: Option[JSONLookup] => jsonLookup.map(_.id).asJson }
+    ))
   }
 
-  data.sync[Option[JSONLookup]](model)(
-    {json:Json =>
-      val result = (lookup.get ++ current()).distinct.find(_.id == json).getOrElse{
-        if(!json.isNull)
-          logger.warn(s"Lookup for $json not found on field ${field.name}")
-        JSONLookup(json,Seq(json.string))
-      }
-      Some(result)
-    },
-    {jsonLookup:Option[JSONLookup] => jsonLookup.map(_.id).asJson}
-  )
 
-  if(noBackendCache) {
-    field.lookup.map(l => fetchRemoteLookup(l.lookupQuery.getOrElse("{}"),l))
-  }
 
 }

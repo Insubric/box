@@ -32,11 +32,14 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
   private implicit def enc = encoder.light()
 
-  def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
-  override def find(query: JSONQuery) = for {
-    keys <- dbActions.keys()
-    result <- findQuery(query).result
-  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
+  def findQuery(query: JSONQuery,keys:Seq[String]): DBIO[Query[MappedProjection[Json, M], Json, Seq]] = dbActions.findQuery(query).map(_.map(_ <> (x => JSONID.attachBoxObjectId(x.asJson,keys), (_:Json) => None)))
+
+  override def find(query: JSONQuery) = {
+    for {
+      keys <- dbActions.keys()
+      q <- findQuery(query,keys)
+    } yield q.result
+  }
 
 
   override def findSimple(query:JSONQuery ): DBIO[Seq[Json]] = for {
@@ -54,7 +57,7 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
   override def ids(query:JSONQuery):DBIO[IDs] = dbActions.ids(query)
 
-
+  override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = dbActions.lookups(request)
 }
 
 case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](table:TableQuery[T])(implicit encoder: EncoderWithBytea[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {

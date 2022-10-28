@@ -19,7 +19,7 @@ object Lookup {
   def valuesForEntity(metadata:JSONMetadata)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Map[String,Seq[Json]]] = {
       DBIO.sequence{
         metadata.fields.flatMap(_.lookup.map(_.lookupEntity)).map{ lookupEntity =>
-          Registry().actions(lookupEntity).find(JSONQuery.empty.limit(10000)).map{ jq => lookupEntity -> jq}
+          Registry().actions(lookupEntity).findSimple(JSONQuery.empty.limit(10000)).map{ jq => lookupEntity -> jq}
         }
       }.map(_.toMap)
 
@@ -42,7 +42,7 @@ object Lookup {
   }
 
   def values(entity:String,value:String,text:String,query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Seq[JSONLookup]] = {
-    Registry().actions(entity).find(query).map{ _.map{ row =>
+    Registry().actions(entity).findSimple(query).map{ _.map{ row =>
       val label = text.split(",").flatMap(x => row.getOpt(x.trim)).filterNot(_.isEmpty)
       JSONLookup(row.js(value),label)
     }}

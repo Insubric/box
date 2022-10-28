@@ -25,7 +25,7 @@ import scala.util.Try
   * this contains the serializer between the JSON and the Scala objects  (in the server)
   *
   */
-object JSONSupport extends GeoJsonSupport {
+object JSONSupport {
 
   type EncoderWithBytea[T] = Encoder[Array[Byte]] => Encoder[T]
   implicit class ExtEncoder[T](ewb:EncoderWithBytea[T]) {

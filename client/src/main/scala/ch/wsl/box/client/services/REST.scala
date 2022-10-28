@@ -26,12 +26,13 @@ trait REST{
   def count(kind:String, lang:String, entity:String): Future[Int]
   def keys(kind:String, lang:String, entity:String): Future[Seq[String]]
   def ids(kind:String, lang:String, entity:String, q:JSONQuery): Future[IDs]
+  def lookups(kind:String, lang:String, entity:String, fk:JSONLookupsRequest): Future[Seq[JSONLookups]]
   def metadata(kind:String, lang:String, entity:String, public:Boolean): Future[JSONMetadata]
   def tabularMetadata(kind:String, lang:String, entity:String): Future[JSONMetadata]
 
   //only for forms
   def children(kind:String, entity:String, lang:String, public:Boolean): Future[Seq[JSONMetadata]]
-  def lookup(kind:String, lang:String,entity:String,  field:String, queryWithSubstitutions: Json,public:Boolean = false): Future[Seq[JSONLookup]]
+  def lookup(kind:String, lang:String,entity:String,  field:String, query: JSONQuery,public:Boolean = false): Future[Seq[JSONLookup]]
 
 
   //for entities and forms

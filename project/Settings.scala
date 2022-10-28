@@ -33,7 +33,7 @@ object Settings {
 
     //General
     val scala213 = "2.13.9"
-    val ficus = "1.4.7"
+    val ficus = "1.5.2"
 
     val macWire = "2.3.7"
     val airframe = "22.9.3"
@@ -95,7 +95,7 @@ object Settings {
     "com.typesafe.slick"       %% "slick"           % versions.slick,
     "com.typesafe.slick"       %% "slick-hikaricp"           % versions.slick,
     "org.postgresql"           %  "postgresql"      % versions.postgres,
-    "com.typesafe"             % "config"           % "1.3.3",
+    "com.typesafe"             % "config"           % "1.4.2",
     "com.iheart"               %% "ficus"           % versions.ficus,
     "com.github.tminglei"      %% "slick-pg"         % versions.slickPg,
     "com.github.tminglei"      %% "slick-pg_jts_lt"     % versions.slickPg,
@@ -147,7 +147,7 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0-SNAPSHOT",
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.3",
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,

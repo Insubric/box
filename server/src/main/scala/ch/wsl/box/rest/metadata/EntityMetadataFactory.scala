@@ -26,7 +26,7 @@ object EntityMetadataFactory extends Logging {
   val excludeFields:Seq[String] = Try{
     com.typesafe.config.ConfigFactory.load().as[Seq[String]]("db.generator.excludeFields")
   }.getOrElse(Seq())
-  private val cacheTable = scala.collection.mutable.Map[(String, String, String, String, Int), JSONMetadata]()   //  (up.name, schema, table, lang,lookupMaxRows)
+  private val cacheTable = scala.collection.mutable.Map[(String, String, String), JSONMetadata]()   //  (up.name, schema, table, lang,lookupMaxRows)
   private val cacheKeys = scala.collection.mutable.Map[(String,String), Seq[String]]()                            //  (schema,table)
 
   def resetCache() = {
@@ -56,9 +56,9 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def of(_schema:String,table:String,lang:String,registry:RegistryInstance, lookupMaxRows:Int = 100)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
+  def of(_schema:String,table:String, lang:String ,registry:RegistryInstance)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
 
-    val cacheKey = (up.name, _schema, table, lang,lookupMaxRows)
+    val cacheKey = (_schema, table, lang)
 
     logger.info(s"searching cache table for $cacheKey")
 
@@ -89,59 +89,44 @@ object EntityMetadataFactory extends Logging {
           } yield {
             fk match {
               case Some(fk) => {
-                if (count <= lookupMaxRows) {
-                  if (constraints.contains(fk.constraintName)) {
-                    logger.info("error: " + fk.constraintName)
-                    logger.info(field.column_name)
-                    DBIO.successful(JSONField(field.jsonType, name = field.boxName, nullable = !field.required))
-                  } else {
-                    constraints = fk.constraintName :: constraints //add fk constraint to contraint list
+
+                if (constraints.contains(fk.constraintName)) {
+                  logger.info("error: " + fk.constraintName)
+                  logger.info(field.column_name)
+                  JSONField(field.jsonType, name = field.boxName, nullable = !field.required)
+                } else {
+                  constraints = fk.constraintName :: constraints //add fk constraint to contraint list
 
 
-                    val text = lookupField(fk.referencingTable, lang, firstNoPK)
+                  val text = lookupField(fk.referencingTable, lang, firstNoPK)
 
-                    val model = fk.referencingTable
-                    val value = fk.referencingKeys.head //todo verify for multiple keys
+                  val model = fk.referencingTable
+                  val value = fk.referencingKeys.head //todo verify for multiple keys
 
 
-                    import ch.wsl.box.shared.utils.JSONUtils._
-                    for {
-                      lookupData <- registry.actions(model).find()
-                    } yield {
-                      val options = lookupData.map { lookupRow =>
-                        JSONLookup(lookupRow.js(value), Seq(lookupRow.get(text)))
-                      }
-
-                      JSONField(
-                        field.jsonType,
-                        name = field.boxName,
-                        nullable = !field.required,
-                        placeholder = Some(fk.referencingTable + " Lookup"),
-                        widget = Some(WidgetsNames.select),
-                        lookup = Some(JSONFieldLookup(model, JSONFieldMap(value, text, field.boxName), options))
-                      )
-                    }
-
-                  }
-                } else { //no lookup from fk
-                  DBIO.successful(JSONField(
+                  JSONField(
                     field.jsonType,
                     name = field.boxName,
                     nullable = !field.required,
-                    widget = WidgetsNames.defaults.get(field.jsonType)
-                  ))
+                    placeholder = Some(fk.referencingTable + " Lookup"),
+                    widget = Some(WidgetsNames.select),
+                    lookup = Some(JSONFieldLookup(model, JSONFieldMap(value, text, field.boxName)))
+                  )
+
+
                 }
+
               }
-              case _ => DBIO.successful(JSONField(
+              case _ => JSONField(
                 field.jsonType,
                 name = field.boxName,
                 nullable = !field.required,
                 widget = WidgetsNames.defaults.get(field.jsonType)
-              ))
+              )
             }
           }
 
-        }.flatten
+        }
 
         val result = for {
           c <- schema.columns
@@ -177,7 +162,7 @@ object EntityMetadataFactory extends Logging {
           metadata <- result
         } yield {
           if(services.config.enableCache) {
-            logger.warn("adding to cache table " + Seq(up.name, table, lang, lookupMaxRows).mkString)
+            logger.warn("adding to cache table " + cacheKey)
             DBIO.successful(cacheTable.put(cacheKey,metadata))
           }
           metadata

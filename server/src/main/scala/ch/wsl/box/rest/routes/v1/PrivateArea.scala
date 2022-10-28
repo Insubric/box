@@ -14,7 +14,7 @@ import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, St
 import ch.wsl.box.rest.io.pdf.PDFExport
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.routes.{Export, Form, Functions, Table, View}
+import ch.wsl.box.rest.routes.{Export, Form, Functions, Table}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import ch.wsl.box.services.Services

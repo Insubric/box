@@ -55,10 +55,9 @@ object EntityRead extends Logging  {
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
     implicit def encoder = enc.light()
-    val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
 
     def jsonMetadata:JSONMetadata = {
-      val fut = EntityMetadataFactory.of(services.connection.dbSchema,name, lang, Registry(),limitLookupFromFk)
+      val fut = EntityMetadataFactory.of(services.connection.dbSchema,name, lang, Registry())
       Await.result(fut,20.seconds)
     }
 
@@ -140,7 +139,7 @@ object EntityRead extends Logging  {
           post {
             entity(as[JSONQuery]) { query =>
               logger.info("list")
-              complete(db.run(actions.find(query)))
+              complete(db.run(actions.findSimple(query)))
             }
           }
         } ~
@@ -148,7 +147,7 @@ object EntityRead extends Logging  {
           get { ctx =>
             ctx.complete {
               db.run {
-                actions.find(JSONQuery.limit(100))
+                actions.findSimple(JSONQuery.limit(100))
               }
             }
 

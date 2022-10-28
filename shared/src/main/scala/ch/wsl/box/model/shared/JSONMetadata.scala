@@ -50,6 +50,8 @@ case class JSONMetadata(
 //      }
 //    }.dropWhile(_ == 0).headOption.getOrElse(0)
 //  }
+  def table:Seq[JSONField] = tabularFields.flatMap(tf => fields.find(_.name == tf))
+  def tableLookupFields = table.filter(_.lookup.isDefined)
 }
 
 object JSONMetadata extends Logging {
@@ -68,17 +70,11 @@ object JSONMetadata extends Logging {
 
     form.fields.flatMap{ field =>
 
-      val defaultFirstForLookup: Option[Json] = field.nullable match {
-        case false => field.lookup.flatMap(_.lookup.headOption).map(_.id) //get first element
-        case true => field.lookup.flatMap(_.lookup.lift(1)).map(_.id)     //get second element (first should be null)
-      }
 
-      val default = (field.default) match{
-        case Some(JSONUtils.FIRST) => defaultFirstForLookup.map(_.string)
-        case _ => field.default
-      }
 
-      val value:Option[Json] = Try((default, field.`type`) match {
+
+
+      val value:Option[Json] = Try((field.default, field.`type`) match {
         case (Some("arrayIndex"),_) => None
         case (Some("auto"),_) => None
         case (None,JSONFieldTypes.CHILD) => {

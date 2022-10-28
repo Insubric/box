@@ -40,6 +40,7 @@ case class FormActions(metadata:JSONMetadata,
 
 
   val jsonAction = jsonActions(metadata.entity)
+  val fkTransform = new FKFilterTransfrom(Registry())
 
 
 
@@ -53,35 +54,47 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  private def queryForm(query: JSONQuery):JSONQuery = metadata.query.map{ defaultQuery =>
-    JSONQuery(
-      filter = defaultQuery.filter ++ query.filter,
-      sort = query.sort ++ defaultQuery.sort,
-      paging = query.paging,
-      lang = defaultQuery.lang
-    )
-  }.getOrElse(query)
+
+  private def queryForm(query: JSONQuery):DBIO[JSONQuery] = {
+    val base = metadata.query.map{ defaultQuery =>
+      JSONQuery(
+        filter = defaultQuery.filter ++ query.filter,
+        sort = query.sort ++ defaultQuery.sort,
+        paging = query.paging,
+        lang = defaultQuery.lang
+      )
+    }.getOrElse(query)
+    fkTransform.preFilter(metadata,query.filter).map{ fil => base.copy(filter = fil.filters.toList)}
+  }
 
 
   private def streamSeq(query:JSONQuery):DBIO[Seq[Json]] = {
 
-    jsonAction.find(queryForm(query)).flatMap{ rows =>
-      DBIO.sequence(rows.map(expandJson))
-    }
+    for{
+      q <- queryForm(query)
+      rows <- jsonAction.find(q).flatten
+      result <- DBIO.sequence(rows.map(expandJson))
+    } yield result
 
   }
 
 
   override def findSimple(query:JSONQuery): DBIO[Seq[Json]] = {
-    jsonAction.findSimple(queryForm(query)).flatMap{ rows =>
-      DBIO.sequence(rows.map(expandJson))
-    }
+
+    for{
+      q <- queryForm(query)
+      rows <- jsonAction.findSimple(q)
+      result <- DBIO.sequence(rows.map(expandJson))
+    } yield result
+
   }
 
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
-    metadata.view.map(v => Registry().actions(v)) match {
-      case None => streamSeq(query)
-      case Some(v) => v.find(query)
+    queryForm(query).flatMap { q =>
+      metadata.view.map(v => Registry().actions(v)) match {
+        case None => streamSeq(q)
+        case Some(v) => v.find(q).flatten
+      }
     }
   }
 
@@ -111,7 +124,7 @@ case class FormActions(metadata:JSONMetadata,
 
 
 
-  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(queryForm(query)).map{ rows =>
+  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(query).map{ rows =>
 
     val data: Seq[Seq[Json]] = rows.map { row =>
       metadata.exportFields.map { f =>
@@ -136,7 +149,7 @@ case class FormActions(metadata:JSONMetadata,
       val data = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose
       val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
       val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
-      Registry().actions(lf.lookup.get.lookupEntity).find(fkQuery).map{ fk =>
+      Registry().actions(lf.lookup.get.lookupEntity).findSimple(fkQuery).map{ fk =>
         lf.lookup.get.lookupEntity -> fk
       }
     }).map(x => Some(x))
@@ -144,10 +157,16 @@ case class FormActions(metadata:JSONMetadata,
 
   private def noFkData = DBIO.successful(None)
 
+  override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
+    for{
+      result <- DBIO.sequence(request.fields.map(fkTransform.singleLookup(metadata)))
+    } yield result
+  }
+
 
   def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false):DBIO[Seq[Json]] = {
 
-    _list(queryForm(query)).flatMap{ rows =>
+    _list(query).flatMap{ rows =>
       val fkData = if(resolveLookup) fkDataComplete(metadata.tabularFields,rows) else noFkData
 
       fkData.map { lookupElements =>
@@ -168,7 +187,7 @@ case class FormActions(metadata:JSONMetadata,
     import kantan.csv._
     import kantan.csv.ops._
 
-    _list(queryForm(query)).flatMap { rows =>
+    _list(query).flatMap { rows =>
 
       val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
 
@@ -357,7 +376,10 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  override def find(query: JSONQuery) = jsonAction.find(queryForm(query))
+  override def find(query: JSONQuery) = for{
+    q <- queryForm(query)
+    result <- jsonAction.find(q)
+  } yield result
 
   override def count() = metadata.query match {
     case Some(value) => jsonAction.count(value).map(JSONCount)
@@ -366,31 +388,32 @@ case class FormActions(metadata:JSONMetadata,
   override def count(query: JSONQuery) = jsonAction.count(query)
 
   override def ids(query: JSONQuery): DBIO[IDs] = {
-    val q = queryForm(query)
-    val fut:DBIO[(Seq[Json],Int)] = metadata.view.map(v => Registry().actions(v)) match {
-      case None => for {
-        data <- jsonAction.find(q)
-        n <- jsonAction.count(q)
-      } yield (data, n)
-      case Some(v) => for {
-        data <- v.find(q)
-        n <- v.count(q)
-      } yield (data, n)
-    }
-
-    fut.map { case (data:Seq[Json], n:Int) =>
-      val last = q.paging match {
-        case None => true
-        case Some(paging) => (paging.currentPage * paging.pageLength) >= n
+    queryForm(query).flatMap { q =>
+      val fut: DBIO[(Seq[Json], Int)] = metadata.view.map(v => Registry().actions(v)) match {
+        case None => for {
+          qu <- jsonAction.find(q)
+          data <- qu
+          n <- jsonAction.count(q)
+        } yield (data, n)
+        case Some(v) => for {
+          qu <- v.find(q)
+          data <- qu
+          n <- v.count(q)
+        } yield (data, n)
       }
-      IDs(
-        last,
-        q.paging.map(_.currentPage).getOrElse(1),
-        data.flatMap{ x => JSONID.fromData(x, metadata).map(_.asString) },
-        n
-      )
+
+      fut.map { case (data: Seq[Json], n: Int) =>
+        val last = q.paging match {
+          case None => true
+          case Some(paging) => (paging.currentPage * paging.pageLength) >= n
+        }
+        IDs(
+          last,
+          q.paging.map(_.currentPage).getOrElse(1),
+          data.flatMap { x => JSONID.fromData(x, metadata).map(_.asString) },
+          n
+        )
+      }
     }
-
-
   }
 }

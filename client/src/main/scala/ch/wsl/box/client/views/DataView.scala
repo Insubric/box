@@ -8,7 +8,7 @@ import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, REST}
 import ch.wsl.box.client.styles.{BootstrapCol}
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
-import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, TableFieldsRenderer}
+import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
 import io.circe.Json
 import io.udash.{showIf, _}

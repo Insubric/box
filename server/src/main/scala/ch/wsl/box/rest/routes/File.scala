@@ -70,7 +70,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   val registry = if(table.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(table.baseTableRow.schemaName.getOrElse(services.connection.dbSchema),table.baseTableRow.tableName, "", registry,0)
+    val fut = EntityMetadataFactory.of(table.baseTableRow.schemaName.getOrElse(services.connection.dbSchema),table.baseTableRow.tableName, "", registry)
     Await.result(fut,20.seconds)
   }
 
