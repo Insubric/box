@@ -285,7 +285,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
           complete {
             for{
               lookups <- {
-                jsonMetadata.fields.find(_.name == field).flatMap(_.lookup) match {
+                jsonMetadata.fields.find(_.name == field).flatMap(_.remoteLookup) match {
                   case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
                   case None => throw new Exception(s"$field has no lookup")
                 }

@@ -76,11 +76,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
     EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"",registry)(auth.adminUserProfile,ec,fullDb,services)
   })
 
-  private def resetMetadataCache(): Unit = {
-    FormMetadataFactory.resetCacheForEntity(entity.baseTableRow.tableName)
-    EntityMetadataFactory.resetCacheForEntity(entity.baseTableRow.tableName)
-  }
-
 
   def count():DBIO[JSONCount] = {
     entity.length.result
@@ -196,7 +191,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   override def insert(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
     logger.info(s"INSERT $obj")
-    resetMetadataCache()
     for{
       result <-  {
         (entity.returning(entity) += obj)
@@ -206,7 +200,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   def delete(id:JSONID) = {
     logger.info(s"DELETE BY ID $id")
-    resetMetadataCache()
     val action = filter(id).delete
     action.transactionally
   }
@@ -215,7 +208,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def update(id:JSONID, e:M):DBIO[M] = {
     logger.info(s"UPDATE BY ID $id")
     implicit def enc = encoder.full()
-    resetMetadataCache()
     for{
       current <- getById(id)
       currentJs = current.map(_.asJson)

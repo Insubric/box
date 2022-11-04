@@ -46,14 +46,6 @@ object FormMetadataFactory{
     cacheFormId.clear()
   }
 
-  def resetCacheForEntity(e:String) = {
-    cacheFormId.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{case (k,_) =>
-      cacheFormId.remove(k)
-    }
-    cacheFormName.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{case (k,_) =>
-      cacheFormName.remove(k)
-    }
-  }
 
   def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):DBIO[Option[UserProfile]] = {
     BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption
@@ -395,7 +387,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,lang,None))
   } yield {
 
-      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), field.lookupQuery))
+      Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), field.lookupQuery))
 
   }} match {
     case Some(a) => a

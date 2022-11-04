@@ -34,11 +34,6 @@ object EntityMetadataFactory extends Logging {
     cacheKeys.clear()
   }
 
-  def resetCacheForEntity(e:String) = {
-    cacheTable.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{ case (k,_) =>
-      cacheTable.remove(k)
-    }
-  }
 
   def lookupField(referencingTable:String,lang:String, firstNoPK:Option[String])(implicit services: Services):String = {
 
@@ -110,7 +105,7 @@ object EntityMetadataFactory extends Logging {
                     nullable = !field.required,
                     placeholder = Some(fk.referencingTable + " Lookup"),
                     widget = Some(WidgetsNames.select),
-                    lookup = Some(JSONFieldLookup(model, JSONFieldMap(value, text, field.boxName)))
+                    lookup = Some(JSONFieldLookupRemote(model, JSONFieldMap(value, text, field.boxName)))
                   )
 
 

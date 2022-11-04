@@ -1,6 +1,6 @@
 package ch.wsl.box.rest.logic
 
-import ch.wsl.box.model.shared.{Filter, JSONField, JSONLookup, JSONLookups, JSONLookupsFieldRequest, JSONMetadata, JSONQuery, JSONQueryFilter}
+import ch.wsl.box.model.shared.{Filter, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookup, JSONLookups, JSONLookupsFieldRequest, JSONMetadata, JSONQuery, JSONQueryFilter}
 import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.rest.runtime.RegistryInstance
 import io.circe.Json
@@ -14,9 +14,7 @@ case class PreFiltered(filters: Seq[JSONQueryFilter])
 
 class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext, services: Services) {
 
-  def singleLookup(metadata:JSONMetadata)(field: JSONLookupsFieldRequest):DBIO[JSONLookups] = {
-    val jsonField = metadata.fields.find(_.name == field.fieldName).get
-    val lookup = jsonField.lookup.get
+  private def singleLookupRemote(field: JSONLookupsFieldRequest,lookup:JSONFieldLookupRemote):DBIO[JSONLookups] = {
     val remoteLabels = lookup.map.textProperty.split(",").toSeq
     val query = JSONQuery.filterWith(WHERE.in(lookup.map.valueProperty,field.values.map(_.string)))
     registry.actions(lookup.lookupEntity).findSimple(query).map{ rows =>
@@ -27,13 +25,47 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     }
   }
 
-  def fkFilterFor(filter:JSONQueryFilter,field:JSONField):DBIO[Option[JSONQueryFilter]] = {
-    val jsonActions = registry.actions(field.lookup.get.lookupEntity)
+  def singleLookup(metadata:JSONMetadata)(field: JSONLookupsFieldRequest):DBIO[JSONLookups] = {
+    val jsonField = metadata.fields.find(_.name == field.fieldName).get
+    jsonField.lookup.get match {
+      case lookup:JSONFieldLookupRemote => singleLookupRemote(field, lookup)
+      case JSONFieldLookupExtractor(extractor) => DBIO.successful(JSONLookups(field.fieldName,extractor.results.flatten))
+      case JSONFieldLookupData(data) => DBIO.successful(JSONLookups(field.fieldName,data))
+    }
 
-    def toParentValues(rows:Seq[Json]):Seq[String] = rows.flatMap(_.getOpt(field.lookup.get.map.valueProperty)).distinct
+  }
+
+  private def fkFilterForData(filter:JSONQueryFilter,lookup:JSONFieldLookupData):DBIO[Option[JSONQueryFilter]] = {
+    val fkFilter = filter.operator match {
+      case Some(Filter.FK_LIKE) => Some(WHERE.in(filter.column,lookup.data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
+      case Some(Filter.FK_EQUALS) => Some(WHERE.in(filter.column,lookup.data.filter(d => d.value == filter.value).map(_.id.string)))
+      case Some(Filter.FK_DISLIKE) => Some(WHERE.notIn(filter.column,lookup.data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
+      case Some(Filter.FK_NOT) => Some(WHERE.notIn(filter.column,lookup.data.filter(d => d.value == filter.value).map(_.id.string)))
+      case _ => None
+    }
+    DBIO.successful(fkFilter)
+  }
+
+  private def fkFilterForExtractor(filter:JSONQueryFilter,lookup:JSONFieldLookupExtractor):DBIO[Option[JSONQueryFilter]] = {
+    val data = lookup.extractor.results.flatten
+
+    val fkFilter = filter.operator match {
+      case Some(Filter.FK_LIKE) => Some(WHERE.in(filter.column,data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
+      case Some(Filter.FK_EQUALS) => Some(WHERE.in(filter.column,data.filter(d => d.value == filter.value).map(_.id.string)))
+      case Some(Filter.FK_DISLIKE) => Some(WHERE.notIn(filter.column,data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
+      case Some(Filter.FK_NOT) => Some(WHERE.notIn(filter.column,data.filter(d => d.value == filter.value).map(_.id.string)))
+      case _ => None
+    }
+    DBIO.successful(fkFilter)
+  }
+
+  private def fkFilterForRemote(filter:JSONQueryFilter,lookup:JSONFieldLookupRemote):DBIO[Option[JSONQueryFilter]] = {
+    val jsonActions = registry.actions(lookup.lookupEntity)
+
+    def toParentValues(rows:Seq[Json]):Seq[String] = rows.flatMap(_.getOpt(lookup.map.valueProperty)).distinct
 
     def transfrom(remoteFilter: String => JSONQueryFilter,localFilter: Seq[String] => JSONQueryFilter) = {
-      val remoteLabels = field.lookup.get.map.textProperty.split(",").toSeq
+      val remoteLabels = lookup.map.textProperty.split(",").toSeq
       DBIO.sequence(remoteLabels.map(l =>
         jsonActions.findSimple(JSONQuery.filterWith(remoteFilter(l)).limit(9999999)))
       )
@@ -64,7 +96,12 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     for {
       trasformedFilters <- DBIO.sequence(fkFilters.flatMap{ filter =>
         m.fields.find(f => f.name == filter.column && f.lookup.isDefined).map{ field =>
-          fkFilterFor(filter,field)
+          field.lookup.get match {
+            case l:JSONFieldLookupRemote=> fkFilterForRemote(filter,l)
+            case l:JSONFieldLookupExtractor => fkFilterForExtractor(filter,l)
+            case l:JSONFieldLookupData => fkFilterForData(filter,l)
+          }
+
         }
       }).map(_.flatten)
     } yield PreFiltered(trasformedFilters ++ stdFilters)

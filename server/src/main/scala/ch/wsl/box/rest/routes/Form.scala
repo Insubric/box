@@ -20,7 +20,7 @@ import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 
 import scala.concurrent.duration.DurationInt
@@ -33,8 +33,8 @@ import scala.util.{Failure, Success}
 case class Form(
                  name:String,
                  lang:String,
-                 jsonActions: String => TableActions[Json], //EntityActionsRegistry().tableActions
-                 metadataFactory: MetadataFactory, //JSONFormMetadataFactory(),
+                 registry: RegistryInstance,
+                 metadataFactory: MetadataFactory,
                  db:UserDatabase,
                  kind:String,
                  public: Boolean = false,
@@ -62,10 +62,8 @@ case class Form(
 
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang)),10.seconds)
 
-    val registry = if(schema == BoxSchema.schema) Registry.box() else Registry()
-
    private def actions[T](f:FormActions => T):T = {
-      val formActions = FormActions(metadata,jsonActions,metadataFactory)
+      val formActions = FormActions(metadata,registry,metadataFactory)
       f(formActions)
     }
 
@@ -114,7 +112,7 @@ case class Form(
           val query = parse(q).right.get.as[JSONQuery].right.get
           val io = for {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-            formActions = FormActions(metadata, jsonActions, metadataFactory)
+            formActions = FormActions(metadata, registry, metadataFactory)
             data <- formActions.list(query, true, true)
             xlsTable = XLSTable(
               title = name,
@@ -133,15 +131,14 @@ case class Form(
   def csvTable(query:JSONQuery):Future[CSVTable] = {
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
-      formActions = FormActions(metadata, jsonActions, metadataFactory)
+      formActions = FormActions(metadata, registry, metadataFactory)
       csv <- db.run(formActions.csv(query, false))
     } yield csv
   }
 
   def csvTable(q:String,fk:Option[String],fields:Option[String]):DBIO[CSVTable] = {
     val query = parse(q).right.get.as[JSONQuery].right.get
-    val tabMetadata = tabularMetadata(fields.map(_.split(",").map(_.trim).toSeq))
-    val formActions = FormActions(metadata, jsonActions, metadataFactory)
+    val formActions = FormActions(metadata, registry, metadataFactory)
     for {
       fkValues <- fk match {
         case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
@@ -207,7 +204,7 @@ case class Form(
           complete {
             for {
               metadata <- boxDb.adminDb.run(tabularMetadata())
-              formActions = FormActions(metadata, jsonActions, metadataFactory)
+              formActions = FormActions(metadata, registry, metadataFactory)
               data <- db.run(formActions.dataTable(query, None))
               shapefile <- ShapeFileWriter.writeShapeFile(name,data)
             }  yield {
@@ -226,7 +223,7 @@ case class Form(
           complete {
             for{
               lookups <- {
-                metadata.fields.find(_.name == field).flatMap(_.lookup) match {
+                metadata.fields.find(_.name == field).flatMap(_.remoteLookup) match {
                   case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
                   case None => throw new Exception(s"$field has no lookup")
                 }
@@ -347,7 +344,7 @@ case class Form(
             complete {
               for {
                 metadata <- boxDb.adminDb.run(tabularMetadata())
-                formActions = FormActions(metadata, jsonActions, metadataFactory)
+                formActions = FormActions(metadata, registry, metadataFactory)
                 data <- db.run(formActions.ids(query))
               } yield data
             }
@@ -374,7 +371,7 @@ case class Form(
             complete {
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-                formActions = FormActions(metadata, jsonActions, metadataFactory)
+                formActions = FormActions(metadata, registry, metadataFactory)
                 result <- formActions.list(query, true)
               } yield {
                 result

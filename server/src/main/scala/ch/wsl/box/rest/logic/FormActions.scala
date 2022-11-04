@@ -19,7 +19,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import io.circe.Json.JNumber
@@ -31,7 +31,7 @@ case class ReferenceKey(localField:String,remoteField:String,value:String)
 case class Reference(association:Seq[ReferenceKey])
 
 case class FormActions(metadata:JSONMetadata,
-                       jsonActions: String => TableActions[Json],
+                       registry: RegistryInstance,
                        metadataFactory: MetadataFactory
                       )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,val services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
 
@@ -39,7 +39,7 @@ case class FormActions(metadata:JSONMetadata,
 
 
 
-  val jsonAction = jsonActions(metadata.entity)
+  val jsonAction = registry.actions(metadata.entity)
   val fkTransform = new FKFilterTransfrom(Registry())
 
 
@@ -64,7 +64,7 @@ case class FormActions(metadata:JSONMetadata,
         lang = defaultQuery.lang
       )
     }.getOrElse(query)
-    fkTransform.preFilter(metadata,query.filter).map{ fil => base.copy(filter = fil.filters.toList)}
+    fkTransform.preFilter(metadata,base.filter).map{ fil => base.copy(filter = fil.filters.toList)}
   }
 
 
@@ -140,17 +140,17 @@ case class FormActions(metadata:JSONMetadata,
 
   private def fkDataComplete(tabularFieldsKey:Seq[String], rows:Seq[Json]): DBIO[Option[Seq[(String, Seq[Json])]]] = {
     val tabularFields = metadata.fields.filter(x => tabularFieldsKey.contains(x.name))
-    val lookupFields = tabularFields.filter(_.lookup.isDefined)
+    val lookupFields = tabularFields.filter(_.remoteLookup.isDefined)
 
     DBIO.sequence(lookupFields.map{ lf =>
-      val localFields = lf.lookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
-      val foreignFields = lf.lookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
+      val localFields = lf.remoteLookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
+      val foreignFields = lf.remoteLookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
 
       val data = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose
       val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
       val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
-      Registry().actions(lf.lookup.get.lookupEntity).findSimple(fkQuery).map{ fk =>
-        lf.lookup.get.lookupEntity -> fk
+      Registry().actions(lf.remoteLookup.get.lookupEntity).findSimple(fkQuery).map{ fk =>
+        lf.remoteLookup.get.lookupEntity -> fk
       }
     }).map(x => Some(x))
   }
@@ -248,7 +248,7 @@ case class FormActions(metadata:JSONMetadata,
         subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
         deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
-          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json)
+          action(FormActions(form,registry,metadataFactory))(json.ID(form.keys),json)
         })
       } yield field.name -> result.asJson
     }
@@ -273,7 +273,7 @@ case class FormActions(metadata:JSONMetadata,
     logger.debug(s"child: ${child.name} received: ${receivedID.map(_.asString)} db: ${dbID.map(_.asString)}")
     dbID.filterNot(k => receivedID.contains(k)).map{ idsToDelete =>
       logger.info(s"Deleting child ${child.name}, with key: $idsToDelete")
-      jsonActions(child.entity).delete(idsToDelete)
+      registry.actions(child.entity).delete(idsToDelete)
     }
   }
 
@@ -296,7 +296,7 @@ case class FormActions(metadata:JSONMetadata,
         rowsWithId = rows.map{ row =>
           field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
         }
-        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,jsonActions,metadataFactory).insert(row)))
+        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,registry,metadataFactory).insert(row)))
       } yield field.name -> result.asJson
     })
   } yield inserted.deepMerge(Json.fromFields(childs))
@@ -354,7 +354,7 @@ case class FormActions(metadata:JSONMetadata,
 
   private def getChild(dataJson:Json, metadata:JSONMetadata, child:Child):DBIO[Seq[Json]] = {
     val query = createQuery(dataJson,child)
-    FormActions(metadata,jsonActions,metadataFactory).findSimple(query)
+    FormActions(metadata,registry,metadataFactory).findSimple(query)
   }
 
   private def expandJson(dataJson:Json):DBIO[Json] = {
