@@ -111,8 +111,8 @@ object FormUIDef {
     ),
     entity = "form",
     lang = "en",
-    tabularFields = Seq("form_uuid","name","entity","description"),
-    rawTabularFields = Seq("form_uuid","name","entity","description"),
+    tabularFields = Seq("form_uuid","name","entity","description","guest_user"),
+    rawTabularFields = Seq("form_uuid","name","entity","description","guest_user"),
     keys = Seq("form_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(
