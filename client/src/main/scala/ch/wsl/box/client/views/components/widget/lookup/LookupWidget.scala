@@ -10,6 +10,7 @@ import io.udash.properties.Properties.ReadableSeqProperty
 import io.udash.{Registration, SeqProperty, bind}
 import io.udash.properties.single.{Property, ReadableProperty}
 import scalatags.JsDom
+import scalatags.JsDom.all.{label => lab, _}
 
 object LookupWidget {
   var remoteLookup:scala.collection.mutable.Map[String,Seq[JSONLookup]] = scala.collection.mutable.Map()
@@ -51,14 +52,12 @@ trait LookupWidget extends Widget with HasData {
   override def text() = model.transform(_.map(_.value).getOrElse(""))
 
 
-  private def setNewLookup(newLookup:Seq[JSONLookup],_data:Option[Json]) = {
+  private def setNewLookup(newLookup:Seq[JSONLookup]) = {
 
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
       _lookup.set(newLookup)
-      _data.foreach{ d =>
-        newLookup.find(_.id == d).foreach{ newModel =>
+      newLookup.find(_.id == data.get).foreach{ newModel =>
           model.set(Some(newModel))
-        }
       }
       registerDataSync()
     }
@@ -73,20 +72,19 @@ trait LookupWidget extends Widget with HasData {
     super.killWidget()
   }
 
-  def remoteLookup(fieldLookup:JSONFieldLookupRemote) = {
+  private def remoteLookup(fieldLookup:JSONFieldLookupRemote) = {
     def fetchRemoteLookup(q: JSONQuery) = {
       dataSyncRegistration.foreach(_.cancel())
       logger.debug(s"Fetching remote lookup $q")
 
       val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
-      val currentData = data.get
 
       _lookup.set(Seq(), true) //reset lookup state
 
 
       LookupWidget.remoteLookup.get(cacheKey) match {
-        case Some(value) => setNewLookup(value, Some(currentData))
+        case Some(value) => setNewLookup(value)
         case _ => {
 
           logger.debug(s"Calling lookup with $q")
@@ -97,7 +95,7 @@ trait LookupWidget extends Widget with HasData {
               LookupWidget.remoteLookup.put(cacheKey, lookups)
             }
             val newLookup = lookups
-            setNewLookup(newLookup, Some(currentData))
+            setNewLookup(newLookup)
           }
         }
       }
@@ -153,14 +151,20 @@ trait LookupWidget extends Widget with HasData {
   }
 
   fieldLookup match {
-    case r:JSONFieldLookupRemote => ???
+    case r:JSONFieldLookupRemote => remoteLookup(r)
     case JSONFieldLookupExtractor(extractor) => {
       allData.listen({ all =>
-        val newLookup = extractor.map.getOrElse(all.js(extractor.key), Seq())
-        setNewLookup(newLookup,None)
+        logger.debug(s"Field ${field.name} extracting ${extractor.key} with ${extractor.map} from $all with data ${all.js(extractor.key)} and lookups ${extractor.map.get(all.js(extractor.key))}")
+        extractor.map.get(all.js(extractor.key)) match {
+          case Some(newLookup) => setNewLookup(newLookup)
+          case None => {
+            logger.warn(s"Extractor for ${field.name} on ${extractor.key} with data ${all.js(extractor.key)} failed")
+            setNewLookup(Seq())
+          }
+        }
       },true)
     }
-    case JSONFieldLookupData(data) => setNewLookup(data,None)
+    case JSONFieldLookupData(data) => setNewLookup(data)
   }
 
 

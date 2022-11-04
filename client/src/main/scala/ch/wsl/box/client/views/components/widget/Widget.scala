@@ -162,12 +162,12 @@ case class WidgetParams(
 }
 
 object WidgetParams{
-  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
+  def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,
     field = field,
     metadata = metadata,
-    _allData = prop,
+    _allData = allData,
     children = Seq(),
     actions = actions,
     public
