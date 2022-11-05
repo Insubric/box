@@ -4,11 +4,12 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.styles.utils.ColorUtils.RGB
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
-import scalatags.JsDom
 import io.circe.Json
+import scalatags.JsDom
 import io.udash.properties.single.Property
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
+import org.scalajs.dom.html.Div
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
@@ -32,11 +33,9 @@ object SliderWidget extends ComponentWidgetFactory {
 
     override protected def show(): JsDom.all.Modifier = {}
 
-    override protected def edit(): JsDom.all.Modifier = {
-
-
+    private def renderSlider(): Div = {
       val slider = document.createElement("toolcool-range-slider").asInstanceOf[RangeSlider]
-      val wrapper = div(slider.asInstanceOf[Node]).render
+      val wrapper: Div = div(slider.asInstanceOf[Node]).render
       val observer = new MutationObserver({(mutations,observer) =>
         if(document.contains(wrapper)) {
           observer.disconnect()
@@ -74,13 +73,23 @@ object SliderWidget extends ComponentWidgetFactory {
 
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
+      wrapper
+
+    }
+
+
+    override def editOnTable(): JsDom.all.Modifier = {
+      renderSlider()
+    }
+
+    override protected def edit(): JsDom.all.Modifier = {
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
         WidgetUtils.toLabel(field),
         div(BootstrapStyles.Float.right(),bind(params.prop.transform(_.toString()))),
-        tooltip(wrapper)._1,
+        tooltip(renderSlider())._1,
       )
 
 

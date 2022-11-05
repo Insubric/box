@@ -1250,6 +1250,11 @@ object GlobalStyleFactory{
       )
     )
 
+    val editableTableMulti = style(
+      minHeight(20 px),
+      padding(5 px)
+    )
+
 
   //  val fixedHeader = style(
   //    unsafeRoot("tbody")(
