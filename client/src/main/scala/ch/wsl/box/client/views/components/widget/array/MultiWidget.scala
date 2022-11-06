@@ -31,21 +31,29 @@ object MultiWidget extends ComponentWidgetFactory {
 
   case class MultiWidgetImpl(params: WidgetParams) extends Widget {
 
-    def data:SeqProperty[Json] = params.prop.bitransformToSeq[Json](o => o.as[Seq[Json]].getOrElse(Seq[Json]()))(fw => Json.fromValues(fw))
+    def data:SeqProperty[(Json,Int)] = params.prop.bitransformToSeq[(Json,Int)](o => o.as[Seq[Json]].getOrElse(Seq[Json]()).zipWithIndex)(fw => Json.fromValues(fw.map(_._1)))
 
     override def field: JSONField = params.field
 
-    def multiWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
+    private def multiWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
+    private def incrementalParams(i:Int) = field.params.map{ params =>
+       params.deepMerge(params.seq("incrementalParams").lift(i).getOrElse(Json.fromFields(Seq())))
+    }
 
-    def createWidget(d:Property[Json]): Widget = WidgetRegistry.forName(multiWidget).create(params.copy(prop = d))
 
-    def add() = data.append(Json.Null)
+    private def createWidget(d:Property[(Json,Int)]): Widget = {
+      val i = d.get._2
+      val prop = d.bitransform(_._1)((_,i))
+      WidgetRegistry.forName(multiWidget).create(params.copy(prop = prop, field = params.field.copy(params = incrementalParams(i))))
+    }
+
+    private def add() = data.append((Json.Null,data.length))
 
     override protected def show(): JsDom.all.Modifier = {}
 
     override def editOnTable(): JsDom.all.Modifier = {
       div(
-        repeat(data){d =>
+        repeat(data){ d =>
           div(ClientConf.style.editableTableMulti,createWidget(d).editOnTable()).render
         },
         a("Add", onclick :+= ((e:Event) => add()))

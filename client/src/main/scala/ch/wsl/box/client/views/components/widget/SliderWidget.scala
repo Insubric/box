@@ -4,6 +4,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.styles.utils.ColorUtils.RGB
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import scalatags.JsDom
 import io.udash.properties.single.Property
@@ -33,6 +34,18 @@ object SliderWidget extends ComponentWidgetFactory {
 
     override protected def show(): JsDom.all.Modifier = {}
 
+    println("AAAA" + params.field.params)
+
+    def secondaryLabel = params.field.params.flatMap(_.getOpt("secondaryLabel")).getOrElse("")
+    def unit = params.field.params.flatMap(_.getOpt("unit")).getOrElse("")
+    def step:Option[Double] = {
+      params.field.params.flatMap(_.js("step").as[Double].toOption) match {
+        case Some(value) => Some(value)
+        case None if field.`type` == JSONFieldTypes.INTEGER => Some(1)
+        case None => None
+      }
+    }
+
     private def renderSlider(): Div = {
       val slider = document.createElement("toolcool-range-slider").asInstanceOf[RangeSlider]
       val wrapper: Div = div(slider.asInstanceOf[Node]).render
@@ -42,6 +55,7 @@ object SliderWidget extends ComponentWidgetFactory {
           val color = ClientConf.styleConf.colors.main.value
           val min:Double = field.minMax.flatMap(_.min).getOrElse(0.0)
           val max:Double = field.minMax.flatMap(_.max).getOrElse(10.0)
+
           slider.min = min
           slider.max = max
           slider.sliderWidth = "100%"
@@ -55,7 +69,7 @@ object SliderWidget extends ComponentWidgetFactory {
           slider.pointerBorder = "0"
           slider.pointerBorderFocus = "0"
           slider.pointerBorderHover = "0"
-          if(field.`type` == JSONFieldTypes.INTEGER) slider.step = 1
+          step.foreach(s => slider.step = s )
           val listener = params.prop.listen(v => v.as[Double] match {
             case Left(value) => logger.warn(s"$v is not as number ${value.message}")
             case Right(value) => slider.value = value
@@ -79,7 +93,13 @@ object SliderWidget extends ComponentWidgetFactory {
 
 
     override def editOnTable(): JsDom.all.Modifier = {
-      renderSlider()
+      div(
+        renderSlider(),
+        div(ClientConf.style.spaceBetween,marginTop := 2.px,
+          div(bind(params.prop.transform(_.toString()))," ",unit),
+          div(secondaryLabel)
+        )
+      )
     }
 
     override protected def edit(): JsDom.all.Modifier = {
