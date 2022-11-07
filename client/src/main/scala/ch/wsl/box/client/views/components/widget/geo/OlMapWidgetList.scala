@@ -23,6 +23,7 @@ import typings.ol.viewMod.FitOptions
 import typings.ol.{drawMod, geoJSONMod, geomMod, geometryMod, multiPointMod, olFeatureMod, projMod}
 
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.util.Try
 
@@ -111,13 +112,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     val goToField = Property("")
 
-    goToField.listen{ search =>
-      parseCoordinates(search).foreach{ coord =>
-        logger.info(s"Go to coords: $coord")
-        map.getView().setCenter(coord)
-        map.getView().setZoom(9)
-      }
-    }
+    goToField.listen(searchAndGoTo(map))
 
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
@@ -168,17 +163,17 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       WidgetUtils.toLabel(field),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
 // WSS-232 not clear, consider to re-enable when geolocation is enabled
-//      div(
-//        div(
-//          ClientConf.style.mapSearch,
-//          TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())),
-//          div(
-//            BootstrapStyles.Button.group,
-//            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
-//            gpsButtonGoTo
-//          )
-//        )
-//      ),
+      div(
+        div(
+          ClientConf.style.mapSearch,
+          TextInput(goToField, debounce = 100.millis)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())),
+          div(
+            BootstrapStyles.Button.group,
+            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
+            gpsButtonGoTo
+          )
+        )
+      ),
       (
         if(options.baseLayers.exists(_.length > 1))
         div(width := 100.pct,marginTop := 33.px, marginBottom := -33.px, zIndex := 2, position.relative, padding := 5.px, backgroundColor := Colors.GreyExtra.value,

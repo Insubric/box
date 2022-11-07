@@ -88,7 +88,8 @@ case class MapParams(
                       projections: Seq[MapParamsProjection],
                       baseLayers: Option[Seq[MapParamsLayers]],
                       precision: Option[Double],
-                      formatters: Option[MapFormatters]
+                      formatters: Option[MapFormatters],
+                      enableSwisstopo: Option[Boolean]
                     )
 
 trait MapWidget extends Logging {
@@ -106,6 +107,7 @@ trait MapWidget extends Logging {
       extent = Seq(-20026376.39, -20048966.10, 20026376.39, 20048966.10),
       unit = "m"
     )),
+    None,
     None,
     None,
     None

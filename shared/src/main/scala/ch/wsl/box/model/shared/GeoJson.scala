@@ -7,7 +7,7 @@ import io.circe.syntax._
 
 object GeoJson {
 
-  case class Feature(geometry: Geometry)
+  case class Feature(geometry: Geometry, properties: Option[JsonObject] = None)
 
   case class FeatureCollection(features: Seq[Feature])
 

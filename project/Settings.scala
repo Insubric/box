@@ -181,7 +181,10 @@ object Settings {
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.scalatest" %%% "scalatest" % "3.2.5" % Test,
-    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
+    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0",
+    "org.http4s" %%% "http4s-dom" % "0.2.3",
+    "org.http4s" %%% "http4s-client" % "0.23.16",
+    "org.http4s" %%% "http4s-circe" % "0.23.16"
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */
