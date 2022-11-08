@@ -25,8 +25,9 @@ trait UpdateTable[T] { t:Table[T] =>
 
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
-    val where = if(query.filter.nonEmpty) {
-      val filters = query.filter.flatMap(kv)
+    val nonEmpltyFilters = query.filter.filter(f => f.value.nonEmpty || f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op)))
+    val where = if(nonEmpltyFilters.nonEmpty) {
+      val filters = nonEmpltyFilters.flatMap(kv)
       filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
     } else sql""
 
