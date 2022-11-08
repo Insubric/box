@@ -10,6 +10,7 @@ import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.model.shared.GeoJson
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
+import ch.wsl.box.client.views.components.ui.Autocomplete
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -44,6 +45,8 @@ import typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
 import org.http4s.dom.FetchClientBuilder
+
+import scala.scalajs.js.URIUtils
 
 case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
   import dsl._
@@ -643,24 +646,71 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   }
 
-  def coordsToGeoJson(c:Coordinate):GeoJson.FeatureCollection = {
-    GeoJson.FeatureCollection(Seq(GeoJson.Feature(GeoJson.Point(Coordinates(c(0),c(1))))))
+  def coordsToGeoJson(c:Coordinate):GeoJson.Feature = {
+    GeoJson.Feature(GeoJson.Point(Coordinates(c(0),c(1))))
   }
 
-  def search(q:String): Future[Option[GeoJson.FeatureCollection]] = {
+  def search(q:String): Future[Seq[GeoJson.Feature]] = {
     if(options.enableSwisstopo.exists(x => x)) {
       val sr = options.defaultProjection.replaceAll("EPSG:", "").toIntOption.getOrElse(21781)
       parseCoordinates(q) match {
-        case Some(value) => Future.successful(Some(coordsToGeoJson(value)))
-        case None => client.expect[GeoJson.FeatureCollection](s"https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&geometryFormat=geojson&sr=$sr&searchText=$q").attempt.unsafeToFuture().map {
-          case Left(value) =>
-            logger.warn(value.getMessage)
-            None
-          case Right(value) => Some(value)
+        case Some(value) => Future.successful(Seq(coordsToGeoJson(value)))
+        case None => {
+          val query = URIUtils.encodeURI(q)
+          client.expect[GeoJson.FeatureCollection](s"https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&geometryFormat=geojson&sr=$sr&searchText=$query&lang=${services.clientSession.lang()}").attempt.unsafeToFuture().map {
+            case Left(value) =>
+              logger.warn(value.getMessage)
+              Seq()
+            case Right(value) => value.features
+          }
+        }
+// Mock Swisstopo
+//        case None => {
+//            val promise = Promise[Seq[GeoJson.Feature]]()
+//            window.setTimeout(() => promise.success(Seq(GeoJson.Feature(Point(Coordinates(1,2))))),1000)
+//
+//
+//            promise.future
+//        }
+      }
+    } else Future.successful(Seq())
+  }
+
+  import GeoJson._
+
+  def toSuggestion(el:GeoJson.Feature):HTMLDivElement = {
+    logger.info(el.toString)
+    val label:Modifier = el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
+      case Some(value) => scalatags.JsDom.all.raw(value)
+      case None => span(el.geometry.toString(options.precision.getOrElse(0)))
+    }
+    div(label).render
+  }
+
+  def toLabel(data:Option[GeoJson.Feature]):String = {
+    data match {
+      case Some(el) => el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
+        case Some(value) => {
+          val labDiv = document.createElement("div")
+          labDiv.innerHTML = value
+          labDiv.innerText
+        }
+        case None => {
+          val precision: Double = options.precision.getOrElse(0)
+          val coords = el.geometry.allCoordinates.head
+          s"${coords.xApprox(precision)},${coords.yApprox(precision)}"
         }
       }
-    } else Future.successful(None)
+      case None => ""
+    }
+
   }
+
+  def searchBox = Autocomplete[GeoJson.Feature](goToField,
+    search,
+    toLabel,
+    toSuggestion
+  )(placeholder := Labels.map.goTo )
 
   case class EnabledFeatures(geometry:Option[Geometry]) {
     val point = {
@@ -771,16 +821,30 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     selected.foreach(_.setStyle(vectorStyle))
   }
 
-  def searchAndGoTo(map:mod.Map)(q:String) = {
-    logger.info(s"Searching for $q")
-    search(q).foreach(_.foreach{ coord =>
-      logger.info(s"Found: $coord")
-      val coordinates = coord.features.head.geometry.allCoordinates.head
-      val c = js.Array(coordinates.y,coordinates.x)
-      logger.info(s"Go to coords $c")
-      map.getView().setCenter(c)
-      map.getView().setZoom(9)
-    })
+
+  val goToField:Property[Option[GeoJson.Feature]] = Property(None)
+
+  goToField.listen{
+    case None => ()
+    case Some(location) => {
+      logger.info(s"Found: $location")
+      location.bbox match {
+        case Some(bbox) => {
+          val extent = (bbox(0),bbox(1),bbox(2),bbox(3))
+          logger.info(s"Go to extent $extent")
+          map.getView().fit(extent)
+          if(map.getView().getZoom() > 12) map.getView().setZoom(12)
+        }
+        case None => {
+          val coordinates = location.geometry.allCoordinates.head
+          val c = js.Array(coordinates.x,coordinates.y)
+          logger.info(s"Go to coords $c")
+          map.getView().setCenter(c)
+          map.getView().setZoom(9)
+        }
+      }
+
+    }
   }
 
   override protected def edit(): JsDom.all.Modifier = {
@@ -800,9 +864,8 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       }
     })
 
-    val goToField = Property("")
 
-    goToField.listen(searchAndGoTo(map))
+
 
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
@@ -820,8 +883,8 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
         button(ClientConf.style.mapButton)(
           onclick :+= ((e: Event) => {
             ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
-              val localCoords = projMod.transform(js.Array(coords.y, coords.x), wgs84Proj, defaultProjection)
-              goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
+              val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
+              goToField.set(Some(coordsToGeoJson(localCoords)))
             }}
             e.preventDefault()
           })
@@ -837,7 +900,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
         button(ClientConf.style.mapButton)(
           onclick :+= ((e: Event) => {
             ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
-              val localCoords = projMod.transform(js.Array(coords.y, coords.x), wgs84Proj, defaultProjection)
+              val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
               insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
               insertCoordinateHandler(e)
             }}
@@ -867,7 +930,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
         if(!enable.polygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
         if(geometry.isEmpty && Seq(Control.EDIT,Control.MOVE,Control.DELETE).contains(activeControl.get)) activeControl.set(Control.VIEW)
 
-        goToField.set("")
+        goToField.set(None)
         insertCoordinateField.set("")
 
 
@@ -899,7 +962,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
                 ClientConf.style.mapSearch
               )( //controls
                 showIf(activeControl.transform(_ == Control.VIEW)){
-                  TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())).render
+                  searchBox
                 },
                 showIf(activeControl.transform(_ == Control.POINT)){
                   TextInput(insertCoordinateField)(placeholder := Labels.map.insertPoint, onsubmit :+= insertCoordinateHandler).render

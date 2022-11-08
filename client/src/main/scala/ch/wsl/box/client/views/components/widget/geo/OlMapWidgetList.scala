@@ -2,7 +2,6 @@ package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
-import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.model.shared.{GeoJson, JSONField, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
@@ -110,9 +109,6 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       }
     })
 
-    val goToField = Property("")
-
-    goToField.listen(searchAndGoTo(map))
 
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
@@ -131,7 +127,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
           onclick :+= ((e: Event) => {
             ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
               val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
-              goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
+              goToField.set(Some(coordsToGeoJson(localCoords)))
             }}
             e.preventDefault()
           })
@@ -158,6 +154,9 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
+
+
+
     div(
       mapStyleElement,
       WidgetUtils.toLabel(field),br,
@@ -166,7 +165,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       div(
         div(
           ClientConf.style.mapSearch,
-          TextInput(goToField, debounce = 100.millis)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())),
+          searchBox,
           div(
             BootstrapStyles.Button.group,
             BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),

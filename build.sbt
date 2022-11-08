@@ -166,7 +166,8 @@ lazy val client: Project = (project in file("client"))
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
-      "choices.js" -> "10.0.0"
+      "choices.js" -> "10.0.0",
+      "autocompleter" -> "7.0.1"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "redux",
