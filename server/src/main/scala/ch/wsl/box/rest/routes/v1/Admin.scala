@@ -30,7 +30,7 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   def form = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,Registry.box().actions.apply,new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
+        Form(name, lang,Registry.box(),new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
       }
     }
   }

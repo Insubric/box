@@ -1,5 +1,6 @@
 package ch.wsl.box.rest
 
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema}
 import ch.wsl.box.jdbc.FullDatabase
 import org.scalatest.concurrent.ScalaFutures

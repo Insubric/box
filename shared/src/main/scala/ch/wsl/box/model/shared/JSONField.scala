@@ -39,6 +39,21 @@ case class JSONField(
     case _ => true
   }
 
+  def fromString(s:String):Json = `type` match {
+    case JSONFieldTypes.STRING => Json.fromString(s)
+    case _ => io.circe.parser.parse(s) match {
+      case Right(value) => value
+      case Left(value) => {
+        Json.fromString(s)
+      }
+    }
+  }
+
+  lazy val remoteLookup:Option[JSONFieldLookupRemote] = lookup.flatMap {
+    case e:JSONFieldLookupRemote => Some(e)
+    case _ => None
+  }
+
 }
 
 object JSONField{
@@ -47,6 +62,8 @@ object JSONField{
 
   def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
   def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))
+  def json(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.JSON,name,nullable,widget = Some(WidgetsNames.code))
+  def array_number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.ARRAY_NUMBER,name,nullable,widget = Some(WidgetsNames.input))
   def child(name:String, childId:UUID, parentKey:String,childFields:String) = JSONField(
     JSONFieldTypes.CHILD,
     name,
@@ -62,6 +79,9 @@ case class MinMax(min:Option[Double],max:Option[Double])
 case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String])
 
 case class LookupLabel(localIds:Seq[String],remoteIds:Seq[String],remoteField:String,remoteEntity:String,widget:String)
+
+sealed trait JSONFieldLookup
+
 /**
   *
   * @param lookupEntity
@@ -70,7 +90,9 @@ case class LookupLabel(localIds:Seq[String],remoteIds:Seq[String],remoteField:St
   * @param lookupQuery
   * @param lookupExtractor map with on the first place the key of the Json, on second place the possible values with they respective values
   */
-case class JSONFieldLookup(lookupEntity:String, map:JSONFieldMap, lookup:Seq[JSONLookup] = Seq(), lookupQuery:Option[String] = None, lookupExtractor: Option[JSONLookupExtractor] = None, allLookup:Seq[JSONLookup] = Seq())
+case class JSONFieldLookupRemote(lookupEntity:String, map:JSONFieldMap, lookupQuery:Option[String] = None) extends JSONFieldLookup
+case class JSONFieldLookupExtractor(extractor: JSONLookupExtractor) extends JSONFieldLookup
+case class JSONFieldLookupData(data:Seq[JSONLookup]) extends JSONFieldLookup
 
 case class JSONLookupExtractor(key:String, values:Seq[Json], results:Seq[Seq[JSONLookup]]) {
   def map = values.zip(results).toMap
@@ -78,32 +100,31 @@ case class JSONLookupExtractor(key:String, values:Seq[Json], results:Seq[Seq[JSO
 
 
 object JSONFieldLookup {
-  val empty: JSONFieldLookup = JSONFieldLookup("",JSONFieldMap("","", ""))
+  val empty: JSONFieldLookup = JSONFieldLookupData(Seq())
 
   def toJsonLookup(mapping:JSONFieldMap)(lookupRow:Json):JSONLookup = {
     val label = mapping.textProperty.split(",").map(_.trim).flatMap(k => lookupRow.getOpt(k)).filterNot(_.isEmpty)
     JSONLookup(lookupRow.js(mapping.valueProperty),label)
   }
 
-  def fromData(lookupEntity:String, mapping:JSONFieldMap, lookupData:Seq[Json], allLookupData:Seq[Json], lookupQuery:Option[String] = None):JSONFieldLookup = {
-    import ch.wsl.box.shared.utils.JSONUtils._
-
-
-    val options = lookupData.map(toJsonLookup(mapping))
-    val optionsAll = allLookupData.map(toJsonLookup(mapping))
-    JSONFieldLookup(lookupEntity, mapping, options,lookupQuery,allLookup = optionsAll)
+  def fromDB(lookupEntity:String, mapping:JSONFieldMap, lookupQuery:Option[String] = None):JSONFieldLookup = {
+    JSONFieldLookupRemote(lookupEntity, mapping,lookupQuery)
   }
 
-  def prefilled(data:Seq[JSONLookup]) = JSONFieldLookup("",JSONFieldMap("","", ""),data)
+  def prefilled(data:Seq[JSONLookup]) = JSONFieldLookupData(data)
   def withExtractor(key:String,extractor:Map[Json,Seq[JSONLookup]]) = {
     val extractorSeq = extractor.toSeq
-    JSONFieldLookup("",JSONFieldMap("","", ""),Seq(),None,Some(JSONLookupExtractor(
+    JSONFieldLookupExtractor(JSONLookupExtractor(
       key,
       extractorSeq.map(_._1),
       extractorSeq.map(_._2)
-    )))
+    ))
   }
 }
+
+case class JSONLookups(fieldName:String,lookups:Seq[JSONLookup])
+case class JSONLookupsFieldRequest(fieldName:String,values:Seq[Json])
+case class JSONLookupsRequest(fields:Seq[JSONLookupsFieldRequest])
 
 case class JSONLookup(id:Json, values:Seq[String]) {
   def value = {

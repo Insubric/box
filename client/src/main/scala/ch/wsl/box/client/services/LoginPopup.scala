@@ -46,7 +46,7 @@ object LoginPopup {
 
 
   private val modal: UdashModal = UdashModal(
-    modalSize = Some(Size.Large).toProperty,
+    modalSize = Some(Size.Small).toProperty,
     backdrop = BackdropType.None.toProperty,
     keyboard = Property(false)
   )(

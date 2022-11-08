@@ -36,8 +36,8 @@ object FormMetadataFactory{
    *
    * cache should be resetted when an external field changes
    */
-  private val cacheFormName = scala.collection.mutable.Map[(String, String, String),JSONMetadata]()   //(up.name, form id, lang)
-  private val cacheFormId = scala.collection.mutable.Map[(String, UUID, String),JSONMetadata]()//(up.name, from name, lang)
+  private val cacheFormName = scala.collection.mutable.Map[(String, String),JSONMetadata]()   //(up.name, form id, lang)
+  private val cacheFormId = scala.collection.mutable.Map[(UUID, String),JSONMetadata]()//(up.name, from name, lang)
 
   final val STATIC_PAGE = "box_static_page"
 
@@ -46,14 +46,6 @@ object FormMetadataFactory{
     cacheFormId.clear()
   }
 
-  def resetCacheForEntity(e:String) = {
-    cacheFormId.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{case (k,_) =>
-      cacheFormId.remove(k)
-    }
-    cacheFormName.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{case (k,_) =>
-      cacheFormName.remove(k)
-    }
-  }
 
   def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):DBIO[Option[UserProfile]] = {
     BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption
@@ -73,7 +65,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   }.map{_.map(_.name)}
 
   def of(id:UUID, lang:String):DBIO[JSONMetadata] = {
-    val cacheKey = (up.name, id,lang)
+    val cacheKey = (id,lang)
     FormMetadataFactory.cacheFormId.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
@@ -87,7 +79,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormId.put(cacheKey,metadata)
-            FormMetadataFactory.cacheFormName.put((up.name, metadata.name,lang),metadata)
+            FormMetadataFactory.cacheFormName.put((metadata.name,lang),metadata)
           }
           metadata
         }
@@ -97,7 +89,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   }
 
   def of(name:String, lang:String):DBIO[JSONMetadata] = {
-    val cacheKey = (up.name, name,lang)
+    val cacheKey = (name,lang)
     FormMetadataFactory.cacheFormName.lift(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
@@ -111,7 +103,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormName.put(cacheKey,metadata)
-            FormMetadataFactory.cacheFormId.put((up.name, metadata.objId,lang),metadata)
+            FormMetadataFactory.cacheFormId.put((metadata.objId,lang),metadata)
           }
           metadata
         }
@@ -389,39 +381,17 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case _ => DBIO.successful(None)
   }
 
-  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String): DBIO[Option[JSONFieldLookup]] = {for{
+  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String): Option[JSONFieldLookup] = {for{
     refEntity <- field.lookupEntity
     value <- field.lookupValueField
-
     text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,lang,None))
   } yield {
 
-    import io.circe.generic.auto._
-
-    //implicit def fDb = FullDatabase(up.db,adminDb)
-
-    for{
-      keys <- EntityMetadataFactory.keysOf(services.connection.dbSchema,refEntity)
-      filter = { for{
-        queryString <- field.lookupQuery
-        queryJson <- parse(queryString).right.toOption
-        query <- queryJson.as[JSONQuery].right.toOption
-      } yield query }.getOrElse(JSONQuery.sortByKeys(keys))
-
-      //using up.db because we want policies to be applyed here
-      lookupData <- DBIO.from(up.db.run(Registry().actions(refEntity).find(filter.copy(lang = Some(lang)))))
-      allLookupData <- if(field.params.exists(_.js("allLookup") == Json.True))
-        DBIO.from(up.db.run(Registry().actions(refEntity).find(JSONQuery.empty)))
-      else
-        DBIO.successful(Seq())
-
-    } yield {
-      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), lookupData,allLookupData,field.lookupQuery))
-    }
+      Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), field.lookupQuery))
 
   }} match {
     case Some(a) => a
-    case None => DBIO.successful(None)
+    case None => None
   }
 
   private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
@@ -431,8 +401,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_uuid}) has no translation to $lang")
 
       for{
-        look <- lookup(field, fieldI18n, lang)
         lab <- label(field, fieldI18n, lang)
+        look = lookup(field, fieldI18n, lang)
         linked <- linkedForms(field, fieldI18n)
         subform <- subform(field)
       } yield {

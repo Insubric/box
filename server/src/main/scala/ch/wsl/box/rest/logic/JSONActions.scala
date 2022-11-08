@@ -32,11 +32,14 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
   private implicit def enc = encoder.light()
 
-  def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
-  override def find(query: JSONQuery) = for {
-    keys <- dbActions.keys()
-    result <- findQuery(query).result
-  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
+  def findQuery(query: JSONQuery,keys:Seq[String]): DBIO[Query[MappedProjection[Json, M], Json, Seq]] = dbActions.findQuery(query).map(_.map(_ <> (x => JSONID.attachBoxObjectId(x.asJson,keys), (_:Json) => None)))
+
+  override def find(query: JSONQuery) = {
+    for {
+      keys <- dbActions.keys()
+      q <- findQuery(query,keys)
+    } yield q.result
+  }
 
 
   override def findSimple(query:JSONQuery ): DBIO[Seq[Json]] = for {
@@ -54,33 +57,19 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
   override def ids(query:JSONQuery):DBIO[IDs] = dbActions.ids(query)
 
-
+  override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = dbActions.lookups(request)
 }
 
 case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](table:TableQuery[T])(implicit encoder: EncoderWithBytea[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
 
   private implicit def enc = encoder.light()
 
-  private def mergeCurrent(id:JSONID,current:Json,json:Json):Future[Json] = {
-    val fileFields = Registry().fields.tableFields.get(table.baseTableRow.tableName).toSeq.flatMap(_.filter{case (k,v) => v.jsonType == JSONFieldTypes.FILE }.keys)
-    val noKeepImage = fileFields.foldRight(json){ (fileField,js) => if(js.get(fileField) == FileUtils.keep) {
-      Json.fromJsonObject(js.asObject.get.filter(_._1 != fileField))
-    } else js }
-
-    Future.sequence{
-      fileFields.filter(ff => json.get(ff) != FileUtils.keep).map{ field =>
-        services.imageCacher.clear(FileId(id,s"${table.baseTableRow.tableName}.$field"))
-      }
-    }.map { _ =>
-      current.deepMerge(noKeepImage)
-    }
-  }
-
   override def update(id:JSONID, json: Json):DBIO[Json] = {
     for{
-      current <- getById(id) //retrieve values in db
-      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updated <- dbActions.update(id, toM(merged)).map(_.asJson)
+      //metadata <- dbActions.metadata
+      //current <- getById(id) //retrieve values in db
+      //merged <- DBIO.from(mergeCurrent(metadata,id,current.get,json)) //merge old and new json
+      updated <- dbActions.update(id, toM(json)).map(_.asJson)
     } yield updated
   }
 

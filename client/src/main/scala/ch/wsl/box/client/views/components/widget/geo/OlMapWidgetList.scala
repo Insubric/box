@@ -2,7 +2,6 @@ package ch.wsl.box.client.views.components.widget.geo
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
-import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.model.shared.{GeoJson, JSONField, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
@@ -23,6 +22,7 @@ import typings.ol.viewMod.FitOptions
 import typings.ol.{drawMod, geoJSONMod, geomMod, geometryMod, multiPointMod, olFeatureMod, projMod}
 
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.util.Try
 
@@ -109,15 +109,6 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       }
     })
 
-    val goToField = Property("")
-
-    goToField.listen{ search =>
-      parseCoordinates(search).foreach{ coord =>
-        logger.info(s"Go to coords: $coord")
-        map.getView().setCenter(coord)
-        map.getView().setZoom(9)
-      }
-    }
 
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
@@ -136,7 +127,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
           onclick :+= ((e: Event) => {
             ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
               val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
-              goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
+              goToField.set(Some(coordsToGeoJson(localCoords)))
             }}
             e.preventDefault()
           })
@@ -163,22 +154,25 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
+
+
+
     div(
       mapStyleElement,
       WidgetUtils.toLabel(field),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
 // WSS-232 not clear, consider to re-enable when geolocation is enabled
-//      div(
-//        div(
-//          ClientConf.style.mapSearch,
-//          TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())),
-//          div(
-//            BootstrapStyles.Button.group,
-//            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
-//            gpsButtonGoTo
-//          )
-//        )
-//      ),
+      div(
+        div(
+          ClientConf.style.mapSearch,
+          searchBox,
+          div(
+            BootstrapStyles.Button.group,
+            BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
+            gpsButtonGoTo
+          )
+        )
+      ),
       (
         if(options.baseLayers.exists(_.length > 1))
         div(width := 100.pct,marginTop := 33.px, marginBottom := -33.px, zIndex := 2, position.relative, padding := 5.px, backgroundColor := Colors.GreyExtra.value,

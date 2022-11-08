@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.{EntityFormState, EntityTableState}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, JSONLookup, JSONLookups, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.scalajs.dom
@@ -46,12 +46,12 @@ object TableFieldsRenderer extends Logging{
     }
   }
 
-  def apply(value:String, field:JSONField, keys:JSONID, routes:Routes):TypedTag[Element] = {
+  def apply(value:String, field:JSONField, lookups:Seq[JSONLookups]):TypedTag[Element] = {
 
 
-    val contentFixed = (field.lookup,field.widget) match {
+    val contentFixed = (lookups.find(_.fieldName == field.name),field.widget) match {
       case (Some(opts),_) => {
-        val label: String = opts.allLookup.find(_.id.string == value).orElse(opts.lookup.find(_.id.string == value)).map(_.value).getOrElse(value)
+        val label: String = opts.lookups.find(_.id.string == value).map(_.value).getOrElse(value)
         val finalLabel = if(label.trim.length > 0) label else value
         p(finalLabel)
 //        a(href := routes.edit(JSONKeys.fromMap(Map(field.key -> value)).asString).url,finalLabel)

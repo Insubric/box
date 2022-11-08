@@ -66,8 +66,9 @@ lazy val server: Project  = project
     scalacOptions ++= Settings.scalacOptionsServer,
     libraryDependencies ++= Settings.jvmDependencies.value,
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
-    resolvers += "Eclipse" at "https://repo.eclipse.org/content/groups/snapshots",
+//    resolvers += "Eclipse" at "https://repo.eclipse.org/content/groups/snapshots",
     slick := slickCodeGenTask.value , // register manual sbt command
+    slickTest := slickTestCodeGenTask.value , // register manual sbt command
     deleteSlick := deleteSlickTask.value,
     Compile / packageBin / mainClass := Some("ch.wsl.box.rest.Boot"),
     Compile / run / mainClass := Some("ch.wsl.box.rest.Boot"),
@@ -90,7 +91,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free","choices.js").map{ p =>
       if (!sys.env.get("RUNNING_TEST").isDefined)
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -165,8 +166,11 @@ lazy val client: Project = (project in file("client"))
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
+      "choices.js" -> "10.0.0",
+      "autocompleter" -> "7.0.1"
     ),
     stIgnore += "open-sans-all",
+    stIgnore += "redux",
     stIgnore += "crypto-browserify",
     stIgnore += "ol-ext",
     stIgnore += "@fortawesome/fontawesome-free",
@@ -268,6 +272,23 @@ lazy val slickCodeGenTask = Def.task{
   val registryname = outputDir + "/ch/wsl/box/generated/EntityActionsRegistry.scala"
   val filename = outputDir + "/ch/wsl/box/generated/FileRoutes.scala"
   val regname = outputDir + "/ch/wsl/box/generated/GenRegistry.scala"
+  Seq(file(fname),file(ffname),file(rname),file(registryname),file(filename),file(regname))    //include the generated files in the sbt project
+}
+
+lazy val slickTest = taskKey[Seq[File]]("gen-test-tables")
+lazy val slickTestCodeGenTask = Def.task{
+  val dir = sourceDirectory.value
+  val cp = (Compile / dependencyClasspath).value
+  val s = streams.value
+  val outputDir = (dir / "test" / "scala").getPath // place generated files in sbt's managed sources folder
+  println(outputDir)
+  runner.value.run("ch.wsl.box.codegen.TestCodeGenerator", cp.files, Array(outputDir), s.log).failed foreach (sys error _.getMessage)
+  val fname = outputDir + "/ch/wsl/box/testmodel/Entities.scala"
+  val ffname = outputDir + "/ch/wsl/box/testmodel/FileTables.scala"
+  val rname = outputDir + "/ch/wsl/box/testmodel/GeneratedRoutes.scala"
+  val registryname = outputDir + "/ch/wsl/box/testmodel/EntityActionsRegistry.scala"
+  val filename = outputDir + "/ch/wsl/box/testmodel/FileRoutes.scala"
+  val regname = outputDir + "/ch/wsl/box/testmodel/GenRegistry.scala"
   Seq(file(fname),file(ffname),file(rname),file(registryname),file(filename),file(regname))    //include the generated files in the sbt project
 }
 

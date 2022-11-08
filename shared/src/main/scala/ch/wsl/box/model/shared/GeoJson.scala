@@ -2,12 +2,13 @@ package ch.wsl.box.model.shared
 
 import io.circe._
 import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.parser._
 import io.circe.syntax._
 
 object GeoJson {
 
-  case class Feature(geometry: Geometry)
+  case class Feature(geometry: Geometry, properties: Option[JsonObject] = None, bbox:Option[Seq[Double]] = None)
 
   case class FeatureCollection(features: Seq[Feature])
 
@@ -35,6 +36,8 @@ object GeoJson {
 
   implicit val decoderCoordinates: Decoder[Coordinates] = Decoder[(Double, Double)].map(p => Coordinates(p._1, p._2))
   implicit val encoderCoordinates: Encoder[Coordinates] = Encoder.instance( e => Json.arr(e.x.asJson,e.y.asJson) )
+  implicit val featureEncoder: Encoder[Feature] = deriveEncoder[Feature]
+  implicit val featureDecoder: Decoder[Feature] = deriveDecoder[Feature]
 
 
 

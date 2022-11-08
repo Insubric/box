@@ -20,7 +20,7 @@ object StubMetadataFactory {
   import Layout._
   import ch.wsl.box.jdbc.PostgresProfile.api._
 
-  def forEntity(entity:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services):Future[Boolean] = {
+  def forEntity(entity:String)(implicit up:UserProfile, ec:ExecutionContext,services:Services):Future[Boolean] = {
 
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
@@ -63,8 +63,8 @@ object StubMetadataFactory {
             `type` = field.`type`,
             name = field.name,
             widget = field.widget,
-            lookupEntity = field.lookup.map(_.lookupEntity),
-            lookupValueField = field.lookup.map(_.map.valueProperty),
+            lookupEntity = field.remoteLookup.map(_.lookupEntity),
+            lookupValueField = field.remoteLookup.map(_.map.valueProperty),
             default = field.default,
           )
 
@@ -88,7 +88,7 @@ object StubMetadataFactory {
               label = field.label,
               placeholder = field.placeholder,
               tooltip = field.tooltip,
-              lookupTextField = field.lookup.map(_.map.textProperty)
+              lookupTextField = field.remoteLookup.map(_.map.textProperty)
             )
             BoxField.BoxField_i18nTable.returning(BoxField.BoxField_i18nTable) += newFieldI18n
           })

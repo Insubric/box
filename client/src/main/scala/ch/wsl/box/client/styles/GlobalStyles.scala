@@ -218,6 +218,16 @@ object GlobalStyleFactory{
         backgroundColor.rgba(0,0,0,0.5),
       ),
 
+      unsafeRoot(".modal-sm") (
+        maxWidth(800 px).important
+      ),
+      unsafeRoot(".modal-lg") (
+        maxWidth(90 %%).important,
+        media.maxWidth(600 px)(
+          maxWidth(100 %%).important,
+        ),
+      ),
+
 
       unsafeRoot(".rotate-right") (
         transform := "rotate(90deg)"
@@ -1248,6 +1258,11 @@ object GlobalStyleFactory{
           color(conf.colors.main)
         )
       )
+    )
+
+    val editableTableMulti = style(
+      minHeight(20 px),
+      padding(5 px)
     )
 
 

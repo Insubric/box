@@ -1,8 +1,8 @@
 package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
-
 import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.client.views.components.widget.RichTextEditorWidget.Mode
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils._
@@ -43,6 +43,9 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
     )
   }
 
+  override def toLabel(json: Json): Modifier = {
+    span(Shorten(json.string))
+  }
 
   override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
     div(raw(p.string)).render

@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 
-case class GeneratorParams(tables:Seq[String],views:Seq[String],excludes:Seq[String],excludeFields:Seq[String])
+case class GeneratorParams(tables:Seq[String],views:Seq[String],excludes:Seq[String],excludeFields:Seq[String],schema:String,boxSchema:String,langs:Seq[String])
 
 trait BaseCodeGenerator {
 

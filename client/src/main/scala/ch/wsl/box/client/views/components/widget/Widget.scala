@@ -9,7 +9,7 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import scribe.{Logger, Logging}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scalatags.JsDom.all._
+import scalatags.JsDom.all.{span, _}
 import scalatags.JsDom
 import io.udash._
 import io.udash.bindings.Bindings
@@ -24,6 +24,8 @@ import scala.concurrent.duration._
 trait Widget extends Logging {
 
   def field:JSONField
+
+  def toLabel(json:Json):Modifier = span(json.string)
 
   def jsonToString(json:Json):String = json.string
 
@@ -162,12 +164,12 @@ case class WidgetParams(
 }
 
 object WidgetParams{
-  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
+  def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,
     field = field,
     metadata = metadata,
-    _allData = prop,
+    _allData = allData,
     children = Seq(),
     actions = actions,
     public

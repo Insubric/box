@@ -1,16 +1,9 @@
-package ch.wsl.box.rest
+package ch.wsl.box.json
 
-import _root_.io.circe._
-import _root_.io.circe.parser._
-import _root_.io.circe.syntax._
-import ch.wsl.box.model.shared.{Child, JSONDiff, JSONDiffField, JSONDiffModel, JSONField, JSONID, JSONMetadata}
-import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
-import org.scalatest._
+import ch.wsl.box.model.shared.{JSONField, JSONMetadata}
+import io.circe.parser.parse
 
-class JsonDiffSpec extends BaseSpec {
-  import _root_.io.circe.generic.auto._
-
-  case class Test_row(id: Option[Int] = None, name: Option[String] = None, geom: Option[org.locationtech.jts.geom.Geometry] = None)
+private object Fixtures {
 
   val child2Metadata:JSONMetadata = JSONMetadata.simple(
     java.util.UUID.randomUUID(),
@@ -55,6 +48,7 @@ class JsonDiffSpec extends BaseSpec {
     entity = "main",
     lang = ""
   )
+
 
   val json1 = parse(
     """
@@ -130,65 +124,65 @@ class JsonDiffSpec extends BaseSpec {
       |}
       |""".stripMargin).toOption.get
 
-  val jsonDiff = JSONDiff(Seq(JSONDiffModel(
-    model = "child2",
-    id = Some(JSONID.fromMap(Map("id" -> Json.fromString("change-me")).toSeq)),
+
+  val complexTypeMetadata:JSONMetadata = JSONMetadata.simple(
+    java.util.UUID.randomUUID(),
+    "table",
     fields = Seq(
-      JSONDiffField(
-        field = "id",
-        old = Some(Json.fromString("change-me")),
-        value = Some(Json.fromString("changed"))
-      )
-    )
-  )))
+      JSONField.json("complex"),
+    ),
+    keys = Seq(),
+    entity = "main",
+    lang = ""
+  )
 
-  "JsonDiff" should "be calculated" in {
 
-    val result = json1.diff(mainMetadata,Seq(child1Metadata,child2Metadata))(json2)
-    result shouldBe jsonDiff
+  val complexObj1 = parse(
+    """
+      |{
+      | "complex": {"a": true, "b": true}
+      |}
+      |""".stripMargin).toOption.get
 
-  }
+  val complexObj2 = parse(
+    """
+      |{
+      |  "complex": {"a": true}
+      |}
+      |""".stripMargin).toOption.get
 
-  it should "catch multiple changes" in {
-    val obj1 = parse(
-      """
-        |{
-        | "field1": 1,
-        | "field2": "test"
-        |}
-        |""".stripMargin).toOption.get
+  val complexObj3 = parse(
+    """
+      |{
+      |  "complex": {"a": true, "b": null}
+      |}
+      |""".stripMargin).toOption.get
 
-    val obj2 = parse(
-      """
-        |{
-        | "field1": 2,
-        | "field2": "test2"
-        |}
-        |""".stripMargin).toOption.get
-    val diff = obj1.diff(mainMetadata,Seq())(obj2)
-    val fields:Seq[(String,Json)] = diff.models.find(_.model == mainMetadata.name) match {
-      case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
-      case None => Seq()
-    }
-    fields.map(_._1) shouldBe Seq("field1","field2")
-  }
 
-  it should "catch null changes" in {
-    val obj1 = parse(
-      """
-        |{
-        | "field1": 1,
-        | "field2": "test"
-        |}
-        |""".stripMargin).toOption.get
+  val listTypeMetadata:JSONMetadata = JSONMetadata.simple(
+    java.util.UUID.randomUUID(),
+    "table",
+    fields = Seq(
+      JSONField.array_number("list"),
+    ),
+    keys = Seq(),
+    entity = "main",
+    lang = ""
+  )
 
-    val obj2 = parse(
-      """
-        |{
-        |}
-        |""".stripMargin).toOption.get
-    val diff = obj1.diff(mainMetadata,Seq())(obj2)
-    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1","field2")
-  }
+
+  val listObj1 = parse(
+    """
+      |{
+      | "list": [1,2,3]
+      |}
+      |""".stripMargin).toOption.get
+
+  val listObj2 = parse(
+    """
+      |{
+      |  "list": [1,2]
+      |}
+      |""".stripMargin).toOption.get
 
 }

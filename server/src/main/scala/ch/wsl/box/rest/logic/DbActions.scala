@@ -2,6 +2,7 @@ package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
+import ch.wsl
 import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.{Connection, FullDatabase, PostgresProfile}
@@ -20,6 +21,7 @@ import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.model.boxentities.BoxSchema
+import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
@@ -38,16 +40,18 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   val registry = if(entity.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
 
+  val fkFilters = new FKFilterTransfrom(registry)
+
   implicit class QueryBuilder(base:Query[T,M,Seq]) {
 
-    def where(filters: Seq[JSONQueryFilter]): Query[T, M, Seq] = {
-      filters.foldRight[Query[T, M, Seq]](base) { case (jsFilter, query) =>
+    def where(filters: PreFiltered): Query[T, M, Seq] = {
+      filters.filters.foldRight[Query[T, M, Seq]](base) { case (jsFilter, query) =>
 //        println("--------------------------"+jsFilter)
         query.filter(x => operator(jsFilter.operator.getOrElse(Filter.EQUALS))(x.col(jsFilter.column,registry), jsFilter))
       }
     }
 
-    def sort(sorting: Seq[JSONSort], lang:String): Query[T, M, Seq] = {
+    def sort(sorting: Seq[JSONSort]): Query[T, M, Seq] = {
       sorting.foldRight[Query[T, M, Seq]](base) { case (sort, query) =>
         query.sortBy { x =>
           sort.order match {
@@ -72,36 +76,50 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
     EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"",registry)(auth.adminUserProfile,ec,fullDb,services)
   })
 
-  private def resetMetadataCache(): Unit = {
-    FormMetadataFactory.resetCacheForEntity(entity.baseTableRow.tableName)
-    EntityMetadataFactory.resetCacheForEntity(entity.baseTableRow.tableName)
-  }
-
 
   def count():DBIO[JSONCount] = {
     entity.length.result
   }.transactionally.map(JSONCount)
 
   def count(query:JSONQuery):DBIO[Int] = {
-    val q = entity.where(query.filter)
 
-    (q.length.result).transactionally
+    for{
+      m <- metadata
+      filter <- fkFilters.preFilter(m,query.filter)
+      result <- entity.where(filter).length.result.transactionally
+    } yield result
 
   }
 
-  def findQuery(query:JSONQuery) = {
+  override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
+    for{
+      m <- metadata
+      result <- DBIO.sequence(request.fields.map(fkFilters.singleLookup(m)))
+    } yield result
+  }
 
-    entity
-      .where(query.filter)
-      .sort(query.sort, query.lang.getOrElse("en"))
-      .page(query.paging)
-      .map(x => x)
+  def findQuery(query:JSONQuery):DBIO[Query[T,M,Seq]] = {
+
+    val f = for{
+      m <- metadata
+      filter <- fkFilters.preFilter(m,query.filter)
+    } yield filter
+
+    f.map{ filter =>
+      entity
+        .where(filter)
+        .sort(query.sort)
+        .page(query.paging)
+        .map(x => x)
+    }
+
 
   }
 
   def findSimple(query:JSONQuery) = entity.baseTableRow.selectLight(query)
 
-  def find(query:JSONQuery) = findQuery(query).result
+  def find(query:JSONQuery) = findQuery(query).map(_.result)
+
 
 
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
@@ -110,7 +128,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   // TODO fetch only keys
   override def ids(query: JSONQuery): DBIO[IDs] = {
     for{
-      data <- find(query)
+      q <- find(query)
+      data <- q
       keys <- keys()
       n <- count(query)
       m <- metadata
@@ -172,7 +191,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   override def insert(obj: M): jdbc.PostgresProfile.api.DBIO[M] = {
     logger.info(s"INSERT $obj")
-    resetMetadataCache()
     for{
       result <-  {
         (entity.returning(entity) += obj)
@@ -182,7 +200,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   def delete(id:JSONID) = {
     logger.info(s"DELETE BY ID $id")
-    resetMetadataCache()
     val action = filter(id).delete
     action.transactionally
   }
@@ -191,7 +208,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def update(id:JSONID, e:M):DBIO[M] = {
     logger.info(s"UPDATE BY ID $id")
     implicit def enc = encoder.full()
-    resetMetadataCache()
     for{
       current <- getById(id)
       currentJs = current.map(_.asJson)

@@ -10,6 +10,7 @@ import ch.wsl.box.model.shared.JSONID
 import ch.wsl.box.rest.fixtures.FormFixtures
 import _root_.io.circe._
 import _root_.io.circe.syntax._
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.shared.utils.JSONUtils._
 

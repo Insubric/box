@@ -1,7 +1,7 @@
-package ch.wsl.box.rest.services
+package ch.wsl.box.services
 
 import akka.actor.ActorSystem
-import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
+import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl, ConnectionTestContainerImpl, PublicSchema}
 import ch.wsl.box.rest.Module
 import ch.wsl.box.rest.routes.v1.NotificationChannels
 import ch.wsl.box.services.Services
@@ -16,7 +16,7 @@ import wvlet.airframe.newDesign
 import scala.concurrent.ExecutionContext
 
 
-case class TestModule(container: PostgreSQLContainer) extends Module {
+case class TestModule(connection: Connection) extends Module {
 
   val injector = newDesign
     .bind[ExecutionContext].toInstance{
@@ -29,8 +29,7 @@ case class TestModule(container: PostgreSQLContainer) extends Module {
     }
     .bind[ImageCacheStorage].to[PgImageCacheStorage]
     .bind[MailService].to[MailServiceCourier]
-    .bind[PostgreSQLContainer].toInstance(container)
-    .bind[Connection].to[TestContainerConnection]
+    .bind[Connection].toInstance(connection)
     .bind[NotificationChannels].to[DummyNotificationChannels]
     .bind[FullConfig].to[DummyFullConfig]
     .bind[MailDispatcherService].to[DummyMailDispatcherService]

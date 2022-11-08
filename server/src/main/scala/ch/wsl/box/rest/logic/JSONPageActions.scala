@@ -4,7 +4,7 @@ import ch.wsl
 import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.PostgresProfile
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONQuery, JSONQueryFilter}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONLookups, JSONLookupsRequest, JSONQuery, JSONQueryFilter}
 import io.circe.Json
 import slick.dbio.DBIO
 
@@ -19,7 +19,7 @@ object JSONPageActions extends TableActions[Json] {
 
   override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = DBIO.successful(Seq(responseId))
 
-  override def find(query: JSONQuery) = DBIO.successful(Seq())
+  override def find(query: JSONQuery) = DBIO.successful(DBIO.successful(Seq()))
 
   override def findSimple(q:JSONQuery): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 
@@ -32,4 +32,6 @@ object JSONPageActions extends TableActions[Json] {
   override def ids(query: JSONQuery): PostgresProfile.api.DBIO[IDs] = DBIO.successful(IDs(true,0,Seq(),0))
 
   override def updateField(id: JSONID, fieldName: String, value: Json):DBIO[Json] = DBIO.successful(Json.obj())
+
+  override def lookups(request: JSONLookupsRequest): _root_.ch.wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[JSONLookups]] = DBIO.successful(Seq())
 }

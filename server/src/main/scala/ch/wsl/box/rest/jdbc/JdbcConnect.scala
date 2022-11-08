@@ -50,7 +50,7 @@ object JdbcConnect extends Logging {
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
         val data = getResults(resultSet, metadata)
-        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping(x.datatype,"string")), data, Map())
       } match {
         case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
         case Success(value) => Some(value)
@@ -86,7 +86,7 @@ object JdbcConnect extends Logging {
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
         val data = getResults(resultSet, metadata)
-        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping(x.datatype,"string")), data, Map())
       } match {
         case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
         case Success(value) => Some(value)

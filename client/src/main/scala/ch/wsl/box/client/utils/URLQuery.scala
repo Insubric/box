@@ -22,24 +22,7 @@ object URLQuery extends Logging {
             logger.warn(s"Failed to parse query ${value.message}")
             None
           }
-          case Right(query) => {
-            val filters = query.filter.map{ fil =>
-              metadata.fields.find(_.name == fil.column).flatMap(_.lookup) match {
-                case Some(lookup) => {
-                  if(fil.operator.exists(_.startsWith("FK"))) {
-                    fil
-                  } else {
-                    lookup.lookup.find(_.id.string == fil.value) match {
-                      case Some(lk) => fil.copy(operator = Some(Filter.FK_LIKE),value = lk.value)
-                      case None => fil
-                    }
-                  }
-                }
-                case None => fil
-              }
-            }
-            Some(query.copy(filter = filters))
-          }
+          case Right(query) => Some(query)
         }
       }
     }

@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
 import kantan.csv._
@@ -51,17 +51,13 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
     val prefix = if(public) "/public" else ""
     httpClient.get[Seq[JSONMetadata]](Routes.apiV1(s"$prefix/$kind/$lang/$entity/children"))
   }
-  def lookup(kind:String, lang:String,entity:String, field:String, queryWithSubstitutions: Json, public:Boolean): Future[Seq[JSONLookup]] = {
+  def lookup(kind:String, lang:String,entity:String, field:String, query: JSONQuery, public:Boolean): Future[Seq[JSONLookup]] = {
     val prefix = if(public) "/public" else ""
-    queryWithSubstitutions.as[JSONQuery] match {
-      case Right(query) => httpClient.post[JSONQuery, Seq[JSONLookup]](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/lookup/$field"), query)
-      case Left(fail) => {
-        logger.warn(fail.message)
-        Future.successful(Seq())
-      }
-    }
+    httpClient.post[JSONQuery, Seq[JSONLookup]](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/lookup/$field"), query)
   }
 
+
+  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest): Future[Seq[JSONLookups]] = httpClient.post[JSONLookupsRequest,Seq[JSONLookups]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/lookups"),fk)
 
   //for entities and forms
   def get(kind:String, lang:String, entity:String, id:JSONID, public:Boolean):Future[Json] = {

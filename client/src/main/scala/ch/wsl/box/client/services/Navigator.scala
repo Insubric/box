@@ -1,7 +1,6 @@
 package ch.wsl.box.client.services
 
 import ch.wsl.box.client.Context
-import ch.wsl.box.client.utils.FKEncoder
 import ch.wsl.box.model.shared.{JSONMetadata, JSONQuery}
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.css.CssStyleName
@@ -97,8 +96,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
 
 
     private def fetchIds(query:JSONQuery,head:Boolean) = {
-      val qEncoded = FKEncoder(metadata.fields,query)
-      services.rest.ids(metadata.kind,session.lang(),metadata.name,qEncoded).map { ids =>
+      services.rest.ids(metadata.kind,session.lang(),metadata.name,query).map { ids =>
         session.setQueryFor(metadata.kind,metadata.name,session.getURLQuery(),query)
         session.setIDs(ids)
         if(head) {

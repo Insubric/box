@@ -2,6 +2,7 @@ package ch.wsl.box.model
 
 import io.circe._
 import ch.wsl.box.rest.utils.JSONSupport._
+import geotrellis.vector.io.json.Implicits._
 import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -24,9 +25,11 @@ trait UpdateTable[T] { t:Table[T] =>
 
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
-    val where = if(query.filter.nonEmpty)
-      query.filter.tail.foldLeft(concat(sql" where ", kv(query.filter.head))) { case (builder, pair) => concat(builder, concat(sql" and ", kv(pair))) }
-    else sql""
+    val nonEmpltyFilters = query.filter.filter(f => f.value.nonEmpty || f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op)))
+    val where = if(nonEmpltyFilters.nonEmpty) {
+      val filters = nonEmpltyFilters.flatMap(kv)
+      filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
+    } else sql""
 
     val order = if(query.sort.nonEmpty)
       query.sort.tail.foldLeft(concat(sql" order by ", orderBlock(query.sort.head))) { case (builder, pair) => concat(builder, concat(sql" , ", orderBlock(pair))) }
@@ -106,33 +109,40 @@ trait UpdateTable[T] { t:Table[T] =>
       case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable)
       case "java.util.UUID" => update[java.util.UUID](col.nullable)
       case "Boolean" => update[Boolean](col.nullable)
+      case "List[Double]" => update[List[Double]](col.nullable)
+      case "List[Int]" => update[List[Int]](col.nullable)
+      case "List[Short]" => update[List[Short]](col.nullable)
+      case "List[Long]" => update[List[Long]](col.nullable)
+      case "List[String]" => update[List[String]](col.nullable)
       case t:String => throw new Exception(s"$t is not supported for single field update")
     }
   }
 
 
 
-  protected def jsonQueryComposer(table:Table[_]): (JSONQueryFilter) => SQLActionBuilder = { jsonQuery =>
+  protected def jsonQueryComposer(table:Table[_]): (JSONQueryFilter) => Option[SQLActionBuilder] = { jsonQuery =>
 
     val key = jsonQuery.column
 
-    def filterMany[T](nullable:Boolean, value:Option[Seq[T]])(implicit sp:SetParameter[T]):SQLActionBuilder = {
+    def filterMany[T](nullable:Boolean, value:Option[Seq[T]])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
       val values = value.toSeq.flatten
       val list = if(values.nonEmpty) values.tail.foldLeft(sql" ${values.head} ")((a,b) => concat(a, sql" , $b ") )
-      else sql""
-      (jsonQuery.operator.getOrElse(Filter.EQUALS), nullable, value) match {
-        case (Filter.IN, true, values) => concat(concat(sql""" "#$key" in (""",list),sql")")
-        case (Filter.NOTIN, true, values) => concat(concat(sql""" "#$key" not in (""",list),sql")")
+      else sql" "
+      jsonQuery.operator match {
+        case Some(Filter.IN) if values.nonEmpty => Some(concat(concat(sql""" "#$key" in (""",list),sql")"))
+        case Some(Filter.NOTIN) if values.nonEmpty => Some(concat(concat(sql""" "#$key" not in (""",list),sql")"))
+        case _ => None
       }
     }
 
-    def filter[T](nullable:Boolean, value:Option[T])(implicit sp:SetParameter[T]):SQLActionBuilder = {
-      (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
+    def filter[T](nullable:Boolean, value:Option[T])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+      val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
         case (Filter.EQUALS,true,None) => sql""" "#$key" is null """
         case (Filter.LIKE,true,None) => sql""" "#$key" is null """
         case (Filter.EQUALS,_,Some(v)) => sql""" "#$key" = $v """
         case (Filter.LIKE,_,Some(v)) => sql""" "#$key" like '%#$v%' """
         case (Filter.<,_,Some(v)) => sql""" "#$key" < $v """
+        case (Filter.NOT,_,Some(v)) => sql""" "#$key" <> $v """
         case (Filter.>,_,Some(v)) => sql""" "#$key" > $v """
         case (Filter.<=,_,Some(v)) => sql""" "#$key" <= $v """
         case (Filter.>=,_,Some(v)) => sql""" "#$key" >= $v """
@@ -140,6 +150,7 @@ trait UpdateTable[T] { t:Table[T] =>
         case (Filter.IS_NOT_NULL,_,Some(v)) => sql""" "#$key" is not null """
         case (Filter.IS_NULL,_,Some(v)) => sql""" "#$key" is null """
       }
+      Some(result)
 
     }
 
@@ -149,16 +160,18 @@ trait UpdateTable[T] { t:Table[T] =>
 
     val v = jsonQuery.value
 
+    def splitAndTrim(s:String):Seq[String] = s.split(",").toSeq.map(_.trim).filter(_.nonEmpty)
+
     if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
       col.name match {
-        case "String"  => filterMany(col.nullable,Some(v.split(",").toSeq))
-        case "Int" => filterMany[Int](col.nullable,Some(v.split(",").toSeq.flatMap(_.toIntOption)))
-        case "Long" => filterMany[Long](col.nullable,Some(v.split(",").toSeq.flatMap(_.toLongOption)))
-        case "Short" => filterMany[Short](col.nullable,Some(v.split(",").toSeq.flatMap(_.toShortOption)))
-        case "Double" => filterMany[Double](col.nullable,Some(v.split(",").toSeq.flatMap(_.toDoubleOption)))
-        case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](col.nullable,Some(v.split(",").toSeq.flatMap(x => Try(BigDecimal(x)).toOption)))
-        case "io.circe.Json" => filterMany[Json](col.nullable,Some(v.split(",").toSeq.flatMap(x => parser.parse(x).toOption)))
-        case "java.util.UUID" => filterMany[java.util.UUID](col.nullable,Some(v.split(",").toSeq.flatMap(x => Try(UUID.fromString(x)).toOption)))
+        case "String"  => filterMany(col.nullable,Some(splitAndTrim(v)))
+        case "Int" => filterMany[Int](col.nullable,Some(splitAndTrim(v).flatMap(_.toIntOption)))
+        case "Long" => filterMany[Long](col.nullable,Some(splitAndTrim(v).flatMap(_.toLongOption)))
+        case "Short" => filterMany[Short](col.nullable,Some(splitAndTrim(v).flatMap(_.toShortOption)))
+        case "Double" => filterMany[Double](col.nullable,Some(splitAndTrim(v).flatMap(_.toDoubleOption)))
+        case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
+        case "io.circe.Json" => filterMany[Json](col.nullable,Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
+        case "java.util.UUID" => filterMany[java.util.UUID](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
         case t => throw new Exception(s"$t is not supported for simple multi query")
       }
     } else {

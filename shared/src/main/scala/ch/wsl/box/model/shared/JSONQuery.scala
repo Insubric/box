@@ -1,6 +1,9 @@
 package ch.wsl.box.model.shared
 
 import scribe.Logging
+import io.circe._
+import io.circe.parser._
+import io.circe.generic.auto._
 
 //import ch.wsl.box.model.shared.JSONQuery.empty
 
@@ -44,13 +47,22 @@ case class JSONQueryFilter(
                             column:String,
                             operator:Option[String],
                             value:String
-                          )
+                          ) {
+  def fkFilter:Boolean = operator match {
+    case Some(Filter.FK_DISLIKE) => true
+    case Some(Filter.FK_NOT) => true
+    case Some(Filter.FK_EQUALS) => true
+    case Some(Filter.FK_LIKE) => true
+    case _ => false
+  }
+}
 
 object JSONQueryFilter{
   object WHERE {
     def eq(column: String, value: String) = JSONQueryFilter(column, Some(Filter.EQUALS), value)
 
     def in(column: String, value: Seq[String]) = JSONQueryFilter(column, Some(Filter.IN), value.mkString(","))
+    def notIn(column: String, value: Seq[String]) = JSONQueryFilter(column, Some(Filter.NOTIN), value.mkString(","))
 
     def not(column: String, value: String) = JSONQueryFilter(column, Some(Filter.NOT), value)
 
@@ -79,7 +91,7 @@ case class JSONSort(column:String,order:String)
 /**
   * Created by andreaminetti on 16/03/16.
   */
-object JSONQuery{
+object JSONQuery extends Logging {
 
   def apply(filter:List[JSONQueryFilter], sort:List[JSONSort], pages:Int, currentPage:Int, lang:Option[String]):JSONQuery =
     JSONQuery(filter, sort, paging = Some(JSONQueryPaging(pageLength = pages, currentPage = currentPage)),None)
@@ -99,6 +111,20 @@ object JSONQuery{
   def sortByKeys(keys: Seq[String]) = empty.copy(sort = keys.map{k => JSONSort(k,Sort.ASC)}.toList)
 
   def limit(l:Int) = empty.copy(paging = Some(JSONQueryPaging(currentPage = 1, pageLength = l)))
+
+  def fromString(s:String):Option[JSONQuery] = parse(s) match {
+    case Right(value) => value.as[JSONQuery] match {
+      case Right(value) => Some(value)
+      case Left(value) => {
+        logger.warn(s"Unable to parse JSONQuery: ${value.message} of $s")
+        None
+      }
+    }
+    case Left(value) => {
+      logger.warn(s"Unable to parse JSONQuery: ${value.message} of $s")
+      None
+    }
+  }
 
 }
 

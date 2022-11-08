@@ -33,7 +33,7 @@ object Settings {
 
     //General
     val scala213 = "2.13.9"
-    val ficus = "1.4.7"
+    val ficus = "1.5.2"
 
     val macWire = "2.3.7"
     val airframe = "22.9.3"
@@ -95,13 +95,15 @@ object Settings {
     "com.typesafe.slick"       %% "slick"           % versions.slick,
     "com.typesafe.slick"       %% "slick-hikaricp"           % versions.slick,
     "org.postgresql"           %  "postgresql"      % versions.postgres,
-    "com.typesafe"             % "config"           % "1.3.3",
+    "com.typesafe"             % "config"           % "1.4.2",
     "com.iheart"               %% "ficus"           % versions.ficus,
     "com.github.tminglei"      %% "slick-pg"         % versions.slickPg,
     "com.github.tminglei"      %% "slick-pg_jts_lt"     % versions.slickPg,
     "io.circe"                 %% "circe-core" % versions.circe,
     "com.github.tminglei"      %% "slick-pg_circe-json"     % versions.slickPg,
     "org.locationtech.jts" % "jts-core" % "1.16.1",
+    "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion,
+    "org.flywaydb" % "flyway-core" % "7.9.1",
   ))
 
   val codegenDependecies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
@@ -136,7 +138,6 @@ object Settings {
     "com.typesafe.akka"        %% "akka-testkit"     % versions.akka      % "test",
     "com.typesafe.akka"        %% "akka-http-testkit"% versions.akkaHttp  % "test",
     "com.dimafeng"             %% "testcontainers-scala-scalatest" % versions.testcontainersScalaVersion % "test",
-    "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion % "test",
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
     "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
@@ -146,10 +147,9 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0-SNAPSHOT",
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.3",
     "com.norbitltd" %% "spoiwo" % "1.7.0",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
-    "org.flywaydb" % "flyway-core" % "7.9.1",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.apache.tika" % "tika-core" % "1.25",
@@ -181,7 +181,10 @@ object Settings {
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.scalatest" %%% "scalatest" % "3.2.5" % Test,
-    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
+    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0",
+    "org.http4s" %%% "http4s-dom" % "0.2.3",
+    "org.http4s" %%% "http4s-client" % "0.23.16",
+    "org.http4s" %%% "http4s-circe" % "0.23.16"
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */

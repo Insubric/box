@@ -1,10 +1,16 @@
 package ch.wsl.box.client.views.components.widget.geo
 
+import cats.effect._
+import cats.effect.unsafe.implicits._
+import org.http4s.circe.CirceEntityCodec._
+import org.http4s.dom._
+import org.scalajs.dom._
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.model.shared.GeoJson
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
+import ch.wsl.box.client.views.components.ui.Autocomplete
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -38,14 +44,19 @@ import typings.ol.mod.Overlay
 import typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
+import org.http4s.dom.FetchClientBuilder
+
+import scala.scalajs.js.URIUtils
 
 case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
   import dsl._
 
   private val mobileHeight = params.flatMap(_.js("mobileHeight").as[Int].toOption).getOrElse(250)
   private val desktopHeight = params.flatMap(_.js("desktopHeight").as[Int].toOption).getOrElse(400)
+  private val fullHeight = params.flatMap(_.js("full").as[Boolean].toOption).getOrElse(false)
 
-  val map = style(
+
+  val map = if(fullHeight) style(height(75 vh)) else style(
     height(mobileHeight px),
     media.minHeight(700 px)(
       height(desktopHeight px)
@@ -445,7 +456,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
           } yield {
             feature.geometry match {
               case GeoJson.Point(coordinates) => {
-                infoOverlay.element.appendChild(div(ClientConf.style.mapPopup,coordinates.x,br,coordinates.y).render)
+                infoOverlay.element.appendChild(div(ClientConf.style.mapPopup,coordinates.y,br,coordinates.x).render)
                 infoOverlay.setPosition(js.Array(coordinates.x,coordinates.y))
               }
               case _ => {}
@@ -553,6 +564,9 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   }
   val activeControl:Property[Control.Section] = Property(Control.VIEW)
 
+
+  val client = FetchClientBuilder[IO].create
+
   def controlButton(icon:Icon,labelKey:String,section:Control.Section) = {
 
     var tooltip:Option[UdashTooltip] = None
@@ -633,6 +647,72 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     }.toOption
 
   }
+
+  def coordsToGeoJson(c:Coordinate):GeoJson.Feature = {
+    GeoJson.Feature(GeoJson.Point(Coordinates(c(0),c(1))))
+  }
+
+  def search(q:String): Future[Seq[GeoJson.Feature]] = {
+    if(options.enableSwisstopo.exists(x => x)) {
+      val sr = options.defaultProjection.replaceAll("EPSG:", "").toIntOption.getOrElse(21781)
+      parseCoordinates(q) match {
+        case Some(value) => Future.successful(Seq(coordsToGeoJson(value)))
+        case None => {
+          val query = URIUtils.encodeURI(q)
+          client.expect[GeoJson.FeatureCollection](s"https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&geometryFormat=geojson&sr=$sr&searchText=$query&lang=${services.clientSession.lang()}").attempt.unsafeToFuture().map {
+            case Left(value) =>
+              logger.warn(value.getMessage)
+              Seq()
+            case Right(value) => value.features
+          }
+        }
+// Mock Swisstopo
+//        case None => {
+//            val promise = Promise[Seq[GeoJson.Feature]]()
+//            window.setTimeout(() => promise.success(Seq(GeoJson.Feature(Point(Coordinates(1,2))))),1000)
+//
+//
+//            promise.future
+//        }
+      }
+    } else Future.successful(Seq())
+  }
+
+  import GeoJson._
+
+  def toSuggestion(el:GeoJson.Feature):HTMLDivElement = {
+    logger.info(el.toString)
+    val label:Modifier = el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
+      case Some(value) => scalatags.JsDom.all.raw(value)
+      case None => span(el.geometry.toString(options.precision.getOrElse(0)))
+    }
+    div(label).render
+  }
+
+  def toSuggestionLabel(data:Option[GeoJson.Feature]):String = {
+    data match {
+      case Some(el) => el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
+        case Some(value) => {
+          val labDiv = document.createElement("div")
+          labDiv.innerHTML = value
+          labDiv.innerText
+        }
+        case None => {
+          val precision: Double = options.precision.getOrElse(0)
+          val coords = el.geometry.allCoordinates.head
+          s"${coords.xApprox(precision)},${coords.yApprox(precision)}"
+        }
+      }
+      case None => ""
+    }
+
+  }
+
+  def searchBox = Autocomplete[GeoJson.Feature](goToField,
+    search,
+    toSuggestionLabel,
+    toSuggestion
+  )(placeholder := Labels.map.goTo )
 
   case class EnabledFeatures(geometry:Option[Geometry]) {
     val point = {
@@ -731,6 +811,11 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     }
   }
 
+  override def toLabel(json: Json): Modifier = {
+    val name = data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
+    span(name)
+  }
+
   var selected:Option[olFeatureMod.default[geometryMod.default]] = None
 
   def highlight(g:Geometry): Unit = {
@@ -741,6 +826,32 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   def removeHighlight(): Unit = {
     selected.foreach(_.setStyle(vectorStyle))
+  }
+
+
+  val goToField:Property[Option[GeoJson.Feature]] = Property(None)
+
+  goToField.listen{
+    case None => ()
+    case Some(location) => {
+      logger.info(s"Found: $location")
+      location.bbox match {
+        case Some(bbox) => {
+          val extent = (bbox(0),bbox(1),bbox(2),bbox(3))
+          logger.info(s"Go to extent $extent")
+          map.getView().fit(extent)
+          if(map.getView().getZoom() > 12) map.getView().setZoom(12)
+        }
+        case None => {
+          val coordinates = location.geometry.allCoordinates.head
+          val c = js.Array(coordinates.x,coordinates.y)
+          logger.info(s"Go to coords $c")
+          map.getView().setCenter(c)
+          map.getView().setZoom(9)
+        }
+      }
+
+    }
   }
 
   override protected def edit(): JsDom.all.Modifier = {
@@ -760,15 +871,8 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       }
     })
 
-    val goToField = Property("")
 
-    goToField.listen{ search =>
-      parseCoordinates(search).foreach{ coord =>
-        logger.info(s"Go to coords: $coord")
-        map.getView().setCenter(coord)
-        map.getView().setZoom(9)
-      }
-    }
+
 
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
@@ -787,7 +891,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
           onclick :+= ((e: Event) => {
             ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
               val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
-              goToField.set(s"${localCoords(0)}, ${localCoords(1)}")
+              goToField.set(Some(coordsToGeoJson(localCoords)))
             }}
             e.preventDefault()
           })
@@ -833,7 +937,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
         if(!enable.polygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
         if(geometry.isEmpty && Seq(Control.EDIT,Control.MOVE,Control.DELETE).contains(activeControl.get)) activeControl.set(Control.VIEW)
 
-        goToField.set("")
+        goToField.set(None)
         insertCoordinateField.set("")
 
 
@@ -865,7 +969,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
                 ClientConf.style.mapSearch
               )( //controls
                 showIf(activeControl.transform(_ == Control.VIEW)){
-                  TextInput(goToField)(placeholder := Labels.map.goTo, onsubmit :+= ((e: Event) => e.preventDefault())).render
+                  searchBox
                 },
                 showIf(activeControl.transform(_ == Control.POINT)){
                   TextInput(insertCoordinateField)(placeholder := Labels.map.insertPoint, onsubmit :+= insertCoordinateHandler).render

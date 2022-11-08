@@ -111,8 +111,8 @@ object FormUIDef {
     ),
     entity = "form",
     lang = "en",
-    tabularFields = Seq("form_uuid","name","entity","description"),
-    rawTabularFields = Seq("form_uuid","name","entity","description"),
+    tabularFields = Seq("form_uuid","name","entity","description","guest_user"),
+    rawTabularFields = Seq("form_uuid","name","entity","description","guest_user"),
     keys = Seq("form_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(
@@ -203,11 +203,11 @@ object FormUIDef {
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).asJson))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER,JSONFieldTypes.ARRAY_NUMBER).asJson))
       ),
       JSONField(JSONFieldTypes.NUMBER,"max",true,
         widget = Some(WidgetsNames.input),
-        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).asJson))
+        condition = Some(ConditionalField("type",Seq(JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER,JSONFieldTypes.ARRAY_NUMBER).asJson))
       ),
       CommonField.conditionFieldId,
       CommonField.conditionValues,
@@ -494,7 +494,7 @@ object FormUIDef {
         WidgetsNames.richTextEditor,
         WidgetsNames.redactor
       )),
-      CommonField.lookupTextField(Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input)),
+      CommonField.lookupTextField(Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.multipleLookup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input,WidgetsNames.multi,WidgetsNames.popupWidget)),
     ),
     layout = Layout(
       blocks = Seq(

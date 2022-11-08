@@ -10,6 +10,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.fixtures.{AppManagedIdFixtures, DbManagedIdFixtures, FormFixtures}
 import ch.wsl.box.rest.utils.UserProfile
 import _root_.io.circe.Json
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils._
 import org.scalatest.Assertion

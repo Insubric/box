@@ -37,7 +37,7 @@ object CommonField {
     lookup = Some(JSONFieldLookup.prefilled(
       tables.map(x => JSONLookup(x.asJson,Seq(x)))
     )),
-    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel).asJson))
+    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
   )
 
   def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",false,

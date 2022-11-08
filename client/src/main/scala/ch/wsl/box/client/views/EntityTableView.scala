@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
+import ch.wsl.box.client.utils.{URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
@@ -42,16 +42,20 @@ object IDsVMFactory{
   def empty = IDsVM(true,1,Seq(),0)
 }
 
-case class Row(data: Seq[String])
+case class Row(data: Seq[String]) {
+  def field(metadata:JSONMetadata)(name:String) = {
+    metadata.table.zipWithIndex.find{ case (f,_) => f.name == name }.flatMap{ case (f,i) => data.lift(i).filter(_.nonEmpty).map(f.fromString) }
+  }
+}
 
 case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
-                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess)
+                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess, lookups:Seq[JSONLookups])
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false))
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq())
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -176,7 +180,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         selectedRow = None,
         ids = IDsVMFactory.empty,
         pages = Navigation.pageCount(0),
-        access = access
+        access = access,
+        lookups = Seq()
       )
 
       saveIds(IDs(true,1,Seq(),0),query)
@@ -260,17 +265,31 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     logger.info("filterUpdateHandler "+filterUpdateHandler)
 
     val q = query().copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
-    val qEncoded = FKEncoder(model.get.metadata.toSeq.flatMap(_.fields),q)
 
     //start request in parallel
-    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, qEncoded)
-    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, qEncoded)
+    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
+    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
+
+    def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
+      case Some(m) => {
+        val request = m.tableLookupFields.flatMap{ field =>
+          val values = csv.flatMap(_.field(m)(field.name)).distinct
+          if(values.isEmpty) None else
+          Some(JSONLookupsFieldRequest(field.name,values))
+        }
+        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(request))
+      }
+      case None => Future.successful(Seq())
+    }
 
     val r = for {
-      csv <- csvRequest
+      csv <- csvRequest.map(_.map(Row))
       ids <- idsRequest
+      lookups <- lookupReq(csv)
     } yield {
-      model.subProp(_.rows).set(csv.map(Row(_)))
+
+      model.subProp(_.lookups).set(lookups)
+      model.subProp(_.rows).set(csv)
       model.subProp(_.ids).set(IDsVM.fromIDs(ids))
       model.subProp(_.pages).set(Navigation.pageCount(ids.count))
       saveIds(ids, q)
@@ -365,9 +384,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val exportFields = model.get.metadata.map(_.exportFields).getOrElse(Seq())
     val fields = model.get.metadata.map(_.fields).getOrElse(Seq())
 
-    val queryWithFK = FKEncoder(fields,query())
 
-    val queryNoLimits = queryWithFK.copy(paging = None)
+    val queryNoLimits = query().copy(paging = None)
 
 
     val url = Routes.apiV1(
@@ -589,8 +607,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                     case Some(field) => td(ClientConf.style.smallCells)(TableFieldsRenderer(
                       value,
                       field,
-                      key,
-                      routes
+                      model.subProp(_.lookups).get
                     )).render
                     case None => td().render
                   }

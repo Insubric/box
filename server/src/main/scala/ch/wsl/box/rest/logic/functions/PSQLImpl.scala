@@ -35,7 +35,7 @@ object PSQLImpl extends RuntimePSQL {
 
 
     val io = for {
-      rows <- actions.find(query)
+      rows <- actions.findSimple(query)
     } yield {
       rows.headOption.map { firstRow =>
         val keys = firstRow.dropBoxObjectId.asObject.get.keys.toSeq

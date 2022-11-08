@@ -84,7 +84,7 @@ object TableChildFactory extends ChildRendererFactory {
                         ),
                         autoRelease(produce(widget.data) { data => fields.map{x =>
                           val tableWidget = x.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(x.`type`))
-                            .create(WidgetParams.simple(Property(data.js(x.name)),x,f,widgetParam.public,widgetParam.actions))
+                            .create(WidgetParams.simple(Property(data.js(x.name)),widget.data,x,f,widgetParam.public,widgetParam.actions))
                           td(ClientConf.style.childTableTd, tableWidget.showOnTable())
 
                         }.render }),

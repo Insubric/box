@@ -13,7 +13,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONLookupsRequest, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
 import ch.wsl.box.rest.utils.{JSONSupport, Lang, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -74,7 +74,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
 
     val dbActions = new DbActions[T,M](table)
     val jsonActions = JSONTableActions[T,M](table)
-    val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
+
 
 
     import io.circe.syntax._
@@ -82,7 +82,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     import JSONData._
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry, limitLookupFromFk)
+    val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry)
     Await.result(fut,20.seconds)
   }
 
@@ -92,7 +92,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
         val query = parse(q).right.get.as[JSONQuery].right.get
         val io = for {
           //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-          data <- jsonActions.find(query)
+          data <- jsonActions.findSimple(query)
         } yield {
           val table = XLSTable(
             title = name,
@@ -173,7 +173,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     post {
       entity(as[JSONQuery]) { query =>
         logger.info("list")
-        complete(db.run(jsonActions.find(query)))
+        complete(db.run(jsonActions.findSimple(query)))
       }
     }
   }
@@ -184,7 +184,11 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
         logger.info("csv")
         import kantan.csv._
         import kantan.csv.ops._
-        complete(Source.fromPublisher(db.stream(dbActions.find(query)).mapResult(x => Seq(x.values()).asCsv(rfc))).log("csv"))
+        onComplete(db.run(dbActions.find(query))) {
+          case Success(q) => complete(Source.fromPublisher(db.stream(q).mapResult(x => Seq(x.values()).asCsv(rfc))).log("csv"))
+          case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+        }
+
       }
     } ~
       respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment,Map("filename" -> s"$name.csv"))) {
@@ -193,13 +197,27 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
             import kantan.csv._
             import kantan.csv.ops._
             val query = parse(q).right.get.as[JSONQuery].right.get
-            val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, registry, limitLookupFromFk).map{ metadata =>
-              Seq(metadata.fields.map(_.name)).asCsv(rfc)
-            }).concat(Source.fromPublisher(db.stream(dbActions.find(query))).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
-            complete(csv)
+
+            onComplete(db.run(dbActions.find(query))) {
+              case Success(q) => {
+                val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, registry).map{ metadata =>
+                  Seq(metadata.fields.map(_.name)).asCsv(rfc)
+                }).concat(Source.fromPublisher(db.stream(q)).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
+                complete(csv)
+              }
+              case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+            }
+
+
           }
         }
       }
+  }
+
+  def lookups:Route = post{
+    entity(as[JSONLookupsRequest]) { lookupRequest =>
+      complete(db.run(dbActions.lookups(lookupRequest)))
+    }
   }
 
   def default:Route = get {
@@ -267,7 +285,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
           complete {
             for{
               lookups <- {
-                jsonMetadata.fields.find(_.name == field).flatMap(_.lookup) match {
+                jsonMetadata.fields.find(_.name == field).flatMap(_.remoteLookup) match {
                   case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
                   case None => throw new Exception(s"$field has no lookup")
                 }
@@ -302,6 +320,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       xls ~
       csv ~
       shp ~
+      lookups ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~
         insert

@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.{Json, JsonObject}
@@ -15,6 +16,7 @@ import io.circe._
 import io.circe.scalajs.convertJsonToJs
 import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
 import org.scalajs.dom.html.TextArea
+import scalatags.JsDom.all.{Modifier, span}
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -70,6 +72,9 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
 
+  override def toLabel(json: Json): Modifier = {
+    span(Shorten(json.string))
+  }
 
   override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
     div(raw(p.string)).render

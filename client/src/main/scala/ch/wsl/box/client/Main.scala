@@ -1,7 +1,7 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
-import ch.wsl.box.client.styles.OpenLayersStyles
+import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
 import io.udash.wrappers.jquery._
 import org.scalajs.dom
@@ -80,6 +80,12 @@ object Main extends Logging {
         val olStyle = document.createElement("style")
         olStyle.innerText = OpenLayersStyles.render(cssStringRenderer,cssEnv)
 
+        val autocompleteStyle = document.createElement("style")
+        autocompleteStyle.innerText = AutocompleteStyles(ClientConf.styleConf).render(cssStringRenderer,cssEnv)
+
+        val choicesStyle = document.createElement("style")
+        choicesStyle.innerText = new ChoicesStyles(ClientConf.styleConf).render(cssStringRenderer,cssEnv)
+
         val animations = document.createElement("style")
         animations.innerText =
           """
@@ -106,6 +112,8 @@ object Main extends Logging {
         document.body.appendChild(animations)
         document.body.appendChild(mainStyle)
         document.body.appendChild(olStyle)
+        document.body.appendChild(choicesStyle)
+        document.body.appendChild(autocompleteStyle)
 
         val app = document.createElement("div")
         document.body.appendChild(app)
