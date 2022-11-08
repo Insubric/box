@@ -23,6 +23,7 @@ object WidgetsNames {
   val multipleLookup = "multipleLookup"
   val twoLines = "twoLines"
   val popup = "popup"
+  val popupWidget = "popupWidget"
   val map = "map"
   val mapList = "mapList"
   val mapPoint = "mapPoint"
@@ -60,6 +61,7 @@ object WidgetsNames {
       inputDisabled,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     INTEGER -> Seq(
       input,
@@ -70,6 +72,7 @@ object WidgetsNames {
       inputDisabled,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     STRING -> Seq(
       input,
@@ -84,7 +87,8 @@ object WidgetsNames {
       hidden,
       dynamicWidget,
       langWidget,
-      dropdownLangWidget
+      dropdownLangWidget,
+      popupWidget
     ),
     CHILD -> Seq(
       simpleChild,
@@ -94,6 +98,7 @@ object WidgetsNames {
       lookupForm,
       trasparentChild,
       dynamicWidget,
+      popupWidget
     ),
     FILE -> Seq(
       simpleFile,
@@ -103,23 +108,27 @@ object WidgetsNames {
       input,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     DATETIME -> Seq(
       datetimePicker,
       input,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     TIME -> Seq(
       timepicker,
       input,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     INTERVAL -> Seq(
       input,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     BOOLEAN -> Seq(
       checkbox,
@@ -127,6 +136,7 @@ object WidgetsNames {
       selectBoolean,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     ARRAY_NUMBER -> Seq(
       input,
@@ -134,6 +144,7 @@ object WidgetsNames {
       multi,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     ARRAY_STRING -> Seq(
       inputMultipleText,
@@ -142,6 +153,7 @@ object WidgetsNames {
       input,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     GEOMETRY -> Seq(
       map,
@@ -149,10 +161,12 @@ object WidgetsNames {
       mapList,
       hidden,
       dynamicWidget,
+      popupWidget
     ),
     JSON -> Seq(
       code,
-      hidden
+      hidden,
+      popupWidget
     ),
     STATIC -> Seq(
       staticText,
@@ -164,7 +178,8 @@ object WidgetsNames {
       lookupLabel,
       html,
       dynamicWidget,
-      executeFunction
+      executeFunction,
+      popupWidget
     )
   )
 

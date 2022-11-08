@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.client.utils.TestHooks
+import ch.wsl.box.client.utils.{Shorten, TestHooks}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
@@ -128,6 +128,11 @@ object InputWidget extends Logging {
 
   class Textarea(val field:JSONField, val data: Property[Json], metadata:JSONMetadata) extends Widget with HasData {
 
+
+    override def toLabel(json: Json): Modifier = {
+      span(Shorten(json.string))
+    }
+
     val modifiers:Seq[Modifier] = Seq()
 
     override def edit() = editMe(field,true, false, modifiers){ case y =>
@@ -182,7 +187,7 @@ object InputWidget extends Logging {
       }), Labels.popup.close,ClientConf.style.boxButton)
     ).render
 
-    modal = UdashModal(modalSize = Some(Size.Large).toProperty)(
+    modal = UdashModal(modalSize = Some(Size.Small).toProperty)(
       headerFactory = Some(header),
       bodyFactory = Some(body),
       footerFactory = Some(footer)

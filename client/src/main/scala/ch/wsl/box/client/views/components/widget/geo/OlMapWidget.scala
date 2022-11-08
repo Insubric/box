@@ -53,8 +53,10 @@ case class MapStyle(params:Option[Json]) extends StyleSheet.Inline {
 
   private val mobileHeight = params.flatMap(_.js("mobileHeight").as[Int].toOption).getOrElse(250)
   private val desktopHeight = params.flatMap(_.js("desktopHeight").as[Int].toOption).getOrElse(400)
+  private val fullHeight = params.flatMap(_.js("full").as[Boolean].toOption).getOrElse(false)
 
-  val map = style(
+
+  val map = if(fullHeight) style(height(75 vh)) else style(
     height(mobileHeight px),
     media.minHeight(700 px)(
       height(desktopHeight px)
@@ -687,7 +689,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     div(label).render
   }
 
-  def toLabel(data:Option[GeoJson.Feature]):String = {
+  def toSuggestionLabel(data:Option[GeoJson.Feature]):String = {
     data match {
       case Some(el) => el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
         case Some(value) => {
@@ -708,7 +710,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   def searchBox = Autocomplete[GeoJson.Feature](goToField,
     search,
-    toLabel,
+    toSuggestionLabel,
     toSuggestion
   )(placeholder := Labels.map.goTo )
 
@@ -807,6 +809,11 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
         }
       }
     }
+  }
+
+  override def toLabel(json: Json): Modifier = {
+    val name = data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
+    span(name)
   }
 
   var selected:Option[olFeatureMod.default[geometryMod.default]] = None

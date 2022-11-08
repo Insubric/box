@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
+import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash.properties.single.Property
@@ -45,7 +46,9 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
     }
   },true)
 
-
+  override def toLabel(json: Json): Modifier = {
+    span(Shorten(json.string))
+  }
 
   def _afterRender(): Unit = {
     logger.info("Editor after render")
