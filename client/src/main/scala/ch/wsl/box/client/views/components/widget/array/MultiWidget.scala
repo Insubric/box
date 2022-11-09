@@ -56,7 +56,9 @@ object MultiWidget extends ComponentWidgetFactory {
         repeat(data){ d =>
           div(ClientConf.style.editableTableMulti,createWidget(d).editOnTable()).render
         },
-        a("Add", onclick :+= ((e:Event) => add()))
+        showIf(data.transform(_.length < params.field.minMax.flatMap(_.max.map(_.toInt)).getOrElse(Int.MaxValue))) {
+          a("Add", onclick :+= ((e: Event) => add())).render
+        }
       )
     }
 
