@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.styles.utils.ColorUtils.RGB
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
+import ch.wsl.box.model.shared.{Internationalization, JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import scalatags.JsDom
@@ -22,6 +22,8 @@ object SliderWidget extends ComponentWidgetFactory {
 
   import scalacss.ScalatagsCss._
   import io.udash.css.CssView._
+  import ch.wsl.box.client.Context._
+  import Internationalization._
 
   override def name: String = WidgetsNames.slider
 
@@ -34,9 +36,16 @@ object SliderWidget extends ComponentWidgetFactory {
 
     override protected def show(): JsDom.all.Modifier = {}
 
-    println("AAAA" + params.field.params)
 
-    def secondaryLabel = params.field.params.flatMap(_.getOpt("secondaryLabel")).getOrElse("")
+
+    def secondaryLabel:String = {
+      val sl = params.field.params.flatMap(_.jsOpt("secondaryLabel"))
+      val maybeString = sl.flatMap(_.as[I18n].toOption) match {
+        case Some(value) => value.find(_.lang == services.clientSession.lang()).orElse(value.headOption).map(_.label)
+        case None => sl.flatMap(_.asString)
+      }
+      maybeString.getOrElse("")
+    }
     def unit = params.field.params.flatMap(_.getOpt("unit")).getOrElse("")
     def step:Option[Double] = {
       params.field.params.flatMap(_.js("step").as[Double].toOption) match {
