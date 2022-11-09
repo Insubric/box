@@ -174,7 +174,7 @@ object EditableTable extends ChildRendererFactory {
     }
 
     def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
-      val f = fields(metadata).filter(f => checkCondition(f,entity.get.toSeq))
+      val f = fields(metadata).filter(f => checkCondition(f).get)
 
 
       val title = parentMetadata.dynamicLabel match {
@@ -236,29 +236,38 @@ object EditableTable extends ChildRendererFactory {
       e.preventDefault()
     }
 
-    def checkCondition(field: JSONField,e:Seq[String]) = {
+
+    private def _checkCondition(field: JSONField):ReadableProperty[Boolean] = {
       field.condition match {
         case Some(value) => {
-            e.exists(r => childWidgets.find(_.id == r).forall { x =>
-              value.check(x.data.get.js(value.conditionFieldId))
-            })
+          val propShow = Property(false)
+          entity.listen({ e =>
+              val widgets = e.flatMap(r => childWidgets.find(_.id == r))
+              val checkers = widgets.map { x =>
+                x.data.transform(d => value.check(d.js(value.conditionFieldId)))
+              }
+              checkers.foreach(_.listen({ valid =>
+                if (valid) propShow.set(true)
+                else propShow.set(checkers.exists(_.get))
+              },true))
+          },true)
+          propShow
         }
-        case None => true
+        case None => Property(true)
       }
     }
+    private val conditionCheckers: Map[String,ReadableProperty[Boolean]] = {
+      metadata.map{ _.fields.map{ f => f.name -> _checkCondition(f)}}.map(_.toMap).getOrElse(Map())
+    }
+
+    private def checkCondition(field: JSONField):ReadableProperty[Boolean] = conditionCheckers.getOrElse(field.name,Property(true))
+
 
 
     def showIfCondition(field: JSONField)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
       field.condition match {
         case Some(value) => {
-          val propShow = Property(false)
-          entity.listen({ e =>
-            val show = checkCondition(field,e.toSeq)
-            if (show != propShow.get) propShow.set(show)
-          }, true)
-
-
-          showIf(propShow) {
+          showIf(checkCondition(field)) {
             m.render
           }
         }
@@ -266,25 +275,40 @@ object EditableTable extends ChildRendererFactory {
       }
     }
 
-    def countColumns(metadata: JSONMetadata): ReadableProperty[Int] = {
-
-      val f = fields(metadata)
-
-      entity.transform { e =>
-        val columnsLengths = e.flatMap(r => childWidgets.find(_.id == r).map { x =>
-          f.map { f =>
-            f.condition match {
-              case Some(value) => if (value.check(x.data.get.js(value.conditionFieldId))) 1 else 0
-              case None => 1
-            }
+    def showIfConditionRow(field: JSONField,row:Property[Json])(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
+      field.condition match {
+        case Some(c) => {
+          showIf(row.transform(r => c.check(r.js(c.conditionFieldId)))) {
+            m.render
           }
-        }).map(_.sum)
+        }
+        case None => m
+      }
+    }
 
-        if(columnsLengths.isEmpty) f.length else columnsLengths.max
+    val countColumns: ReadableProperty[Int] = {
 
+      val f = fields(metadata.get)
+
+      val count = Property(0)
+
+      def doCount() = {
+        val c: Int = f.map(field => conditionCheckers.getOrElse(field.name, Property(true)).get).count( x => x)
+        count.set(c)
       }
 
+      f.foreach(field => conditionCheckers.getOrElse(field.name,Property(true)).listen(_ => doCount()))
+
+      doCount()
+      count
+
     }
+
+    def _colWidth(additionalColumns:Int):ReadableProperty[String] = countColumns.transform{ i =>
+      (100 / (i + additionalColumns)).pct
+    }
+
+
 
     override protected def render(write: Boolean): Modifier = {
       div(
@@ -299,15 +323,13 @@ object EditableTable extends ChildRendererFactory {
 
         showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
 
-          val columns = countColumns(m)
-
           val f = fields(m)
 
           div(
-            produce(columns) { cols =>
+            produce(countColumns) { cols =>
 
               val additionalColumns = if (write && !disableRemove) 1 else 0
-              val colWidth = width := (100 / (cols + additionalColumns)).pct
+              val colWidth = width.bind(_colWidth(additionalColumns))
 
                 div(tableStyle.tableContainer,
                 table(tableStyle.table,
@@ -331,13 +353,14 @@ object EditableTable extends ChildRendererFactory {
                         for (field <- f) yield {
                           val (params, widget) = colContentWidget(childWidget, field, m)
 
-
                           showIfCondition(field) {
-                            td(if (
-                              field.readOnly ||
-                                WidgetUtils.isKeyNotEditable(m, field, params.id.get)
-                            ) widget.showOnTable() else widget.editOnTable(), tableStyle.td, colWidth,
-                            )
+                            td(
+                            showIfConditionRow(field, childWidget.data) {
+                              div(if (
+                                field.readOnly ||
+                                  WidgetUtils.isKeyNotEditable(m, field, params.id.get)
+                              ) widget.showOnTable() else widget.editOnTable())
+                            }, tableStyle.td, colWidth)
                           }
                         },
                         if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
