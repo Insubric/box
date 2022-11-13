@@ -45,8 +45,9 @@ trait UpdateTable[T] { t:Table[T] =>
   }
 
   protected def whereBuilder(where:Map[String,Json]): SQLActionBuilder = {
-    val kv = keyValueComposer(this)
-    where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" and ",kv(pair))) }
+    val kv = keyValueComposer(this,k => sql""" "#$k" is null """)
+    val result = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" and ",kv(pair))) }
+    result
   }
 
 
@@ -78,10 +79,10 @@ trait UpdateTable[T] { t:Table[T] =>
 
   import ch.wsl.box.rest.logic.EnhancedTable._
 
-  protected def keyValueComposer(table:Table[_]): ((String,Json)) => SQLActionBuilder = { case (key,value) =>
+  protected def keyValueComposer(table:Table[_], nullExpression:String => SQLActionBuilder = k => sql""" "#$k" = null """): ((String,Json)) => SQLActionBuilder = { case (key,value) =>
 
     def update[T](nullable:Boolean)(implicit sp:SetParameter[T],dec:Decoder[T]):SQLActionBuilder = {
-      if(nullable && value == Json.Null) sql""" "#$key" = null """
+      if(nullable && value == Json.Null) nullExpression(key)
       else
         value.as[T] match {
           case Left(v) => throw new Exception(s"Error setting key-pair due to json parsing error ${v.message}. Key: $key value: $value")
@@ -90,11 +91,13 @@ trait UpdateTable[T] { t:Table[T] =>
 
     }
 
+
+
     val registry = if(table.schemaName == BoxSchema.schema) Registry.box() else Registry()
 
     val col = table.typ(key,registry)
 
-    col.name match {
+    val result = col.name match {
       case "String" => update[String](col.nullable)
       case "Int" => update[Int](col.nullable)
       case "Long" => update[Long](col.nullable)
@@ -116,6 +119,7 @@ trait UpdateTable[T] { t:Table[T] =>
       case "List[String]" => update[List[String]](col.nullable)
       case t:String => throw new Exception(s"$t is not supported for single field update")
     }
+    result
   }
 
 

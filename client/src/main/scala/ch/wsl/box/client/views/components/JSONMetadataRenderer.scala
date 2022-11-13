@@ -76,7 +76,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   private def getId(data:Json): Option[String] = {
     if(metadata.static) id.get
     else
-      data.ID(metadata.keys).map(_.asString)
+      data.ID(metadata.keyFields).map(_.asString)
   }
 
   data.listen { data =>

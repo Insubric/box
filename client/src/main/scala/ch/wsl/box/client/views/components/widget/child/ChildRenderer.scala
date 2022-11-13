@@ -114,13 +114,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val id = UUID.randomUUID().toString
       val propData = Property(data.deepMerge(props.get))
-      val childId = Property(data.ID(metadata.get.keys).map(_.asString))
+      val childId = Property(data.ID(metadata.get.keyFields).map(_.asString))
 
       props.listen(p => propData.set(propData.get.deepMerge(p)))
 
       propData.listen{data =>
         val newData = prop.get.as[Seq[Json]].toSeq.flatten.map{x =>
-          if(x.ID(metadata.get.keys).nonEmpty && x.ID(metadata.get.keys) == data.ID(metadata.get.keys)) {
+          if(x.ID(metadata.get.keyFields).nonEmpty && x.ID(metadata.get.keyFields) == data.ID(metadata.get.keyFields)) {
             x.deepMerge(data)
           } else x
         }
