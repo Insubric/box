@@ -268,7 +268,11 @@ object InputWidget extends Logging {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
       val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
-      TextInput(stringModel)(mod:_*).render
+      field.`type` match {
+        case JSONFieldTypes.NUMBER => NumberInput(stringModel)((mod ++ Seq(step := "any")):_*).render
+        case JSONFieldTypes.INTEGER => NumberInput(stringModel)(mod:_*).render
+        case _ => TextInput(stringModel)(mod:_*).render
+      }
     }
   }
 

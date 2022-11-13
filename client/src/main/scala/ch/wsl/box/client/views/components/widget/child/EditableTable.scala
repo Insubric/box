@@ -364,18 +364,25 @@ object EditableTable extends ChildRendererFactory {
                           }
                         },
                         if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
-                          if(!disableDuplicate) { a(ClientConf.style.childDuplicateButton,tabindex := 0,
-                            onclick :+= duplicateItem(childWidget),
-                            onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e)},
-                            Icons.duplicate) } else frag()
+                          if(!disableDuplicate) {
+
+                              a(ClientConf.style.childDuplicateButton,tabindex := 0,
+                              onclick :+= duplicateItem(childWidget),
+                              onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e)},
+                              Icons.duplicate)
+                            } else frag()
                           ," ",
-                          if(!disableRemove) { a(ClientConf.style.childRemoveButton,tabindex := 0,id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()),childWidget.id),
-                            onclick :+= removeItem(childWidget),
-                            onkeyup :+= {(e:Event) =>
-                              if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key))
-                                removeItem(childWidget)(e)
-                            },
-                            Icons.minusFill) } else frag()
+                          if(!disableRemove) {
+                            showIf(entity.transform(_.length > min)) {
+                              a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
+                                onclick :+= removeItem(childWidget),
+                                onkeyup :+= { (e: Event) =>
+                                  if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
+                                    removeItem(childWidget)(e)
+                                },
+                                Icons.minusFill).render
+                            }
+                          }else frag()
                         ) else frag()
                       ).render
                     },
