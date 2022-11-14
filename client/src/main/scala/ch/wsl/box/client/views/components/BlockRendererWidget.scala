@@ -132,7 +132,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
             val newObj = newResult.asObject.map(_.asJson).getOrElse(Json.obj()) // handle the case with empty subblock
             r.deepMerge(newObj)
           }
-          case _ => r.deepMerge(Map(k -> newResult.js(k)).asJson)
+          case _ => r.deepMerge(Map(k -> newResult.jsOrDefault(widget.field)).asJson)
         }
 
         logger.debug(
@@ -156,8 +156,8 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   override def beforeSave(value:Json,metadata:JSONMetadata) = {
     // WSS-228 when a field is hidden ignore it for persistence
-    logger.info(s"metadata: ${metadata.name} All: ${widgets.map(_.widget.field.name)}, visible only: ${widgets.filter(_.visibility.get).map(_.widget.field.name)}")
-    saveAll(value,widgets.filter(_.visibility.get).map(_.widget),_.beforeSave)
+    logger.info(s"metadata: ${metadata.name} All: ${widgets.map(_.widget.field.name)}, visible or default only: ${widgets.filter(x => x.visibility.get || x.widget.field.default.isDefined).map(_.widget.field.name)}")
+    saveAll(value,widgets.filter(x => x.visibility.get || x.widget.field.default.isDefined).map(_.widget),_.beforeSave)
   }
 
   override def killWidget(): Unit = widgets.foreach(_.widget.killWidget())

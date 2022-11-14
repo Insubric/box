@@ -207,7 +207,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         }
       } yield {
         logger.debug(s"saveAction::Result")
-        (JSONID.fromData(result,metadata).getOrElse(JSONID.empty),result)
+        (JSONID.fromData(result,metadata,false).getOrElse(JSONID.empty),result)
       }
 
     }

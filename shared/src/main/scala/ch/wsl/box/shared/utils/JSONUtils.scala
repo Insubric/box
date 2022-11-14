@@ -1,7 +1,7 @@
 package ch.wsl.box.shared.utils
 
 import ch.wsl.box.model.shared.JSONID.BOX_OBJECT_ID
-import ch.wsl.box.model.shared.{FileUtils, JSONDiff, JSONDiffField, JSONDiffModel, JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
+import ch.wsl.box.model.shared.{FileUtils, JSONDiff, JSONDiffField, JSONDiffModel, JSONField, JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
 import io.circe._
 import io.circe.syntax.EncoderOps
@@ -78,6 +78,11 @@ object JSONUtils extends Logging {
 
     //return JSON value of the given field
     def js(field:String):Json = jsOpt(field).getOrElse(Json.Null)
+    def jsOrDefault(field:JSONField):Json = {
+      jsOpt(field.name).orElse{
+        field.default.flatMap(d => JSONUtils.toJs(d,field.`type`))
+      }.getOrElse(Json.Null)
+    }
     def jsOpt(field:String):Option[Json] = el.hcursor.get[Json](field).right.toOption
 
     def seq(field:String):Seq[Json] = {
@@ -102,12 +107,11 @@ object JSONUtils extends Logging {
       }
     )
 
-    def ID(fields:Seq[String]):Option[JSONID] = {
-
-      if(fields.forall(x => getOpt(x).isDefined)) {
+    def ID(fields:Seq[JSONField]):Option[JSONID] = {
+      if(fields.forall(x => x.nullable || getOpt(x.name).isDefined)) {
 
         val values = fields map { field =>
-          field -> js(field)
+          field.name -> js(field.name)
         }
         Some(JSONID.fromMap(values))
       } else None

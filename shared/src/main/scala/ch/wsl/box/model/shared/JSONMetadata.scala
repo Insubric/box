@@ -52,6 +52,7 @@ case class JSONMetadata(
 //  }
   def table:Seq[JSONField] = tabularFields.flatMap(tf => fields.find(_.name == tf))
   def tableLookupFields = table.filter(_.lookup.isDefined)
+  lazy val keyFields:Seq[JSONField] = keys.flatMap(k => fields.find(_.name == k))
 }
 
 object JSONMetadata extends Logging {

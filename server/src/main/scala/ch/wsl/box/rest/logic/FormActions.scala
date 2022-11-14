@@ -230,6 +230,18 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
+  private def jsonIdDBFields(metadata:JSONMetadata,fields:Seq[JSONField]):Seq[JSONField] = fields.map{ field =>
+    val newField = registry.fields.field(metadata.entity, field.name) match {
+      case Some(col) => {
+        if(col.nullable != field.nullable)
+          field.copy(nullable = col.nullable)
+        else field
+      }
+      case _ => field
+    }
+    newField
+  }
+
   def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
 
     logger.debug(s"Applying sub action to $e")
@@ -246,9 +258,10 @@ case class FormActions(metadata:JSONMetadata,
         subs = e.seq(field.name)
         subJsonWithIndexs = attachArrayIndex(subs,form)
         subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
-        deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
+         deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
-          action(FormActions(form,registry,metadataFactory))(json.ID(form.keys),json)
+          val id = json.ID(jsonIdDBFields(form,form.keyFields))
+          action(FormActions(form,registry,metadataFactory))(id,json)
         })
       } yield field.name -> result.asJson
     }
@@ -268,8 +281,8 @@ case class FormActions(metadata:JSONMetadata,
    * @return number of deleted rows
    */
   def deleteChild(child:JSONMetadata, receivedJson:Seq[Json], dbJson:Seq[Json]): Seq[DBIO[Int]] = {
-    val receivedID = receivedJson.flatMap(_.ID(child.keys))
-    val dbID = dbJson.flatMap(_.ID(child.keys))
+    val receivedID = receivedJson.flatMap(_.ID(jsonIdDBFields(child,child.keyFields)))
+    val dbID = dbJson.flatMap(_.ID(jsonIdDBFields(child,child.keyFields)))
     logger.debug(s"child: ${child.name} received: ${receivedID.map(_.asString)} db: ${dbID.map(_.asString)}")
     dbID.filterNot(k => receivedID.contains(k)).map{ idsToDelete =>
       logger.info(s"Deleting child ${child.name}, with key: $idsToDelete")
