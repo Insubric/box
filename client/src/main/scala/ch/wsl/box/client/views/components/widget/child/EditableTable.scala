@@ -282,7 +282,7 @@ object EditableTable extends ChildRendererFactory {
             m.render
           }
         }
-        case None => m
+        case None => m.render
       }
     }
 

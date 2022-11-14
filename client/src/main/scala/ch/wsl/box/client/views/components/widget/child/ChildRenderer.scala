@@ -27,7 +27,7 @@ import scala.scalajs.js.timers.setTimeout
   */
 
 case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], changed:Property[Boolean], changedListener:Registration, deleted:Boolean=false) {
-  def rowId:ReadableProperty[Option[JSONID]] = data.transform(js => metadata.flatMap(m => JSONID.fromData(js,m)))
+  def rowId:ReadableProperty[Option[JSONID]] = data.transform(js => metadata.flatMap(m => JSONID.fromData(js,m,false)))
   def rowIdStr:ReadableProperty[String] = rowId.transform(_.map(_.asString).getOrElse("noid"))
 }
 
@@ -239,11 +239,14 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val rows = data.seq(child.key)
 
+      logger.debug(s"propagate current ids ${childWidgets.map(_.rowId.get)} $data")
+
       val out = Future.sequence(childWidgets.filterNot(_.deleted).map{ case cw =>
 
 
         val oldData = cw.data.get
-        val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m) == cw.rowId.get )).getOrElse(Json.obj())
+
+        val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m,false) == cw.rowId.get )).getOrElse(Json.obj())
         val d = oldData.deepMerge(newData)
 
         logger.debug(
@@ -268,7 +271,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
     def collectData(data:Json)(jsChilds:Seq[Json]) = {
-      logger.debug(Map(child.key -> jsChilds.asJson).asJson.toString())
+      logger.debug("child collect data" + Map(child.key -> jsChilds.asJson).asJson.toString())
       data.deepMerge(Map(child.key -> jsChilds.asJson).asJson)
     }
 
@@ -311,7 +314,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
           val isOpen:Boolean = services.clientSession.isTableChildOpen(ClientSession.TableChildElement(
             field.name,
             metadata.map(_.objId).getOrElse(UUID.randomUUID()),
-            metadata.flatMap(m => JSONID.fromData(x,m))
+            metadata.flatMap(m => JSONID.fromData(x,m,false))
           ))
           add(x, isOpen)
         }

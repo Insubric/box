@@ -66,6 +66,7 @@ object WidgetsNames {
     INTEGER -> Seq(
       input,
       integerDecimal2,
+      slider,
       select,
       popup,
       checkbox,

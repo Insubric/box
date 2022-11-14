@@ -74,12 +74,13 @@ object JSONID {
     JSONID(seq.map{ case (k,v) => JSONKeyValue(k,v)}.toVector)
   }
 
-  def fromData(js:Json,form:JSONMetadata):Option[JSONID] = {
+  def fromData(js:Json,form:JSONMetadata,fullyDefined:Boolean = true):Option[JSONID] = {
 
     val ids = form.keys.map{ k => js.jsOpt(k).map(JSONKeyValue(k,_)) }.toVector
 
     ids.forall(_.isDefined) match {
       case true => Some(JSONID(ids.map(_.get)))
+      case false if !fullyDefined => Some(JSONID(ids.flatten))
       case false => None
     }
 
