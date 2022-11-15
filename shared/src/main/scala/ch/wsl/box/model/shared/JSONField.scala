@@ -5,6 +5,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import java.util.UUID
 import io.circe.Json
 import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 
 /**
   * Created by andreaminetti on 16/03/16.
@@ -59,6 +60,9 @@ case class JSONField(
 object JSONField{
   val empty = JSONField("","",true,true)
   val fullWidth = empty.copy(params = Some(Json.obj("fullWidth" -> Json.True)))
+
+  implicit val enc = deriveEncoder[JSONField]
+  implicit val dec = deriveDecoder[JSONField]
 
   def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
   def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))

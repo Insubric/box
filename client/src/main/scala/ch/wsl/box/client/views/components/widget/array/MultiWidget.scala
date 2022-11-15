@@ -5,6 +5,7 @@ import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.styles.utils.ColorUtils.RGB
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
+import ch.wsl.box.model.shared.JSONField._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import scalatags.JsDom
 import io.circe.Json
@@ -31,20 +32,43 @@ object MultiWidget extends ComponentWidgetFactory {
 
   case class MultiWidgetImpl(params: WidgetParams) extends Widget {
 
-    def data:SeqProperty[(Json,Int)] = params.prop.bitransformToSeq[(Json,Int)](o => o.as[Seq[Json]].getOrElse(Seq[Json]()).zipWithIndex)(fw => Json.fromValues(fw.map(_._1)))
+    def toData(js:Json):Seq[(Json,Int)] = {
+      js.as[Seq[Json]].toOption.orElse{
+        for {
+          default <- field.default
+          json <- io.circe.parser.parse(default).toOption
+          seq <- json.as[Seq[Json]].toOption
+        } yield seq
+
+      }.getOrElse(Seq()).zipWithIndex
+    }
+
+    def data:SeqProperty[(Json,Int)] = params.prop.bitransformToSeq[(Json,Int)](toData)(fw => Json.fromValues(fw.map(_._1)))
 
     override def field: JSONField = params.field
 
     private def multiWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
-    private def incrementalParams(i:Int) = field.params.map{ params =>
-       params.deepMerge(params.seq("incrementalParams").lift(i).getOrElse(Json.fromFields(Seq())))
+
+
+    private val widgetJsonField = {
+      field.params.flatMap(_.jsOpt("widgetFieldOpts")) match {
+        case Some(value) => field.asJson.deepMerge(value).as[JSONField] match {
+          case Left(value) => throw value
+          case Right(value) => value
+        }
+        case None => field
+      }
+    }
+
+    private def incrementalParams(i:Int) = widgetJsonField.params.map{ params =>
+      params.deepMerge(params.seq("incrementalParams").lift(i).getOrElse(Json.fromFields(Seq())))
     }
 
 
     private def createWidget(d:Property[(Json,Int)]): Widget = {
       val i = d.get._2
       val prop = d.bitransform(_._1)((_,i))
-      WidgetRegistry.forName(multiWidget).create(params.copy(prop = prop, field = params.field.copy(params = incrementalParams(i))))
+      WidgetRegistry.forName(multiWidget).create(params.copy(prop = prop, field = widgetJsonField.copy(params = incrementalParams(i))))
     }
 
     private def add() = data.append((Json.Null,data.length))
