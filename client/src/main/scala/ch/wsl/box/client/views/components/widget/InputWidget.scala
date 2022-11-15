@@ -267,7 +267,18 @@ object InputWidget extends Logging {
     override def editOnTable(): JsDom.all.Modifier = {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
-      val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
+
+      val ph = field.placeholder match{
+        case Some(p) if p.nonEmpty => Seq(placeholder := p)
+        case _ => Seq.empty
+      }
+
+      val inputStyle = field.params.flatMap(_.getOpt("style")) match {
+        case Some("bottomBorder") => Seq[Modifier](ClientConf.style.simpleInputBottomBorder)
+        case _ => Seq[Modifier](ClientConf.style.simpleInput)
+      }
+
+      val mod:Seq[Modifier] = inputStyle ++ WidgetUtils.toNullable(field.nullable) ++ ph
       field.`type` match {
         case JSONFieldTypes.NUMBER => NumberInput(stringModel)((mod ++ Seq(step := "any")):_*).render
         case JSONFieldTypes.INTEGER => NumberInput(stringModel)(mod:_*).render
@@ -315,8 +326,14 @@ object InputWidget extends Logging {
 
     override def editOnTable(): JsDom.all.Modifier = {
       val stringModel = Property("")
+
+      val ph = field.placeholder match{
+        case Some(p) if p.nonEmpty => Seq(placeholder := p)
+        case _ => Seq.empty
+      }
+
       autoRelease(data.sync[String](stringModel)(toString _,fromString _))
-      NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01").render
+      NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01",ph).render
     }
 
     override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform{ js =>
