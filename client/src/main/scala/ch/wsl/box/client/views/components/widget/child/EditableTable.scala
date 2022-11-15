@@ -8,6 +8,7 @@ import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, Icons, StyleConf}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry, WidgetUtils}
+import ch.wsl.box.model.shared.Internationalization._
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import com.avsystem.commons.BSeq
@@ -137,6 +138,29 @@ object EditableTable extends ChildRendererFactory {
 
     val hideExporters = widgetParam.field.params.exists(_.js("hideExporters") == Json.True)
     val hideEmpty = widgetParam.field.params.exists(_.js("hideEmpty") == Json.True)
+
+    val actionHeader:String = {
+      widgetParam.field.params.flatMap(_.jsOpt("actionHeader")).flatMap{ js =>
+        js.as[I18n] match {
+          case Left(err1) => js.asString match {
+            case Some(value) => Some(value)
+            case None => {
+              logger.warn(s"Action header not correctly parsed on $js")
+              None
+            }
+          }
+          case Right(value) => value.lang(services.clientSession.lang())
+        }
+      }
+    }.getOrElse("")
+
+    val duplicateIcon:Icons.Icon = {
+      widgetParam.field.params.flatMap(_.getOpt("duplicateIcon")) match {
+        case Some("add") => Icons.plusFill
+        case _ => Icons.duplicate
+      }
+
+    }
 
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._
@@ -304,6 +328,8 @@ object EditableTable extends ChildRendererFactory {
 
     }
 
+
+
     def _colWidth(additionalColumns:Int):ReadableProperty[String] = countColumns.transform{ i =>
       (100 / (i + additionalColumns)).pct
     }
@@ -341,7 +367,7 @@ object EditableTable extends ChildRendererFactory {
                       }
 
                     },
-                    if (write && !disableRemove) th("", tableStyle.th) else frag()
+                    if (write && !disableRemove) th(actionHeader, tableStyle.th) else frag()
                   ),
 
 
@@ -369,7 +395,7 @@ object EditableTable extends ChildRendererFactory {
                               a(ClientConf.style.childDuplicateButton,tabindex := 0,
                               onclick :+= duplicateItem(childWidget),
                               onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e)},
-                              Icons.duplicate)
+                                duplicateIcon)
                             } else frag()
                           ," ",
                           if(!disableRemove) {
@@ -388,8 +414,7 @@ object EditableTable extends ChildRendererFactory {
                     },
                     if (write && !disableAdd) {
                       tr(tableStyle.tr,
-                        td(tableStyle.td, colspan := cols),
-                        td(tableStyle.td, colWidth,
+                        td(tableStyle.td, colspan.bind(countColumns.transform(c => (c + additionalColumns).toString)),
                           a(id := TestHooks.addChildId(m.objId),
                             tabindex := 0,
                             ClientConf.style.childAddButton,

@@ -106,7 +106,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     protected def render(write: Boolean): JsDom.all.Modifier
 
 
-    private def add(data:Json,open:Boolean): Unit = {
+    private def add(data:Json,open:Boolean,place:Option[Int] = None): Unit = {
 
       val props:ReadableProperty[Json] = masterData.transform{js =>
         child.props.map(p => p -> js.js(p)).toMap.asJson
@@ -141,8 +141,17 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       val changeListener = changed.listen(_ => checkChanges())
 
       val childRow = ChildRow(widget,id,propData,Property(open),metadata,changed,changeListener)
-      childWidgets += childRow
-      entity.append(id)
+      place match {
+        case Some(idx) => {
+          childWidgets.insert(idx,childRow)
+          entity.insert(idx,id)
+        }
+        case None => { //append at the end
+          childWidgets += childRow
+          entity.append(id)
+        }
+      }
+
       logger.debug(s"Added row ${childRow.rowId.get.map(_.asString).getOrElse("No ID")} of childForm ${metadata.get.name}")
       widget.afterRender()
     }
@@ -198,10 +207,14 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
 
     def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
-      itemToDuplicate.metadata.map { md =>
-        itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
-      } match {
-        case Some(newData) => this.add(newData,true);
+      itemToDuplicate.metadata match {
+        case Some(md) => {
+          def dataWithNoKeys = itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
+          val newData = if(md.keyFields.forall(_.readOnly)) {
+            dataWithNoKeys
+          } else itemToDuplicate.data.get
+          this.add(newData,true,Some(entity.get.indexOf(itemToDuplicate.id)+1))
+        };
         case None => logger.warn("duplicating invalid object")
       }
       checkChanges()
