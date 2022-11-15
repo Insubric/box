@@ -62,6 +62,7 @@ object JSONField{
 
   def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
   def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))
+  def lookup(name:String, data:Seq[Json], nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input),lookup = Some(JSONFieldLookup.prefilled(data.map(x => JSONLookup(x,Seq(x.string))))))
   def json(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.JSON,name,nullable,widget = Some(WidgetsNames.code))
   def array_number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.ARRAY_NUMBER,name,nullable,widget = Some(WidgetsNames.input))
   def child(name:String, childId:UUID, parentKey:String,childFields:String) = JSONField(
