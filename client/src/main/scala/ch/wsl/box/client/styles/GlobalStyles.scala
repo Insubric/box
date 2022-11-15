@@ -1099,6 +1099,14 @@ object GlobalStyleFactory{
       )
     )
 
+    val simpleInputBottomBorder = style(
+      margin.`0`,
+      padding.`0`,
+      width(100.%%),
+      height(100.%%),
+      float.none.important,
+    )
+
     val simpleInput = style(
       margin.`0`,
       padding.`0`,

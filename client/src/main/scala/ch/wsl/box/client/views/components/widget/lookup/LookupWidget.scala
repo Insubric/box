@@ -12,8 +12,10 @@ import io.udash.properties.single.{Property, ReadableProperty}
 import scalatags.JsDom
 import scalatags.JsDom.all.{label => lab, _}
 
+import scala.concurrent.Future
+
 object LookupWidget {
-  var remoteLookup:scala.collection.mutable.Map[String,Seq[JSONLookup]] = scala.collection.mutable.Map()
+  var remoteLookup:scala.collection.mutable.Map[String,Future[Seq[JSONLookup]]] = scala.collection.mutable.Map()
 }
 
 trait LookupWidget extends Widget with HasData {
@@ -84,19 +86,23 @@ trait LookupWidget extends Widget with HasData {
 
 
       LookupWidget.remoteLookup.get(cacheKey) match {
-        case Some(value) => setNewLookup(value)
+        case Some(value) => value.map(setNewLookup)
         case _ => {
 
-          logger.debug(s"Calling lookup with $q")
-
-          services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public).map { lookups =>
+          val request = services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public).map { lookups =>
             logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
-            if (lookups.nonEmpty) {
-              LookupWidget.remoteLookup.put(cacheKey, lookups)
+            if (lookups.isEmpty) {
+              LookupWidget.remoteLookup.remove(cacheKey)
             }
-            val newLookup = lookups
-            setNewLookup(newLookup)
+
+            setNewLookup(lookups)
+            lookups
           }
+
+          logger.debug(s"Calling lookup with $q")
+          LookupWidget.remoteLookup.put(cacheKey, request)
+
+
         }
       }
     }
@@ -119,14 +125,14 @@ trait LookupWidget extends Widget with HasData {
       val variables = extractVariables(query)
 
 
-      allData.listen({ allJs =>
+      autoRelease(allData.listen({ allJs =>
 
         val q = variables.foldRight(query) { (variable, finalQuery) =>
           finalQuery.replaceAll("#" + variable, "\"" + allJs.get(variable) + "\"")
         }
         fetchRemoteLookup(JSONQuery.fromString(q).getOrElse(JSONQuery.empty.limit(1000)))
 
-      }, true)
+      }, true))
     } else {
       fetchRemoteLookup(fieldLookup.lookupQuery.flatMap(JSONQuery.fromString).getOrElse(JSONQuery.empty.limit(1000)))
     }
@@ -153,7 +159,7 @@ trait LookupWidget extends Widget with HasData {
   fieldLookup match {
     case r:JSONFieldLookupRemote => remoteLookup(r)
     case JSONFieldLookupExtractor(extractor) => {
-      allData.listen({ all =>
+      autoRelease(allData.listen({ all =>
         logger.debug(s"Field ${field.name} extracting ${extractor.key} with ${extractor.map} from $all with data ${all.js(extractor.key)} and lookups ${extractor.map.get(all.js(extractor.key))}")
         extractor.map.get(all.js(extractor.key)) match {
           case Some(newLookup) => setNewLookup(newLookup)
@@ -162,7 +168,7 @@ trait LookupWidget extends Widget with HasData {
             setNewLookup(Seq())
           }
         }
-      },true)
+      },true))
     }
     case JSONFieldLookupData(data) => setNewLookup(data)
   }
