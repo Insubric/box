@@ -398,7 +398,7 @@ object EditableTable extends ChildRendererFactory {
                                 duplicateIcon)
                             } else frag()
                           ," ",
-                          if(!disableRemove) {
+                          if(!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
                             showIf(entity.transform(_.length > min)) {
                               a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
                                 onclick :+= removeItem(childWidget),

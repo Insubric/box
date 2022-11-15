@@ -26,7 +26,7 @@ import scala.scalajs.js.timers.setTimeout
   * Created by andre on 6/1/2017.
   */
 
-case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], changed:Property[Boolean], changedListener:Registration, deleted:Boolean=false) {
+case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], changed:Property[Boolean], changedListener:Registration, newRow:Boolean, deleted:Boolean=false) {
   def rowId:ReadableProperty[Option[JSONID]] = data.transform(js => metadata.flatMap(m => JSONID.fromData(js,m,false)))
   def rowIdStr:ReadableProperty[String] = rowId.transform(_.map(_.asString).getOrElse("noid"))
 }
@@ -71,6 +71,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
     val disableDuplicate = field.params.exists(_.js("disableDuplicate") == true.asJson)
+    val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
@@ -106,7 +107,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     protected def render(write: Boolean): JsDom.all.Modifier
 
 
-    private def add(data:Json,open:Boolean,place:Option[Int] = None): Unit = {
+    private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
 
       val props:ReadableProperty[Json] = masterData.transform{js =>
         child.props.map(p => p -> js.js(p)).toMap.asJson
@@ -140,7 +141,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val changeListener = changed.listen(_ => checkChanges())
 
-      val childRow = ChildRow(widget,id,propData,Property(open),metadata,changed,changeListener)
+      val childRow = ChildRow(widget,id,propData,Property(open),metadata,changed,changeListener,newRow)
       place match {
         case Some(idx) => {
           childWidgets.insert(idx,childRow)
@@ -213,7 +214,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
           val newData = if(md.keyFields.forall(_.readOnly)) {
             dataWithNoKeys
           } else itemToDuplicate.data.get
-          this.add(newData,true,Some(entity.get.indexOf(itemToDuplicate.id)+1))
+          this.add(newData,true,true,Some(entity.get.indexOf(itemToDuplicate.id)+1))
         };
         case None => logger.warn("duplicating invalid object")
       }
@@ -241,7 +242,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       //    println(placeholder)
 
 
-      add(placeholder.asJson,true)
+      add(placeholder.asJson,true,true)
       checkChanges()
     }
 
@@ -329,7 +330,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
             metadata.map(_.objId).getOrElse(UUID.randomUUID()),
             metadata.flatMap(m => JSONID.fromData(x,m,false))
           ))
-          add(x, isOpen)
+          add(x, isOpen,false)
         }
 
         for(i <- 0 until (min - entityData.length)) yield {
