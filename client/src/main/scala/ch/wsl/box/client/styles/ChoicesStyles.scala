@@ -10,7 +10,10 @@ class ChoicesStyles(conf:StyleConf) extends StyleSheet.Inline {
   val choicesStyle = style(
     unsafeRoot(".choices__list--multiple .choices__item")(
       backgroundColor(conf.colors.main),
-      borderColor(conf.colors.main),
+      borderColor(conf.colors.main)
+    ),
+    unsafeRoot(".autocomplete")(
+      zIndex(1050).important
     ),
 
   )
