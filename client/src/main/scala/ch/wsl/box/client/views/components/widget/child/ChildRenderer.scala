@@ -73,6 +73,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
     val disableDuplicate = field.params.exists(_.js("disableDuplicate") == true.asJson)
     val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
+    val duplicateIgnoreFields:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateIgnoreFields").as[Seq[String]].toOption).flatten
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
@@ -211,10 +212,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
       itemToDuplicate.metadata match {
         case Some(md) => {
-          def dataWithNoKeys = itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
+          println(duplicateIgnoreFields)
+          def dataWithoutIgnored = itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => duplicateIgnoreFields.contains(key) }))
+          def dataWithNoKeys = dataWithoutIgnored.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
+
           val newData = if(md.keyFields.forall(_.readOnly)) {
             dataWithNoKeys
-          } else itemToDuplicate.data.get
+          } else dataWithoutIgnored
           this.add(newData,true,true,Some(entity.get.indexOf(itemToDuplicate.id)+1))
         };
         case None => logger.warn("duplicating invalid object")
