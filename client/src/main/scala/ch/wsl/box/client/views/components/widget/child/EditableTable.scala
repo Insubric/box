@@ -199,7 +199,7 @@ object EditableTable extends ChildRendererFactory {
     }
 
     def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
-      val f = fields(metadata).filter(f => checkCondition(f).get)
+      val f = fields(metadata) //.filter(f => checkCondition(f).get)
 
 
       val title = parentMetadata.dynamicLabel match {
@@ -262,42 +262,43 @@ object EditableTable extends ChildRendererFactory {
     }
 
 
-    private def _checkCondition(field: JSONField):ReadableProperty[Boolean] = {
-      field.condition match {
-        case Some(value) => {
-          val propShow = Property(false)
-          entity.listen({ e =>
-              val widgets = e.flatMap(r => childWidgets.find(_.id == r))
-              val checkers = widgets.map { x =>
-                x.data.transform(d => value.check(d.js(value.conditionFieldId)))
-              }
-              checkers.foreach(_.listen({ valid =>
-                if (valid) propShow.set(true)
-                else propShow.set(checkers.exists(_.get))
-              },true))
-          },true)
-          propShow
-        }
-        case None => Property(true)
-      }
-    }
-    private val conditionCheckers: Map[String,ReadableProperty[Boolean]] = {
-      metadata.map{ _.fields.map{ f => f.name -> _checkCondition(f)}}.map(_.toMap).getOrElse(Map())
-    }
-
-    private def checkCondition(field: JSONField):ReadableProperty[Boolean] = conditionCheckers.getOrElse(field.name,Property(true))
-
+//    private def _checkCondition(field: JSONField):ReadableProperty[Boolean] = {
+//      field.condition match {
+//        case Some(value) => {
+//          val propShow = Property(false)
+//          entity.listen({ e =>
+//              val widgets = e.flatMap(r => childWidgets.find(_.id == r))
+//              val checkers = widgets.map { x =>
+//                x.data.transform(d => value.check(d.js(value.conditionFieldId)))
+//              }
+//              checkers.foreach(_.listen({ valid =>
+//                if (valid) propShow.set(true)
+//                else propShow.set(checkers.exists(_.get))
+//              },true))
+//          },true)
+//          propShow
+//        }
+//        case None => Property(true)
+//      }
+//    }
+//    private val conditionCheckers: Map[String,ReadableProperty[Boolean]] = {
+//      metadata.map{ _.fields.map{ f => f.name -> _checkCondition(f)}}.map(_.toMap).getOrElse(Map())
+//    }
+//
+//    private def checkCondition(field: JSONField):ReadableProperty[Boolean] = conditionCheckers.getOrElse(field.name,Property(true))
+//
 
 
     def showIfCondition(field: JSONField,nested:Binding.NestedInterceptor)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
-      field.condition match {
-        case Some(_) => {
-          nested(showIf(checkCondition(field)) {
-            m.render
-          })
-        }
-        case None => m
-      }
+//      field.condition match {
+//        case Some(_) => {
+//          nested(showIf(checkCondition(field)) {
+//            m.render
+//          })
+//        }
+//        case None => m
+//      }
+      m
     }
 
     def showIfConditionRow(field: JSONField,row:Property[Json],nested:Binding.NestedInterceptor)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
@@ -311,33 +312,34 @@ object EditableTable extends ChildRendererFactory {
       }
     }
 
-    val countColumns: ReadableProperty[Int] = {
-      metadata match {
-        case Some(m) => {
-          val f = fields(m)
+//    val countColumns: ReadableProperty[Int] = {
+//      metadata match {
+//        case Some(m) => {
+//          val f = fields(m)
+//
+//          val count = Property(0)
+//
+//          def doCount() = {
+//            val c: Int = f.map(field => conditionCheckers.getOrElse(field.name, Property(true)).get).count( x => x)
+//            count.set(c)
+//          }
+//
+//          f.foreach(field => conditionCheckers.getOrElse(field.name,Property(true)).listen(_ => doCount(), true))
+//
+//          doCount()
+//          count
+//        }
+//        case None => Property(0)
+//      }
+//
+//
+//    }
 
-          val count = Property(0)
 
-          def doCount() = {
-            val c: Int = f.map(field => conditionCheckers.getOrElse(field.name, Property(true)).get).count( x => x)
-            count.set(c)
-          }
+    def countColumns(additionalColumns:Int) = metadata.map(fields).map(_.length).getOrElse(1) + additionalColumns
 
-          f.foreach(field => conditionCheckers.getOrElse(field.name,Property(true)).listen(_ => doCount()))
-
-          doCount()
-          count
-        }
-        case None => Property(0)
-      }
-
-
-    }
-
-
-
-    def _colWidth(additionalColumns:Int):ReadableProperty[String] = countColumns.transform{ i =>
-      (100 / (i + additionalColumns)).pct
+    def _colWidth(additionalColumns:Int):String = {
+      (100 / countColumns(additionalColumns)).pct
     }
 
 
@@ -357,11 +359,11 @@ object EditableTable extends ChildRendererFactory {
 
           val f = fields(m)
 
-          div(
-            nested(produceWithNested(countColumns) { (_,nested) =>
+          div({
+            //nested(produceWithNested(countColumns) { (_,nested) =>
 
               val additionalColumns = if (write && !disableRemove) 1 else 0
-              val colWidth = width.bind(_colWidth(additionalColumns))
+              val colWidth = (width := _colWidth(additionalColumns))
 
                 div(tableStyle.tableContainer,
                 table(tableStyle.table,
@@ -420,7 +422,7 @@ object EditableTable extends ChildRendererFactory {
                     }),
                     if (write && !disableAdd) {
                       tr(tableStyle.tr,
-                        td(tableStyle.td, colspan.bind(countColumns.transform(c => (c + additionalColumns).toString)),
+                        td(tableStyle.td, colspan := countColumns(additionalColumns),
                           a(id := TestHooks.addChildId(m.objId),
                             tabindex := 0,
                             ClientConf.style.childAddButton,
@@ -441,7 +443,8 @@ object EditableTable extends ChildRendererFactory {
                   )
                 }
               ).render
-            })
+            }
+            //}) // end produce column count
           ).render
         })
       }

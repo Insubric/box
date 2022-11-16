@@ -116,30 +116,22 @@ trait LookupWidget extends Widget with HasData {
       }.distinct
     }
 
+    fieldLookup.lookupQuery.map(_.replaceAll("##lang",services.clientSession.lang())) match {
+      case Some(query) => {
+        val variables = extractVariables(query)
+        autoRelease(allData.listen({ allJs =>
 
+          val q = variables.foldRight(query) { (variable, finalQuery) =>
+            finalQuery.replaceAll("#" + variable, "\"" + allJs.get(variable) + "\"")
+          }
+          fetchRemoteLookup(JSONQuery.fromString(q).getOrElse(JSONQuery.empty.limit(1000)))
 
-    // Lookup with Query
-    if (fieldLookup.lookupQuery.isDefined && fieldLookup.lookupQuery.get.find(_ == '#').nonEmpty) {
-
-      val query = fieldLookup.lookupQuery match {
-        case Some(value) => value
-        case None => throw new Exception("Lookup query is null")
+        }, true))
       }
-
-      val variables = extractVariables(query)
-
-
-      autoRelease(allData.listen({ allJs =>
-
-        val q = variables.foldRight(query) { (variable, finalQuery) =>
-          finalQuery.replaceAll("#" + variable, "\"" + allJs.get(variable) + "\"")
-        }
-        fetchRemoteLookup(JSONQuery.fromString(q).getOrElse(JSONQuery.empty.limit(1000)))
-
-      }, true))
-    } else {
-      fetchRemoteLookup(fieldLookup.lookupQuery.flatMap(JSONQuery.fromString).getOrElse(JSONQuery.empty.limit(1000)))
+      case Some(query) => fetchRemoteLookup(JSONQuery.fromString(query).getOrElse(JSONQuery.empty.limit(1000)))
+      case None => fetchRemoteLookup(JSONQuery.empty.limit(1000))
     }
+
 
   }
 
