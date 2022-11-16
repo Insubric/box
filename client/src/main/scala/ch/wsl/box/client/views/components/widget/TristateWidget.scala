@@ -8,6 +8,7 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import io.udash.css.CssView._
 import ch.wsl.box.shared.utils.JSONUtils._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
@@ -62,7 +63,7 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
     checkbox
   }
 
-  override def edit() = {
+  override def edit(nested:Binding.NestedInterceptor) = {
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip,UdashTooltip.Placement.Right) _
 
@@ -78,7 +79,7 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
     )
   }
 
-  override def editOnTable(): JsDom.all.Modifier = {
+  override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     val booleanModel:Property[Option[Boolean]] = Property(None)
     autoRelease(data.sync[Option[Boolean]](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
 

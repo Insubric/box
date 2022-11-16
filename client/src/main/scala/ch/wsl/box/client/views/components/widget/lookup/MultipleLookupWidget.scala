@@ -11,6 +11,7 @@ import io.circe.syntax._
 import io.circe.scalajs._
 import io.udash.properties.single.Property
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
@@ -48,9 +49,9 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
     override def field: JSONField = params.field
 
-    override protected def show(): JsDom.all.Modifier = {}
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {}
 
-    override protected def edit(): JsDom.all.Modifier = {
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       val el = select().render
 

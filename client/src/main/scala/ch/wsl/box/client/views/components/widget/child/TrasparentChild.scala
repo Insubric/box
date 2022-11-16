@@ -9,6 +9,7 @@ import io.circe.Json
 import io.circe.syntax._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import scalacss.ScalatagsCss._
 import io.udash.css._
 import org.scalajs.dom.Event
@@ -31,20 +32,20 @@ object TrasparentChild extends ChildRendererFactory {
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
-    override protected def render(write: Boolean): JsDom.all.Modifier = {
+    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       div(ClientConf.style.removeFieldMargin,
         metadata match {
           case None => p("child not found")
           case Some(f) => {
               div(if(distribute) { ClientConf.style.distributionContrainer } else frag(),
-                autoRelease(repeat(entity) { e =>
+                nested(repeat(entity) { e =>
                   val widget = getWidget(e.get)
                   div(
                     if(distribute) { ClientConf.style.distributionChild } else {},
                     if(childWidth.isDefined) { width := childWidth.get.px } else {},
                     div(display.flex,
-                      div(flexGrow := 1, widget.widget.render(write, Property(true))),
+                      div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
                       div( ClientConf.style.removeFlexChild,
                         removeButton(write,widget,f)
                       )

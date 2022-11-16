@@ -12,6 +12,7 @@ import io.udash._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.syntax._
 import io.circe.parser._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
 import org.scalajs.dom.html.Div
@@ -25,7 +26,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   import scalacss.ScalatagsCss._
   import io.udash.css.CssView._
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(p.string).render
   })
 
@@ -91,7 +92,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
 
   }
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     val observer = new MutationObserver({(mutations,observer) =>
       if(document.contains(container)) {
@@ -100,7 +101,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
       }
     })
 
-    produce(_id) { _ =>
+    nested(produce(_id) { _ =>
 
       editor.foreach(_.dispose())
       if(container != null) container.remove()
@@ -126,7 +127,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
         div(BootstrapStyles.Visibility.clearfix)
       ).render
 
-    }
+    })
   }
 
 }

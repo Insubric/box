@@ -9,9 +9,10 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.DateTimeFormatters
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.datepicker.UdashDatePicker.Placement
 import io.udash.properties.single.Property
 import org.scalajs.dom.raw.HTMLInputElement
@@ -50,8 +51,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
 
-  override def edit() = editMe()
-  override protected def show(): JsDom.all.Modifier = showMe(field.title)
+  override def edit(nested:Binding.NestedInterceptor) = editMe()
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(field.title,nested)
 
   val formatted:ReadableProperty[String] = data.transform{ js =>
     dateTimeFormatters.parse(js.string).map(v => dateTimeFormatters.format(v,format) ).getOrElse("")
@@ -106,20 +107,20 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
 
-  override def showOnTable(): JsDom.all.Modifier = {
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     format match {
-      case Some(formatter) => bind(data.transform{js =>
+      case Some(formatter) => nested(bind(data.transform{js =>
         dateTimeFormatters.parse(js.string)
           .map(x => dateTimeFormatters.format(x,Some(formatter)))
           .getOrElse(js.string)
-      })
-      case None => bind(data.transform(_.string))
+      }))
+      case None => nested(bind(data.transform(_.string)))
     }
   }
 
-  protected def showMe(modelLabel:String):Modifier = autoRelease(WidgetUtils.showNotNull(data){ p =>
+  protected def showMe(modelLabel:String,nested:Binding.NestedInterceptor):Modifier = autoRelease(WidgetUtils.showNotNull(data,nested){ p =>
     div(ClientConf.style.smallBottomMargin, if (modelLabel.length > 0) label(modelLabel) else {},
-      div(BootstrapStyles.Float.right(), bind(formatted)),
+      div(BootstrapStyles.Float.right(), nested(bind(formatted))),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   })
@@ -136,7 +137,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
 
-  override def editOnTable(): JsDom.all.Modifier = picker(true)
+  override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = picker(true)
 
   protected def picker(fullwidth:Boolean):HTMLInputElement = {
 

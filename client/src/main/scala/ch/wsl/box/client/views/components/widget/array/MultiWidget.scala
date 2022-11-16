@@ -12,6 +12,7 @@ import io.circe.Json
 import io.circe.syntax._
 import io.udash.properties.single.Property
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
@@ -33,7 +34,7 @@ object MultiWidget extends ComponentWidgetFactory {
   case class MultiWidgetImpl(params: WidgetParams) extends Widget {
 
     def toData(js:Json):Seq[(Json,Int)] = {
-      js.as[Seq[Json]].toOption.orElse{
+      val result = js.as[Seq[Json]].toOption.orElse{
         for {
           default <- field.default
           json <- io.circe.parser.parse(default).toOption
@@ -41,9 +42,12 @@ object MultiWidget extends ComponentWidgetFactory {
         } yield seq
 
       }.getOrElse(Seq()).zipWithIndex
+      result
     }
 
     def data:SeqProperty[(Json,Int)] = params.prop.bitransformToSeq[(Json,Int)](toData)(fw => Json.fromValues(fw.map(_._1)))
+
+    def hasData:ReadableProperty[Boolean] = data.transform(_.nonEmpty)
 
     override def field: JSONField = params.field
 
@@ -73,20 +77,20 @@ object MultiWidget extends ComponentWidgetFactory {
 
     private def add() = data.append((Json.Null,data.length))
 
-    override protected def show(): JsDom.all.Modifier = {}
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {}
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       div(
-        repeat(data){ d =>
-          div(ClientConf.style.editableTableMulti,createWidget(d).editOnTable()).render
-        },
-        showIf(data.transform(_.length < params.field.minMax.flatMap(_.max.map(_.toInt)).getOrElse(Int.MaxValue))) {
+        nested(repeatWithNested(data) { (d, n) =>
+          div(ClientConf.style.editableTableMulti, createWidget(d).editOnTable(n)).render
+        }),
+        nested(showIf(data.transform(_.length < params.field.minMax.flatMap(_.max.map(_.toInt)).getOrElse(Int.MaxValue))) {
           a("Add", onclick :+= ((e: Event) => add())).render
-        }
+        })
       )
     }
 
-    override protected def edit(): JsDom.all.Modifier = {
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
@@ -94,10 +98,10 @@ object MultiWidget extends ComponentWidgetFactory {
         WidgetUtils.toLabel(field),
         div(BootstrapStyles.Float.right(),bind(params.prop.transform(_.toString()))),
         tooltip(div(
-          repeat(data){d =>
+          nested(repeat(data){d =>
             val widget = createWidget(d)
-            div(widget.render(true,Property(true))).render
-          }
+            div(widget.render(true,Property(true),nested)).render
+          })
         ).render)._1,
       )
 

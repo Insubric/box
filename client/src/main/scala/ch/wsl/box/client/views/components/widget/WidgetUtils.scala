@@ -20,10 +20,10 @@ object WidgetUtils extends Logging{
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
 
-  def showNotNull(prop:ReadableProperty[Json])(f: Json => Seq[Element]):Binding = produce(prop, checkNull=false) {   //todo verify what changes with checkNull=false
+  def showNotNull(prop:ReadableProperty[Json],nested:Binding.NestedInterceptor)(f: Json => Seq[Element]):Binding = nested(produce(prop, checkNull=false) {   //todo verify what changes with checkNull=false
     case Json.Null => Seq()
     case p:Json =>  f(p)
-  }
+  })
 
   def addTooltip(tooltip:Option[String],placement:UdashTooltip.Placement = UdashTooltip.Placement.Bottom)(el:dom.Node) = {
     val tt = tooltip.map{ tip =>

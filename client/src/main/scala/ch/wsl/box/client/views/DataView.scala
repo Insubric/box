@@ -5,12 +5,13 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{DataKind, DataState, EntityFormState, EntityTableState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, REST}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
 import io.circe.Json
+import io.udash.bindings.modifiers.Binding
 import io.udash.{showIf, _}
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.bootstrap.table.UdashTable
@@ -113,13 +114,13 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
   def shp = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.SHP))
 
   override def getTemplate = div(
-    produce(model.subProp(_.metadata)) {
-      case None => div("loading").render
-      case Some(metadata) => loaded(metadata)
+    produceWithNested(model.subProp(_.metadata)) {
+      case (None,nested) => div("loading").render
+      case (Some(metadata),nested) => loaded(metadata,nested)
     }
   )
 
-  def loaded(metadata: JSONMetadata) = div(
+  def loaded(metadata: JSONMetadata,nested:Binding.NestedInterceptor) = div(
     br,br,
     h3(ClientConf.style.noMargin,
       metadata.label
@@ -128,7 +129,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
       div(ClientConf.style.global)(ed.map(_.description.getOrElse[String]("")).getOrElse[String]("")).render
     },
     br,
-    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keyFields).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(),
+    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keyFields).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(nested),
     showIf(table) { button(Labels.exports.load,onclick :+= presenter.query,ClientConf.style.boxButton).render },
     showIf(table) { button(Labels.exports.csv,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },

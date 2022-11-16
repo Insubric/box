@@ -7,6 +7,7 @@ import ch.wsl.box.model.shared.{JSONField, JSONLookup, JSONMetadata, WidgetsName
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.css.CssView._
 import io.udash.properties.single.Property
@@ -36,7 +37,7 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(showIf(model.transform(_.isDefined)){
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showIf(model.transform(_.isDefined)){
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       lab(field.title),
       div(BootstrapStyles.Float.right(), bind(model.transform(_.map(_.value).getOrElse("")))),
@@ -44,22 +45,22 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
     ).render
   })
 
-  override def edit() = {
+  override def edit(nested:Binding.NestedInterceptor) = {
     val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.right())++modifiers++WidgetUtils.toNullable(field.nullable)
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
       WidgetUtils.toLabel(field),
-      tooltip(Select.optional[JSONLookup](model, lookup,StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*).render)._1,
+      tooltip(nested(Select.optional[JSONLookup](model, lookup,StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*)).render)._1,
       div(BootstrapStyles.Visibility.clearfix)
     )
   }
 
-  override def editOnTable(): JsDom.all.Modifier = {
+  override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     produce(lookup) { l =>
       val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
-      Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value),mod:_*).render
+      nested(Select.optional[JSONLookup](model, SeqProperty(l),StringFrag("---"))((s: JSONLookup) => StringFrag(s.value),mod:_*)).render
     }
   }
 }

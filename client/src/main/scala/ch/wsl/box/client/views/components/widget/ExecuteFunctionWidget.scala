@@ -9,6 +9,7 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import io.udash.css.CssView._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.css._
 import scalacss.ScalatagsCss._
 
@@ -50,10 +51,10 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
       e.preventDefault()
     }
 
-    override protected def show() = button(ClientConf.style.boxButton, onclick :+= clickHandler, _text)
-    override protected def edit() = show()
+    override protected def show(nested:Binding.NestedInterceptor) = button(ClientConf.style.boxButton, onclick :+= clickHandler, _text)
+    override protected def edit(nested:Binding.NestedInterceptor) = show(nested)
 
-    override def showOnTable(): JsDom.all.Modifier = a(onclick :+= clickHandler, _text)
-    override def editOnTable(): JsDom.all.Modifier = showOnTable()
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = a(onclick :+= clickHandler, _text)
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showOnTable(nested)
   }
 }

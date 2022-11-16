@@ -11,6 +11,7 @@ import ch.wsl.box.model.shared._
 import io.circe.Json
 import io.udash._
 import io.udash.bindings.Bindings
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.BackdropType
@@ -99,8 +100,8 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   val urls = widgetParams.allData.transform(url)
 
-  private def showFile = div(BootstrapCol.md(12),ClientConf.style.noPadding)(
-    produceWithNested(mime.combine(source)((m,s) => (m,s))) {
+  private def showFile(nested:Binding.NestedInterceptor) = div(BootstrapCol.md(12),ClientConf.style.noPadding)(
+    nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
       case ((Some(mime),source),nested) => if(mime.startsWith("image")) {
         div(
           source match {
@@ -140,7 +141,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
         })
       ).render
       case _ => div().render
-    },
+    }),
     div(BootstrapStyles.Visibility.clearfix)
   )
 
@@ -212,17 +213,17 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   }
 
-  override protected def show(): JsDom.all.Modifier = div(BootstrapCol.md(12),ClientConf.style.noPadding,
-    showFile,
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div(BootstrapCol.md(12),ClientConf.style.noPadding,
+    showFile(nested),
     div(BootstrapStyles.Visibility.clearfix),
   ).render
 
   val dragging:Property[Boolean] = Property(false)
 
-
-  val dropZone = div(
+  val dropZoneId = "dz-" + UUID.randomUUID().toString
+  def dropZone(nested:Binding.NestedInterceptor) = div(
     ClientConf.style.dropFileZone,
-    showFile,
+    showFile(nested),
     ondrop :+= dropHandler,
     ondragover :+= {(e:Event) => dragging.set(true); e.preventDefault()},
     ondragenter :+= ((_:Event) => dragging.set(true)),
@@ -230,15 +231,15 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     p(Labels.form.drop),
   ).render
 
-  dragging.listen{
-    case true => dropZone.classList.add(ClientConf.style.dropFileZoneDropping.htmlClass)
-    case false => dropZone.classList.remove(ClientConf.style.dropFileZoneDropping.htmlClass)
-  }
+  autoRelease(dragging.listen{
+    case true => dom.document.getElementById(dropZoneId).classList.add(ClientConf.style.dropFileZoneDropping.htmlClass)
+    case false => dom.document.getElementById(dropZoneId).classList.remove(ClientConf.style.dropFileZoneDropping.htmlClass)
+  })
 
-  override def edit() = {
+  override def edit(nested:Binding.NestedInterceptor) = {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,
       if(noLabel) frag() else WidgetUtils.toLabel(field),
-      dropZone,
+      dropZone(nested:Binding.NestedInterceptor),
       upload,
       //autoRelease(produce(id) { _ => div(FileInput(selectedFile, Property(false))("file")).render }),
       div(BootstrapStyles.Visibility.clearfix)

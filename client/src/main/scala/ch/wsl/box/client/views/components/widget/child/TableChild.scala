@@ -9,6 +9,7 @@ import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import scalacss.ScalatagsCss._
 import org.scalajs.dom.Event
 import scalatags.JsDom.all._
@@ -42,7 +43,7 @@ object TableChildFactory extends ChildRendererFactory {
 
 
 
-    override protected def render(write: Boolean): Modifier = {
+    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
 
       metadata match {
         case None => p("child not found")
@@ -57,7 +58,7 @@ object TableChildFactory extends ChildRendererFactory {
                 fields.map(f => td(ClientConf.style.childTableTd,f.title))
               ),
               tbody(
-                autoRelease(produce(entity) { ent => //cannot use repeat because we have two childs for each iteration so frag is not working
+                nested(produce(entity) { ent => //cannot use repeat because we have two childs for each iteration so frag is not working
                   ent.map { e =>
                     val widget = getWidget(e)
 
@@ -82,19 +83,19 @@ object TableChildFactory extends ChildRendererFactory {
                               }), onclick :+= toggleRow).render
 
                         ),
-                        autoRelease(produce(widget.data) { data => fields.map{x =>
+                        nested(produce(widget.data) { data => fields.map{x =>
                           val tableWidget = x.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(x.`type`))
                             .create(WidgetParams.simple(Property(data.js(x.name)),widget.data,x,f,widgetParam.public,widgetParam.actions))
-                          td(ClientConf.style.childTableTd, tableWidget.showOnTable())
+                          td(ClientConf.style.childTableTd, tableWidget.showOnTable(nested))
 
                         }.render }),
                       ),
                       tr(ClientConf.style.childTableTr, ClientConf.style.childFormTableTr,borColor, id.bind(widget.rowId.transform(x => TestHooks.tableChildRowId(f.objId,x))),
-                        produce(widget.open) { o =>
+                        nested(produce(widget.open) { o =>
                           if (!o) frag().render else
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
                               div(display.flex,
-                                div(flexGrow := 1, widget.widget.render(write, Property(true))),
+                                div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
                                 div( ClientConf.style.removeFlexChild,
                                   removeButton(write,widget,f),
                                   if(sortable)
@@ -106,7 +107,7 @@ object TableChildFactory extends ChildRendererFactory {
 
                               )
                             ).render
-                        }
+                        })
                       ).render
 
 

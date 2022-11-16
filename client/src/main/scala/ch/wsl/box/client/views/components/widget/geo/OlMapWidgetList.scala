@@ -10,6 +10,7 @@ import io.circe.Json
 import io.circe.syntax._
 import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
 import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom.html.Div
@@ -92,7 +93,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
   }
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     val mapStyle = MapStyle(field.params)
     val mapStyleElement = document.createElement("style")
@@ -182,7 +183,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         frag()
       ),
       mapDiv,
-      produce(data) { geo =>
+      nested(produce(data) { geo =>
         import ch.wsl.box.model.shared.GeoJson.Geometry._
         import ch.wsl.box.model.shared.GeoJson._
         val geometry = geo.as[ch.wsl.box.model.shared.GeoJson.Geometry].toOption
@@ -211,10 +212,10 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
           div(ClientConf.style.mapInfo,
             showGeometries
           ),
-          showIf(activeControl.transform(_ == Control.POLYGON)){
+          nested(showIf(activeControl.transform(_ == Control.POLYGON)){
             div(ClientConf.style.mapInfo,Labels.map.drawOnMap).render
-          },
-          showIf(activeControl.transform(_ == Control.POINT)){
+          }),
+          nested(showIf(activeControl.transform(_ == Control.POINT)){
             div(ClientConf.style.mapInfo,
               div(ClientConf.style.mapInfoChild,Labels.map.drawOrEnter),
 
@@ -225,7 +226,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
                 )(Icons.plusFill).render
               )
             ).render
-          },
+          }),
           div(ClientConf.style.mapInfo,
             if(enable.point) controlButtonList(SharedLabels.map.addPoint,Control.POINT),
             if(enable.point) gpsPointButton,
@@ -236,7 +237,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
 
 
-      }
+      })
     )
   }
 

@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.utils.{URLQuery}
+import ch.wsl.box.client.utils.URLQuery
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
@@ -15,6 +15,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.parser._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.bootstrap.table.UdashTable
 import io.udash.bootstrap.utils.UdashIcons
@@ -442,16 +443,16 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def filterField(filterValue: Property[String], field:Option[JSONField], filterOperator:String):Modifier = {
+  def filterField(filterValue: Property[String], field:Option[JSONField], filterOperator:String,nested:Binding.NestedInterceptor):Modifier = {
 
     filterValue.listen(v => logger.info(s"Filter for ${field.map(_.name)} changed in: $v"))
 
     field.map(_.`type`) match {
-      case Some(JSONFieldTypes.TIME) => DateTimeWidget.Time(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string)).edit()
-      case Some(JSONFieldTypes.DATE) => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit()
+      case Some(JSONFieldTypes.TIME) => DateTimeWidget.Time(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string)).edit(nested)
+      case Some(JSONFieldTypes.DATE) => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit(nested)
       case Some(JSONFieldTypes.DATETIME) => ClientConf.filterPrecisionDatetime match{
-        case JSONFieldTypes.DATE => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit()
-        case _ => DateTimeWidget.DateTime(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit()
+        case JSONFieldTypes.DATE => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit(nested)
+        case _ => DateTimeWidget.DateTime(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit(nested)
       }
       case Some(JSONFieldTypes.NUMBER) | Some(JSONFieldTypes.INTEGER) if field.flatMap(_.widget).contains(WidgetsNames.integerDecimal2) && !Seq(Filter.BETWEEN, Filter.IN, Filter.NOTIN).contains(filterOperator) => {
         if(Try(filterValue.get.toDouble).toOption.isEmpty) filterValue.set("")
@@ -558,8 +559,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
                     td(ClientConf.style.smallCells)(
                       filterOptions(metadata,field,operator),
-                      produce(operator) { op =>
-                        div(position.relative, filterField(filterValue, jsonField, op)).render
+                      produceWithNested(operator) { (op,nested) =>
+                        div(position.relative, filterField(filterValue, jsonField, op,nested)).render
                       }
                     ).render
 

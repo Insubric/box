@@ -6,6 +6,7 @@ import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldLookupData,
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
+import io.udash.bindings.modifiers.Binding
 import io.udash.properties.Properties.ReadableSeqProperty
 import io.udash.{Registration, SeqProperty, bind}
 import io.udash.properties.single.{Property, ReadableProperty}
@@ -43,8 +44,8 @@ trait LookupWidget extends Widget with HasData {
   val model:Property[Option[JSONLookup]] = Property(None)
 
 
-  override def showOnTable(): JsDom.all.Modifier = {
-    autoRelease(bind(model.combine(data)((a,b) => (a,b)).transform{
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+    nested(bind(model.combine(data)((a,b) => (a,b)).transform{
       case (Some(notFound),js) if notFound.value == Labels.lookup.not_found => js.string
       case (t,d) => {
         t.map(_.value).getOrElse("")
@@ -120,7 +121,10 @@ trait LookupWidget extends Widget with HasData {
     // Lookup with Query
     if (fieldLookup.lookupQuery.isDefined && fieldLookup.lookupQuery.get.find(_ == '#').nonEmpty) {
 
-      val query = fieldLookup.lookupQuery.get
+      val query = fieldLookup.lookupQuery match {
+        case Some(value) => value
+        case None => throw new Exception("Lookup query is null")
+      }
 
       val variables = extractVariables(query)
 

@@ -44,6 +44,7 @@ import typings.ol.mod.Overlay
 import typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
+import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
 
 import scala.scalajs.js.URIUtils
@@ -528,7 +529,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   }
 
-  override protected def show(): JsDom.all.Modifier = {
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     val mapDiv: Div = div(height := 400).render
 
@@ -854,7 +855,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     }
   }
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     val mapStyle = MapStyle(field.params)
     val mapStyleElement = document.createElement("style")
@@ -925,7 +926,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       mapStyleElement,
       WidgetUtils.toLabel(field),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
-      produce(data) { geo =>
+      nested(produce(data) { geo =>
 
         val geometry = geo.as[GeoJson.Geometry].toOption
 
@@ -964,37 +965,37 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
             if(options.baseLayers.exists(_.length > 1)) Select(baseLayer,SeqProperty(options.baseLayers.toSeq.flatten.map(x => Some(x))))((x:Option[MapParamsLayers]) => StringFrag(x.map(_.name).getOrElse("")),ClientConf.style.mapLayerSelect) else frag()
           ),
           div(
-            showIf(activeControl.transform(c => Seq(Control.VIEW,Control.POINT).contains(c))) {
+            nested(showIf(activeControl.transform(c => Seq(Control.VIEW,Control.POINT).contains(c))) {
               div(
                 ClientConf.style.mapSearch
               )( //controls
-                showIf(activeControl.transform(_ == Control.VIEW)){
+                nested(showIf(activeControl.transform(_ == Control.VIEW)){
                   searchBox
-                },
-                showIf(activeControl.transform(_ == Control.POINT)){
+                }),
+                nested(showIf(activeControl.transform(_ == Control.POINT)){
                   TextInput(insertCoordinateField)(placeholder := Labels.map.insertPoint, onsubmit :+= insertCoordinateHandler).render
-                },
+                }),
                 div(
                   BootstrapStyles.Button.group,
                   BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
                 )(
-                  showIf(activeControl.transform(_ == Control.POINT)) {
+                  nested(showIf(activeControl.transform(_ == Control.POINT)) {
                     button(ClientConf.style.mapButton)(
                       onclick :+= insertCoordinateHandler
                     )(Icons.plusFill).render
-                  },
-                  showIf(activeControl.transform(_ == Control.VIEW)){
+                  }),
+                  nested(showIf(activeControl.transform(_ == Control.VIEW)){
                     gpsButtonGoTo
-                  },
-                  showIf(activeControl.transform(_ == Control.POINT)){
+                  }),
+                  nested(showIf(activeControl.transform(_ == Control.POINT)){
                     gpsButtonInsert
-                  },
+                  }),
                 )
               ).render
-            }
+            })
           )
         ).render
-      },
+      }),
       mapDiv
     )
   }

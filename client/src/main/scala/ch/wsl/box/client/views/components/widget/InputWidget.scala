@@ -66,7 +66,7 @@ object InputWidget extends Logging {
 
 
   //used in read-only mode
-  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean, modifiers:Seq[Modifier] = Seq()):Binding = WidgetUtils.showNotNull(prop){ p =>
+  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean,nested:Binding.NestedInterceptor, modifiers:Seq[Modifier] = Seq()):Binding = nested(WidgetUtils.showNotNull(prop,nested){ p =>
 
     val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
 
@@ -85,7 +85,7 @@ object InputWidget extends Logging {
       div(BootstrapStyles.Visibility.clearfix)
     ).render
 
-  }
+  })
 
   private def editMe(field:JSONField, withLabel:Boolean, skipRequiredInfo:Boolean=false, modifiers:Seq[Modifier] = Seq())(inputRenderer:(Seq[Modifier]) => Node):Modifier = {
 
@@ -135,7 +135,7 @@ object InputWidget extends Logging {
 
     val modifiers:Seq[Modifier] = Seq()
 
-    override def edit() = editMe(field,true, false, modifiers){ case y =>
+    override def edit(nested:Binding.NestedInterceptor) = editMe(field,true, false, modifiers){ case y =>
       val stringModel = Property("")
       val textAreaId = UUID.randomUUID().toString
       stringModel.listen{_ =>
@@ -148,7 +148,7 @@ object InputWidget extends Logging {
       val mod = y ++ WidgetUtils.toNullable(field.nullable) ++ Seq(id := textAreaId)
       TextArea(stringModel)(mod:_*).render
     }
-    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data,field,true,modifiers))
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(data,field,true,nested,modifiers)
 
     object Status{
       val Closed = "closed"
@@ -209,13 +209,13 @@ object InputWidget extends Logging {
       }
     }
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       div(
-        bind(data.transform{ str =>
+        nested(bind(data.transform{ str =>
           if(str.string.length > 40) {
             str.string.take(37) + "..."
           } else if(str.isString) str.string else ""
-        }),
+        })),
         " ",
         a(ClientConf.style.editableTableEditButton, i(UdashIcons.FontAwesome.Regular.edit),onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
@@ -245,7 +245,7 @@ object InputWidget extends Logging {
       case _ => strToJson(field.nullable)(s)
     }
 
-    override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
       val stringModel = Property("")
 
       data.sync[String](stringModel)(jsonToString _,fromString _)
@@ -261,10 +261,10 @@ object InputWidget extends Logging {
         case _ => TextInput(stringModel)(y++modifiers:_*).render
       }
     })
-    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data, field, !noLabel))
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showMe(data, field, !noLabel,nested))
 
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
 
@@ -280,9 +280,9 @@ object InputWidget extends Logging {
 
       val mod:Seq[Modifier] = inputStyle ++ WidgetUtils.toNullable(field.nullable) ++ ph
       field.`type` match {
-        case JSONFieldTypes.NUMBER => NumberInput(stringModel)((mod ++ Seq(step := "any")):_*).render
-        case JSONFieldTypes.INTEGER => NumberInput(stringModel)(mod:_*).render
-        case _ => TextInput(stringModel)(mod:_*).render
+        case JSONFieldTypes.NUMBER => nested(NumberInput(stringModel)((mod ++ Seq(step := "any")):_*)).render
+        case JSONFieldTypes.INTEGER => nested(NumberInput(stringModel)(mod:_*)).render
+        case _ => nested(TextInput(stringModel)(mod:_*)).render
       }
     }
   }
@@ -311,20 +311,20 @@ object InputWidget extends Logging {
       }
     }
 
-    override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(toString _,fromString _))
-      NumberInput(stringModel)((y ++ Seq(step := "0.01")):_*).render
+      nested(NumberInput(stringModel)((y ++ Seq(step := "0.01")):_*)).render
     })
 
-    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data.transform{ js =>
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(data.transform{ js =>
       if(js.isNumber) {
         js.as[Double].toOption.map(x => "%.2f".format(x / 100.0).asJson).getOrElse(Json.Null)
       } else js
-    }, field, !noLabel))
+    }, field, !noLabel,nested)
 
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       val stringModel = Property("")
 
       val ph = field.placeholder match{
@@ -333,10 +333,10 @@ object InputWidget extends Logging {
       }
 
       autoRelease(data.sync[String](stringModel)(toString _,fromString _))
-      NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01",ph).render
+      nested(NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01",ph)).render
     }
 
-    override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform{ js =>
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(data.transform{ js =>
       if(js.isNumber) {
         js.as[Double].toOption.map(x => "%.2f".format(x / 100.0)).getOrElse("")
       } else ""

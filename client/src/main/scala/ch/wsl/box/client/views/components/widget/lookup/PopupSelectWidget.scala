@@ -1,13 +1,14 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.button.UdashButton
@@ -36,7 +37,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
     import scalacss.ScalatagsCss._
     import scalatags.JsDom.all._
 
-    override protected def show(): JsDom.all.Modifier = autoRelease(WidgetUtils.showNotNull(data){ _ =>
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(WidgetUtils.showNotNull(data,nested){ _ =>
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin)(
         label(field.title),
@@ -52,7 +53,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
       val Open = "open"
     }
 
-    def popupEdit(mainRenderer:(UdashModal,Property[String]) => Modifier) = {
+    def popupEdit(nested:Binding.NestedInterceptor)(mainRenderer:(UdashModal,Property[String]) => Modifier) = {
 
       val searchId = TestHooks.popupSearch(field.name,metadata.objId)
 
@@ -83,13 +84,13 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
       var modal:UdashModal = null
 
-      val header = (x:NestedInterceptor) => div(
+      val header = (n:NestedInterceptor) => div(
         b(field.title),
         div(width := 100.pct, textAlign.center,bind(model.transform(_.map(_.value).getOrElse("")))),
-        UdashButton()( _ => Seq[Modifier](
+        n(UdashButton()( _ => Seq[Modifier](
           onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
           BootstrapStyles.close, "×"
-        )).render
+        ))).render
       ).render
 
       val body = (x:NestedInterceptor) => div(
@@ -98,25 +99,25 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
         )
       ).render
 
-      val footer = (x:NestedInterceptor) => div(
-        showIf(model.transform(_.isDefined)) {
+      val footer = (nested:NestedInterceptor) => div(
+        nested(showIf(model.transform(_.isDefined)) {
           button(onclick :+= ((e: Event) => {
             model.set(None)
             modal.hide()
             e.preventDefault()
           }), Labels.popup.remove, ClientConf.style.boxButtonDanger).render
-        },
+        }),
         button(onclick :+= ((e:Event) => {
           modal.hide()
           e.preventDefault()
         }), Labels.popup.close,ClientConf.style.boxButton)
       ).render
 
-      modal = UdashModal(modalSize = Some(Size.Small).toProperty)(
+      modal = nested(UdashModal(modalSize = Some(Size.Small).toProperty)(
         headerFactory = Some(header),
         bodyFactory = Some(body),
         footerFactory = Some(footer)
-      )
+      ))
 
 
 
@@ -140,7 +141,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
     }
 
-    override def editOnTable(): JsDom.all.Modifier = popupEdit((modal,modalStatus) => {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modal,modalStatus) => {
       div(
         TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
@@ -153,7 +154,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
       )
     })
 
-    override def edit(): JsDom.all.Modifier = popupEdit((modal,modalStatus) => {
+    override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modal,modalStatus) => {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
@@ -163,7 +164,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
         tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
-        }),bind(model.transform(_.map(_.value).getOrElse("")))).render)._1,
+        }),nested(bind(model.transform(_.map(_.value).getOrElse(""))))).render)._1,
         modal.render
 
       )

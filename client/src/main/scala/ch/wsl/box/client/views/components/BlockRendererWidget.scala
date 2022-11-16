@@ -6,6 +6,7 @@ import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget,
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SubLayoutBlock}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.{Property, ReadableProperty}
 import scalatags.JsDom
@@ -167,36 +168,36 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   override def field: JSONField = JSONField("fieldsRenderer","fieldsRenderer",false)
 
-  override protected def show(): JsDom.all.Modifier = render(false)
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
 
-  override protected def edit(): JsDom.all.Modifier = render(true)
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(true,nested)
 
 
 
-  def fixedWidth(widths:Stream[Int],write:Boolean) : JsDom.all.Modifier = div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,
+  def fixedWidth(widths:Stream[Int],write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,
     widgets.zip(widths).map { case (widget, width) =>
       div(BootstrapCol.md(width), ClientConf.style.field,
-        widget.widget.render(write,widget.visibility)
+        widget.widget.render(write,widget.visibility,nested)
       )
     }
   )
 
-  def distribute(write:Boolean) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
+  def distribute(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
     widgets.map { case widget =>
       div(ClientConf.style.field,
-        widget.widget.render(write,widget.visibility)
+        widget.widget.render(write,widget.visibility,nested)
       )
     }
   )
 
 
-  private def render(write:Boolean): JsDom.all.Modifier = {
+  private def render(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     logger.info(s"blockname: $titleSub horizontal: $horizontal")
 
     def ren() = horizontal match {
-      case Left(widths) => fixedWidth(widths, write)
-      case Right(_) => distribute(write)
+      case Left(widths) => fixedWidth(widths, write,nested)
+      case Right(_) => distribute(write,nested)
     }
 
 

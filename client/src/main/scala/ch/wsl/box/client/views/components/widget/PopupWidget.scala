@@ -9,6 +9,7 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.button.UdashButton
@@ -57,7 +58,7 @@ object PopupWidget extends ComponentWidgetFactory  {
       val Open = "open"
     }
 
-    def popup(write:Boolean,mainRenderer:(UdashModal,Property[String]) => Modifier) = {
+    def popup(nested:Binding.NestedInterceptor,write:Boolean,mainRenderer:(UdashModal,Property[String]) => Modifier) = {
 
 
       val modalStatus = Property(Status.Closed)
@@ -75,7 +76,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
       val body = (x:NestedInterceptor) => div(
         div(
-          widget.render(write,Property(true))
+          widget.render(write,Property(true),x)
         )
       ).render
 
@@ -86,11 +87,11 @@ object PopupWidget extends ComponentWidgetFactory  {
         }), Labels.popup.close,ClientConf.style.boxButton)
       ).render
 
-      modal = UdashModal(modalSize = Some(Size.Large).toProperty)(
+      modal = nested(UdashModal(modalSize = Some(Size.Large).toProperty)(
         headerFactory = None,
         bodyFactory = Some(body),
         footerFactory = Some(footer)
-      )
+      ))
 
 
 
@@ -113,7 +114,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
     }
 
-    private def _renderOnTable(write:Boolean): JsDom.all.Modifier = popup(write,(modal,modalStatus) => {
+    private def _renderOnTable(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = popup(nested,write,(modal,modalStatus) => {
       div(
         TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
@@ -126,10 +127,10 @@ object PopupWidget extends ComponentWidgetFactory  {
       )
     })
 
-    override def editOnTable(): JsDom.all.Modifier = _renderOnTable(true)
-    override def showOnTable(): JsDom.all.Modifier = _renderOnTable(false)
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = _renderOnTable(true,nested)
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = _renderOnTable(false,nested)
 
-    private def _render(write:Boolean) = popup(write,(modal,modalStatus) => {
+    private def _render(write:Boolean,nested:Binding.NestedInterceptor) = popup(nested,write,(modal,modalStatus) => {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
@@ -145,8 +146,8 @@ object PopupWidget extends ComponentWidgetFactory  {
       )
     })
 
-    override def edit(): JsDom.all.Modifier = _render(true)
-    override def show(): JsDom.all.Modifier = _render(false)
+    override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = _render(true,nested)
+    override def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = _render(false,nested)
   }
 
 
