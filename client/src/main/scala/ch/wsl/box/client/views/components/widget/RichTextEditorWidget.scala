@@ -9,6 +9,7 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.syntax._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.properties.single.Property
 import org.scalablytyped.runtime.StringDictionary
 import scalatags.JsDom
@@ -47,17 +48,17 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
     span(Shorten(json.string))
   }
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(raw(p.string)).render
   })
 
   _id.listen(x => logger.info(s"Rich text widget load with ID: $x"))
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     logger.debug(s"field: ${field.name} widget mode $mode")
     logger.debug(s"data: ${data.get.toString().take(50)}")
-    produce(_id) { _ =>
+    nested(produce(_id) { _ =>
       val container = div( height := 300.px).render
       val parent = div(container).render
 
@@ -87,7 +88,7 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
         parent
       ).render
 
-    }
+    })
   }
 
 }

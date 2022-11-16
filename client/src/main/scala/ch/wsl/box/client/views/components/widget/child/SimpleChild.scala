@@ -7,6 +7,7 @@ import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import scalacss.ScalatagsCss._
 import org.scalajs.dom.Event
 import scalatags.JsDom
@@ -29,7 +30,7 @@ object SimpleChildFactory extends ChildRendererFactory {
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
-    override protected def render(write: Boolean): JsDom.all.Modifier = {
+    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       metadata match {
         case None => p("child not found")
@@ -37,11 +38,11 @@ object SimpleChildFactory extends ChildRendererFactory {
 
           div(
             div(
-              autoRelease(repeat(entity) { e =>
+              nested(repeat(entity) { e =>
                 val widget = getWidget(e.get)
                 div(ClientConf.style.subform,backgroundColor := childBackgroudColor,
                   div(display.flex,
-                    div(flexGrow := 1, widget.widget.render(write, Property(true))),
+                    div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
                     div( ClientConf.style.removeFlexChild,
                       removeButton(write,widget,f)
                     )

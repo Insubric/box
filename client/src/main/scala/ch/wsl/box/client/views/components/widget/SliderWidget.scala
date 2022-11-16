@@ -9,9 +9,10 @@ import io.circe.Json
 import scalatags.JsDom
 import io.udash.properties.single.Property
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.html.Div
-import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
+import org.scalajs.dom.{Element, Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import typings.std.EventListener
@@ -34,7 +35,7 @@ object SliderWidget extends ComponentWidgetFactory {
 
     override def field: JSONField = params.field
 
-    override protected def show(): JsDom.all.Modifier = {}
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {}
 
 
 
@@ -55,9 +56,12 @@ object SliderWidget extends ComponentWidgetFactory {
       }
     }
 
-    private def renderSlider(): Div = {
+    private def renderSlider(): Binding = {
       val slider = document.createElement("toolcool-range-slider").asInstanceOf[RangeSlider]
       val wrapper: Div = div(slider.asInstanceOf[Node]).render
+      val binding = new Binding {
+        override def applyTo(t: Element): Unit = t.appendChild(wrapper)
+      }
       val observer = new MutationObserver({(mutations,observer) =>
         if(document.contains(wrapper)) {
           observer.disconnect()
@@ -90,35 +94,37 @@ object SliderWidget extends ComponentWidgetFactory {
             Json.fromDouble(value).map(x => params.prop.set(x))
             listener.restart()
           }
+          binding.addRegistration(listener)
           slider.addEventListener("change",changeListener)
         }
+
       })
 
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
-      wrapper
+      binding
 
     }
 
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       div(
-        renderSlider(),
+        nested(renderSlider()),
         div(ClientConf.style.spaceBetween,marginTop := 2.px,
-          div(bind(params.prop.transform(_.toString()))," ",unit),
+          div(nested(bind(params.prop.transform(_.toString())))," ",unit),
           div(secondaryLabel)
         )
       )
     }
 
-    override protected def edit(): JsDom.all.Modifier = {
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
         WidgetUtils.toLabel(field),
         div(BootstrapStyles.Float.right(),bind(params.prop.transform(_.toString()))),
-        tooltip(renderSlider())._1,
+        tooltip(div(nested(renderSlider())).render)._1,
       )
 
 

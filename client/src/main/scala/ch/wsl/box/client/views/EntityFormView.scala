@@ -12,6 +12,7 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, JsonNumber, JsonObject}
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.badge.UdashBadge
 import io.udash.bootstrap.utils.BootstrapStyles.Color
 import io.udash.bootstrap.utils.UdashIcons
@@ -72,25 +73,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     services.clientSession.loading.set(true)
 
-    val reloadMetadata = {
-      val currentModel = model.get
-
-      !(currentModel.kind == state.kind &&
-        currentModel.name == state.entity &&
-        currentModel.metadata.isDefined)
-    }
-
     model.subProp(_.kind).set(state.kind)
     model.subProp(_.name).set(state.entity)
     model.subProp(_.id).set(state.id)
     model.subProp(_.insert).set(state.id.isEmpty)
 
 
-
-
     {for{
-      metadata <- if(reloadMetadata) services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public) else Future.successful(model.get.metadata.get)
-      children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
+      metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public)
+      children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind)) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       data <- state.id match {
         case Some(id) => {
           val jsonId = state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
@@ -107,7 +98,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       val dataWithQueryParams = data.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
 
-      model.set(EntityFormModel(
+      val stateModel = EntityFormModel(
         name = state.entity,
         kind = state.kind,
         id = state.id,
@@ -121,7 +112,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         state.public,
         state.id.isEmpty,
         false
-      ))
+      )
+
+      model.set(stateModel)
 
       resetChanges()
 
@@ -322,8 +315,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     override def field: JSONField = JSONField.empty
 
-    override protected def show(): JsDom.all.Modifier = div()
-    override protected def edit(): JsDom.all.Modifier = div()
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div()
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div()
   }
 
   private val changed:Property[Boolean] = Property(false)
@@ -419,16 +412,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
 
     def callBack() = action.action match {
-      case SaveAction => save(action.html5check).map{ case (_id,data) =>
+      case SaveAction =>  save(action.html5check).map{ case (_id,data) =>
         executeFuntion().map { functionOk =>
           if(functionOk) {
             if (action.reload) {
               reload(_id)
             }
             action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
-              logger.info(url)
-              reset()
+              logger.warn(s"Navigating to $url")
+              //reset()
               Navigate.toUrl(url)
+
             }
           }
         }
@@ -662,7 +656,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
 
     div(
-      produce(model.subProp(_.metadata)){ _form =>
+      produceWithNested(model.subProp(_.metadata)){ (_form,nested) =>
 
         val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
         val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
@@ -678,12 +672,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               case None => div()
               case Some(f) => {
 
-
-
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
                   _maxWidth.map(mw => maxWidth := mw),
-                  presenter.loadWidgets(f).render(model.get.write,Property(true))
+                  presenter.loadWidgets(f).render(model.get.write,Property(true),nested)
                 ).render
                 presenter.setForm(mainForm)
                 mainForm

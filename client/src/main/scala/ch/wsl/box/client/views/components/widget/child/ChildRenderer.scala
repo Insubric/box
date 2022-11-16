@@ -12,6 +12,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.generic.auto._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
@@ -104,7 +105,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
     }
 
-    protected def render(write: Boolean): JsDom.all.Modifier
+    protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
 
 
     private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
@@ -304,9 +305,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     override def afterRender() = Future.sequence(childWidgets.map(_.widget.afterRender())).map(_.forall(x => x))
 
 
-    override protected def show(): JsDom.all.Modifier = render(false)
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
 
-    override protected def edit(): JsDom.all.Modifier = render(true)
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(true,nested)
 
 
 

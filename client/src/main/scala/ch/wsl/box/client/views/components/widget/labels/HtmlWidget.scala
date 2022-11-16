@@ -9,6 +9,7 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import yamusca.imports._
 import io.circe._
+import io.udash.bindings.modifiers.Binding
 
 object HtmlWidget extends ComponentWidgetFactory {
 
@@ -25,7 +26,7 @@ object HtmlWidget extends ComponentWidgetFactory {
     val template = mustache.parse(_text)
 
 
-    override protected def show(): JsDom.all.Modifier = template match {
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = template match {
       case Left(_) => raw(_text)
       case Right(tmpl) => {
 
@@ -48,7 +49,7 @@ object HtmlWidget extends ComponentWidgetFactory {
         }
 
 
-        autoRelease(produce(watchedVariables) { context =>
+        nested(produce(watchedVariables) { context =>
           raw(renderer(context)).render
         })
 
@@ -56,6 +57,6 @@ object HtmlWidget extends ComponentWidgetFactory {
     }
 
 
-    override protected def edit(): JsDom.all.Modifier = show()
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
   }
 }

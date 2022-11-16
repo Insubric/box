@@ -148,14 +148,14 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   override def afterRender() = Future.sequence(blocks.map(_._2.afterRender())).map(_.forall(x => x))
 
-  override protected def show(): JsDom.all.Modifier = render(false)
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
 
-  override def edit(): JsDom.all.Modifier = render(true)
+  override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(true,nested)
 
   import io.udash._
 
 
-  private def render(write:Boolean): JsDom.all.Modifier = {
+  private def render(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     def renderBlocks(b:Seq[(LayoutBlock,Widget)]) = b.map{ case (block,widget) =>
       div(BootstrapCol.md(block.width), ClientConf.style.block)(
@@ -163,7 +163,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
           if(block.title.exists(_.nonEmpty)) {
             h3(block.title.map { title => Labels(title) })
           } else frag(), //renders title in blocks
-          widget.render(write, Property(true))
+          widget.render(write, Property(true),nested)
         )
       )
     }
@@ -192,9 +192,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
                   ).render
                 }
               ),
-              produce(selectedTab) { tabName =>
+              nested(produce(selectedTab) { tabName =>
                 renderBlocks(blks.filter(_._1.tab == tabName)).render
-              }
+              })
             )
           }
         ),

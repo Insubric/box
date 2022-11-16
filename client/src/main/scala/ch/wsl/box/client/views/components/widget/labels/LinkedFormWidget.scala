@@ -11,6 +11,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.generic.auto._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import org.scalajs.dom.Event
 import scalacss.internal.Color
 import scalatags.JsDom
@@ -68,13 +69,13 @@ object LinkedFormWidget extends ComponentWidgetFactory {
       }
     }
 
-    override protected def show(): Modifier = linkRenderer(label,field.params,goto(false))
+    override protected def show(nested:Binding.NestedInterceptor): Modifier = linkRenderer(label,field.params,goto(false))
 
-    override protected def edit(): Modifier = linkRenderer(label,field.params,goto(true))
+    override protected def edit(nested:Binding.NestedInterceptor): Modifier = linkRenderer(label,field.params,goto(true))
 
-    override def showOnTable(): JsDom.all.Modifier = a(onclick :+= goto(false),label)
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = a(onclick :+= goto(false),label)
 
-    override def editOnTable(): JsDom.all.Modifier = a(onclick :+= goto(true),label)
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = a(onclick :+= goto(true),label)
   }
 
 }

@@ -17,6 +17,7 @@ import io.circe.syntax._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.table.UdashTable
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.raw.{Blob, HTMLAnchorElement, HTMLElement, HTMLInputElement}
@@ -288,43 +289,48 @@ object EditableTable extends ChildRendererFactory {
 
 
 
-    def showIfCondition(field: JSONField)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
+    def showIfCondition(field: JSONField,nested:Binding.NestedInterceptor)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
       field.condition match {
-        case Some(value) => {
-          showIf(checkCondition(field)) {
+        case Some(_) => {
+          nested(showIf(checkCondition(field)) {
             m.render
-          }
+          })
         }
         case None => m
       }
     }
 
-    def showIfConditionRow(field: JSONField,row:Property[Json])(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
+    def showIfConditionRow(field: JSONField,row:Property[Json],nested:Binding.NestedInterceptor)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
       field.condition match {
         case Some(c) => {
-          showIf(row.transform(r => c.check(r.js(c.conditionFieldId)))) {
+          nested(showIf(row.transform(r => c.check(r.js(c.conditionFieldId)))) {
             m.render
-          }
+          })
         }
         case None => m.render
       }
     }
 
     val countColumns: ReadableProperty[Int] = {
+      metadata match {
+        case Some(m) => {
+          val f = fields(m)
 
-      val f = fields(metadata.get)
+          val count = Property(0)
 
-      val count = Property(0)
+          def doCount() = {
+            val c: Int = f.map(field => conditionCheckers.getOrElse(field.name, Property(true)).get).count( x => x)
+            count.set(c)
+          }
 
-      def doCount() = {
-        val c: Int = f.map(field => conditionCheckers.getOrElse(field.name, Property(true)).get).count( x => x)
-        count.set(c)
+          f.foreach(field => conditionCheckers.getOrElse(field.name,Property(true)).listen(_ => doCount()))
+
+          doCount()
+          count
+        }
+        case None => Property(0)
       }
 
-      f.foreach(field => conditionCheckers.getOrElse(field.name,Property(true)).listen(_ => doCount()))
-
-      doCount()
-      count
 
     }
 
@@ -336,23 +342,23 @@ object EditableTable extends ChildRendererFactory {
 
 
 
-    override protected def render(write: Boolean): Modifier = {
+    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
       div(
         tableStyleElement,
-        renderTable(write)
+        renderTable(write,nested)
       )
     }
 
-    def renderTable(write: Boolean):Modifier = metadata match {
+    def renderTable(write: Boolean,nested:Binding.NestedInterceptor):Modifier = metadata match {
       case None => p("child not found")
       case Some(m) => {
 
-        showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
+        nested(showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
 
           val f = fields(m)
 
           div(
-            produce(countColumns) { cols =>
+            nested(produceWithNested(countColumns) { (_,nested) =>
 
               val additionalColumns = if (write && !disableRemove) 1 else 0
               val colWidth = width.bind(_colWidth(additionalColumns))
@@ -362,8 +368,8 @@ object EditableTable extends ChildRendererFactory {
                   thead(
                     for (field <- f) yield {
                       val name = colHeader(field)
-                      showIfCondition(field) {
-                        th(bind(name), tableStyle.th, colWidth)
+                      showIfCondition(field,nested) {
+                        th(nested(bind(name)), tableStyle.th, colWidth)
                       }
 
                     },
@@ -372,20 +378,20 @@ object EditableTable extends ChildRendererFactory {
 
 
                   tbody(
-                    repeat(entity) { row =>
+                    nested(repeatWithNested(entity) { (row,nested) =>
                       val childWidget = getWidget(row.get)
 
                       tr(tableStyle.tr,
                         for (field <- f) yield {
                           val (params, widget) = colContentWidget(childWidget, field, m)
 
-                          showIfCondition(field) {
+                          showIfCondition(field,nested) {
                             td(
-                            showIfConditionRow(field, childWidget.data) {
+                            showIfConditionRow(field, childWidget.data,nested) {
                               div(if (
                                 field.readOnly ||
                                   WidgetUtils.isKeyNotEditable(m, field, params.id.get)
-                              ) widget.showOnTable() else widget.editOnTable())
+                              ) widget.showOnTable(nested) else widget.editOnTable(nested))
                             }, tableStyle.td, colWidth)
                           }
                         },
@@ -411,7 +417,7 @@ object EditableTable extends ChildRendererFactory {
                           }else frag()
                         ) else frag()
                       ).render
-                    },
+                    }),
                     if (write && !disableAdd) {
                       tr(tableStyle.tr,
                         td(tableStyle.td, colspan.bind(countColumns.transform(c => (c + additionalColumns).toString)),
@@ -435,9 +441,9 @@ object EditableTable extends ChildRendererFactory {
                   )
                 }
               ).render
-            }
+            })
           ).render
-        }
+        })
       }
     }
 

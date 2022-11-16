@@ -46,18 +46,18 @@ trait Widget extends Logging {
     case _ => str.asJson.asArray.map(_.map(s => strToNumericJson(s.string))).map(_.asJson).getOrElse(Json.Null)
   }
 
-  protected def show():Modifier
-  protected def edit():Modifier
+  protected def show(nested:Binding.NestedInterceptor):Modifier
+  protected def edit(nested:Binding.NestedInterceptor):Modifier
 
-  def showOnTable():Modifier = frag("Not implemented")
+  def showOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
   def text():ReadableProperty[String] = Property("Not implemented")
-  def editOnTable():Modifier = frag("Not implemented")
+  def editOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
 
-  def render(write:Boolean,conditional:ReadableProperty[Boolean]):Modifier = showIf(conditional) {
+  def render(write:Boolean,conditional:ReadableProperty[Boolean],nested:Binding.NestedInterceptor):Modifier = showIf(conditional) {
     if(write && !field.readOnly) {
-      div(edit()).render
+      div(edit(nested)).render
     } else {
-      div(show()).render
+      div(show(nested)).render
     }
   }
 
@@ -93,16 +93,16 @@ object Widget{
   def forString(_field:JSONField,str:String):Widget = new Widget {
     override def field: JSONField = _field
 
-    override protected def show(): JsDom.all.Modifier = str
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = str
 
-    override protected def edit(): JsDom.all.Modifier = str
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = str
   }
 }
 
 trait HasData extends Widget {
   def data:Property[Json]
 
-  override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform(_.string)))
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(data.transform(_.string)))
 
 
   override def text(): ReadableProperty[String] = data.transform(_.string)
@@ -121,12 +121,12 @@ trait IsCheckBoxWithData extends Widget {
     }
   }
 
-  override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = WidgetUtils.showNotNull(data,nested) { p =>
     div(
       checkbox2string(p) , " ", field.title
     ).render
   }
-  override def showOnTable(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = WidgetUtils.showNotNull(data,nested) { p =>
     div(
       checkbox2string(p)
     ).render

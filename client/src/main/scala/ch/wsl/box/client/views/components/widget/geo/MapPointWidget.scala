@@ -12,6 +12,7 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.button.UdashButton
@@ -91,7 +92,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     }
   ))
 
-  override protected def show(): JsDom.all.Modifier = {
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       label(field.title),
       div(bind(textPoint)),
@@ -99,7 +100,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     ).render
   }
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     object Status{
       val Closed = "closed"
@@ -124,7 +125,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
 
       div(
         div(
-          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true,Property(true))
+          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true,Property(true),nested)
         )
       ).render
     }

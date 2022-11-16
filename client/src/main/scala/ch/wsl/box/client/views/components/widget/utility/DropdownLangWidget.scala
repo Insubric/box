@@ -9,6 +9,7 @@ import ch.wsl.box.model.shared.{JSONField, JSONLookup, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import scalatags.JsDom
 import scalatags.JsDom.all.{label => lab, _}
@@ -31,7 +32,7 @@ object DropdownLangWidget extends ComponentWidgetFactory {
 
     override def field: JSONField = params.field
 
-    override protected def show(): JsDom.all.Modifier = autoRelease(showIf(params.prop.transform(_.string.nonEmpty)){
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showIf(params.prop.transform(_.string.nonEmpty)){
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
         lab(field.title),
         div(BootstrapStyles.Float.right(), bind(params.prop.transform(_.string))),
@@ -39,7 +40,7 @@ object DropdownLangWidget extends ComponentWidgetFactory {
       ).render
     })
 
-    override protected def edit(): JsDom.all.Modifier = {
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.right())++WidgetUtils.toNullable(field.nullable)
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
