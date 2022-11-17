@@ -409,7 +409,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         JSONField(
           `type` = field.`type`,
           name = field.name,
-          nullable = colType.required && !field.required.getOrElse(false),
+          nullable = colType.nullable && !field.required.getOrElse(false),
           readOnly = field.read_only,
           label = Some(lab),
           lookup = look,
