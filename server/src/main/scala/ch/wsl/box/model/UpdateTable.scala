@@ -8,7 +8,7 @@ import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.{Filter, JSONQuery, JSONQueryFilter, JSONSort}
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 trait UpdateTable[T] { t:Table[T] =>
-  protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[T]
+  protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
 
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql" #${order.column} #${order.order} "
@@ -45,8 +45,9 @@ trait UpdateTable[T] { t:Table[T] =>
   }
 
   protected def whereBuilder(where:Map[String,Json]): SQLActionBuilder = {
-    val kv = keyValueComposer(this,k => sql""" "#$k" is null """)
-    val result = where.tail.foldLeft(concat(sql" where ",kv(where.head))){ case (builder, pair) => concat(builder, concat(sql" and ",kv(pair))) }
+    val kv = keyValueComposer(this,Select)
+    val chunks = where.flatMap(kv)
+    val result = chunks.tail.foldLeft(concat(sql" where ",chunks.head)){ case (builder, chunk) => concat(builder, concat(sql" and ",chunk)) }
     result
   }
 
@@ -58,13 +59,13 @@ trait UpdateTable[T] { t:Table[T] =>
 
   def updateReturning(fields:Map[String,Json],where:Map[String,Json])(implicit ex:ExecutionContext): DBIO[Option[T]] = {
     if(fields.nonEmpty && where.nonEmpty)
-      doUpdateReturning(fields, whereBuilder(where)).map(Some(_))
+      doUpdateReturning(fields, whereBuilder(where))
     else DBIO.successful(None)
   }
 
   def updateReturning(fields:Map[String,Json],query: JSONQuery)(implicit ex:ExecutionContext): DBIO[Option[T]] = {
     if(fields.nonEmpty && query.filter.nonEmpty)
-      doUpdateReturning(fields, whereBuilder(query)).map(Some(_))
+      doUpdateReturning(fields, whereBuilder(query))
     else DBIO.successful(None)
   }
 
@@ -79,14 +80,20 @@ trait UpdateTable[T] { t:Table[T] =>
 
   import ch.wsl.box.rest.logic.EnhancedTable._
 
-  protected def keyValueComposer(table:Table[_], nullExpression:String => SQLActionBuilder = k => sql""" "#$k" = null """): ((String,Json)) => SQLActionBuilder = { case (key,value) =>
+  protected def keyValueComposer(table:Table[_],op:DbOps = Update): ((String,Json)) => Option[SQLActionBuilder] = { case (key,value) =>
 
-    def update[T](nullable:Boolean)(implicit sp:SetParameter[T],dec:Decoder[T]):SQLActionBuilder = {
-      if(nullable && value == Json.Null) nullExpression(key)
+    def nullExpression(k:String) = op match {
+      case Update => sql""" "#$k" = null """
+      case Select => sql""" "#$k" is null """
+    }
+
+    def update[T](col:ColType)(implicit sp:SetParameter[T],dec:Decoder[T]):Option[SQLActionBuilder] = {
+      if(col.nullable && value == Json.Null) Some(nullExpression(key))
+      else if( value == Json.Null && col.managed && op == Update) None
       else
         value.as[T] match {
           case Left(v) => throw new Exception(s"Error setting key-pair due to json parsing error ${v.message}. Key: $key value: $value")
-          case Right(v) => sql""" "#$key" = $v """
+          case Right(v) => Some(sql""" "#$key" = $v """)
         }
 
     }
@@ -98,25 +105,25 @@ trait UpdateTable[T] { t:Table[T] =>
     val col = table.typ(key,registry)
 
     val result = col.name match {
-      case "String" => update[String](col.nullable)
-      case "Int" => update[Int](col.nullable)
-      case "Long" => update[Long](col.nullable)
-      case "Short" => update[Short](col.nullable)
-      case "Double" => update[Double](col.nullable)
-      case "BigDecimal" | "scala.math.BigDecimal" => update[BigDecimal](col.nullable)
-      case "java.time.LocalDate" => update[java.time.LocalDate](col.nullable)
-      case "java.time.LocalTime" => update[java.time.LocalTime](col.nullable)
-      case "java.time.LocalDateTime" => update[java.time.LocalDateTime](col.nullable)
-      case "io.circe.Json" => update[Json](col.nullable)
-      case "Array[Byte]" => update[Array[Byte]](col.nullable)
-      case "org.locationtech.jts.geom.Geometry" => update[Geometry](col.nullable)
-      case "java.util.UUID" => update[java.util.UUID](col.nullable)
-      case "Boolean" => update[Boolean](col.nullable)
-      case "List[Double]" => update[List[Double]](col.nullable)
-      case "List[Int]" => update[List[Int]](col.nullable)
-      case "List[Short]" => update[List[Short]](col.nullable)
-      case "List[Long]" => update[List[Long]](col.nullable)
-      case "List[String]" => update[List[String]](col.nullable)
+      case "String" => update[String](col)
+      case "Int" => update[Int](col)
+      case "Long" => update[Long](col)
+      case "Short" => update[Short](col)
+      case "Double" => update[Double](col)
+      case "BigDecimal" | "scala.math.BigDecimal" => update[BigDecimal](col)
+      case "java.time.LocalDate" => update[java.time.LocalDate](col)
+      case "java.time.LocalTime" => update[java.time.LocalTime](col)
+      case "java.time.LocalDateTime" => update[java.time.LocalDateTime](col)
+      case "io.circe.Json" => update[Json](col)
+      case "Array[Byte]" => update[Array[Byte]](col)
+      case "org.locationtech.jts.geom.Geometry" => update[Geometry](col)
+      case "java.util.UUID" => update[java.util.UUID](col)
+      case "Boolean" => update[Boolean](col)
+      case "List[Double]" => update[List[Double]](col)
+      case "List[Int]" => update[List[Int]](col)
+      case "List[Short]" => update[List[Short]](col)
+      case "List[Long]" => update[List[Long]](col)
+      case "List[String]" => update[List[String]](col)
       case t:String => throw new Exception(s"$t is not supported for single field update")
     }
     result

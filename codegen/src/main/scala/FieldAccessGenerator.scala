@@ -1,7 +1,7 @@
 package ch.wsl.box.codegen
 
 import ch.wsl.box.information_schema.PgInformationSchema
-import ch.wsl.box.jdbc.{Connection, TypeMapping}
+import ch.wsl.box.jdbc.{Connection, Managed, TypeMapping}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import slick.model.Model
 
@@ -38,11 +38,11 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
 
       val jsonType = pgCol.map(_.jsonType).getOrElse(JSONFieldTypes.STRING)
 
-      val required = !pgCol.exists(_.required)
+      val managed = Managed.hasTriggerDefault(table.model.name.table,c.model.name) || pgCol.exists(_.column_default.nonEmpty)
 
       val nullable = pgCol.exists(_.nullable) || c.model.nullable
 
-      s"""      "${c.model.name}" -> ColType("$scalaType","$jsonType",$required,$nullable)"""
+      s"""      "${c.model.name}" -> ColType("$scalaType","$jsonType",$managed,$nullable)"""
     }
   }
 

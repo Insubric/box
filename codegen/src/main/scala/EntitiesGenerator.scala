@@ -33,6 +33,7 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import org.locationtech.jts.geom.Geometry
        |
        |  import ch.wsl.box.model.UpdateTable
+       |  import scala.concurrent.ExecutionContext
        |
        |object $container {
        |
@@ -175,16 +176,18 @@ class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkStri
 
   def boxGetResult = GR(r => $elementType($getResult))
 
-  def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[$elementType] = {
-      if(fields.isEmpty) throw new Exception("No fields to update on $tableName")
+  def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[$elementType]] = {
       val kv = keyValueComposer(this)
-      val head = concat(sql\"\"\"update $tableNameFull set \"\"\",kv(fields.head))
-      val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+      val chunks = fields.flatMap(kv)
+      if(chunks.nonEmpty) {
+        val head = concat(sql\"\"\"update $tableNameFull set \"\"\",chunks.head)
+        val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-      val returning = sql\"\"\" returning $columnsLight \"\"\"
+        val returning = sql\"\"\" returning $columnsLight \"\"\"
 
-      val sqlActionBuilder = concat(concat(set,where),returning)
-      sqlActionBuilder.as[$elementType](boxGetResult).head
+        val sqlActionBuilder = concat(concat(set,where),returning)
+        sqlActionBuilder.as[$elementType](boxGetResult).head.map(x => Some(x))
+      } else DBIO.successful(None)
     }
 
     override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[$elementType]] = {

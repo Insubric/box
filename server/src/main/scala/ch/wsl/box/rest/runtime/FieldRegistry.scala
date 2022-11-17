@@ -1,6 +1,8 @@
 package ch.wsl.box.rest.runtime
 
-case class ColType(name:String,jsonType:String,required:Boolean,nullable:Boolean)
+case class ColType(name:String,jsonType:String,managed:Boolean,nullable:Boolean) {
+    def mandatory:Boolean = !nullable && !managed
+}
 
 object ColType{
     def unknown = ColType("Unknown", "unknown", false, false)

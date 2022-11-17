@@ -7,6 +7,8 @@ import io.circe.{Decoder, Encoder, Json}
 import slick.dbio
 import slick.jdbc.SQLActionBuilder
 
+import scala.concurrent.ExecutionContext
+
 /**
   * Created by andre on 5/15/2017.
   */
@@ -37,15 +39,18 @@ object BoxUIsrcTable {
 
     def gr = GR(r => BoxUIsrc_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))
 
-    override def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[BoxUIsrc_row] = {
+    override def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ex:ExecutionContext):DBIO[Option[BoxUIsrc_row]] = {
       val kv = keyValueComposer(this)
-      val head = concat(sql"""update box.ui_src set """,kv(fields.head))
-      val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+      val chunks = fields.flatMap(kv)
+      if(chunks.nonEmpty) {
+        val head = concat(sql"""update box.ui_src set """, chunks.head)
+        val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ", chunk)) }
 
-      val returning = sql""" returning uuid,file,mime,name,access_level_id"""
+        val returning = sql""" returning uuid,file,mime,name,access_level_id"""
 
-      val sqlActionBuilder = concat(concat(set,where),returning)
-      sqlActionBuilder.as[BoxUIsrc_row](gr).head
+        val sqlActionBuilder = concat(concat(set, where), returning)
+        sqlActionBuilder.as[BoxUIsrc_row](gr).head.map(x => Some(x))
+      } else DBIO.successful(None)
     }
 
 
