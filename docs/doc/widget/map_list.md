@@ -1,13 +1,14 @@
 ---
-title: Map
+title: Map List
 parent: Widgets
 grand_parent: Documentation
 nav_order: 11
 ---
 
-# Map
+# Map List
 
-Draw a map using [openlayers](https://openlayers.org/) 
+Draw a map using [openlayers](https://openlayers.org/)
+TODO describe difference with standard map
 
 
 #### Supported types
@@ -97,12 +98,12 @@ Fields:
     - `layerId`: name of the layer
 - Optional `precision`: precision of points
 - Optional `formatters`: custom feature formatters, in the I18n.Label format i.e. `[{"lang": "id", "label": "Punto %x %y"}]`
-  - Optional `point`
-  - Optional `multiPoint`
-  - Optional `line`
-  - Optional `multiLine`
-  - Optional `polygon`
-  - Optional `multiPolygon`
+    - Optional `point`
+    - Optional `multiPoint`
+    - Optional `line`
+    - Optional `multiLine`
+    - Optional `polygon`
+    - Optional `multiPolygon`
 - Optional `enableSwisstopo` enable swisstopo integration (i.e. location search)
 
 | Key           | Value                                 | Default |

@@ -1,11 +1,13 @@
 ---
-title: Table child
+title: Transparent child
 parent: Widgets
 grand_parent: Documentation
-nav_order: 19
+nav_order: 16
 ---
 
-# Table child
+# Transparent child
+
+
 
 
 #### Params
@@ -18,5 +20,5 @@ nav_order: 19
 | duplicateIgnoreFields      | Ignore fields when duplicating            | `[]`    |
 | enableDeleteOnlyNew      | Enable delete only for newly created rows | `false` |
 | sortable      | Enable sorting of rows                    | `false` |
-| background      | Background color                          | `null`  |
-| borderColor      | Border color                              | `null`  |
+| distribute      | distribute childs using flex              | `false` |
+| width      | child max width                           | `null`  |

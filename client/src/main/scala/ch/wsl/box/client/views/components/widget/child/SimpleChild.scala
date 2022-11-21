@@ -24,7 +24,7 @@ object SimpleChildFactory extends ChildRendererFactory {
 
     import ch.wsl.box.shared.utils.JSONUtils._
 
-    val childBackgroudColor = widgetParam.field.params.flatMap(_.getOpt("backgroudColor"))
+    val bgColor = widgetParam.field.params.flatMap(_.getOpt("backgroud"))
       .getOrElse(ClientConf.childBackgroundColor)
 
     import io.udash.css.CssView._
@@ -40,7 +40,7 @@ object SimpleChildFactory extends ChildRendererFactory {
             div(
               nested(repeat(entity) { e =>
                 val widget = getWidget(e.get)
-                div(ClientConf.style.subform,backgroundColor := childBackgroudColor,
+                div(ClientConf.style.subform,backgroundColor := bgColor,
                   div(display.flex,
                     div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
                     div( ClientConf.style.removeFlexChild,

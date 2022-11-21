@@ -155,13 +155,7 @@ object EditableTable extends ChildRendererFactory {
       }
     }.getOrElse("")
 
-    val duplicateIcon:Icons.Icon = {
-      widgetParam.field.params.flatMap(_.getOpt("duplicateIcon")) match {
-        case Some("add") => Icons.plusFill
-        case _ => Icons.duplicate
-      }
 
-    }
 
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._

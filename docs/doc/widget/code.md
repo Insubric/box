@@ -17,6 +17,8 @@ The widget is implemented with [Monaco Editor](https://microsoft.github.io/monac
 
 #### Params
 
-| Key          | Value             | Default           |
-|:-------------|:------------------|:------------------|
+| Key          | Value                                                                                                                        | Default                               |
+|:-------------|:-----------------------------------------------------------------------------------------------------------------------------|:--------------------------------------|
 | language     | check the possible values on the MonacoEditor documentation, there is a high chance that your favorite language is supported | `html` for string and `json` for json |
+| height     | editor height                                                                                                                | `200`                                 |
+| fullWidth | show the picker at 100% width | `true`                                |
