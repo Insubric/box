@@ -1,11 +1,11 @@
 ---
-title: Popup
+title: Popup Select
 parent: Widgets
 grand_parent: Documentation
 nav_order: 12
 ---
 
-# Popup
+# Popup Select
 
 Widget for lookup fields, in order to choose the lookup opens a modal (popup windows) with all possibile choises and a search field.
 Use this widget when the list it too long to be handles by the select widget.

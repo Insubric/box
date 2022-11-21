@@ -72,6 +72,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val disableAdd = field.params.exists(_.js("disableAdd") == true.asJson)
     val disableRemove = field.params.exists(_.js("disableRemove") == true.asJson)
     val disableDuplicate = field.params.exists(_.js("disableDuplicate") == true.asJson)
+    val duplicateIcon:Icons.Icon = {
+      widgetParam.field.params.flatMap(_.getOpt("duplicateIcon")) match {
+        case Some("add") => Icons.plusFill
+        case _ => Icons.duplicate
+      }
+    }
     val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
     val duplicateIgnoreFields:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateIgnoreFields").as[Seq[String]].toOption).flatten
     val sortable = field.params.exists(_.js("sortable") == true.asJson)

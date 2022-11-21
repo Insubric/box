@@ -21,6 +21,7 @@ Use standard [HTML Input element](https://developer.mozilla.org/en-US/docs/Web/H
 
 #### Params
 
-| Key          | Value             | Default           |
-|:-------------|:------------------|:------------------|
-| nolabel    | hide the label | `false`  |
+| Key     | Value               | Default | Available values |
+|:--------|:--------------------|:--------|--|
+| nolabel | hide the label      | `false` |  |
+| style   | use different style | null    |  - `bottomBorder`|

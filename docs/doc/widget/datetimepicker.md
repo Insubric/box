@@ -18,4 +18,4 @@ Calendar popup widget for timestamp object, based on [Flatpickr](https://flatpic
 | Key          | Value             | Default           |
 |:-------------|:------------------|:------------------|
 | fullWidth    | show the picker at 100% width | `false`  |
-| format    | format the date using a custom format, [reference](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) | `false`  |
+| format    | format the date using a custom format, [reference](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) | `null`  |

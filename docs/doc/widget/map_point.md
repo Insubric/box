@@ -1,13 +1,14 @@
 ---
-title: Map
+title: Map Point
 parent: Widgets
 grand_parent: Documentation
 nav_order: 11
 ---
 
-# Map
+# Map Point
 
-Draw a map using [openlayers](https://openlayers.org/) 
+Draw a map using [openlayers](https://openlayers.org/)
+TODO describe difference with standard map
 
 
 #### Supported types
@@ -97,17 +98,17 @@ Fields:
     - `layerId`: name of the layer
 - Optional `precision`: precision of points
 - Optional `formatters`: custom feature formatters, in the I18n.Label format i.e. `[{"lang": "id", "label": "Punto %x %y"}]`
-  - Optional `point`
-  - Optional `multiPoint`
-  - Optional `line`
-  - Optional `multiLine`
-  - Optional `polygon`
-  - Optional `multiPolygon`
+    - Optional `point`
+    - Optional `multiPoint`
+    - Optional `line`
+    - Optional `multiLine`
+    - Optional `polygon`
+    - Optional `multiPolygon`
 - Optional `enableSwisstopo` enable swisstopo integration (i.e. location search)
 
-| Key           | Value                                 | Default |
-|:--------------|:--------------------------------------|:--------|
-| mobileHeight  | Height of the map on mobile           | `250`   |
-| desktopHeight | Height of the map on mobile           | `400`   |
-| full          | full height                           | `false` |
-| topElement    | Show checkbox on the previous element | `false` |
+| Key           | Value                      | Default |
+|:--------------|:---------------------------|:--------|
+| nolabel | hide the label             | `false` |  
+| useXY | use X Y instead of Lat Lng | `false` |  
+| coordinateLabel | TODO                       | `` |  
+

@@ -14,5 +14,10 @@ nav_order: 16
 
 | Key          | Value             | Default           |
 |:-------------|:------------------|:------------------|
-| disableAdd      | Disable add button | `false`  |
-| disableRemove      | Disable remove button | `false`  |
+| disableAdd      | Disable add button                        | `false` |
+| disableRemove      | Disable remove button                     | `false` |
+| disableDuplicate      | Disable duplicate button                  | `false` |
+| duplicateIgnoreFields      | Ignore fields when duplicating            | `[]`    |
+| enableDeleteOnlyNew      | Enable delete only for newly created rows | `false` |
+| sortable      | Enable sorting of rows                    | `false` |
+| background      | Background color                          | `null`  |
