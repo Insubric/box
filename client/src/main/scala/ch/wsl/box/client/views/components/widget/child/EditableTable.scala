@@ -165,9 +165,13 @@ object EditableTable extends ChildRendererFactory {
     def fields(f:JSONMetadata) = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
 
     def colHeader(field:JSONField):ReadableProperty[String] = {
-        val name = field.label.getOrElse(field.name) + {
-          if(!field.nullable) " "+Labels.form.required else ""
+        val name = field.widget match {
+          case Some(WidgetsNames.html) => ""
+          case _ => field.label.getOrElse(field.name) + {
+            if(!field.nullable) " "+Labels.form.required else ""
+          }
         }
+
         field.dynamicLabel match {
           case Some(value) => {
             val title = entity.transform { e =>

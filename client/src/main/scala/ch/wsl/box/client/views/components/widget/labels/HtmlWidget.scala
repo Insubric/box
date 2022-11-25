@@ -58,5 +58,9 @@ object HtmlWidget extends ComponentWidgetFactory {
 
 
     override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
+
+    override def showOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
+
+    override def editOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
   }
 }
