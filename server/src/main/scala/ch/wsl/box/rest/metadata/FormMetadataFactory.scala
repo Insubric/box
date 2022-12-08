@@ -161,6 +161,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       fields <- fieldQuery(form.form_uuid.get).result
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
+      tableActions <- BoxForm.BoxForm_table_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name,Registry()).getOrElse(ColType.unknown))
       keys <- keys(form)
       jsonFieldsPartial <- fieldsToJsonFields(fields.zip(columns), lang)
@@ -232,6 +233,23 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               executeFunction = a.execute_function
             )
           },
+          tableActions = if(tableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.tableActions else {
+            tableActions.map { a =>
+              FormAction(
+                action = Action.fromString(a.action),
+                importance = Importance.fromString(a.importance),
+                afterActionGoTo = a.after_action_goto,
+                label = a.label,
+                updateOnly = a.update_only,
+                insertOnly = a.insert_only,
+                reload = a.reload,
+                confirmText = a.confirm_text,
+                executeFunction = a.execute_function,
+                needDeleteRight = a.need_delete_right,
+                needUpdateRight = a.need_update_right,
+                whenNoUpdateRight = a.when_no_update_right
+              )
+          }},
           showNavigation = form.show_navigation
         )
       }
