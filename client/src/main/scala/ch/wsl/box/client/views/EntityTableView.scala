@@ -591,15 +591,37 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               def noAction = p(color := "grey")(Labels.entity.no_action)
 
               tr((`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= presenter.selected(el.get),
-                td(ClientConf.style.smallCells)(
-                  (hasKey, model.get.access.update, model.get.access.delete) match {
-                    case (false, _, _) => noAction
-                    case (true, false, false) => show
-                    case (true, false, true) => Seq(show, span(" "), delete)
-                    case (true, true, true) => Seq(edit, span(" "), delete)
-                    case (true, true, false) => Seq(edit)
+                td(ClientConf.style.smallCells)({
+
+                  val tableActions = metadata.toSeq.flatMap(_.action.tableActions).filter(fa =>
+                    (!fa.needDeleteRight || fa.needDeleteRight && model.get.access.delete) &&
+                      (!fa.needUpdateRight || fa.needUpdateRight && model.get.access.update) &&
+                      (!fa.whenNoUpdateRight || fa.whenNoUpdateRight && !model.get.access.update)
+                  )
+
+
+                  val out: Seq[Modifier] = tableActions.map { ta =>
+                    ta.action match {
+                      case SaveAction => ???
+                      case CopyAction => ???
+                      case RevertAction => ???
+                      case DeleteAction => delete
+                      case EditAction => edit
+                      case ShowAction => show
+                      case NoAction => a(
+                        cls := "primary action",
+                        onclick :+= { (e: Event) =>
+                          Navigate.toUrl(ta.getUrl(Json.Null, metadata.get.kind, metadata.get.name, Some(presenter.ids(el.get).asString), model.get.access.update).getOrElse(""))
+                          e.preventDefault()
+                        }
+                      )(Labels(ta.label))
+                      case BackAction => ???
+                    }
                   }
-                ),
+
+                  out.flatMap(Seq(_,span(" ")))
+
+                }:_*),
 
                 for {(f, i) <- metadata.toSeq.flatMap(_.tabularFields).zipWithIndex} yield {
 

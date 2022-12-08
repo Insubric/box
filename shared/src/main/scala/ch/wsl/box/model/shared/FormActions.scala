@@ -6,6 +6,8 @@ import yamusca.imports._
 
 sealed trait Action
 case object SaveAction extends Action
+case object EditAction extends Action
+case object ShowAction extends Action
 case object CopyAction extends Action
 case object RevertAction extends Action
 case object DeleteAction extends Action
@@ -20,9 +22,11 @@ object Action{
     case "DeleteAction" => DeleteAction
     case "NoAction" => NoAction
     case "BackAction" => BackAction
+    case "EditAction" => EditAction
+    case "ShowAction" => ShowAction
   }
 
-  def all = Seq(SaveAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction)
+  def all = Seq(SaveAction,EditAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction,ShowAction)
 }
 
 sealed trait Importance
@@ -57,7 +61,10 @@ case class FormAction(
                       confirmText:Option[String] = None,
                       executeFunction:Option[String] = None,
                       condition:Option[Seq[ConditionalField]] = None,
-                      html5check:Boolean = true
+                      html5check:Boolean = true,
+                      needUpdateRight:Boolean = false,
+                      needDeleteRight:Boolean = false,
+                      whenNoUpdateRight:Boolean = false
                       ) {
   def getUrl(data:Json,kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
     val urlInternalSubstitutions = x.replace("$kind",kind)
@@ -93,16 +100,17 @@ case class FormAction(
 case class FormActionsMetadata(
                       actions:Seq[FormAction],
                       navigationActions:Seq[FormAction],
+                      tableActions: Seq[FormAction],
                       showNavigation:Boolean
                       )
 
 object FormActionsMetadata {
 
-  def defaultForPages = FormActionsMetadata(Seq(),Seq(),false)
+  def defaultForPages = FormActionsMetadata(Seq(),Seq(),Seq(),false)
 
   def saveOnly = FormActionsMetadata(Seq(
     FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
-  ),Seq(),false)
+  ),Seq(),default.tableActions,false)
 
 
   /*
@@ -129,6 +137,11 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
     ),
     navigationActions = Seq(
       FormAction(NoAction,Std, Some("/box/$kind/$name"), SharedLabels.entities.table)
+    ),
+    tableActions = Seq(
+      FormAction(EditAction,Primary,None, SharedLabels.entity.edit,needUpdateRight = true),
+      FormAction(ShowAction,Primary,None, SharedLabels.entity.show, whenNoUpdateRight = true),
+      FormAction(DeleteAction,Danger,None, SharedLabels.entity.delete,confirmText = Some(SharedLabels.entity.confirmDelete), needDeleteRight = true),
     ),
     true
   )
