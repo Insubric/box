@@ -188,11 +188,12 @@ object BoxForm {
                                             execute_function: Option[String],
                                             need_update_right: Boolean,
                                             need_delete_right: Boolean,
-                                            when_no_update_right: Boolean
+                                            when_no_update_right: Boolean,
+                                            target: Option[String]
                                            )
 
   class BoxForm_table_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_table_actions_row](_tableTag, BoxSchema.schema, "form_actions_table") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order, confirm_text, execute_function, need_update_right, need_delete_right, when_no_update_right) <> (BoxForm_table_actions_row.tupled, BoxForm_table_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order, confirm_text, execute_function, need_update_right, need_delete_right, when_no_update_right,target) <> (BoxForm_table_actions_row.tupled, BoxForm_table_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
@@ -210,12 +211,54 @@ object BoxForm {
     val reload: Rep[Boolean] = column[Boolean]("reload", O.Default(false))
     val confirm_text: Rep[Option[String]] = column[Option[String]]("confirm_text", O.Default(None))
     val execute_function: Rep[Option[String]] = column[Option[String]]("execute_function", O.Default(None))
+    val target: Rep[Option[String]] = column[Option[String]]("target", O.Default(None))
     val action_order: Rep[Double] = column[Double]("action_order")
 
 
   }
 
   lazy val BoxForm_table_actions = new TableQuery(tag => new BoxForm_table_actions(tag))
+
+
+  case class BoxForm_top_table_actions_row(uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID,
+                                       action: String, importance: String, after_action_goto: Option[String],
+                                       label: String,
+                                       action_order: Double,
+                                       confirm_text: Option[String],
+                                       execute_function: Option[String],
+                                       need_update_right: Boolean,
+                                       need_delete_right: Boolean,
+                                       need_insert_right: Boolean,
+                                       when_no_update_right: Boolean,
+                                       target: Option[String]
+                                      )
+
+  class BoxForm_top_table_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_top_table_actions_row](_tableTag, BoxSchema.schema, "form_actions_top_table") {
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, action_order, confirm_text, execute_function, need_update_right, need_delete_right, need_insert_right, when_no_update_right, target) <> (BoxForm_top_table_actions_row.tupled, BoxForm_top_table_actions_row.unapply)
+
+    val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
+    val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
+    val action: Rep[String] = column[String]("action")
+    val importance: Rep[String] = column[String]("importance")
+    val after_action_goto: Rep[Option[String]] = column[Option[String]]("after_action_goto", O.Default(None))
+    val label: Rep[String] = column[String]("label")
+
+
+    val need_update_right: Rep[Boolean] = column[Boolean]("need_update_right", O.Default(false))
+    val need_delete_right: Rep[Boolean] = column[Boolean]("need_delete_right", O.Default(false))
+    val need_insert_right: Rep[Boolean] = column[Boolean]("need_insert_right", O.Default(false))
+    val when_no_update_right: Rep[Boolean] = column[Boolean]("when_no_update_right", O.Default(false))
+
+    val confirm_text: Rep[Option[String]] = column[Option[String]]("confirm_text", O.Default(None))
+    val execute_function: Rep[Option[String]] = column[Option[String]]("execute_function", O.Default(None))
+    val target: Rep[Option[String]] = column[Option[String]]("target", O.Default(None))
+    val action_order: Rep[Double] = column[Double]("action_order")
+
+
+  }
+
+  lazy val BoxForm_top_table_actions = new TableQuery(tag => new BoxForm_top_table_actions(tag))
+
 
 
 }

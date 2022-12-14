@@ -1,5 +1,6 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 
 import java.util.UUID
@@ -40,15 +41,7 @@ case class JSONField(
     case _ => true
   }
 
-  def fromString(s:String):Json = `type` match {
-    case JSONFieldTypes.STRING => Json.fromString(s)
-    case _ => io.circe.parser.parse(s) match {
-      case Right(value) => value
-      case Left(value) => {
-        Json.fromString(s)
-      }
-    }
-  }
+  def fromString(s:String):Json = JSONUtils.toJs(s,`type`).getOrElse(Json.Null)
 
   lazy val remoteLookup:Option[JSONFieldLookupRemote] = lookup.flatMap {
     case e:JSONFieldLookupRemote => Some(e)
