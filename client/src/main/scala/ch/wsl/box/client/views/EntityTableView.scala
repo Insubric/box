@@ -1,8 +1,9 @@
 package ch.wsl.box.client.views
 
+import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.URLQuery
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
@@ -23,9 +24,9 @@ import io.udash.properties.single.Property
 import io.udash.utils.Registration
 import org.scalajs.dom
 import scalacss.ScalatagsCss._
-import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{Element, Event, KeyboardEvent, window}
 import scalacss.internal.Pseudo.Lang
+import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
 import scribe.Logging
 
@@ -46,6 +47,12 @@ object IDsVMFactory{
 case class Row(data: Seq[String]) {
   def field(metadata:JSONMetadata)(name:String) = {
     metadata.table.zipWithIndex.find{ case (f,_) => f.name == name }.flatMap{ case (f,i) => data.lift(i).filter(_.nonEmpty).map(f.fromString) }
+  }
+
+  def rowJs(metadata:JSONMetadata):Json = {
+    Json.fromFields(
+      metadata.tabularFields.map(k => k -> field(metadata)(k).getOrElse(Json.Null))
+    )
   }
 }
 
@@ -396,6 +403,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     dom.window.open(url)
   }
 
+  def getObj(id:JSONID):Future[Json] = {
+    services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name,id)
+  }
+
 
 }
 
@@ -403,6 +414,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
   import ch.wsl.box.shared.utils.JSONUtils._
+  import ch.wsl.box.client.Context.executionContext
 
 
 
@@ -500,13 +512,66 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         ),
         div(BootstrapStyles.Visibility.clearfix),
         produceWithNested(model.subProp(_.access)) { (a, releaser) =>
-          if (a.insert)
+
             Seq(
               div(BootstrapStyles.Float.left(), ClientConf.style.noMobile)(
                 releaser(produce(model.subProp(_.name)) { m =>
-                  div(
-                    button(ClientConf.style.boxButtonImportant, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(Labels.entities.`new`)
-                  ).render
+                  div({
+                    val out:Seq[Modifier] = metadata.toSeq.flatMap(_.action.topTable(a)).map{ ta =>
+
+                      val importance: StyleA = ta.importance match {
+                        case Primary => ClientConf.style.boxButtonImportant
+                        case Danger => ClientConf.style.boxButtonDanger
+                        case Std => ClientConf.style.boxButton
+                      }
+
+                      ta.action match {
+                        case SaveAction => ???
+                        case EditAction => ???
+                        case ShowAction => ???
+                        case CopyAction => ???
+                        case RevertAction => ???
+                        case DeleteAction => ???
+                        case NoAction => {
+                          button(importance,
+                            onclick :+= { (e: Event) =>
+                              val execute = ta.confirmText match {
+                                case Some(msg) => window.confirm(msg)
+                                case None => true
+                              }
+                              if(execute) {
+                                val function = ta.executeFunction match {
+                                  case Some(f) => services.rest.execute(f, services.clientSession.lang(), Json.Null).map { result =>
+                                    result.errorMessage match {
+                                      case Some(value) => {
+                                        Notification.add(value)
+                                        services.clientSession.loading.set(false)
+                                        false
+                                      }
+                                      case None => true
+                                    }
+                                  }
+                                  case None => Future.successful(())
+                                }
+                                function.foreach { _ =>
+                                  ta.getUrl(Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
+                                    case Some(url) => Navigate.toUrl(url)
+                                    case None => {
+                                      Context.applicationInstance.reload()
+                                    }
+                                  }
+                                }
+                              }
+
+                              e.preventDefault()
+                            })(Labels(ta.label))
+                        }
+                        case BackAction => ???
+                      }
+                    }
+                    out
+
+                  }).render
                 })
               ),
               div(
@@ -516,7 +581,6 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 })
               ),
             ).render
-          else Seq()
         },
         div(BootstrapStyles.Visibility.clearfix),
         div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
@@ -593,12 +657,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               tr((`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= presenter.selected(el.get),
                 td(ClientConf.style.smallCells)({
 
-                  val tableActions = metadata.toSeq.flatMap(_.action.tableActions).filter(fa =>
-                    (!fa.needDeleteRight || fa.needDeleteRight && model.get.access.delete) &&
-                      (!fa.needUpdateRight || fa.needUpdateRight && model.get.access.update) &&
-                      (!fa.whenNoUpdateRight || fa.whenNoUpdateRight && !model.get.access.update)
-                  )
-
+                  val tableActions = metadata.toSeq.flatMap(_.action.table(model.get.access))
 
                   val out: Seq[Modifier] = tableActions.map { ta =>
                     ta.action match {
@@ -611,9 +670,20 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                       case NoAction => a(
                         cls := "primary action",
                         onclick :+= { (e: Event) =>
-                          Navigate.toUrl(ta.getUrl(Json.Null, metadata.get.kind, metadata.get.name, Some(presenter.ids(el.get).asString), model.get.access.update).getOrElse(""))
-                          e.preventDefault()
-                        }
+                            val id = presenter.ids(el.get)
+                            val tab = ta.target match {
+                              case Self => None
+                              case NewWindow => Some(window.open("about:blank",id.asString))
+                            }
+                            presenter.getObj(id).foreach{ data =>
+                              val url = ta.getUrl(data, metadata.get.kind, metadata.get.name, Some(id.asString), model.get.access.update).getOrElse("")
+                              ta.target match {
+                                case Self => Navigate.toUrl(url)
+                                case NewWindow => tab.foreach(_.location.href = url)
+                              }
+                            }
+                            e.preventDefault()
+                          }
                       )(Labels(ta.label))
                       case BackAction => ???
                     }

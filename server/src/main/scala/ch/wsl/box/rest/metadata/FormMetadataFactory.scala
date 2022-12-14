@@ -162,6 +162,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       tableActions <- BoxForm.BoxForm_table_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
+      topTableActions <- BoxForm.BoxForm_top_table_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name,Registry()).getOrElse(ColType.unknown))
       keys <- keys(form)
       jsonFieldsPartial <- fieldsToJsonFields(fields.zip(columns), lang)
@@ -247,9 +248,27 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
                 executeFunction = a.execute_function,
                 needDeleteRight = a.need_delete_right,
                 needUpdateRight = a.need_update_right,
-                whenNoUpdateRight = a.when_no_update_right
+                whenNoUpdateRight = a.when_no_update_right,
+                target = a.target.map(Target.fromString).getOrElse(Self)
               )
           }},
+          topTableActions = if(topTableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.topTableActions else {
+            topTableActions.map { a =>
+              FormAction(
+                action = Action.fromString(a.action),
+                importance = Importance.fromString(a.importance),
+                afterActionGoTo = a.after_action_goto,
+                label = a.label,
+                confirmText = a.confirm_text,
+                executeFunction = a.execute_function,
+                needDeleteRight = a.need_delete_right,
+                needUpdateRight = a.need_update_right,
+                needInsertRight = a.need_insert_right,
+                whenNoUpdateRight = a.when_no_update_right,
+                target = a.target.map(Target.fromString).getOrElse(Self)
+              )
+            }
+          },
           showNavigation = form.show_navigation
         )
       }

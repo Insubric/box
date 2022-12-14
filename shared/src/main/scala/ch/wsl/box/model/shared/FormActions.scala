@@ -44,6 +44,20 @@ object Importance {
   def all = Seq(Std,Primary,Danger)
 }
 
+sealed trait Target
+case object Self extends Target
+case object NewWindow extends Target
+
+
+object Target {
+  def fromString(s:String):Target = s match {
+    case "Self" => Self
+    case "NewWindow" => NewWindow
+  }
+
+  def all = Seq(Self,NewWindow)
+}
+
 case class FormAction(
                       action:Action,
                       importance: Importance,
@@ -64,7 +78,9 @@ case class FormAction(
                       html5check:Boolean = true,
                       needUpdateRight:Boolean = false,
                       needDeleteRight:Boolean = false,
-                      whenNoUpdateRight:Boolean = false
+                      needInsertRight:Boolean = false,
+                      whenNoUpdateRight:Boolean = false,
+                      target:Target = Self
                       ) {
   def getUrl(data:Json,kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
     val urlInternalSubstitutions = x.replace("$kind",kind)
@@ -101,16 +117,27 @@ case class FormActionsMetadata(
                       actions:Seq[FormAction],
                       navigationActions:Seq[FormAction],
                       tableActions: Seq[FormAction],
+                      topTableActions: Seq[FormAction],
                       showNavigation:Boolean
-                      )
+                      ) {
+  def table(access: TableAccess) = accessFileter(tableActions,access)
+  def topTable(access:TableAccess) = accessFileter(topTableActions,access)
+
+  private def accessFileter(_actions:Seq[FormAction],access: TableAccess) = _actions.filter(fa =>
+    (!fa.needDeleteRight || fa.needDeleteRight && access.delete) &&
+      (!fa.needUpdateRight || fa.needUpdateRight && access.update) &&
+      (!fa.needUpdateRight || fa.needUpdateRight && access.update) &&
+      (!fa.whenNoUpdateRight || fa.whenNoUpdateRight && access.update)
+  )
+}
 
 object FormActionsMetadata {
 
-  def defaultForPages = FormActionsMetadata(Seq(),Seq(),Seq(),false)
+  def defaultForPages = FormActionsMetadata(Seq(),Seq(),Seq(),Seq(),false)
 
   def saveOnly = FormActionsMetadata(Seq(
     FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
-  ),Seq(),default.tableActions,false)
+  ),Seq(),default.tableActions,default.topTableActions,false)
 
 
   /*
@@ -142,6 +169,9 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
       FormAction(EditAction,Primary,None, SharedLabels.entity.edit,needUpdateRight = true),
       FormAction(ShowAction,Primary,None, SharedLabels.entity.show, whenNoUpdateRight = true),
       FormAction(DeleteAction,Danger,None, SharedLabels.entity.delete,confirmText = Some(SharedLabels.entity.confirmDelete), needDeleteRight = true),
+    ),
+    topTableActions = Seq(
+      FormAction(NoAction,Primary, Some("/box/$kind/$name/insert"), SharedLabels.entities.`new`,needInsertRight = true),
     ),
     true
   )
