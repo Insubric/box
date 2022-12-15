@@ -13,6 +13,7 @@ case object RevertAction extends Action
 case object DeleteAction extends Action
 case object NoAction extends Action
 case object BackAction extends Action
+case object HideActions extends Action
 
 object Action{
   def fromString(s:String):Action = s match {
@@ -24,9 +25,10 @@ object Action{
     case "BackAction" => BackAction
     case "EditAction" => EditAction
     case "ShowAction" => ShowAction
+    case "HideActions" => ShowAction
   }
 
-  def all = Seq(SaveAction,EditAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction,ShowAction)
+  def all = Seq(SaveAction,EditAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction,ShowAction,HideActions)
 }
 
 sealed trait Importance
