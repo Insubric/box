@@ -46,7 +46,15 @@ object JSONSupport {
     Unmarshaller.stringUnmarshaller
       .forContentTypes(jsonContentTypes: _*)
       .flatMap { ctx => mat => json =>
-        decode[A](json).fold(Future.failed, Future.successful)
+        parse(json) match {
+          case Left(fa) => fa.printStackTrace()
+            Future.failed(fa)
+          case Right(value) => value.as[A] match {
+            case Left(fa) => fa.printStackTrace()
+              Future.failed(fa)
+            case Right(value) => Future.successful(value)
+          }
+        }
       }
   }
 
