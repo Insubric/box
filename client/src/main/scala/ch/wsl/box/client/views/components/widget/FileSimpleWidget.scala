@@ -202,6 +202,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   }
 
   private val dropHandler = (e:DragEvent) => {
+    println("AAAAAA")
     e.preventDefault()
 
     if(e.dataTransfer.files.length > 0) {
@@ -223,6 +224,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val dropZoneId = "dz-" + UUID.randomUUID().toString
   def dropZone(nested:Binding.NestedInterceptor) = div(
     ClientConf.style.dropFileZone,
+    id := dropZoneId,
     showFile(nested),
     ondrop :+= dropHandler,
     ondragover :+= {(e:Event) => dragging.set(true); e.preventDefault()},

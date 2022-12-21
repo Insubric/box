@@ -167,10 +167,12 @@ case class Form(
     }
   }
 
-  def lookups:Route = post{
-    entity(as[JSONLookupsRequest]) { lookupRequest =>
-      actions{ fa =>
-        complete(db.run(fa.lookups(lookupRequest)))
+  def lookups:Route = pathPrefix("lookups") {
+    post {
+      entity(as[JSONLookupsRequest]) { lookupRequest =>
+        actions { fa =>
+          complete(db.run(fa.lookups(lookupRequest)))
+        }
       }
     }
   }
