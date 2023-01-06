@@ -59,9 +59,6 @@ $$;
 
 alter function box.v_field_ins() owner to postgres;
 
-grant execute on function box.v_field_ins() to wsb;
-
-grant execute on function box.v_field_ins() to bafu;
 
 
 
@@ -107,11 +104,6 @@ end;
 $$;
 
 alter function box.v_field_upd() owner to postgres;
-
-grant execute on function box.v_field_upd() to wsb;
-
-grant execute on function box.v_field_upd() to bafu;
-
 
 
 create trigger v_field_upd

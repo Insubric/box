@@ -10,6 +10,8 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 object MigrateDB {
 
+
+
   def box(connection:Connection,schema:String)(implicit ex:ExecutionContext) = {
 
     val flyway = Flyway.configure()
@@ -37,6 +39,17 @@ object MigrateDB {
             update box.flyway_schema_history_box set checksum=-495052968 where version='27';
             """
         }.map{ _ =>
+          flyway.migrate()
+        }
+      } else if ( // Add exception for manually modified Migration 27
+        e.getMessage.contains("Migration checksum mismatch for migration version 45") &&
+          e.getMessage.contains("1689113113")
+      ) {
+        connection.dbConnection.run {
+          sqlu"""
+            update box.flyway_schema_history_box set checksum=1689113113 where version='45';
+            """
+        }.map { x =>
           flyway.migrate()
         }
       } else {
