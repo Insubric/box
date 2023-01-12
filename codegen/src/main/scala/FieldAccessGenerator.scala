@@ -38,7 +38,7 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
 
       val jsonType = pgCol.map(_.jsonType).getOrElse(JSONFieldTypes.STRING)
 
-      val managed = Managed.hasTriggerDefault(table.model.name.table,c.model.name) || pgCol.exists(_.column_default.nonEmpty)
+      val managed = Managed.hasTriggerDefault(table.model.name.table,c.model.name) || pgCol.exists(_.managed)
 
       val nullable = pgCol.exists(_.nullable) || c.model.nullable
 
