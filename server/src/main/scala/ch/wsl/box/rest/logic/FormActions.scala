@@ -146,7 +146,7 @@ case class FormActions(metadata:JSONMetadata,
       val localFields = lf.remoteLookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
       val foreignFields = lf.remoteLookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
 
-      val data = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose
+      val data: Seq[Seq[String]] = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose.map(_.distinct)
       val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
       val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
       Registry().actions(lf.remoteLookup.get.lookupEntity).findSimple(fkQuery).map{ fk =>

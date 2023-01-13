@@ -39,7 +39,8 @@ case class PgColumn(
   table_name:String,
   table_schema:String,
   ordinal_position:Int,
-  column_default:Option[String]
+  column_default:Option[String],
+  identity_generation:Option[String]
 ) {
   def nullable = is_nullable == "YES"
   def updatable = is_updatable == "YES"// || is_trigger_updatable == "YES"
@@ -47,6 +48,8 @@ case class PgColumn(
   def boxName = column_name
   def data_type = if(_data_type == "USER-DEFINED") udt_name else _data_type
   def required = !nullable && column_default.isEmpty
+
+  def managed = column_default.nonEmpty || identity_generation.nonEmpty
 }
 
 class PgColumns(tag: Tag) extends Table[PgColumn](tag,  Some("information_schema"), "columns") {
@@ -64,8 +67,9 @@ class PgColumns(tag: Tag) extends Table[PgColumn](tag,  Some("information_schema
   def table_schema = column[String]("table_schema")
   def ordinal_position = column[Int]("ordinal_position")
   def column_default = column[Option[String]]("column_default")
+  def identity_generation = column[Option[String]]("identity_generation")
 
-  def * = (column_name, is_nullable, is_updatable, data_type, udt_name, character_maximum_length, numeric_precision, numeric_scale, table_name, table_schema, ordinal_position,column_default) <> (PgColumn.tupled, PgColumn.unapply)
+  def * = (column_name, is_nullable, is_updatable, data_type, udt_name, character_maximum_length, numeric_precision, numeric_scale, table_name, table_schema, ordinal_position,column_default,identity_generation) <> (PgColumn.tupled, PgColumn.unapply)
 }
 
 case class PgConstraint(

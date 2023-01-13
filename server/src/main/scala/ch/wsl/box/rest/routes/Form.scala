@@ -140,10 +140,6 @@ case class Form(
     val query = parse(q).right.get.as[JSONQuery].right.get
     val formActions = FormActions(metadata, registry, metadataFactory)
     for {
-      fkValues <- fk match {
-        case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
-        case _ => DBIO.successful(None)
-      }
       csv <- formActions.csv(query, true, _.exportFields)
     } yield csv.copy(
       showHeader = true,
