@@ -11,12 +11,11 @@ import ch.wsl.box.rest.routes._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, Cache}
 import com.softwaremill.session.SessionDirectives.{invalidateSession, optionalSession, setSession, touchRequiredSession}
-import com.softwaremill.session.SessionManager
+import com.softwaremill.session.{InMemoryRefreshTokenStorage, SessionManager}
 import com.softwaremill.session.SessionOptions._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
-import boxInfo.BoxBuildInfo
 import ch.wsl.box.model.boxentities.BoxUser
 import ch.wsl.box.services.Services
 
@@ -28,7 +27,12 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   import ch.wsl.box.rest.utils.JSONSupport._
   import io.circe.generic.auto._
 
-  def boxSetSessionCookie(v: BoxSession) = setSession(oneOff, usingCookies, v)
+
+
+  def boxSetSessionCookie(v: BoxSession) = {
+    implicit def refreshTokenStorage = services.refreshTokenStorage
+    setSession(oneOff, usingCookies, v)
+  }
   def boxSetSessionHeader(v: BoxSession) = setSession(oneOff, usingHeaders, v)
 
 
@@ -125,7 +129,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   def version = path("version") {
     get {
       complete(
-        BoxBuildInfo.version
+        _root_.boxInfo.BoxBuildInfo.version
       )
     }
   }

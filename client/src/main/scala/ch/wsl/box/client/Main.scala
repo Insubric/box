@@ -46,6 +46,7 @@ object Main extends Logging {
 
 
     for {
+      _ <- services.clientSession.refreshSession()
       appVersion <- services.rest.appVersion()
       version <- services.rest.version()
       _ <- services.rest.conf().map{ conf =>

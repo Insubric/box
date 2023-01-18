@@ -145,6 +145,12 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  def me(implicit up: UserProfile) = path("me") {
+    get {
+      complete(up.name)
+    }
+  }
+
   def translations = pathPrefix("translations") {
     pathPrefix("fields") {
       path(Segment) { lang =>
@@ -175,6 +181,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
       implicit val db = up.db
 
       Access(session).route ~
+        me ~
         export ~
         function ~
         file ~
