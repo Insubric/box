@@ -21,6 +21,9 @@ class RestMock(values:Values) extends REST with Logging {
     true
   }
 
+
+  override def me(): Future[String] = Future.successful("postgres")
+
   override def cacheReset(): Future[String] = {
     println("cacheReset not implemented")
     ???

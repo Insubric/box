@@ -3,12 +3,14 @@ package ch.wsl.box.rest
 import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.rest.routes.v1.{NotificationChannels, NotificationChannelsImpl}
+import ch.wsl.box.rest.utils.BoxSession
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.config.{ConfFileAndDb, Config, ConfigFileImpl, FullConfig}
 import ch.wsl.box.services.file.ImageCacheStorage
 import ch.wsl.box.services.files.{InMemoryImageCacheStorage, PgImageCacheStorage}
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDummy}
 import ch.wsl.box.services.mail_dispatcher.{MailDispatcherService, SingleHostMailDispatcherService}
+import com.softwaremill.session.{InMemoryRefreshTokenStorage, RefreshTokenStorage}
 import wvlet.airframe._
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -35,6 +37,9 @@ object DefaultModule extends Module {
     .bind[NotificationChannels].to[NotificationChannelsImpl]
     .bind[FullConfig].to[ConfFileAndDb]
     .bind[MailDispatcherService].to[SingleHostMailDispatcherService]
+    .bind[RefreshTokenStorage[BoxSession]].toInstance(new InMemoryRefreshTokenStorage[BoxSession] {
+      override def log(msg: String): Unit = {}
+    })
     .bind[Services].toEagerSingleton
     .onShutdown{s =>
       Await.result(s.actorSystem.terminate(),10.seconds)
