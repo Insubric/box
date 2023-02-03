@@ -21,7 +21,7 @@ trait UpdateTable[T] { t:Table[T] =>
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
 
-  private def orderBlock(order:JSONSort):SQLActionBuilder = sql" #${order.column} #${order.order} "
+  private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
