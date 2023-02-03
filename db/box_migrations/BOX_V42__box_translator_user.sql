@@ -1,4 +1,14 @@
-create role box_translator;
+do
+$do$
+    begin
+        if exists (select from pg_roles where rolname = 'box_translator') then
+            raise notice 'skip box_translation creation';
+        else
+            create role box_translator;
+        end if;
+    end
+$do$;
+
 grant select,update,insert on box.form_i18n to box_translator;
 grant select,update,insert on box.field_i18n to box_translator;
 grant select,update,insert on box.v_labels to box_translator;

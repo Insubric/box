@@ -129,7 +129,7 @@ case class FormActionsMetadata(
     (!fa.needDeleteRight || fa.needDeleteRight && access.delete) &&
       (!fa.needUpdateRight || fa.needUpdateRight && access.update) &&
       (!fa.needUpdateRight || fa.needUpdateRight && access.update) &&
-      (!fa.whenNoUpdateRight || fa.whenNoUpdateRight && access.update)
+      (!fa.whenNoUpdateRight || fa.whenNoUpdateRight && !access.update)
   )
 }
 
