@@ -33,6 +33,8 @@ object MigrateDB {
     def migrationExceptions() = connection.dbConnection.run {
       sqlu"""
         update #$schema.flyway_schema_history_box set checksum=-495052968 where version='27';
+        update #$schema.flyway_schema_history_box set checksum=31598778 where version='42';
+        update #$schema.flyway_schema_history_box set checksum=-89848557 where version='44';
         update #$schema.flyway_schema_history_box set checksum=1689113113 where version='45';
         """.transactionally
     }
