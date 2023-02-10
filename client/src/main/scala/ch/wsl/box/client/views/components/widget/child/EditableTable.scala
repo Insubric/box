@@ -25,10 +25,10 @@ import scalacss.internal.mutable.StyleSheet
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
 import typings.printJs.mod.PrintTypes
-import typings.std.global.atob
 
 import java.util.UUID
 import scala.scalajs.js
+import scala.scalajs.js.WrappedArray
 import scala.scalajs.js.typedarray.Uint8Array
 
 case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
@@ -200,13 +200,13 @@ object EditableTable extends ChildRendererFactory {
       val f = fields(metadata) //.filter(f => checkCondition(f).get)
 
 
-      val title = parentMetadata.dynamicLabel match {
+      val tit = parentMetadata.dynamicLabel match {
         case None => metadata.label
         case Some(dl) => masterData.get.getOpt(dl).getOrElse(metadata.label)
       }
 
       (
-        title,
+        tit,
         f.map(colHeader).map(_.get),
         entity.get.toSeq.map{ row =>
           val childWidget = getWidget(row)
@@ -238,24 +238,24 @@ object EditableTable extends ChildRendererFactory {
     }
 
     def exportCSV(metadata: => JSONMetadata) = (e:Event) => {
-      val (title,header,rows) = currentTable(metadata)
-
-      val table = CSVTable(title, header, rows)
-
-      services.rest.exportCSV(table).foreach{ csv =>
-        typings.fileSaver.mod.saveAs(csv,s"${metadata.label}.csv")
-      }
+      export(metadata,s"csv")
       e.preventDefault()
     }
 
+    def export(metadata: => JSONMetadata,filetype: String) = {
+      import js.JSConverters._
+
+      val (tit, header, rows) = currentTable(metadata)
+      val workbook = typings.xlsx.mod.utils.book_new()
+      val data = Seq(header.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]] ++ rows.map(_.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
+      val worksheet = typings.xlsx.mod.utils.aoa_to_sheet(data)
+      typings.xlsx.mod.utils.book_append_sheet(workbook, worksheet,tit)
+      typings.xlsx.mod.writeFile(workbook, s"$tit.$filetype")
+
+    }
+
     def exportXLS(metadata: => JSONMetadata) = (e:Event) => {
-      val (title,header,rows) = currentTable(metadata)
-
-      val table = XLSTable(title, header, rows)
-
-      services.rest.exportXLS(table).foreach{ xls =>
-        typings.fileSaver.mod.saveAs(xls,s"${metadata.label}.xlsx")
-      }
+      export(metadata,s"xlsx")
       e.preventDefault()
     }
 

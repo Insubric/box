@@ -167,7 +167,8 @@ lazy val client: Project = (project in file("client"))
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
       "choices.js" -> "10.0.0",
-      "autocompleter" -> "7.0.1"
+      "autocompleter" -> "7.0.1",
+      "xlsx" -> "0.18.5"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "redux",
