@@ -130,5 +130,8 @@ object SliderWidget extends ComponentWidgetFactory {
 
 
     }
+
+    override def json(): _root_.io.udash.ReadableProperty[Json] = params.prop
+
   }
 }

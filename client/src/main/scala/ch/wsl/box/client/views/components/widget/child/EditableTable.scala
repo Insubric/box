@@ -27,6 +27,7 @@ import scalacss.ProdDefaults._
 import typings.printJs.mod.PrintTypes
 
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
 import scala.scalajs.js.WrappedArray
 import scala.scalajs.js.typedarray.Uint8Array
@@ -196,7 +197,9 @@ object EditableTable extends ChildRendererFactory {
       (params,widgetFactory.create(params))
     }
 
-    def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
+    var widgets:ListBuffer[ListBuffer[Widget]] = ListBuffer()
+
+    def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[Json]]) = {
       val f = fields(metadata) //.filter(f => checkCondition(f).get)
 
 
@@ -208,32 +211,24 @@ object EditableTable extends ChildRendererFactory {
       (
         tit,
         f.map(colHeader).map(_.get),
-        entity.get.toSeq.map{ row =>
-          val childWidget = getWidget(row)
-          f.map { field =>
-            val (_,widget) = colContentWidget(childWidget, field, metadata)
-            val result = widget.text().get
-            widget.killWidget()
-            result
-          }
-        }
+        widgets.map(_.map(_.json().get).toSeq).toSeq
       )
     }
 
     def printTable(metadata: => JSONMetadata) = (e:Event) => {
       val (title,header,rows) = currentTable(metadata)
 
-      val table = PDFTable(title, header, rows)
-
-      services.rest.renderTable(table).foreach{ pdf =>
-        typings.printJs.mod(
-          typings.printJs.mod.Configuration()
-            .setBase64(true)
-            .setPrintable(pdf)
-            .setType(PrintTypes.pdf)
-            .setStyle("@page { size: A4 landscape; }")
-        )
-      }
+//      val table = PDFTable(title, header, rows)
+//
+//      services.rest.renderTable(table).foreach{ pdf =>
+//        typings.printJs.mod(
+//          typings.printJs.mod.Configuration()
+//            .setBase64(true)
+//            .setPrintable(pdf)
+//            .setType(PrintTypes.pdf)
+//            .setStyle("@page { size: A4 landscape; }")
+//        )
+//      }
       e.preventDefault()
     }
 
@@ -246,11 +241,22 @@ object EditableTable extends ChildRendererFactory {
       import js.JSConverters._
 
       val (tit, header, rows) = currentTable(metadata)
-      val workbook = typings.xlsx.mod.utils.book_new()
-      val data = Seq(header.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]] ++ rows.map(_.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      val worksheet = typings.xlsx.mod.utils.aoa_to_sheet(data)
-      typings.xlsx.mod.utils.book_append_sheet(workbook, worksheet,tit)
-      typings.xlsx.mod.writeFile(workbook, s"$tit.$filetype")
+      val workbook = typings.xlsxJsStyle.mod.utils.book_new()
+      val head =  Seq(header.map{ h =>
+        io.circe.scalajs.convertJsonToJs(Map(
+          "v" -> Json.fromString(h),
+          "t" -> Json.fromString("s"),
+          "s" -> Map(
+            "font" -> Map("bold" -> Json.True).asJson,
+            "alignment" -> Map("horizontal" -> "center").asJson
+          ).asJson
+        ).asJson)
+      }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
+      BrowserConsole.log(head)
+      val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
+      val worksheet = typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
+      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit)
+      typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
 
     }
 
@@ -352,6 +358,7 @@ object EditableTable extends ChildRendererFactory {
     def renderTable(write: Boolean,nested:Binding.NestedInterceptor):Modifier = metadata match {
       case None => p("child not found")
       case Some(m) => {
+        widgets.clear()
 
         nested(showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
 
@@ -379,11 +386,14 @@ object EditableTable extends ChildRendererFactory {
 
                   tbody(
                     nested(repeatWithNested(entity) { (row,nested) =>
+                      val rowWidgets = ListBuffer[Widget]()
+                      widgets.addOne(rowWidgets)
                       val childWidget = getWidget(row.get)
 
                       tr(tableStyle.tr,
                         for (field <- f) yield {
                           val (params, widget) = colContentWidget(childWidget, field, m)
+                          rowWidgets.addOne(widget)
 
                           showIfCondition(field,nested) {
                             td(

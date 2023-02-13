@@ -285,6 +285,8 @@ object InputWidget extends Logging {
         case _ => nested(TextInput(stringModel)(mod:_*)).render
       }
     }
+
+    override def json(): _root_.io.udash.ReadableProperty[Json] = data
   }
 
   class IntegerDecimal2(val field:JSONField, val data: Property[Json]) extends Widget with HasData {
@@ -341,6 +343,8 @@ object InputWidget extends Logging {
         js.as[Double].toOption.map(x => "%.2f".format(x / 100.0)).getOrElse("")
       } else ""
     }))
+
+    override def json(): _root_.io.udash.ReadableProperty[Json] = data
 
   }
 
