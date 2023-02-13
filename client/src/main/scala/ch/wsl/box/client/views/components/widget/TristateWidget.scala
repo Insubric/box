@@ -86,6 +86,8 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
     tristateCheckbox(booleanModel).render
   }
 
+  override def json(): _root_.io.udash.ReadableProperty[Json] = data
+
 }
 
 object TristateWidget extends ComponentWidgetFactory {

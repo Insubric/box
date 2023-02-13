@@ -24,11 +24,14 @@ import org.scalajs.dom.raw.{Blob, HTMLAnchorElement, HTMLElement, HTMLInputEleme
 import scalacss.internal.mutable.StyleSheet
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
-import typings.printJs.mod.PrintTypes
-import typings.std.global.atob
+import typings.jspdf.mod.jsPDF
+import typings.jspdfAutotable.anon.PartialStyles
+import typings.jspdfAutotable.mod.{CellInput, RowInput, UserOptions}
 
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
+import scala.scalajs.js.WrappedArray
 import scala.scalajs.js.typedarray.Uint8Array
 
 case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
@@ -196,66 +199,75 @@ object EditableTable extends ChildRendererFactory {
       (params,widgetFactory.create(params))
     }
 
-    def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[String]]) = {
+    var widgets:ListBuffer[ListBuffer[Widget]] = ListBuffer()
+
+    def currentTable(metadata:JSONMetadata):(String,Seq[String],Seq[Seq[Json]]) = {
       val f = fields(metadata) //.filter(f => checkCondition(f).get)
 
 
-      val title = parentMetadata.dynamicLabel match {
+      val tit = parentMetadata.dynamicLabel match {
         case None => metadata.label
         case Some(dl) => masterData.get.getOpt(dl).getOrElse(metadata.label)
       }
 
       (
-        title,
+        tit,
         f.map(colHeader).map(_.get),
-        entity.get.toSeq.map{ row =>
-          val childWidget = getWidget(row)
-          f.map { field =>
-            val (_,widget) = colContentWidget(childWidget, field, metadata)
-            val result = widget.text().get
-            widget.killWidget()
-            result
-          }
-        }
+        widgets.map(_.map(_.json().get).toSeq).toSeq
       )
     }
 
     def printTable(metadata: => JSONMetadata) = (e:Event) => {
+
+      import js.JSConverters._
+
       val (title,header,rows) = currentTable(metadata)
+      val doc = new jsPDF(typings.jspdf.jspdfStrings.landscape)
 
-      val table = PDFTable(title, header, rows)
+      val data = rows.map(_.map(_.string).toJSArray).toJSArray.asInstanceOf[js.Array[RowInput]]
 
-      services.rest.renderTable(table).foreach{ pdf =>
-        typings.printJs.mod(
-          typings.printJs.mod.Configuration()
-            .setBase64(true)
-            .setPrintable(pdf)
-            .setType(PrintTypes.pdf)
-            .setStyle("@page { size: A4 landscape; }")
-        )
-      }
+      typings.jspdfAutotable.mod.default(doc,UserOptions()
+        .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
+        .setBody(data)
+        .setMargin(10)
+        .setStyles(PartialStyles().setCellPadding(0.5).setFontSize(9))
+      )
+
+      doc.save(s"$title.pdf")
+
       e.preventDefault()
     }
 
     def exportCSV(metadata: => JSONMetadata) = (e:Event) => {
-      val (title,header,rows) = currentTable(metadata)
-
-      val table = CSVTable(title, header, rows)
-
-      services.rest.exportCSV(table).foreach{ csv =>
-        typings.fileSaver.mod.saveAs(csv,s"${metadata.label}.csv")
-      }
+      export(metadata,s"csv")
       e.preventDefault()
     }
 
+    def export(metadata: => JSONMetadata,filetype: String) = {
+      import js.JSConverters._
+
+      val (tit, header, rows) = currentTable(metadata)
+      val workbook = typings.xlsxJsStyle.mod.utils.book_new()
+      val head =  Seq(header.map{ h =>
+        io.circe.scalajs.convertJsonToJs(Map(
+          "v" -> Json.fromString(h),
+          "t" -> Json.fromString("s"),
+          "s" -> Map(
+            "font" -> Map("bold" -> Json.True).asJson,
+            "alignment" -> Map("horizontal" -> "center").asJson
+          ).asJson
+        ).asJson)
+      }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
+      BrowserConsole.log(head)
+      val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
+      val worksheet = typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
+      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit)
+      typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
+
+    }
+
     def exportXLS(metadata: => JSONMetadata) = (e:Event) => {
-      val (title,header,rows) = currentTable(metadata)
-
-      val table = XLSTable(title, header, rows)
-
-      services.rest.exportXLS(table).foreach{ xls =>
-        typings.fileSaver.mod.saveAs(xls,s"${metadata.label}.xlsx")
-      }
+      export(metadata,s"xlsx")
       e.preventDefault()
     }
 
@@ -352,6 +364,7 @@ object EditableTable extends ChildRendererFactory {
     def renderTable(write: Boolean,nested:Binding.NestedInterceptor):Modifier = metadata match {
       case None => p("child not found")
       case Some(m) => {
+        widgets.clear()
 
         nested(showIf(entity.transform(_.nonEmpty || !hideEmpty)) {
 
@@ -379,11 +392,14 @@ object EditableTable extends ChildRendererFactory {
 
                   tbody(
                     nested(repeatWithNested(entity) { (row,nested) =>
+                      val rowWidgets = ListBuffer[Widget]()
+                      widgets.addOne(rowWidgets)
                       val childWidget = getWidget(row.get)
 
                       tr(tableStyle.tr,
                         for (field <- f) yield {
                           val (params, widget) = colContentWidget(childWidget, field, m)
+                          rowWidgets.addOne(widget)
 
                           showIfCondition(field,nested) {
                             td(

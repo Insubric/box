@@ -51,6 +51,7 @@ trait Widget extends Logging {
 
   def showOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
   def text():ReadableProperty[String] = Property("Not implemented")
+  def json():ReadableProperty[Json] = text().transform(Json.fromString)
   def editOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
 
   def render(write:Boolean,conditional:ReadableProperty[Boolean],nested:Binding.NestedInterceptor):Modifier = showIf(conditional) {

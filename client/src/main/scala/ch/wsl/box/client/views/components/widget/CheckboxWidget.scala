@@ -56,7 +56,7 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
     Checkbox(booleanModel)(ClientConf.style.simpleCheckbox).render
   }
 
-
+  override def json(): _root_.io.udash.ReadableProperty[Json] = data
 }
 
 object CheckboxWidget extends ComponentWidgetFactory {

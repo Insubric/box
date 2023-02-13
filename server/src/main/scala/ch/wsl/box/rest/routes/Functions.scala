@@ -12,19 +12,18 @@ import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object Functions extends Data {
+case class Functions()(implicit val up: UserProfile,  val mat: Materializer, val ec: ExecutionContext, val system:ActorSystem, val services:Services) extends Data {
 
   import ch.wsl.box.jdbc.PostgresProfile.api._
   import ch.wsl.box.shared.utils.JSONUtils._
 
+  implicit val db = up.db
 
-
-
-  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = new FunctionMetadataFactory()
+  override def metadataFactory: DataMetadataFactory = new FunctionMetadataFactory()
 
   def functions = ch.wsl.box.model.boxentities.BoxFunction
 
-  override def data(function: String, params: Json, lang: String)(implicit up: UserProfile,  mat: Materializer, ec: ExecutionContext,system:ActorSystem,services:Services): Future[Option[DataContainer]] = {
+  override def data(function: String, params: Json, lang: String): Future[Option[DataContainer]] = {
     implicit def db:UserDatabase = up.db
 
     for{
