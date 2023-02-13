@@ -159,7 +159,6 @@ lazy val client: Project = (project in file("client"))
       "@types/file-saver" -> "2.0.1",
       "js-md5" -> "0.7.3",
       "@types/js-md5" -> "0.4.2",
-      "print-js" -> "1.6.0",
       "striptags" -> "3.2.0",
       "toolcool-range-slider" -> "2.0.12",
       "hotkeys-js" -> "3.10.0",
@@ -168,7 +167,9 @@ lazy val client: Project = (project in file("client"))
       "stream-browserify" -> "3.0.0",
       "choices.js" -> "10.0.0",
       "autocompleter" -> "7.0.1",
-      "xlsx-js-style" -> "1.2.0"
+      "xlsx-js-style" -> "1.2.0",
+      "jspdf" -> "2.5.1",
+      "jspdf-autotable" -> "3.5.28"
     ),
     stIgnore += "open-sans-all",
     stIgnore += "redux",

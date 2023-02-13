@@ -24,7 +24,9 @@ import org.scalajs.dom.raw.{Blob, HTMLAnchorElement, HTMLElement, HTMLInputEleme
 import scalacss.internal.mutable.StyleSheet
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
-import typings.printJs.mod.PrintTypes
+import typings.jspdf.mod.jsPDF
+import typings.jspdfAutotable.anon.PartialStyles
+import typings.jspdfAutotable.mod.{CellInput, RowInput, UserOptions}
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
@@ -216,19 +218,23 @@ object EditableTable extends ChildRendererFactory {
     }
 
     def printTable(metadata: => JSONMetadata) = (e:Event) => {
-      val (title,header,rows) = currentTable(metadata)
 
-//      val table = PDFTable(title, header, rows)
-//
-//      services.rest.renderTable(table).foreach{ pdf =>
-//        typings.printJs.mod(
-//          typings.printJs.mod.Configuration()
-//            .setBase64(true)
-//            .setPrintable(pdf)
-//            .setType(PrintTypes.pdf)
-//            .setStyle("@page { size: A4 landscape; }")
-//        )
-//      }
+      import js.JSConverters._
+
+      val (title,header,rows) = currentTable(metadata)
+      val doc = new jsPDF(typings.jspdf.jspdfStrings.landscape)
+
+      val data = rows.map(_.map(_.string).toJSArray).toJSArray.asInstanceOf[js.Array[RowInput]]
+
+      typings.jspdfAutotable.mod.default(doc,UserOptions()
+        .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
+        .setBody(data)
+        .setMargin(10)
+        .setStyles(PartialStyles().setCellPadding(0.5).setFontSize(9))
+      )
+
+      doc.save(s"$title.pdf")
+
       e.preventDefault()
     }
 
