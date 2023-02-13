@@ -39,7 +39,7 @@ case class Form(
                  kind:String,
                  public: Boolean = false,
                  schema:Option[String] = None
-               )(implicit up:UserProfile, ec: ExecutionContext, mat:Materializer,services:Services) extends enablers.CSVDownload with Logging {
+               )(implicit up:UserProfile, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] {
 
     import JSONSupport._
     import Light._
@@ -61,14 +61,9 @@ case class Form(
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang)),10.seconds)
+   private def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
-   private def actions[T](f:FormActions => T):T = {
-      val formActions = FormActions(metadata,registry,metadataFactory)
-      f(formActions)
-    }
-
-
-    private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
+  private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {
           case Some(fields) => m.fields.filter(field => fields.contains(field.name))
           case None => m.fields.filter(field => m.tabularFields.contains(field.name))
@@ -163,31 +158,19 @@ case class Form(
     }
   }
 
-  def lookups:Route = pathPrefix("lookups") {
-    post {
-      entity(as[JSONLookupsRequest]) { lookupRequest =>
-        actions { fa =>
-          complete(db.run(fa.lookups(lookupRequest)))
-        }
-      }
-    }
-  }
-
   def updateDiff = put {
     privateOnly {
       entity(as[JSONDiff]) { e =>
         complete {
-          actions { fs =>
-            for {
-              jsonId <- db.run{
-                fs.updateDiff(e).transactionally
-              }
-            } yield {
-              if(schema == BoxSchema.schema) {
-                Cache.reset()
-              }
-              if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+          for {
+            jsonId <- db.run{
+              actions.updateDiff(e).transactionally
             }
+          } yield {
+            if(schema == BoxSchema.schema) {
+              Cache.reset()
+            }
+            if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
           }
         }
       }
@@ -214,29 +197,10 @@ case class Form(
     }
   }
 
-  def lookup:Route = pathPrefix("lookup") {
-    path(Segment) { field =>
-      post {
-        entity(as[JSONQuery]) { query =>
-          complete {
-            for{
-              lookups <- {
-                metadata.fields.find(_.name == field).flatMap(_.remoteLookup) match {
-                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
-                  case None => throw new Exception(s"$field has no lookup")
-                }
-              }
-            } yield lookups
-          }
-        }
-      }
-    }
-  }
-
   def _get(ids:Seq[JSONID]) = get {
     privateOnly {
-      complete(actions { fs =>
-        db.run(fs.getById(ids.head).transactionally).map { record =>
+      complete({
+        db.run(actions.getById(ids.head).transactionally).map { record =>
           logger.info(record.toString)
           HttpEntity(ContentTypes.`application/json`, record.asJson)
         }
@@ -247,13 +211,13 @@ case class Form(
   def _delete(ids:Seq[JSONID]) = delete {
     privateOnly {
       complete {
-        actions { fs =>
-          val action = DBIO.sequence(ids.map(id => fs.delete(id))).transactionally
+
+          val action = DBIO.sequence(ids.map(id => actions.delete(id))).transactionally
           //println(action.statements.mkString("\n"))
           for {
             count <- db.run(action)
           } yield JSONCount(count.sum)
-        }
+
       }
     }
   }
@@ -262,11 +226,11 @@ case class Form(
     privateOnly {
       entity(as[Json]) { e =>
         complete {
-          actions { fs =>
+
             val values = e.as[Seq[Json]].getOrElse(Seq(e))
             val result = for {
               jsonId <- db.run{
-                DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.update(id, x)}).transactionally
+                DBIO.sequence(values.zip(ids).map{ case (x,id) => actions.update(id, x)}).transactionally
               }
             } yield {
               if(schema == BoxSchema.schema) {
@@ -278,7 +242,7 @@ case class Form(
             result.recover{ case t:Throwable => t.printStackTrace()}
 
             result
-          }
+
         }
       }
     }
@@ -353,11 +317,7 @@ case class Form(
     path("count") {
       get {
         complete {
-          actions{a =>
-
-            db.run(a.count())
-
-          }
+            db.run(actions.count())
         }
       }
     } ~
@@ -382,18 +342,16 @@ case class Form(
         }
       }
     } ~
-    lookup ~
+    lookup(Future.successful(metadata)) ~
     xls ~
     csv ~
     shp ~
-    lookups ~
+    lookups(actions) ~
     pathEnd {
         post {
           entity(as[Json]) { e =>
             complete {
-              actions{ fs =>
-                db.run(fs.insert(e).transactionally)
-              }
+              db.run(actions.insert(e).transactionally)
             }
           }
         }

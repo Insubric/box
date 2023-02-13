@@ -166,7 +166,10 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
       uiFile ~
       Cache.resetRoute() ~
       new PublicArea().route ~
-      new PrivateArea().route
+      new PrivateArea().route ~
+      extractUnmatchedPath{ path =>
+        complete(StatusCodes.NotFound,s"$path not found")
+      }
   }
 
 }

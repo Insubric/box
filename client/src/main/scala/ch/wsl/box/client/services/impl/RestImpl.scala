@@ -96,11 +96,11 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
 
   //export
-  def dataMetadata(kind:String,name:String,lang:String) = httpClient.get[JSONMetadata](Routes.apiV1(s"/$kind/$name/metadata/$lang"))
-  def dataDef(kind:String,name:String,lang:String) = httpClient.get[ExportDef](Routes.apiV1(s"/$kind/$name/def/$lang"))
-  def dataList(kind:String,lang:String) = httpClient.get[Seq[ExportDef]](Routes.apiV1(s"/$kind/list/$lang"))
+  def dataMetadata(kind:String,name:String,lang:String) = httpClient.get[JSONMetadata](Routes.apiV1(s"/$kind/$lang/$name/metadata"))
+  def dataDef(kind:String,name:String,lang:String) = httpClient.get[ExportDef](Routes.apiV1(s"/$kind/$lang/$name/def"))
+  def dataList(kind:String,lang:String) = httpClient.get[Seq[ExportDef]](Routes.apiV1(s"/$kind/$lang/list"))
 
-  def data(kind:String,name:String,params:Json,lang:String):Future[Seq[Seq[String]]] = httpClient.post[Json,String](Routes.apiV1(s"/$kind/$name/$lang"), params).map{ result =>
+  def data(kind:String,name:String,params:Json,lang:String):Future[Seq[Seq[String]]] = httpClient.post[Json,String](Routes.apiV1(s"/$kind/$lang/$name"), params).map{ result =>
     result.asUnsafeCsvReader[Seq[String]](rfc).toSeq
   }
 
@@ -111,8 +111,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   override def exportCSV(table: CSVTable): Future[File] = httpClient.postFileResponse[CSVTable](Routes.apiV1(s"/exportCSV"),table)
   override def exportXLS(table: XLSTable): Future[File] = httpClient.postFileResponse[XLSTable](Routes.apiV1(s"/exportXLS"),table)
 
-
-  override def execute(functionName: String, lang: String, data:Json): Future[DataResultTable] = httpClient.post[Json,DataResultTable](Routes.apiV1(s"/function/$functionName/$lang/raw"),data)
+  override def execute(functionName: String, lang: String, data:Json): Future[DataResultTable] = httpClient.post[Json,DataResultTable](Routes.apiV1(s"/function/$lang/$functionName/raw"),data)
 
   //admin
   def generateStub(entity:String) = httpClient.get[Boolean](Routes.apiV1(s"/create-stub/$entity"))

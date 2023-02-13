@@ -35,11 +35,11 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
   import ch.wsl.box.shared.utils.Formatters._
 
   def export(implicit up:UserProfile) = pathPrefix("export") {
-    Export.route
+    Export().route
   }
 
   def function(implicit up:UserProfile) = pathPrefix("function") {
-    Functions.route
+    Functions().route
   }
 
   def file(implicit up:UserProfile) = pathPrefix("file") {

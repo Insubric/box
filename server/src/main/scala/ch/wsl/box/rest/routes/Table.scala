@@ -13,8 +13,8 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONLookupsRequest, JSONMetadata, JSONQuery, XLSTable}
-import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, Lang, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
@@ -47,9 +47,9 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
                                                                                                  (implicit
                                                                                                   enc: EncoderWithBytea[M],
                                                                                                   dec:Decoder[M],
-                                                                                                  mat:Materializer,
+                                                                                                  val mat:Materializer,
                                                                                                   up:UserProfile,
-                                                                                                  ec: ExecutionContext, services:Services) extends enablers.CSVDownload with Logging {
+                                                                                                  val ec: ExecutionContext, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[M] {
 
 
   import JSONSupport._
@@ -80,6 +80,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     import io.circe.syntax._
     import io.circe.parser._
     import JSONData._
+
 
   def jsonMetadata:JSONMetadata = {
     val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry)
@@ -214,12 +215,6 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       }
   }
 
-  def lookups:Route = post{
-    entity(as[JSONLookupsRequest]) { lookupRequest =>
-      complete(db.run(dbActions.lookups(lookupRequest)))
-    }
-  }
-
   def default:Route = get {
     val data:Future[Seq[T#TableElementType]] = db.run{table.take(50).result}
     onComplete(data) {
@@ -278,24 +273,6 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     }
   }
 
-  def lookup:Route = path("lookup") {
-    path(Segment) { field =>
-      post {
-        entity(as[JSONQuery]) { query =>
-          complete {
-            for{
-              lookups <- {
-                jsonMetadata.fields.find(_.name == field).flatMap(_.remoteLookup) match {
-                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
-                  case None => throw new Exception(s"$field has no lookup")
-                }
-              }
-            } yield lookups
-          }
-        }
-      }
-    }
-  }
 
   def route:Route = pathPrefix(name) {
         pathPrefix("id") {
@@ -309,7 +286,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
             }
         }
       } ~
-      lookup ~
+      lookup(Future.successful(jsonMetadata)) ~
       kind ~
       metadata ~
       tabularMetadata ~
@@ -320,7 +297,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       xls ~
       csv ~
       shp ~
-      lookups ~
+      lookups(dbActions) ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~
         insert
