@@ -49,8 +49,6 @@ class DataListPresenter(model:ModelProperty[DataList]) extends Presenter[DataLis
   import ch.wsl.box.client.Context._
 
   override def handleState(state: DataListState ): Unit = {
-    BrowserConsole.log(state.toString)
-    BrowserConsole.log(model.subProp(_.list).get.toString())
     model.subProp(_.kind).set(state.kind)
 
     val exports = if(model.subProp(_.list).get.isEmpty) {
