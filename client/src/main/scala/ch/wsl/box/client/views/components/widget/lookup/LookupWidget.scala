@@ -1,8 +1,9 @@
 package ch.wsl.box.client.views.components.widget.lookup
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONFieldTypes, JSONLookup, JSONMetadata, JSONQuery}
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.syntax._
@@ -57,11 +58,26 @@ trait LookupWidget extends Widget with HasData {
 
   private def setNewLookup(newLookup:Seq[JSONLookup]) = {
 
+
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
+      println(newLookup)
+      BrowserConsole.log(data.get)
+      println(field.default)
+
+
       _lookup.set(newLookup)
-      newLookup.find(_.id == data.get).foreach{ newModel =>
-          model.set(Some(newModel))
+      val firstLookup = newLookup.find(_.id == data.get) // search the lookup associated with the current data
+
+      if(field.default.contains(JSONUtils.FIRST) && firstLookup.isEmpty) {
+        println(newLookup.headOption)
+        model.set(newLookup.headOption)
+        newLookup.headOption.foreach(d => data.set(d.id))
+
+      } else { // when everything ok
+        model.set(firstLookup)
       }
+
+
       registerDataSync()
     }
   }
