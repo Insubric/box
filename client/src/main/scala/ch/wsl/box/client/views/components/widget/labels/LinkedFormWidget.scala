@@ -43,23 +43,30 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
     val label = field.label.orElse(field.linked.flatMap(_.label)).orElse(field.linked.map(_.name)).getOrElse("Open")
 
+    def loadAndGo(edit:Boolean,directToForm:Seq[String] => Boolean) = {
+      val query = field.query.getOrElse(JSONQuery.empty)
+      services.rest.ids(EntityKind.FORM.kind, services.clientSession.lang(), linkedFormName, query).map { ids =>
+        services.clientSession.setIDs(ids)
+        if(directToForm(ids.ids)) {
+          if (edit) {
+            ids.ids.headOption match {
+              case Some(value) => navigate(_.edit(value))
+              case None => navigate(_.add())
+            }
+          } else {
+            navigate(_.show(ids.ids.headOption.getOrElse("")))
+          }
+        } else {
+          navigate(_.entity(field.query))
+        }
+      }
+    }
+
     def goto(edit:Boolean):Event => Any = (e: Event) => {
       e.preventDefault()
       field.params.map(_.get("open")) match {
-        case Some("first") => {
-          val query = field.query.getOrElse(JSONQuery.empty)
-          services.rest.ids(EntityKind.FORM.kind,services.clientSession.lang(),linkedFormName,query).map{ ids =>
-            services.clientSession.setIDs(ids)
-            if(edit) {
-              ids.ids.headOption match {
-                case Some(value) => navigate(_.edit(value))
-                case None => navigate(_.add())
-              }
-            } else {
-              navigate(_.show(ids.ids.headOption.getOrElse("")))
-            }
-          }
-        }
+        case Some("first") => loadAndGo(edit,_ => true)
+        case Some("listOrSingle") => loadAndGo(edit,_.length <= 1)
         case Some("new") => {
           if(edit) {
             navigate(_.add())

@@ -4,10 +4,11 @@ import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
 import ch.wsl.box.model.shared.JSONQuery
 import org.scalajs.dom
-import org.scalajs.dom.experimental.URLSearchParams
+import org.scalajs.dom.URLSearchParams
 import scribe.Logging
 
 import scala.scalajs.js
+import scala.scalajs.js.URIUtils
 
 /**
   * Created by andre on 6/6/2017.
@@ -64,7 +65,7 @@ object Routes extends Logging {
     def add() = EntityFormState(kind,entityName,"true",None,false)
     def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),false)
     def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),false)
-    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(_.asJson.noSpaces))
+    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => URIUtils.encodeURIComponent(js.asJson.noSpaces)))
     def entity(name:String) = EntityTableState(kind,name,None)
   }
 
