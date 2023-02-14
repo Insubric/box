@@ -83,7 +83,7 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
   val csv = (e:Event) => {
     logger.info()
     val url = Routes.apiV1(
-      s"/${model.get.kind}/${model.get.metadata.get.name}/${services.clientSession.lang()}?q=${args.toString()}".replaceAll("\n","")
+      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}?q=${args.toString()}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)
