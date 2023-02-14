@@ -6,8 +6,8 @@ package ch.wsl.box.client.views
   */
 
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate}
-import ch.wsl.box.client.styles.{BootstrapCol}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate}
+import ch.wsl.box.client.styles.BootstrapCol
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.form.UdashForm
@@ -16,7 +16,11 @@ import org.scalajs.dom.{Element, Event}
 import ch.wsl.box.client.{DataListState, DataState}
 import ch.wsl.box.client.views.components.widget.WidgetUtils
 import ch.wsl.box.model.shared.ExportDef
+import io.udash.bootstrap.tooltip.UdashTooltip
 import scalatags.generic
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 
 case class DataList(list:Seq[ExportDef], currentEntity:Option[ExportDef], search:String, filteredList:Seq[ExportDef], kind:String)
 
@@ -26,7 +30,7 @@ object DataList extends HasModelPropertyCreator[DataList] {
 }
 
 
-case class DataListViewPresenter(modelName:String) extends ViewFactory[DataListState] {
+object DataListViewPresenter extends ViewFactory[DataListState] {
 
 
 
@@ -45,20 +49,34 @@ class DataListPresenter(model:ModelProperty[DataList]) extends Presenter[DataLis
   import ch.wsl.box.client.Context._
 
   override def handleState(state: DataListState ): Unit = {
+    BrowserConsole.log(state.toString)
+    BrowserConsole.log(model.subProp(_.list).get.toString())
     model.subProp(_.kind).set(state.kind)
-//    println(state.currentExport)
-    services.rest.dataList(state.kind,services.clientSession.lang()).map{ exports =>
-      model.subSeq(_.list).set(exports)
-      model.subSeq(_.filteredList).set(exports)
-      val current = exports.find(_.function == state.currentExport)
 
+    val exports = if(model.subProp(_.list).get.isEmpty) {
+      services.rest.dataList(state.kind, services.clientSession.lang()).map { exports =>
+        model.subSeq(_.list).set(exports)
+        model.subSeq(_.filteredList).set(exports)
+        exports
+      }
+    } else {
+      Future.successful(model.subProp(_.list).get)
+    }
+
+    exports.map{e =>
+      val current = e.find(_.function == state.currentExport)
       model.subProp(_.currentEntity).set(current)
     }
+
   }
 
 
-  def updateExportsList() = {
-    model.subProp(_.filteredList).set(model.subProp(_.list).get.filter(m => m.label.contains(model.get.search)))
+  model.subProp(_.search).listen{q =>
+    updateExportsList(q)
+  }
+
+  def updateExportsList(q:String) = {
+    model.subProp(_.filteredList).set(model.subProp(_.list).get.filter(m => m.label.toLowerCase.contains(q.toLowerCase)))
   }
 
 }
@@ -85,19 +103,37 @@ class DataListView(model:ModelProperty[DataList], presenter: DataListPresenter) 
 
   private val content: Element = div().render
 
-  private def sidebar: Element = div(sidebarGrid)(
-    Labels.exports.search,
-    TextInput(model.subProp(_.search))(onkeyup :+= ((ev: Event) => presenter.updateExportsList())),
-      produce(model.subProp(_.search)) { q =>
-        ul(ClientConf.style.noBullet)(
-          repeat(model.subSeq(_.filteredList)){m =>
-            li(produce(m) { export =>
-              WidgetUtils.addTooltip(m.get.tooltip) (a(Navigate.click(DataState(model.get.kind,export.function)), m.get.label).render)._1
-            }).render
+  val tooltips = ListBuffer[UdashTooltip]()
+
+  private def sidebar: Element = {
+    tooltips.foreach(_.destroy())
+    tooltips.clear()
+    div(sidebarGrid,
+      div(
+        p(Labels.exports.search),
+        TextInput(model.subProp(_.search))(),
+        ul(ClientConf.style.noBullet,
+          repeatWithNested(model.subSeq(_.filteredList)) { (m,nested) =>
+            tooltips.foreach(_.hide())
+            li(nested(produce(m) { export =>
+              var tooltip:Option[UdashTooltip] = None
+              val (el,tt) = WidgetUtils.addTooltip(m.get.tooltip)(a(m.get.label, onclick :+= {(e:Event) =>
+                tooltip.foreach(_.hide())
+                Navigate.to(DataState(model.get.kind, export.function))
+                e.preventDefault()
+              }).render)
+              tooltip = tt
+              tt.map(tooltips.addOne)
+              el
+            })).render
           }
-        ).render
-      }
+        )
+      )
     ).render
+  }
+
+
+
 
   override def getTemplate: scalatags.generic.Modifier[Element] = div(BootstrapStyles.Grid.row)(
     sidebar,
