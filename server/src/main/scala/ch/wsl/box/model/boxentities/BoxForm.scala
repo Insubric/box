@@ -38,7 +38,7 @@ object BoxForm {
                         )
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
-  class BoxForm(_tableTag: Tag) extends profile.api.Table[BoxForm_row](_tableTag,BoxSchema.schema, "form") {
+  class BoxForm(_tableTag: Tag) extends profile.api.Table[BoxForm_row](_tableTag,Some(BoxSchema.schema), "form") {
     def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportFields,guest_user,edit_key_field,show_navigation,props,params) <> (BoxForm_row.tupled, BoxForm_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
@@ -77,7 +77,7 @@ object BoxForm {
   /** GetResult implicit for fetching Form_i18n_row objects using plain SQL queries */
 
   /** Table description of table form_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class BoxForm_i18n(_tableTag: Tag) extends profile.api.Table[BoxForm_i18n_row](_tableTag,BoxSchema.schema, "form_i18n") {
+  class BoxForm_i18n(_tableTag: Tag) extends profile.api.Table[BoxForm_i18n_row](_tableTag,Some(BoxSchema.schema), "form_i18n") {
     def * = (Rep.Some(uuid), form_uuid, lang, label,viewTable,dynamic_label) <> (BoxForm_i18n_row.tupled, BoxForm_i18n_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
@@ -115,7 +115,7 @@ object BoxForm {
                                  html_check:Boolean = true
                                 )
 
-  class BoxForm_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_actions_row](_tableTag,BoxSchema.schema, "form_actions") {
+  class BoxForm_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_actions_row](_tableTag,Some(BoxSchema.schema), "form_actions") {
     def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
@@ -153,7 +153,7 @@ object BoxForm {
                                  execute_function:Option[String],
                                 )
 
-  class BoxForm_navigation_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_navigation_actions_row](_tableTag,BoxSchema.schema, "form_navigation_actions") {
+  class BoxForm_navigation_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_navigation_actions_row](_tableTag,Some(BoxSchema.schema), "form_navigation_actions") {
     def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function) <> (BoxForm_navigation_actions_row.tupled, BoxForm_navigation_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
@@ -192,7 +192,7 @@ object BoxForm {
                                             target: Option[String]
                                            )
 
-  class BoxForm_table_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_table_actions_row](_tableTag, BoxSchema.schema, "form_actions_table") {
+  class BoxForm_table_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_table_actions_row](_tableTag, Some(BoxSchema.schema), "form_actions_table") {
     def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order, confirm_text, execute_function, need_update_right, need_delete_right, when_no_update_right,target) <> (BoxForm_table_actions_row.tupled, BoxForm_table_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
@@ -233,7 +233,7 @@ object BoxForm {
                                        target: Option[String]
                                       )
 
-  class BoxForm_top_table_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_top_table_actions_row](_tableTag, BoxSchema.schema, "form_actions_top_table") {
+  class BoxForm_top_table_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_top_table_actions_row](_tableTag, Some(BoxSchema.schema), "form_actions_top_table") {
     def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, action_order, confirm_text, execute_function, need_update_right, need_delete_right, need_insert_right, when_no_update_right, target) <> (BoxForm_top_table_actions_row.tupled, BoxForm_top_table_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)

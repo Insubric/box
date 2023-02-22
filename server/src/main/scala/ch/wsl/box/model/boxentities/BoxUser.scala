@@ -13,7 +13,7 @@ object BoxUser {
 
   case class BoxUser_row(username:String, access_level_id: Int)
 
-  class BoxUser(_tableTag: Tag) extends profile.api.Table[BoxUser_row](_tableTag,BoxSchema.schema,"users") {
+  class BoxUser(_tableTag: Tag) extends profile.api.Table[BoxUser_row](_tableTag,Some(BoxSchema.schema),"users") {
     def * = (username,access_level_id) <> (BoxUser_row.tupled, BoxUser_row.unapply)
 
 

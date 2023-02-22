@@ -11,7 +11,7 @@ object BoxImageCache {
 
   case class BoxImageCache_row(key: String, data:Array[Byte])
 
-  class BoxImageCache(_tableTag: Tag) extends profile.api.Table[BoxImageCache_row](_tableTag,BoxSchema.schema, "image_cache") {
+  class BoxImageCache(_tableTag: Tag) extends profile.api.Table[BoxImageCache_row](_tableTag,Some(BoxSchema.schema), "image_cache") {
     def * = (key,data) <> (BoxImageCache_row.tupled, BoxImageCache_row.unapply)
 
     val key: Rep[String] = column[String]("key", O.PrimaryKey)

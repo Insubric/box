@@ -1,7 +1,7 @@
 
-alter table box.form_actions_table add column target text;
+alter table form_actions_table add column target text;
 
-create table box.form_actions_top_table
+create table form_actions_top_table
 (
     action            text                              not null,
     importance        text                              not null,
@@ -13,7 +13,7 @@ create table box.form_actions_top_table
             primary key,
     form_uuid         uuid                              not null
         constraint form_actions_top_table_form_form_id_fk
-            references box.form
+            references form
             on update cascade on delete cascade,
     execute_function  text,
     action_order      double precision                  not null,
@@ -25,5 +25,5 @@ create table box.form_actions_top_table
     target text
 );
 
-alter table box.form_actions_top_table
+alter table form_actions_top_table
     owner to postgres;

@@ -13,35 +13,37 @@ object MigrateDB {
 
 
   def box(connection:Connection,schema:String)(implicit ex:ExecutionContext) = {
-    def migrate() = {
-      val flyway = Flyway.configure()
-        .baselineOnMigrate(true)
-        .sqlMigrationPrefix("BOX_V")
-        //.undoSqlMigrationPrefix("BOX_U") oly for pro or enterprise version
-        .repeatableSqlMigrationPrefix("BOX_R")
-        .schemas(schema)
-        .defaultSchema(schema)
-        .table("flyway_schema_history_box")
-        .locations("box_migrations", "classpath:box_migrations")
-        .ignoreMissingMigrations(true)
-        .dataSource(connection.dataSource("BOX Migration"))
-        .load()
 
-      flyway.migrate()
-    }
+    val flyway = Flyway.configure()
+      .baselineOnMigrate(true)
+      .sqlMigrationPrefix("BOX_V")
+      //.undoSqlMigrationPrefix("BOX_U") oly for pro or enterprise version
+      .repeatableSqlMigrationPrefix("BOX_R")
+      .schemas(schema)
+      .defaultSchema(schema)
+      .table("flyway_schema_history_box")
+      .locations("box_migrations", "classpath:box_migrations")
+      .ignoreMissingMigrations(true)
+      .dataSource(connection.dataSource("BOX Migration", schema))
+      .load()
 
-    def migrationExceptions() = connection.dbConnection.run {
-      sqlu"""
-        update #$schema.flyway_schema_history_box set checksum=-495052968 where version='27';
-        update #$schema.flyway_schema_history_box set checksum=31598778 where version='42';
-        update #$schema.flyway_schema_history_box set checksum=-89848557 where version='44';
-        update #$schema.flyway_schema_history_box set checksum=1689113113 where version='45';
-        """.transactionally
+
+    def migrationExceptions() = {
+      if(flyway.info().current() != null)
+        connection.dbConnection.run {
+          sqlu"""
+          update #$schema.flyway_schema_history_box set checksum=-495052968 where version='27';
+          update #$schema.flyway_schema_history_box set checksum=31598778 where version='42';
+          update #$schema.flyway_schema_history_box set checksum=-89848557 where version='44';
+          update #$schema.flyway_schema_history_box set checksum=1689113113 where version='45';
+          """.transactionally
+        }
+      else Future.successful(true)
     }
 
     {for{
       _ <- migrationExceptions()
-      result <- Future { migrate() }
+      result <- Future { flyway.migrate() }
     } yield result}.recover{ case t:Throwable => t.printStackTrace()}
 
   }
@@ -54,7 +56,7 @@ object MigrateDB {
       .table("flyway_schema_history")
       .locations("migrations","classpath:migrations")
       .ignoreMissingMigrations(true)
-      .dataSource(connection.dataSource("App migration"))
+      .dataSource(connection.dataSource("App migration",connection.dbSchema))
       .load()
 
     val result = flyway.migrate()

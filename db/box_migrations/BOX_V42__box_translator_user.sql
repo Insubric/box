@@ -9,11 +9,11 @@ $do$
     end
 $do$;
 
-grant select,update,insert on box.form_i18n to box_translator;
-grant select,update,insert on box.field_i18n to box_translator;
-grant select,update,insert on box.v_labels to box_translator;
+grant select,update,insert on form_i18n to box_translator;
+grant select,update,insert on field_i18n to box_translator;
 
-create function box.add_translator_user(_username text, _password text) returns void
+
+create function add_translator_user(_username text, _password text) returns void
     language plpgsql
 as
 $$

@@ -1,1 +1,1 @@
-alter table box.field_i18n drop column if exists static_content;
+alter table field_i18n drop column if exists static_content;

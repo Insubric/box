@@ -11,7 +11,7 @@ object BoxCron {
 
   case class BoxCron_row(name: String, cron:String, sql:String)
 
-  class BoxCron(_tableTag: Tag) extends profile.api.Table[BoxCron_row](_tableTag,BoxSchema.schema, "cron") {
+  class BoxCron(_tableTag: Tag) extends profile.api.Table[BoxCron_row](_tableTag,Some(BoxSchema.schema), "cron") {
     def * = (name,cron,sql) <> (BoxCron_row.tupled, BoxCron_row.unapply)
 
     val name: Rep[String] = column[String]("name", O.PrimaryKey)

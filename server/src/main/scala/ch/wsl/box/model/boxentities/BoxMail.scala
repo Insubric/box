@@ -39,7 +39,7 @@ object BoxMail {
                          created:LocalDateTime
                         )
 
-  class BoxMail(_tableTag: Tag) extends profile.api.Table[BoxMail_row](_tableTag,BoxSchema.schema, "mails") {
+  class BoxMail(_tableTag: Tag) extends profile.api.Table[BoxMail_row](_tableTag,Some(BoxSchema.schema), "mails") {
     def * = (Rep.Some(id),send_at,sent_at,mail_from,mail_to,mail_cc,mail_bcc,subject,html,text,params,created) <> (BoxMail_row.tupled, BoxMail_row.unapply)
 
     val id: Rep[UUID] = column[UUID]("id", O.PrimaryKey,O.AutoInc)

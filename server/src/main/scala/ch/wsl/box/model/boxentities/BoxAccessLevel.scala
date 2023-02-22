@@ -13,7 +13,7 @@ object BoxAccessLevel {
 
   case class BoxAccessLevel_row(access_level_id: Int, access_level:String)
 
-  class BoxAccessLevel(_tableTag: Tag) extends profile.api.Table[BoxAccessLevel_row](_tableTag, BoxSchema.schema, "access_level") {
+  class BoxAccessLevel(_tableTag: Tag) extends profile.api.Table[BoxAccessLevel_row](_tableTag, Some(BoxSchema.schema), "access_level") {
     def * = (access_level_id,access_level) <> (BoxAccessLevel_row.tupled, BoxAccessLevel_row.unapply)
 
     val access_level_id: Rep[Int] = column[Int]("access_level_id", O.PrimaryKey)

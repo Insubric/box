@@ -15,7 +15,7 @@ object BoxExport {
   /** GetResult implicit for fetching Form_row objects using plain SQL queries */
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
-  class BoxExport(_tableTag: Tag) extends Table[BoxExport_row](_tableTag,BoxSchema.schema, "export") {
+  class BoxExport(_tableTag: Tag) extends Table[BoxExport_row](_tableTag,Some(BoxSchema.schema), "export") {
     def * = (Rep.Some(export_uuid), name, function, description, layout, parameters, order ,access_role) <> (BoxExport_row.tupled, BoxExport_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(export_uuid), name, function, description, layout, parameters, order, access_role).shaped.<>({ r=>import r._; _1.map(_=> BoxExport_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
@@ -55,7 +55,7 @@ object BoxExport {
   /** GetResult implicit for fetching Form_i18n_row objects using plain SQL queries */
 
   /** Table description of table form_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class BoxExport_i18n(_tableTag: Tag) extends Table[BoxExport_i18n_row](_tableTag,BoxSchema.schema, "export_i18n") {
+  class BoxExport_i18n(_tableTag: Tag) extends Table[BoxExport_i18n_row](_tableTag,Some(BoxSchema.schema), "export_i18n") {
     def * = (Rep.Some(uuid), export_uuid, lang, label, tooltip, hint, function) <> (BoxExport_i18n_row.tupled, BoxExport_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(uuid), export_uuid, lang, label, tooltip, hint, function).shaped.<>({ r=>import r._; _1.map(_=> BoxExport_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))

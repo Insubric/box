@@ -16,9 +16,9 @@ object Migrate {
 
   def all(services: Services) = {
     for {
-     _ <- MigrateDB.box(services.connection,BoxSchema.schema.getOrElse("box"))
+     _ <- MigrateDB.box(services.connection,BoxSchema.schema)
      _ <- Future{ MigrateDB.app(services.connection) }
-     _ <- new SchemaGenerator(services.connection,services.config.langs).run()
+     _ <- new SchemaGenerator(services.connection,services.config.langs,BoxSchema.schema).run()
      _ <- LabelsUpdate.run(services)
     } yield true
   }

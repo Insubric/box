@@ -23,7 +23,7 @@ case class Access(session:BoxSession)(implicit ec:ExecutionContext,services:Serv
     pathPrefix(EntityKind.BOX_FORM.kind | EntityKind.BOX_TABLE.kind) {
       pathPrefix(Segment) { table =>
         path("table-access") {
-          complete(TableAccess(table,BoxSchema.schema.get,session.username,services.connection.adminDB).map(_.asJson))
+          complete(TableAccess(table,BoxSchema.schema,session.username,services.connection.adminDB).map(_.asJson))
         }
       }
     } ~

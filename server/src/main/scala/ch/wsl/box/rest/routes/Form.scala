@@ -38,7 +38,7 @@ case class Form(
                  db:UserDatabase,
                  kind:String,
                  public: Boolean = false,
-                 schema:Option[String] = None
+                 schema:String
                )(implicit up:UserProfile, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] {
 
     import JSONSupport._
@@ -82,7 +82,7 @@ case class Form(
     def tabularMetadata(fields:Option[Seq[String]] = None) = {
       val filteredFields = metadata.view match {
         case None => DBIO.successful(_tabMetadata(fields,metadata))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang,registry).map{ vm =>
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema,view,lang,registry).map{ vm =>
           viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }
@@ -295,7 +295,7 @@ case class Form(
     path("keys") {
       get {
         complete {
-          boxDb.adminDb.run( EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),metadata.entity))
+          boxDb.adminDb.run( EntityMetadataFactory.keysOf(schema,metadata.entity))
         }
       }
     } ~

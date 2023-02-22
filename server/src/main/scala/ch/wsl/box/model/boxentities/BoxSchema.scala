@@ -7,5 +7,5 @@ import scala.util.Try
 
 object BoxSchema {
   //using option because slick schema is optional
-  val schema = Try(ConfigFactory.load().as[String]("box.db.schema")).toOption.orElse(Some("box"))
+  val schema = Try(ConfigFactory.load().as[String]("box.db.schema")).toOption.getOrElse("box")
 }

@@ -12,7 +12,7 @@ object BoxUITable {
 
   case class BoxUI_row(key:String, value: String, accessLevel:Int)
 
-  class BoxUI(_tableTag: Tag) extends profile.api.Table[BoxUI_row](_tableTag,BoxSchema.schema, "ui") {
+  class BoxUI(_tableTag: Tag) extends profile.api.Table[BoxUI_row](_tableTag,Some(BoxSchema.schema), "ui") {
     def * = (key, value, accessLevel) <> (BoxUI_row.tupled, BoxUI_row.unapply)
 
     val key: Rep[String] = column[String]("key")

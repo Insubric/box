@@ -12,7 +12,7 @@ object BoxConf {
 
   case class BoxConf_row(key:String, value: Option[String] = None)
 
-  class BoxConf(_tableTag: Tag) extends profile.api.Table[BoxConf_row](_tableTag,BoxSchema.schema, "conf") {
+  class BoxConf(_tableTag: Tag) extends profile.api.Table[BoxConf_row](_tableTag,Some(BoxSchema.schema), "conf") {
     def * = (key, value) <> (BoxConf_row.tupled, BoxConf_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
 

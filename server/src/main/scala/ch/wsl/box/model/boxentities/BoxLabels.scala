@@ -20,7 +20,7 @@ object BoxLabels {
 
   case class BoxLabels_row(lang: String, key:String, label: Option[String] = None)
 
-  class BoxLabels(_tableTag: Tag) extends profile.api.Table[BoxLabels_row](_tableTag,BoxSchema.schema, "labels") {
+  class BoxLabels(_tableTag: Tag) extends profile.api.Table[BoxLabels_row](_tableTag,Some(BoxSchema.schema), "labels") {
     def * = (lang, key, label) <> (BoxLabels_row.tupled, BoxLabels_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
 

@@ -32,7 +32,7 @@ object BoxUIsrcTable {
     (x.file, x.mime, x.name, x.accessLevel, x.uuid)
   )
 
-  class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,BoxSchema.schema, "ui_src") with UpdateTable[BoxUIsrc_row] {
+  class BoxUIsrc(_tableTag: Tag) extends profile.api.Table[BoxUIsrc_row](_tableTag,Some(BoxSchema.schema), "ui_src") with UpdateTable[BoxUIsrc_row] {
     def * = (Rep.Some(uuid), file, mime, name, accessLevel) <> (BoxUIsrc_row.tupled, BoxUIsrc_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(uuid),  file, mime, name, accessLevel).shaped.<>({r=>import r._; _1.map(_=> BoxUIsrc_row.tupled((_1, _2, _3, _4, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))

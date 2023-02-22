@@ -22,6 +22,17 @@ trait Module{
 
 object DefaultModule extends Module {
 
+  val connectionOnly = newDesign
+    .bind[ExecutionContext].toInstance {
+      ExecutionContext.fromExecutor(
+        new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
+      )
+    }
+    .bind[Connection].to[ConnectionConfImpl]
+    .onShutdown { s =>
+      s.close()
+    }
+
   val injector = newDesign
     .bind[ExecutionContext].toInstance{
       ExecutionContext.fromExecutor(
