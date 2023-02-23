@@ -60,7 +60,6 @@ trait LookupWidget extends Widget with HasData {
 
 
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
-      BrowserConsole.log(data.get)
 
 
       _lookup.set(newLookup)

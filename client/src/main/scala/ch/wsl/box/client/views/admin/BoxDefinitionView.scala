@@ -67,7 +67,6 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
   def retrocompatibility(bd:BoxDefinition):BoxDefinition = {
 
     def formActionOldFormatConversion(fa:Json, i:Int):Option[Json] = {
-      BrowserConsole.log(io.circe.scalajs.convertJsonToJs(fa))
       fa.asObject.map{ obj =>
         val transformedKey = obj.toList.map{ case (k,v) =>
           if(k == "form_id") ("form_uuid",v) else (k,v)
@@ -77,7 +76,6 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     }
 
     val fa = bd.form_actions.zipWithIndex.flatMap{ case (json,i) => formActionOldFormatConversion(json,i)}
-    fa.map(f => BrowserConsole.log(io.circe.scalajs.convertJsonToJs(f)))
 
     bd.copy(form_actions = fa)
   }

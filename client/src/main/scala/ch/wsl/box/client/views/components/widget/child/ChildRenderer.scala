@@ -141,7 +141,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val changed = Property(false)
       val actions = widgetParam.actions.copy(save = () => widgetParam.actions.save().map{case (parentId,parentData) =>
-        BrowserConsole.log(parentData)
         (parentId,parentData.seq(field.name).lift(entity.get.indexOf(id)).getOrElse(Json.Null))
       } )
 

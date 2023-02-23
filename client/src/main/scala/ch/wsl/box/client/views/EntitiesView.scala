@@ -132,7 +132,6 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
       sidebar.classList.remove("showSidebar")
       sidebarContentRight.classList.remove("showSidebar")
     }
-    BrowserConsole.log(sidebar)
   }
 
   def sidebarButton = div(ClientConf.style.sidebarButton,
