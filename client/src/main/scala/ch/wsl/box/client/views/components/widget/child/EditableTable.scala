@@ -166,7 +166,6 @@ object EditableTable extends ChildRendererFactory {
 
 
     def fields(f:JSONMetadata) = {
-      BrowserConsole.log(widgetParam.fieldParams.get.get)
       val tableFields = for{
         params <- widgetParam.fieldParams
         fieldsJs <- params.get.jsOpt("fields")
