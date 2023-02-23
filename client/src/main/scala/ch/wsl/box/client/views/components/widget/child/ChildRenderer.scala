@@ -218,7 +218,6 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
       itemToDuplicate.metadata match {
         case Some(md) => {
-          println(duplicateIgnoreFields)
           def dataWithoutIgnored = itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => duplicateIgnoreFields.contains(key) }))
           def dataWithNoKeys = dataWithoutIgnored.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
 

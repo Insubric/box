@@ -39,7 +39,6 @@ class GeoJsonCodecTest extends TestBase {
         case Right(value) => value.as[Option[GeoJson.Feature]] match {
           case Left(value) => fail(value)
           case Right(value) => {
-            println(value)
             assert(value.get.geometry.allCoordinates.head.x == 98728.5390625)
           }
         }

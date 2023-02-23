@@ -31,7 +31,6 @@ class DeleteTest extends TestBase {
     }
 
     override def update(id: JSONID, obj: Json): Json = {
-      println(obj)
 
       Try(obj.js(stringField) shouldBe Json.Null) match {
         case Failure(exception) => deletedField.failure(exception)

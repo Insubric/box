@@ -60,16 +60,13 @@ trait LookupWidget extends Widget with HasData {
 
 
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
-      println(newLookup)
       BrowserConsole.log(data.get)
-      println(field.default)
 
 
       _lookup.set(newLookup)
       val firstLookup = newLookup.find(_.id == data.get) // search the lookup associated with the current data
 
       if(field.default.contains(JSONUtils.FIRST) && firstLookup.isEmpty) {
-        println(newLookup.headOption)
         model.set(newLookup.headOption)
         newLookup.headOption.foreach(d => data.set(d.id))
 
