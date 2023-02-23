@@ -202,7 +202,6 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   }
 
   private val dropHandler = (e:DragEvent) => {
-    println("AAAAAA")
     e.preventDefault()
 
     if(e.dataTransfer.files.length > 0) {

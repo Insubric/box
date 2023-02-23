@@ -74,7 +74,7 @@ object JSONField{
 
 case class MinMax(min:Option[Double],max:Option[Double])
 
-case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String])
+case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String], kind: EntityKind = EntityKind.FORM)
 
 case class LookupLabel(localIds:Seq[String],remoteIds:Seq[String],remoteField:String,remoteEntity:String,widget:String)
 

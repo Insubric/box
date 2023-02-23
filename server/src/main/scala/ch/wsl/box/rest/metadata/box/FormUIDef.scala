@@ -337,6 +337,12 @@ object FormUIDef {
           forms.map{ form => JSONLookup(form.form_uuid.get.asJson,Seq(form.name)) }.sortBy(_.value)
         ))
       ),
+      JSONField(JSONFieldTypes.CHILD,"formRef",true,label = Some("Open form"),
+        widget = Some(WidgetsNames.lookupForm),
+        child = Some(Child(Constants.FORM,"form_uuid","child_form_uuid","form_uuid",None,"")),
+        linked = Some(LinkedForm("form",Seq("child_form_uuid"),Seq("form_uuid"),None,Some("Open child form"),EntityKind.BOX_FORM)),
+        params = Some(Json.fromFields(Map("target" -> Json.fromString("new_window"))))
+      ),
       JSONField(JSONFieldTypes.STRING,"masterFields",false,
         label = Some("Parent key fields"),
         widget = Some(WidgetsNames.input),
@@ -382,6 +388,7 @@ object FormUIDef {
           "widget",
           "read_only",
           "child_form_uuid",
+          "formRef",
           "masterFields",
           "childFields",
           "childQuery",
