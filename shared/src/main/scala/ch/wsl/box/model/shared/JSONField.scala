@@ -67,7 +67,7 @@ object JSONField{
     name,
     true,
     widget = Some(WidgetsNames.simpleChild),
-    child = Some(Child(childId,name,parentKey,childFields,None,""))
+    child = Some(Child(childId,name,parentKey,childFields,None,"",true)),
   )
 
 }
@@ -136,15 +136,15 @@ case class JSONFieldMap(valueProperty:String, textProperty:String, localValuePro
 
 case class ChildMapping(parent:String,child:String)
 
-case class Child(objId:UUID, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String])
+case class Child(objId:UUID, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String], hasData:Boolean)
 
 object Child{
-  def apply(objId: UUID, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String): Child = {
+  def apply(objId: UUID, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String, hasData:Boolean): Child = {
     val parent = masterFields.split(",").map(_.trim)
     val child = childFields.split(",").map(_.trim)
 
     val mapping = parent.zip(child).filterNot(x => x._1 == "#all" || x._2 == "#all").map{ case (p,c) => ChildMapping(p,c)}
-    new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim))
+    new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim),hasData)
   }
 
   def min(field:JSONField):Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)

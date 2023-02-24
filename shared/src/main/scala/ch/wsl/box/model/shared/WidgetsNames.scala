@@ -91,6 +91,7 @@ object WidgetsNames {
       dropdownLangWidget,
       popupWidget
     ),
+    // when adding a new child type with data remember to add it to childWithData set
     CHILD -> Seq(
       simpleChild,
       tableChild,
@@ -187,5 +188,13 @@ object WidgetsNames {
   def all = mapping.values.flatten.toSeq
 
   val defaults = mapping.map{case (k,v) => k -> v.head}  //using defaults is deprecated with starting form interface builder in box 1.3.0
+
+  val childsWithData = Set(simpleChild,
+    tableChild,
+    editableTable,
+    trasparentChild,
+    dynamicWidget,
+    popupWidget
+  )
 
 }

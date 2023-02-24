@@ -104,20 +104,21 @@ object CommonField {
   val formFieldChild = JSONField(JSONFieldTypes.CHILD,"fields_child",true,
     child = Some(Child(FORM_FIELD_CHILDS,"fields_child","form_uuid","form_uuid",
       Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.CHILD))),
-      ""
+      "",
+      true
     )),
     widget = Some(WidgetsNames.tableChild)
   )
   val formFieldStatic = JSONField(JSONFieldTypes.CHILD,"fields_static",true,
     child = Some(Child(FORM_FIELD_STATIC,"fields_static","form_uuid","form_uuid",
       Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.STATIC))),
-      ""
+      "",true
     )),
     widget = Some(WidgetsNames.tableChild)
   )
 
   val formi18n = JSONField(JSONFieldTypes.CHILD,"form_i18n",true,
-    child = Some(Child(FORM_I18N,"form_i18n","form_uuid","form_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"")),
+    child = Some(Child(FORM_I18N,"form_i18n","form_uuid","form_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"",true)),
     widget = Some(WidgetsNames.tableChild)
   )
 
