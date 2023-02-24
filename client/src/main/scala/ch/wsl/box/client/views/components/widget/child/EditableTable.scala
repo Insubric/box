@@ -268,7 +268,7 @@ object EditableTable extends ChildRendererFactory {
       }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
       val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
       val worksheet = typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
-      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit)
+      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
       typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
 
     }
