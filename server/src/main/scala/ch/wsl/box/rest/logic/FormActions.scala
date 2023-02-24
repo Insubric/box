@@ -246,7 +246,7 @@ case class FormActions(metadata:JSONMetadata,
 
     logger.debug(s"Applying sub action to $e")
 
-    val result = metadata.fields.filter(_.child.isDefined).filter { field =>
+    val result = metadata.fields.filter(_.child.exists(_.hasData)).filter { field =>
       field.condition match {
         case Some(condition) => alwaysApply || condition.check(e.js(condition.conditionFieldId))
         case None => true
@@ -376,13 +376,14 @@ case class FormActions(metadata:JSONMetadata,
       {(field.`type`,field.child) match {
         case ("static",_) => DBIO.successful(field.name -> field.default.asJson)  //set default value
         case (_,None) => DBIO.successful(field.name -> dataJson.js(field.name))        //use given value
-        case (_,Some(child)) => for{
+        case (_,Some(child)) if child.hasData => for{
           form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(child.objId,metadata.lang)))
           data <- getChild(dataJson,form,child)
         } yield {
           logger.info(s"expanding child ${field.name} : ${data.asJson}")
           field.name -> data.asJson
         }
+        case (_,_) => DBIO.successful(field.name -> Json.Null)
       }}
     }
     DBIO.sequence(values).map(x => JSONID.attachBoxObjectId(x.toMap.asJson,metadata.keys))

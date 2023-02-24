@@ -19,7 +19,8 @@ object LabelUIDef {
           key = "labels",
           mapping = Seq(),
           childQuery = None,
-          props = Seq()
+          props = Seq(),
+          true
         ))
       )
     ),
