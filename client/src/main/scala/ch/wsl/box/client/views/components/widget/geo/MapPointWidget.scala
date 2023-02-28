@@ -100,38 +100,39 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     ).render
   }
 
-  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+  object Status {
+    val Closed = "closed"
+    val Open = "open"
+  }
 
-    object Status{
-      val Closed = "closed"
-      val Open = "open"
-    }
+  private def mapModal(nested: NestedInterceptor): (UdashModal, CastableProperty[String]) = {
+
 
     val modalStatus = Property(Status.Closed)
 
-    var modal:UdashModal = null
+    var modal: UdashModal = null
 
-    val header = (x:NestedInterceptor) => div(
+    val header = (x: NestedInterceptor) => div(
       field.title,
-      UdashButton()( _ => Seq[Modifier](
-        onclick :+= {(e:Event) => modalStatus.set(Status.Closed); e.preventDefault()},
+      UdashButton()(_ => Seq[Modifier](
+        onclick :+= { (e: Event) => modalStatus.set(Status.Closed); e.preventDefault() },
         BootstrapStyles.close, "×"
       )).render
     ).render
 
-    val body = (x:NestedInterceptor) => {
-      val mapOptions = options.copy(features = MapParamsFeatures(point = true,false,false,false,false,false,false))
+    val body = (x: NestedInterceptor) => {
+      val mapOptions = options.copy(features = MapParamsFeatures(point = true, false, false, false, false, false, false))
       val mapParams = params.copy(field = field.copy(params = Some(mapOptions.asJson)))
 
       div(
         div(
-          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true,Property(true),nested)
+          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, Property(true), nested)
         )
       ).render
     }
 
-    val footer = (x:NestedInterceptor) => div(
-      button(ClientConf.style.boxButton,onclick :+= ((e:Event) => {
+    val footer = (x: NestedInterceptor) => div(
+      button(ClientConf.style.boxButton, onclick :+= ((e: Event) => {
         modal.hide()
         e.preventDefault()
       }), Labels.form.save)
@@ -143,14 +144,14 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
       footerFactory = Some(footer)
     )
 
-    modal.listen { case ev:ModalEvent =>
+    modal.listen { case ev: ModalEvent =>
       ev.tpe match {
         case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
         case _ => {}
       }
     }
 
-    modalStatus.listen{ state =>
+    modalStatus.listen { state =>
       logger.info(s"State changed to:$state")
       state match {
         case Status.Open => modal.show()
@@ -158,8 +159,60 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
       }
     }
 
-    val xInput = NumberInput(x)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))
-    val yInput = NumberInput(y)(step := 0.00000000001,width := 70.px, float.none, WidgetUtils.toNullable(field.nullable))
+    (modal,modalStatus)
+
+  }
+
+  private def xInput(mod:Modifier*) = NumberInput(x)(step := 0.00000000001, float.none, WidgetUtils.toNullable(field.nullable),mod)
+  private def yInput(mod:Modifier*) = NumberInput(y)(step := 0.00000000001, float.none, WidgetUtils.toNullable(field.nullable),mod)
+
+  private def gpsButton(mod:Modifier*) = WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px)(
+    onclick :+= { (e: Event) =>
+      GPS.coordinates().map { coords =>
+        val point = coords.map { c =>
+          val localCoords = projMod.transform(js.Array(c.x, c.y), wgs84Proj, defaultProjection)
+          Point(Coordinates(localCoords(0), localCoords(1)))
+        }
+        geometry.set(point)
+      }
+      e.preventDefault() // needed in order to avoid triggering the form validation
+    }
+  )(Icons.target).render)._1
+
+  private def showMap(modalStatus:Property[String],mod:Modifier*) = {
+    WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e: Event) => {
+      modalStatus.set(Status.Open)
+      e.preventDefault()
+    }), Icons.map).render)._1
+  }
+
+  override def editOnTable(nested: NestedInterceptor): JsDom.all.Modifier = {
+
+    val (modal,modalStatus) = mapModal(nested)
+
+
+    div(ClientConf.style.flexContainer,
+        useXY match {
+          case false => Seq[Modifier](
+            yInput(placeholder := s"Lat" ),xInput(placeholder := "Lng")
+          )
+          case true => Seq[Modifier](
+            xInput(placeholder := s"x"),yInput(placeholder := "y")
+          )
+        },
+        gpsButton(),
+        showMap(modalStatus),
+        modal.render
+
+    )
+  }
+
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+
+    val (modal,modalStatus) = mapModal(nested)
+
+    val xIn = xInput(width := 70.px)
+    val yIn = yInput(width := 70.px)
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
       div(ClientConf.style.label50,if(noLabel) frag() else WidgetUtils.toLabel(field)),
@@ -167,30 +220,16 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
         display.`inline-block`,
         useXY match {
           case false => Seq[Modifier](
-            s"$coordinateLabel Lat: ",yInput,
-            " Lng: ",xInput," "
+            s"$coordinateLabel Lat: ",yIn,
+            " Lng: ",xIn," "
           )
           case true => Seq[Modifier](
-            s"$coordinateLabel x: ",xInput,
-            s" y: ",yInput," "
+            s"$coordinateLabel x: ",xIn,
+            s" y: ",yIn," "
           )
         },
-        WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value,paddingTop := 0.px, paddingBottom := 0.px)(
-          onclick :+= {(e: Event) =>
-            GPS.coordinates().map{ coords =>
-              val point = coords.map { c =>
-                val localCoords = projMod.transform(js.Array(c.x, c.y), wgs84Proj, defaultProjection)
-                Point(Coordinates(localCoords(0),localCoords(1)))
-              }
-              geometry.set(point)
-            }
-            e.preventDefault() // needed in order to avoid triggering the form validation
-          }
-        )(Icons.target).render)._1,
-        WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn,backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e:Event) => {
-          modalStatus.set(Status.Open)
-          e.preventDefault()
-        }),Icons.map).render)._1,
+        gpsButton(),
+        showMap(modalStatus),
         modal.render
       ),
       div(BootstrapStyles.Visibility.clearfix)
