@@ -199,7 +199,7 @@ class RestMock(values:Values) extends REST with Logging {
 
   override def translationsFields(lang: String): Future[Seq[Field]] = ???
 
-  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Boolean] = ???
+  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Int] = ???
 
   override def execute(functionName: String, lang: String, data:Json) = ???
 }

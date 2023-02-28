@@ -121,7 +121,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
 
   override def translationsFields(lang: String): Future[Seq[Field]] = httpClient.get[Seq[Field]](Routes.apiV1(s"/translations/fields/$lang"))
-  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Boolean] = httpClient.post[BoxTranslationsFields,Boolean](Routes.apiV1(s"/translations/fields/commit"),merge)
+  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Int] = httpClient.post[BoxTranslationsFields,Int](Routes.apiV1(s"/translations/fields/commit"),merge)
 
 
 }
