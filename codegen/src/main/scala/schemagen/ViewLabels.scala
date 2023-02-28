@@ -63,7 +63,7 @@ class ViewLabels(langs:Seq[String]) extends Logging {
            FOR EACH ROW EXECUTE PROCEDURE box.v_labels_insert();
        """
 //    q.statements.map(x => println(x))
-    q
+    q.transactionally
   }.map{ i =>
     logger.info(s"Added v_labels view $i")
   }.recover{ case t =>
