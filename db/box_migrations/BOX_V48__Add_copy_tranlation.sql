@@ -17,7 +17,7 @@ alter table export_i18n add constraint export_i18n_label_lang_key unique (lang,e
 ALTER TABLE export_field_i18n DROP CONSTRAINT IF EXISTS export_field_i18n_label_lang_key;
 alter table export_field_i18n add constraint export_field_i18n_label_lang_key unique (lang,field_uuid);
 
-create or replace function translation_copy_lang(from_lang text, to_lang text) returns void language sql SET search_path=box as $$
+create or replace function translation_copy_lang(from_lang text, to_lang text) returns void language sql set search_path from current as $$
 
     insert into field_i18n (lang, label, placeholder, tooltip, hint, "lookupTextField", field_uuid)
     select to_lang,label, placeholder, tooltip, hint, "lookupTextField", field_uuid from field_i18n where lang=from_lang
