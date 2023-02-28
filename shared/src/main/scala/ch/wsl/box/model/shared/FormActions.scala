@@ -137,8 +137,8 @@ object FormActionsMetadata {
 
   def defaultForPages = FormActionsMetadata(Seq(),Seq(),Seq(),Seq(),false)
 
-  def saveOnly = FormActionsMetadata(Seq(
-    FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
+  def saveOnly(reload: Boolean = true) = FormActionsMetadata(Seq(
+    FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = reload),
   ),Seq(),default.tableActions,default.topTableActions,false)
 
 
