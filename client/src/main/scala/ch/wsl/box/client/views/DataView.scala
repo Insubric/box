@@ -60,6 +60,9 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
 
   override def handleState(state: DataState): Unit = {
     model.subProp(_.kind).set(state.kind)
+    model.subProp(_.metadata).set(None)
+    model.subProp(_.data).set(Seq())
+    model.subProp(_.headers).set(Seq())
 
     for{
       metadata <- services.rest.dataMetadata(state.kind,state.export,services.clientSession.lang())
@@ -91,12 +94,13 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
   }
 
   val query = (e:Event) => {
-
+    services.clientSession.loading.set(true)
     for{
       data <- services.rest.data(model.get.kind,model.get.metadata.get.name,args,services.clientSession.lang())
     } yield {
       model.subProp(_.headers).set(data.headOption.getOrElse(Seq()))
       model.subProp(_.data).set(Try(data.tail).getOrElse(Seq()))
+      services.clientSession.loading.set(false)
     }
     e.preventDefault()
   }

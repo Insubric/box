@@ -49,9 +49,10 @@ class DataListPresenter(model:ModelProperty[DataList]) extends Presenter[DataLis
   import ch.wsl.box.client.Context._
 
   override def handleState(state: DataListState ): Unit = {
+    val newKind = model.subProp(_.kind).get != state.kind
     model.subProp(_.kind).set(state.kind)
 
-    val exports = if(model.subProp(_.list).get.isEmpty) {
+    val exports = if(newKind) {
       services.rest.dataList(state.kind, services.clientSession.lang()).map { exports =>
         model.subSeq(_.list).set(exports)
         model.subSeq(_.filteredList).set(exports)

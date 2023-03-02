@@ -31,7 +31,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   }
 
   def matchState(state: RoutingState): Url = {
-    logger.info(s"match STATE ${services.clientSession.isSet(ClientSession.USER)}")
+    logger.info(s"match STATE logged:${services.clientSession.isSet(ClientSession.USER)} state:$state")
     services.clientSession.isSet(ClientSession.USER) match {
       case true => Url(loggedInState2Url.apply(state))
       case false => Url(loggedOutState2Url.apply(state))
