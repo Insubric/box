@@ -68,6 +68,7 @@ object ShapeFileWriter extends Logging {
       d.typ match {
         case "integer" => builder.add(d.name.take(15),classOf[Integer])
         case "number" => builder.add(d.name.take(15),classOf[Double])
+        case "geometry" => {}
         case _ => builder.length(255).add(d.name.take(15),classOf[String])
       }
     }
@@ -140,7 +141,15 @@ object ShapeFileWriter extends Logging {
       sfa.typ match {
         case "number" => featureBuilder.add(sfa.value.as[Double].toOption.orNull)
         case "integer" => featureBuilder.add(sfa.value.as[Int].toOption.orNull)
-        case _ => featureBuilder.add(sfa.value.string.take(255))
+        case "geometry" => {}
+        case _ => {
+          val str = sfa.value.string.take(255)
+          if(str.isEmpty) {
+            featureBuilder.add(null)
+          } else {
+            featureBuilder.add(sfa.value.string.take (255) )
+          }
+        }
       }
     }
   }
