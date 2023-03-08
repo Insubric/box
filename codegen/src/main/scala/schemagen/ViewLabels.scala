@@ -66,7 +66,7 @@ class ViewLabels(langs:Seq[String],boxSchema:String) extends Logging {
 
        """
 //    q.statements.map(x => println(x))
-    q
+    q.transactionally
   }.map{ i =>
     logger.info(s"Added v_labels view $i")
   }.recover{ case t =>

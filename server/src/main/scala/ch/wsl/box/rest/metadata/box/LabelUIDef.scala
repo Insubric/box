@@ -19,7 +19,8 @@ object LabelUIDef {
           key = "labels",
           mapping = Seq(),
           childQuery = None,
-          props = Seq()
+          props = Seq(),
+          true
         ))
       )
     ),
@@ -37,7 +38,7 @@ object LabelUIDef {
     query = None,
     exportFields = Seq(),
     view = None,
-    action = FormActionsMetadata.saveOnly,
+    action = FormActionsMetadata.saveOnly(false),
     static = true
   )
 

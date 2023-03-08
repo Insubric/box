@@ -165,7 +165,15 @@ object EditableTable extends ChildRendererFactory {
     import scalatags.JsDom.all._
 
 
-    def fields(f:JSONMetadata) = f.rawTabularFields.flatMap(field => f.fields.find(_.name == field))
+    def fields(f:JSONMetadata) = {
+      val tableFields = for{
+        params <- widgetParam.fieldParams
+        fieldsJs <- params.get.jsOpt("fields")
+        fields <- fieldsJs.as[Seq[String]].toOption
+      } yield fields
+
+      tableFields.getOrElse(f.tabularFields).flatMap(field => f.fields.find(_.name == field))
+    }
 
     def colHeader(field:JSONField):ReadableProperty[String] = {
         val name = field.widget match {
@@ -258,10 +266,9 @@ object EditableTable extends ChildRendererFactory {
           ).asJson
         ).asJson)
       }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      BrowserConsole.log(head)
       val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
       val worksheet = typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
-      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit)
+      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
       typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
 
     }

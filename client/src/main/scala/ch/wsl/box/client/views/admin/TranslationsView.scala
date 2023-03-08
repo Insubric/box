@@ -63,13 +63,14 @@ class TranslationsPresenter(viewModel:ModelProperty[TranslationsViewModel]) exte
 
   def save() = {
     val model = viewModel.get
+    services.clientSession.loading.set(true)
     services.rest.translationsFieldsCommit(BoxTranslationsFields(
       sourceLang = model.sourceLang,
       destLang = model.destLang,
       translations = model.source.flatMap{s =>
         model.dest.find(_.uuid == s.uuid).map(d => BoxTranslationField(s,d))
       }
-    )).map(_ => true)
+    )).map(_ => services.clientSession.loading.set(false))
   }
 
 
@@ -84,9 +85,9 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
   def viewField(source:Field) = {
 
     val fieldProp = viewModel.subProp(_.dest).bitransform{ seq =>
-      seq.find(_.uuid.intersect(source.uuid).nonEmpty) match {
+      seq.find(_.uuid == source.uuid ) match {
         case None => Field(source.uuid,source.name,source.source,"","","","")
-        case Some(f) => f.copy(uuid = f.uuid.union(source.uuid).distinct)
+        case Some(f) => f
       }
     } { field =>
       viewModel.subProp(_.dest).get.filterNot(_.uuid == source.uuid) ++ Seq(field)
@@ -95,14 +96,13 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
 
 
     div(BootstrapStyles.Grid.row, paddingTop := 15.px, paddingBottom := 15.px, borderBottomStyle.solid, borderBottomWidth := 1.px)(
-      div(BootstrapCol.md(2),fontSize := 10.px, source.name.map(n => {
+      div(BootstrapCol.md(2),fontSize := 10.px, {
         source.source match {
-          case "field_i18n" => div(a(Navigate.click(Routes("form",n.split("\\.").headOption.getOrElse("")).add()),n))
-          case "form_i18n" => div(a(Navigate.click(Routes("form",n).add()),n))
-          case _ => div(n)
+          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse("")).add()),source.name))
+          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name).add()),source.name))
+          case _ => div(source.name)
         }
-
-      })),
+      }),
       div(BootstrapCol.md(1),source.label),
       div(BootstrapCol.md(1),source.placeholder),
       div(BootstrapCol.md(1),source.tooltip),
@@ -130,11 +130,11 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
       button(ClientConf.style.boxButtonImportant,"Save", onclick :+= ((e:Event) => presenter.save()))
     ),
     div(BootstrapCol.md(4),
-      h3("Original"),
+      h3("Original - ",bind(viewModel.subProp(_.sourceLang))),
       header
     ),
     div(BootstrapCol.md(4),
-      h3("Translated"),
+      h3("Translated - ",bind(viewModel.subProp(_.destLang))),
       header
     ),
     div(BootstrapCol.md(2)),

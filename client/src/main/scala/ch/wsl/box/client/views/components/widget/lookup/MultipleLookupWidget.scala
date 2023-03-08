@@ -76,7 +76,6 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
           lookup.listen(values => {
             val choices = values.toSeq.map(x => Choice(x.value,x.id)).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.groupMod.Group]]
-            BrowserConsole.log(choices)
             choicesJs.setChoices(choices)
           },true)
         }

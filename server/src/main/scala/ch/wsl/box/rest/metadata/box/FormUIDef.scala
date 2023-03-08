@@ -57,7 +57,8 @@ object FormUIDef {
             JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
             JSONQueryFilter.WHERE.eq("entity_field","true")
           )),
-          props = "entity"
+          props = "entity",
+          true
         )),
         widget = Some(WidgetsNames.tableChild)
       ),
@@ -67,17 +68,18 @@ object FormUIDef {
             JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
             JSONQueryFilter.WHERE.eq("entity_field","false")
           )),
-          props = "entity"
+          props = "entity",
+          true
         )),
         widget = Some(WidgetsNames.tableChild)
       ),
       JSONField(JSONFieldTypes.CHILD,"form_actions",true,
-        child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"")),
+        child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"",true)),
         widget = Some(WidgetsNames.tableChild),
         params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
       JSONField(JSONFieldTypes.CHILD,"form_navigation_actions",true,
-        child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"")),
+        child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"",true)),
         widget = Some(WidgetsNames.tableChild),
         params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
@@ -196,7 +198,7 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
@@ -259,7 +261,7 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
@@ -329,13 +331,19 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.CHILD)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.STRING,"child_form_uuid",false,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
           forms.map{ form => JSONLookup(form.form_uuid.get.asJson,Seq(form.name)) }.sortBy(_.value)
         ))
+      ),
+      JSONField(JSONFieldTypes.CHILD,"formRef",true,label = Some("Open form"),
+        widget = Some(WidgetsNames.lookupForm),
+        child = Some(Child(Constants.FORM,"form_uuid","child_form_uuid","form_uuid",None,"",false)),
+        linked = Some(LinkedForm("form",Seq("child_form_uuid"),Seq("form_uuid"),None,Some("Open child form"),EntityKind.BOX_FORM)),
+        params = Some(Json.fromFields(Map("target" -> Json.fromString("new_window"))))
       ),
       JSONField(JSONFieldTypes.STRING,"masterFields",false,
         label = Some("Parent key fields"),
@@ -382,6 +390,7 @@ object FormUIDef {
           "widget",
           "read_only",
           "child_form_uuid",
+          "formRef",
           "masterFields",
           "childFields",
           "childQuery",
@@ -424,7 +433,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.STATIC)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget")), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       JSONField(JSONFieldTypes.STRING,"masterFields",false,label=Some("Parent field"),

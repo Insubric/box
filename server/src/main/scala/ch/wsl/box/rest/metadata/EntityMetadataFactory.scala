@@ -77,10 +77,6 @@ object EntityMetadataFactory extends Logging {
               case Some(f) => firstNoPKField(_schema,f.referencingTable)
               case None => DBIO.successful(None)
             }
-            count <- fk match {
-              case Some(fk) => registry.actions(fk.referencingTable).count().map(_.count)
-              case None => DBIO.successful(0)
-            }
           } yield {
             fk match {
               case Some(fk) => {

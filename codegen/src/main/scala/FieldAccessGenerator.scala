@@ -16,10 +16,15 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
   with slick.codegen.OutputHelpers {
 
 
-  def mapEntity(tableName:String):Option[String] = tables.find(_.model.name.table == tableName).map{ table =>
-    s"""  "${table.model.name.table}" -> Map(
+  def entityMapName(tableName:String) = s"${tableName}_map"
+  def mapEntityRef(tableName:String):Option[String] = tables.find(_.model.name.table == tableName).map{ table =>
+    s"""  "${table.model.name.table}" -> ${entityMapName(tableName)},""".stripMargin
+  }
+
+  def mapEntity(tableName:String) = tables.find(_.model.name.table == tableName).map { table =>
+    s"""private def ${entityMapName(tableName)} =  Map(
        |        ${mapField(table).mkString(",\n        ")}
-       |        ),""".stripMargin
+       |)""".stripMargin
   }
 
   def mapField(table:Table):Seq[String] = {
@@ -65,9 +70,11 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
        |      ${views.mkString("\"","\",\n      \"","\"")}
        |  )
        |
-       |  val tableFields:Map[String,Map[String,ColType]] = Map(
-       |      ${(tabs++views).flatMap(mapEntity).mkString("\n      ")}
+       |  def tableFields:Map[String,Map[String,ColType]] = Map(
+       |      ${(tabs++views).flatMap(mapEntityRef).mkString("\n      ")}
        |  )
+       |
+       |  ${(tabs++views).flatMap(mapEntity).mkString("\n  ")}
        |
        |
        |}

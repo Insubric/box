@@ -162,9 +162,34 @@ case class WidgetParams(
     _allData.bitransform(_.js(str))((fd:Json) => _allData.get.deepMerge(Json.obj((str,fd))))
   }
 
+  def fieldParams:Option[ReadableProperty[Json]] = field.params.map{ staticParams =>
+    if(staticParams.toString().contains(WidgetParams.REF)) {
+
+      _allData.transform{ data =>
+        def mapJson(js:Json):Json = js.fold(
+          js,
+          _ => js,
+          _ => js,
+          str => if(str.startsWith(WidgetParams.REF)) {
+            data.js(str.stripPrefix(WidgetParams.REF))
+          } else js,
+          arr => Json.fromValues(arr.map(mapJson)),
+          obj => obj.mapValues(mapJson).asJson
+        )
+
+        mapJson(staticParams)
+      }
+    } else {
+      Property(staticParams)
+    }
+
+  }
+
 }
 
 object WidgetParams{
+
+  val REF = "$ref:"
   def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,

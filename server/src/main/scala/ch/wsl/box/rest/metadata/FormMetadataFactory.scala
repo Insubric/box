@@ -411,7 +411,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           local <- field.masterFields
           remote <- field.childFields
         } yield {
-          Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""))
+          Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""),field.widget.exists(WidgetsNames.childsWithData))
         }
       }
     }

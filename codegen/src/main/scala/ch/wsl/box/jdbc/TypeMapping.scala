@@ -19,7 +19,7 @@ object TypeMapping extends Logging {
           case "_int8" | "int8[]" => Some("List[Long]")
           case "_int4" | "int4[]" => Some("List[Int]")
           case "_int2" | "int2[]" => Some("List[Short]")
-          case "_decimal" | "decimal[]" | "_numeric" | "numeric[]"  => Some("List[scala.math.BigDecimal]")
+          case s:String if s.contains("geometry") => Some("org.locationtech.jts.geom.Geometry")
           case s:String if s.contains("email") => {
             Some("String")
           }
