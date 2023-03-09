@@ -32,10 +32,51 @@ object MigrateDB {
       if(flyway.info().current() != null)
         connection.dbConnection.run {
           sqlu"""
-          update #$schema.flyway_schema_history_box set checksum=-495052968 where version='27';
-          update #$schema.flyway_schema_history_box set checksum=31598778 where version='42';
-          update #$schema.flyway_schema_history_box set checksum=-89848557 where version='44';
-          update #$schema.flyway_schema_history_box set checksum=1689113113 where version='45';
+          update #$schema.flyway_schema_history_box set checksum=-766518484 where version='2';
+          update #$schema.flyway_schema_history_box set checksum=1952033218 where version='3';
+          update #$schema.flyway_schema_history_box set checksum=-1038081266 where version='4';
+          update #$schema.flyway_schema_history_box set checksum=-433221282 where version='5';
+          update #$schema.flyway_schema_history_box set checksum=867977953 where version='6';
+          update #$schema.flyway_schema_history_box set checksum=-675803754 where version='07';
+          update #$schema.flyway_schema_history_box set checksum=640792895 where version='08';
+          update #$schema.flyway_schema_history_box set checksum=-2083187704 where version='09';
+          update #$schema.flyway_schema_history_box set checksum=-2027628572 where version='10';
+          update #$schema.flyway_schema_history_box set checksum=-741718079 where version='11';
+          update #$schema.flyway_schema_history_box set checksum=-802282516 where version='12';
+          update #$schema.flyway_schema_history_box set checksum=-115616180 where version='13';
+          update #$schema.flyway_schema_history_box set checksum=-1493223802 where version='14';
+          update #$schema.flyway_schema_history_box set checksum=1546038969 where version='15';
+          update #$schema.flyway_schema_history_box set checksum=295109050 where version='16';
+          update #$schema.flyway_schema_history_box set checksum=125955543 where version='18';
+          update #$schema.flyway_schema_history_box set checksum=-559032529 where version='19';
+          update #$schema.flyway_schema_history_box set checksum=-673805002 where version='20';
+          update #$schema.flyway_schema_history_box set checksum=-471705743 where version='21';
+          update #$schema.flyway_schema_history_box set checksum=2135196365 where version='22';
+          update #$schema.flyway_schema_history_box set checksum=2004359677 where version='23';
+          update #$schema.flyway_schema_history_box set checksum=-1284365639 where version='24';
+          update #$schema.flyway_schema_history_box set checksum=1886963030 where version='25';
+          update #$schema.flyway_schema_history_box set checksum=-1780826851 where version='26';
+          update #$schema.flyway_schema_history_box set checksum=-1766308645 where version='27';
+          update #$schema.flyway_schema_history_box set checksum=-35810 where version='28';
+          update #$schema.flyway_schema_history_box set checksum=87342898 where version='29';
+          update #$schema.flyway_schema_history_box set checksum=1973816606 where version='30';
+          update #$schema.flyway_schema_history_box set checksum=-1547648294 where version='31';
+          update #$schema.flyway_schema_history_box set checksum=-1466682231 where version='32';
+          update #$schema.flyway_schema_history_box set checksum=-1174361640 where version='33';
+          update #$schema.flyway_schema_history_box set checksum=1850442938 where version='35';
+          update #$schema.flyway_schema_history_box set checksum=1818024207 where version='36';
+          update #$schema.flyway_schema_history_box set checksum=-1468940163 where version='37';
+          update #$schema.flyway_schema_history_box set checksum=-1162390581 where version='38';
+          update #$schema.flyway_schema_history_box set checksum=760066478 where version='39';
+          update #$schema.flyway_schema_history_box set checksum=983467388 where version='40';
+          update #$schema.flyway_schema_history_box set checksum=597865581 where version='41';
+          update #$schema.flyway_schema_history_box set checksum=-1556843576 where version='42';
+          update #$schema.flyway_schema_history_box set checksum=-831843199 where version='43';
+          update #$schema.flyway_schema_history_box set checksum=-901179392 where version='44';
+          update #$schema.flyway_schema_history_box set checksum=2081100837 where version='45';
+          update #$schema.flyway_schema_history_box set checksum=-1500107500 where version='46';
+          update #$schema.flyway_schema_history_box set checksum=1914843823 where version='47';
+          update #$schema.flyway_schema_history_box set checksum=960086764 where version='48';
           """.transactionally
         }
       else Future.successful(true)

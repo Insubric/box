@@ -24,7 +24,7 @@ class BoxFormAdminSpec extends BaseSpec {
     for{
       (_,mainId,_,_) <- new FormFixtures("db_").insertForm(services.connection.adminDB)
       form <- services.connection.adminDB.run(new BoxFormMetadataFactory().of("form","it"))
-      actions = FormActions(form,Registry.box().actions.apply,new BoxFormMetadataFactory())
+      actions = FormActions(form,Registry.box(),new BoxFormMetadataFactory())
       f <- services.connection.adminDB.run(actions.getById(JSONID.fromMap(Map("form_uuid" -> Json.fromString(mainId.toString) ).toSeq)))
       fieldsBefore <- services.connection.adminDB.run(BoxField.BoxFieldTable.length.result)
       updatedForm = f.get.hcursor.downField("fields").set(f.get.seq("fields").tail.asJson).top.get

@@ -2,7 +2,6 @@ package ch.wsl.box.model
 
 
 import ch.wsl.box.codegen.MigrateDB
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.DefaultModule
 import ch.wsl.box.services.Services
 import schemagen.SchemaGenerator
@@ -16,9 +15,9 @@ object Migrate {
 
   def all(services: Services) = {
     for {
-     _ <- MigrateDB.box(services.connection,BoxSchema.schema)
+     _ <- MigrateDB.box(services.connection,services.config.boxSchemaName)
      _ <- Future{ MigrateDB.app(services.connection) }
-     _ <- new SchemaGenerator(services.connection,services.config.langs,BoxSchema.schema).run()
+     _ <- new SchemaGenerator(services.connection,services.config.langs,services.config.boxSchemaName).run()
      _ <- LabelsUpdate.run(services)
     } yield true
   }

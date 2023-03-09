@@ -51,9 +51,9 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def of(_schema:String,table:String, lang:String ,registry:RegistryInstance)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
+  def of(table:String, lang:String ,registry:RegistryInstance)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
 
-    val cacheKey = (_schema, table, lang)
+    val cacheKey = (registry.schema, table, lang)
 
     logger.info(s"searching cache table for $cacheKey")
 
@@ -64,7 +64,7 @@ object EntityMetadataFactory extends Logging {
       case None => {
         logger.warn(s"Metadata table cache miss! cache key: $cacheKey, cache: ${cacheTable.map{case (k,v) => k -> v.name}}")
 
-        val schema = new PgInformationSchema(_schema,table, excludeFields)(ec)
+        val schema = new PgInformationSchema(registry.schema,table, excludeFields)(ec)
 
         //    println(schema.fk)
 
@@ -74,7 +74,7 @@ object EntityMetadataFactory extends Logging {
           for {
             fk <- schema.findFk(field.column_name)
             firstNoPK <- fk match {
-              case Some(f) => firstNoPKField(_schema,f.referencingTable)
+              case Some(f) => firstNoPKField(registry.schema,f.referencingTable)
               case None => DBIO.successful(None)
             }
           } yield {
@@ -122,7 +122,7 @@ object EntityMetadataFactory extends Logging {
         val result = for {
           c <- schema.columns
           fields <- DBIO.from(up.db.run(DBIO.sequence(c.map(field2form))))
-          keys <- EntityMetadataFactory.keysOf(_schema,table)
+          keys <- EntityMetadataFactory.keysOf(registry.schema,table)
         } yield {
 
           val keyStrategy = if(Managed(table)) SurrugateKey else NaturalKey

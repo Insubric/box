@@ -106,7 +106,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
   def form(implicit up:UserProfile) = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,Registry(),FormMetadataFactory(),up.db,EntityKind.FORM.kind, schema = services.connection.dbSchema).route
+        Form(name, lang,Registry(),FormMetadataFactory(),up.db,EntityKind.FORM.kind).route
       }
     }
   }

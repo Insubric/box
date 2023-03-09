@@ -23,7 +23,6 @@ object GeneratedRoutes extends GeneratedRoutes {
     ch.wsl.box.rest.routes.Table[Db_child,Db_child_row]("db_child",Db_child, lang)(Entities.encodeDb_child_row,Entities.decodeDb_child_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Db_parent,Db_parent_row]("db_parent",Db_parent, lang)(Entities.encodeDb_parent_row,Entities.decodeDb_parent_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Db_subchild,Db_subchild_row]("db_subchild",Db_subchild, lang)(Entities.encodeDb_subchild_row,Entities.decodeDb_subchild_row,mat,up,ec,services).route ~ 
-    ch.wsl.box.rest.routes.Table[Flyway_schema_history,Flyway_schema_history_row]("flyway_schema_history",Flyway_schema_history, lang)(Entities.encodeFlyway_schema_history_row,Entities.decodeFlyway_schema_history_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Json_test,Json_test_row]("json_test",Json_test, lang)(Entities.encodeJson_test_row,Entities.decodeJson_test_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Simple,Simple_row]("simple",Simple, lang)(Entities.encodeSimple_row,Entities.decodeSimple_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Spatial_ref_sys,Spatial_ref_sys_row]("spatial_ref_sys",Spatial_ref_sys, lang)(Entities.encodeSpatial_ref_sys_row,Entities.decodeSpatial_ref_sys_row,mat,up,ec,services).route ~ 

@@ -20,7 +20,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport._
@@ -38,7 +37,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   import ch.wsl.box.rest.logic.EnhancedTable._ //import col select
   import ch.wsl.box.shared.utils.JSONUtils._
 
-  val registry = if(entity.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
+  val registry = entity.baseTableRow.registry
 
   val fkFilters = new FKFilterTransfrom(registry)
 
@@ -73,7 +72,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   lazy val metadata = DBIO.from({
     val auth = new Auth()
     val fullDb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
-    EntityMetadataFactory.of(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName,"",registry)(auth.adminUserProfile,ec,fullDb,services)
+    EntityMetadataFactory.of(entity.baseTableRow.tableName,"",registry)(auth.adminUserProfile,ec,fullDb,services)
   })
 
 

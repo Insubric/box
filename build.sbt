@@ -281,10 +281,12 @@ lazy val slickTest = taskKey[Seq[File]]("gen-test-tables")
 lazy val slickTestCodeGenTask = Def.task{
   val dir = sourceDirectory.value
   val cp = (Compile / dependencyClasspath).value
+  val fcp = (Compile / fullClasspath).value
+  println()
   val s = streams.value
   val outputDir = (dir / "test" / "scala").getPath // place generated files in sbt's managed sources folder
   println(outputDir)
-  runner.value.run("ch.wsl.box.codegen.TestCodeGenerator", cp.files, Array(outputDir), s.log).failed foreach (sys error _.getMessage)
+  runner.value.run("ch.wsl.box.model.TestCodeGenerator", cp.files ++ fcp.files, Array(outputDir), s.log).failed foreach (sys error _.getMessage)
   val fname = outputDir + "/ch/wsl/box/testmodel/Entities.scala"
   val ffname = outputDir + "/ch/wsl/box/testmodel/FileTables.scala"
   val rname = outputDir + "/ch/wsl/box/testmodel/GeneratedRoutes.scala"

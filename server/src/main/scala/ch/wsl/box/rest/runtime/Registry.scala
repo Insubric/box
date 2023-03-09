@@ -13,14 +13,8 @@ trait RegistryInstance{
   def routes: GeneratedRoutes
   def actions: ActionRegistry
   def fields: FieldRegistry
+  def schema:String
 }
-
-case class GeneratedRegistry(
-                   fileRoutes:GeneratedFileRoutes,
-                   routes: GeneratedRoutes,
-                   actions: ActionRegistry,
-                   fields: FieldRegistry
-                   ) extends RegistryInstance
 
 object Registry extends Logging {
 

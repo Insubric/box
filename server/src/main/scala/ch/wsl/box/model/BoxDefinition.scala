@@ -1,7 +1,6 @@
 package ch.wsl.box.model
 
 import ch.wsl.box.jdbc.UserDatabase
-import ch.wsl.box.model.boxentities.BoxAccessLevel
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.utils.Cache

@@ -58,7 +58,6 @@ trait Data extends Logging with HasLookup[Json] {
   def data(function: String, params: Json, lang: String): Future[Option[DataContainer]]
 
   def render(function: String, params: Json, lang: String) = {
-    import ch.wsl.box.model.boxentities.BoxFunction._
 
     onSuccess(data(function, params, lang)) {
       case Some(dc) if dc.mode == FunctionKind.Modes.TABLE =>

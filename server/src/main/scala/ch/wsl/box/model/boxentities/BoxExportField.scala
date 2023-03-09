@@ -1,6 +1,6 @@
 package ch.wsl.box.model.boxentities
 
-
+import ch.wsl.box.rest.runtime.Registry
 
 
 /**
@@ -10,6 +10,7 @@ object BoxExportField {
 
 
   val profile = ch.wsl.box.jdbc.PostgresProfile
+  private val schema = Some(Registry.box().schema)
 
   import profile._
   import api._
@@ -22,7 +23,7 @@ object BoxExportField {
 
   /** Table description of table field. Objects of this class serve as prototypes for rows in queries.
     *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class BoxExportField(_tableTag: Tag) extends profile.api.Table[BoxExportField_row](_tableTag,Some(BoxSchema.schema), "export_field") {
+  class BoxExportField(_tableTag: Tag) extends profile.api.Table[BoxExportField_row](_tableTag,schema, "export_field") {
     def * = (Rep.Some(field_uuid), export_uuid, `type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues) <> (BoxExportField_row.tupled, BoxExportField_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(field_uuid), Rep.Some(export_uuid), Rep.Some(`type`),  name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues).shaped.<>({ r=>import r._; _1.map(_=> BoxExportField_row.tupled((_1, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10, _11)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
@@ -69,7 +70,7 @@ object BoxExportField {
   /** GetResult implicit for fetching Field_i18n_row objects using plain SQL queries */
 
   /** Table description of table field_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class BoxExportField_i18n(_tableTag: Tag) extends profile.api.Table[BoxExportField_i18n_row](_tableTag,Some(BoxSchema.schema), "export_field_i18n") {
+  class BoxExportField_i18n(_tableTag: Tag) extends profile.api.Table[BoxExportField_i18n_row](_tableTag,schema, "export_field_i18n") {
     def * = (Rep.Some(uuid), field_uuid, lang, label, placeholder, tooltip, hint, lookupTextField) <> (BoxExportField_i18n_row.tupled, BoxExportField_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(uuid), field_uuid, lang, label, placeholder, tooltip, hint, lookupTextField).shaped.<>({ r=>import r._; _1.map(_=> BoxExportField_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))

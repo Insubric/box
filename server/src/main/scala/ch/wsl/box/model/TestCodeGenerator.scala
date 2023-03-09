@@ -1,10 +1,11 @@
-package ch.wsl.box.codegen
+package ch.wsl.box.model
 
+import ch.wsl.box.codegen.{CodeGeneratorWriter, GeneratorParams}
+import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{Connection, ConnectionTestContainerImpl, PublicSchema}
+import ch.wsl.box.rest.runtime.{ActionRegistry, FieldRegistry, GeneratedFileRoutes, GeneratedRoutes, Registry, RegistryInstance}
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
-import slick.util.AsyncExecutor
-import ch.wsl.box.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,16 +17,12 @@ object TestDatabase{
   def setUp(connection:Connection,boxSchema:String) = {
 
     val base = Source.fromResource("test_base.sql").getLines().mkString("\n")
-    val boxBase = Source.fromResource("test_box_base.sql").getLines().mkString("\n")
+    //val boxBase = Source.fromResource("test_box_base.sql").getLines().mkString("\n")
 
-    Try(Await.result(connection.dbConnection.run(sqlu"""CREATE ROLE postgres;"""),120.seconds))
-    Await.result(connection.dbConnection.run(sqlu""" #$boxBase """.transactionally), 120.seconds)
+    Try(Await.result(connection.dbConnection.run(sqlu"""CREATE ROLE postgres;""".transactionally),120.seconds))
     Await.result(connection.dbConnection.run(sqlu""" #$base """.transactionally), 120.seconds)
 
-
-
-    MigrateDB.app(connection)
-    MigrateDB.box(connection,boxSchema)
+    BuildBox.install(connection,boxSchema)
   }
 }
 
@@ -39,6 +36,14 @@ object TestCodeGenerator extends App {
 
   val appSchema = "public"
   val boxSchema = "box"
+
+  Registry.injectBox(new RegistryInstance {
+    override def fileRoutes: GeneratedFileRoutes = ???
+    override def routes: GeneratedRoutes = ???
+    override def actions: ActionRegistry = ???
+    override def fields: FieldRegistry = ???
+    override def schema: String = boxSchema
+  })
 
   val connection = new ConnectionTestContainerImpl(container,PublicSchema.default)
 

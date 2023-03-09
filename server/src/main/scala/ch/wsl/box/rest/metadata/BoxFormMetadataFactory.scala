@@ -2,7 +2,7 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.model.boxentities.{BoxForm, BoxFunction, BoxUser}
+import ch.wsl.box.model.boxentities._
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile

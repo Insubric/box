@@ -13,6 +13,7 @@ import _root_.io.circe.syntax._
 import _root_.io.circe.generic.auto._
 import ch.wsl.box.BaseSpec
 import ch.wsl.box.rest.fixtures.{DbManagedIdFixtures, FormFixtures}
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import ch.wsl.box.testmodel.Entities.Simple_row
 import org.scalatest.Assertion
@@ -28,7 +29,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
     for{
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
+      actions = FormActions(form,Registry(),FormMetadataFactory())
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
     } yield {
@@ -44,7 +45,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
     for{
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
+      actions = FormActions(form,Registry(),FormMetadataFactory())
       i <- up.db.run(actions.update(id,json).transactionally)
       result <- up.db.run(actions.getById(id))
     } yield (i,result)
@@ -57,7 +58,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
     for{
       form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
+      actions = FormActions(form,Registry(),FormMetadataFactory())
       i <- up.db.run(actions.upsertIfNeeded(Some(id),json).transactionally)
       result <- up.db.run(actions.getById(id))
     } yield (i,result)

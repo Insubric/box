@@ -7,6 +7,7 @@ package ch.wsl.box.testmodel
   import io.circe.generic.extras.semiauto._
   import io.circe.generic.extras.Configuration
   import ch.wsl.box.rest.utils.JSONSupport._
+  import geotrellis.vector.io.json.Implicits._
 
   import slick.model.ForeignKeyAction
   import slick.collection.heterogeneous._
@@ -15,6 +16,7 @@ package ch.wsl.box.testmodel
   import org.locationtech.jts.geom.Geometry
 
   import ch.wsl.box.model.UpdateTable
+  import scala.concurrent.ExecutionContext
 
 object Entities {
 
@@ -30,7 +32,7 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Flyway_schema_history.schema, Geography_columns.schema, Geometry_columns.schema, Json_test.schema, Simple.schema, Spatial_ref_sys.schema, Test_list_types.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Geography_columns.schema, Geometry_columns.schema, Json_test.schema, Simple.schema, Spatial_ref_sys.schema, Test_list_types.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -58,16 +60,18 @@ object Entities {
 
     def boxGetResult = GR(r => App_child_row(r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[App_child_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on app_child")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[App_child_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "app_child" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "app_child" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","name","parent_id" """
+          val returning = sql""" returning "id","name","parent_id" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[App_child_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[App_child_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[App_child_row]] = {
@@ -115,16 +119,18 @@ object Entities {
 
     def boxGetResult = GR(r => App_parent_row(r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[App_parent_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on app_parent")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[App_parent_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "app_parent" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "app_parent" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","name" """
+          val returning = sql""" returning "id","name" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[App_parent_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[App_parent_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[App_parent_row]] = {
@@ -168,16 +174,18 @@ object Entities {
 
     def boxGetResult = GR(r => App_subchild_row(r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[App_subchild_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on app_subchild")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[App_subchild_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "app_subchild" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "app_subchild" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","child_id","name" """
+          val returning = sql""" returning "id","child_id","name" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[App_subchild_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[App_subchild_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[App_subchild_row]] = {
@@ -226,16 +234,18 @@ object Entities {
 
     def boxGetResult = GR(r => Db_child_row(r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Db_child_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on db_child")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Db_child_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "db_child" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "db_child" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","name","parent_id" """
+          val returning = sql""" returning "id","name","parent_id" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Db_child_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Db_child_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Db_child_row]] = {
@@ -283,16 +293,18 @@ object Entities {
 
     def boxGetResult = GR(r => Db_parent_row(r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Db_parent_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on db_parent")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Db_parent_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "db_parent" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "db_parent" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","name" """
+          val returning = sql""" returning "id","name" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Db_parent_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Db_parent_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Db_parent_row]] = {
@@ -336,16 +348,18 @@ object Entities {
 
     def boxGetResult = GR(r => Db_subchild_row(r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Db_subchild_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on db_subchild")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Db_subchild_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "db_subchild" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "db_subchild" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","child_id","name" """
+          val returning = sql""" returning "id","child_id","name" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Db_subchild_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Db_subchild_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Db_subchild_row]] = {
@@ -369,87 +383,6 @@ object Entities {
   }
   /** Collection-like TableQuery object for table Db_subchild */
   lazy val Db_subchild = new TableQuery(tag => new Db_subchild(tag))
-
-  /** Entity class storing rows of table Flyway_schema_history
-   *  @param installed_rank Database column installed_rank SqlType(int4), PrimaryKey
-   *  @param version Database column version SqlType(varchar), Length(50,true), Default(None)
-   *  @param description Database column description SqlType(varchar), Length(200,true)
-   *  @param `type` Database column type SqlType(varchar), Length(20,true)
-   *  @param script Database column script SqlType(varchar), Length(1000,true)
-   *  @param checksum Database column checksum SqlType(int4), Default(None)
-   *  @param installed_by Database column installed_by SqlType(varchar), Length(100,true)
-   *  @param installed_on Database column installed_on SqlType(timestamp)
-   *  @param execution_time Database column execution_time SqlType(int4)
-   *  @param success Database column success SqlType(bool) */
-  case class Flyway_schema_history_row(installed_rank: Int, version: Option[String] = None, description: String, `type`: String, script: String, checksum: Option[Int] = None, installed_by: String, installed_on: java.time.LocalDateTime, execution_time: Int, success: Boolean)
-
-
-  val decodeFlyway_schema_history_row:Decoder[Flyway_schema_history_row] = Decoder.forProduct10("installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success")(Flyway_schema_history_row.apply)
-  val encodeFlyway_schema_history_row:EncoderWithBytea[Flyway_schema_history_row] = { e =>
-    implicit def byteE = e
-    Encoder.forProduct10("installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success")(x =>
-      (x.installed_rank, x.version, x.description, x.`type`, x.script, x.checksum, x.installed_by, x.installed_on, x.execution_time, x.success)
-    )
-  }
-
-
-
-  /** GetResult implicit for fetching Flyway_schema_history_row objects using plain SQL queries */
-
-  /** Table description of table flyway_schema_history. Objects of this class serve as prototypes for rows in queries.
-   *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Flyway_schema_history(_tableTag: Tag) extends Table[Flyway_schema_history_row](_tableTag, "flyway_schema_history") with UpdateTable[Flyway_schema_history_row] {
-
-    def boxGetResult = GR(r => Flyway_schema_history_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
-
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Flyway_schema_history_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on flyway_schema_history")
-        val kv = keyValueComposer(this)
-        val head = concat(sql"""update "flyway_schema_history" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
-
-        val returning = sql""" returning "installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success" """
-
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Flyway_schema_history_row](boxGetResult).head
-      }
-
-      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Flyway_schema_history_row]] = {
-        val sqlActionBuilder = concat(sql"""select "installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success" from "flyway_schema_history" """,where)
-        sqlActionBuilder.as[Flyway_schema_history_row](boxGetResult)
-      }
-
-    def * = (installed_rank, version, description, `type`, script, checksum, installed_by, installed_on, execution_time, success) <> (Flyway_schema_history_row.tupled, Flyway_schema_history_row.unapply)
-    /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(installed_rank), version, Rep.Some(description), Rep.Some(`type`), Rep.Some(script), checksum, Rep.Some(installed_by), Rep.Some(installed_on), Rep.Some(execution_time), Rep.Some(success))).shaped.<>({r=>import r._; _1.map(_=> Flyway_schema_history_row.tupled((_1.get, _2, _3.get, _4.get, _5.get, _6, _7.get, _8.get, _9.get, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
-
-    /** Database column installed_rank SqlType(int4), PrimaryKey */
-    val installed_rank: Rep[Int] = column[Int]("installed_rank", O.PrimaryKey)
-    /** Database column version SqlType(varchar), Length(50,true), Default(None) */
-    val version: Rep[Option[String]] = column[Option[String]]("version", O.Length(50,varying=true), O.Default(None))
-    /** Database column description SqlType(varchar), Length(200,true) */
-    val description: Rep[String] = column[String]("description", O.Length(200,varying=true))
-    /** Database column type SqlType(varchar), Length(20,true)
-     *  NOTE: The name was escaped because it collided with a Scala keyword. */
-    val `type`: Rep[String] = column[String]("type", O.Length(20,varying=true))
-    /** Database column script SqlType(varchar), Length(1000,true) */
-    val script: Rep[String] = column[String]("script", O.Length(1000,varying=true))
-    /** Database column checksum SqlType(int4), Default(None) */
-    val checksum: Rep[Option[Int]] = column[Option[Int]]("checksum", O.Default(None))
-    /** Database column installed_by SqlType(varchar), Length(100,true) */
-    val installed_by: Rep[String] = column[String]("installed_by", O.Length(100,varying=true))
-    /** Database column installed_on SqlType(timestamp) */
-    val installed_on: Rep[java.time.LocalDateTime] = column[java.time.LocalDateTime]("installed_on")
-    /** Database column execution_time SqlType(int4) */
-    val execution_time: Rep[Int] = column[Int]("execution_time")
-    /** Database column success SqlType(bool) */
-    val success: Rep[Boolean] = column[Boolean]("success")
-
-    /** Index over (success) (database name flyway_schema_history_s_idx) */
-    val index1 = index("flyway_schema_history_s_idx", success)
-  }
-  /** Collection-like TableQuery object for table Flyway_schema_history */
-  lazy val Flyway_schema_history = new TableQuery(tag => new Flyway_schema_history(tag))
 
   /** Entity class storing rows of table Geography_columns
    *  @param f_table_catalog Database column f_table_catalog SqlType(name), Default(None)
@@ -480,16 +413,18 @@ object Entities {
 
     def boxGetResult = GR(r => Geography_columns_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Geography_columns_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on geography_columns")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Geography_columns_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "geography_columns" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "geography_columns" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "f_table_catalog","f_table_schema","f_table_name","f_geography_column","coord_dimension","srid","type" """
+          val returning = sql""" returning "f_table_catalog","f_table_schema","f_table_name","f_geography_column","coord_dimension","srid","type" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Geography_columns_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Geography_columns_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Geography_columns_row]] = {
@@ -547,16 +482,18 @@ object Entities {
 
     def boxGetResult = GR(r => Geometry_columns_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Geometry_columns_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on geometry_columns")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Geometry_columns_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "geometry_columns" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "geometry_columns" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "f_table_catalog","f_table_schema","f_table_name","f_geometry_column","coord_dimension","srid","type" """
+          val returning = sql""" returning "f_table_catalog","f_table_schema","f_table_name","f_geometry_column","coord_dimension","srid","type" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Geometry_columns_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Geometry_columns_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Geometry_columns_row]] = {
@@ -608,16 +545,18 @@ object Entities {
 
     def boxGetResult = GR(r => Json_test_row(r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Json_test_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on json_test")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Json_test_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "json_test" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "json_test" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","obj" """
+          val returning = sql""" returning "id","obj" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Json_test_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Json_test_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Json_test_row]] = {
@@ -660,16 +599,18 @@ object Entities {
 
     def boxGetResult = GR(r => Simple_row(r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Simple_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on simple")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Simple_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "simple" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "simple" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","name" """
+          val returning = sql""" returning "id","name" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Simple_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Simple_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Simple_row]] = {
@@ -715,16 +656,18 @@ object Entities {
 
     def boxGetResult = GR(r => Spatial_ref_sys_row(r.<<,r.<<,r.<<,r.<<,r.<<))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Spatial_ref_sys_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on spatial_ref_sys")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Spatial_ref_sys_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "spatial_ref_sys" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "spatial_ref_sys" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "srid","auth_name","auth_srid","srtext","proj4text" """
+          val returning = sql""" returning "srid","auth_name","auth_srid","srtext","proj4text" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Spatial_ref_sys_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Spatial_ref_sys_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Spatial_ref_sys_row]] = {
@@ -775,16 +718,18 @@ object Entities {
 
     def boxGetResult = GR(r => Test_list_types_row(r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[Int].map(_.toList),r.nextArrayOption[Double].map(_.toList)))
 
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder):DBIO[Test_list_types_row] = {
-        if(fields.isEmpty) throw new Exception("No fields to update on test_list_types")
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Test_list_types_row]] = {
         val kv = keyValueComposer(this)
-        val head = concat(sql"""update "test_list_types" set """,kv(fields.head))
-        val set = fields.tail.foldLeft(head) { case (builder, pair) => concat(builder, concat(sql" , ",kv(pair))) }
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_list_types" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-        val returning = sql""" returning "id","texts","ints","numbers" """
+          val returning = sql""" returning "id","texts","ints","numbers" """
 
-        val sqlActionBuilder = concat(concat(set,where),returning)
-        sqlActionBuilder.as[Test_list_types_row](boxGetResult).head
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Test_list_types_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Test_list_types_row]] = {

@@ -2,8 +2,8 @@ package ch.wsl.box
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import ch.wsl.box.codegen.TestDatabase
 import ch.wsl.box.jdbc.{ConnectionTestContainerImpl, FullDatabase, PublicSchema, UserDatabase}
+import ch.wsl.box.model.TestDatabase
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.{Services, TestModule}
@@ -41,10 +41,11 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
   def withServices[A](run: Services => Future[A]): A = {
     val container = containerDef.start()
     val connection = new ConnectionTestContainerImpl(container, PublicSchema.default)
-    TestDatabase.setUp(connection, "box")
     TestModule(connection).injector.run[Services, A] { implicit services =>
       Registry.inject(new GenRegistry())
       Registry.injectBox(new boxentities.GenRegistry())
+
+      TestDatabase.setUp(connection, "box")
 
       val result = Await.result(run(services), 60.seconds)
 

@@ -3,6 +3,7 @@ package ch.wsl.box.model.boxentities
 
 
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
 
 
@@ -11,7 +12,7 @@ import io.circe.Json
   */
 object BoxField {
 
-
+  private val schema = Some(Registry.box().schema)
 
   case class BoxField_row(
                            field_uuid: Option[java.util.UUID] = None,
@@ -37,7 +38,7 @@ object BoxField {
                            max: Option[Double] = None
                          )
 
-  class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,Some(BoxSchema.schema), "field") {
+  class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,schema, "field") {
     def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function,min,max) <> (BoxField_row.tupled, BoxField_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
@@ -92,7 +93,7 @@ object BoxField {
   /** GetResult implicit for fetching Field_i18n_row objects using plain SQL queries */
 
   /** Table description of table field_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class BoxField_i18n(_tableTag: Tag) extends Table[BoxField_i18n_row](_tableTag,Some(BoxSchema.schema), "field_i18n") {
+  class BoxField_i18n(_tableTag: Tag) extends Table[BoxField_i18n_row](_tableTag,schema, "field_i18n") {
     def * = (Rep.Some(uuid), field_uuid, lang, label, placeholder, tooltip, hint, lookupTextField) <> (BoxField_i18n_row.tupled, BoxField_i18n_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
@@ -124,7 +125,7 @@ object BoxField {
   case class BoxFieldFile_row(field_uuid: java.util.UUID, file_field: String, thumbnail_field: Option[String] = None, name_field: String)
 
 
-  class BoxFieldFile(_tableTag: Tag) extends Table[BoxFieldFile_row](_tableTag,Some(BoxSchema.schema), "field_file") {
+  class BoxFieldFile(_tableTag: Tag) extends Table[BoxFieldFile_row](_tableTag,schema, "field_file") {
     def * = (field_uuid,file_field,thumbnail_field,name_field) <> (BoxFieldFile_row.tupled, BoxFieldFile_row.unapply)
 
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.PrimaryKey)

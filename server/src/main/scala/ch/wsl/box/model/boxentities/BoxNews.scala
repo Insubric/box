@@ -1,21 +1,21 @@
 package ch.wsl.box.model.boxentities
 
 import java.sql.Timestamp
-
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.runtime.Registry
 import slick.model.ForeignKeyAction
 
 
 object BoxNews {
 
-
+  private val schema = Some(Registry.box().schema)
 
 
   case class BoxNews_row(news_uuid: Option[java.util.UUID] = None, datetime: java.time.LocalDateTime, author:Option[String]=None)
   /** GetResult implicit for fetching Form_row objects using plain SQL queries */
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
-  class BoxNews(_tableTag: Tag) extends Table[BoxNews_row](_tableTag,Some(BoxSchema.schema),"news") {
+  class BoxNews(_tableTag: Tag) extends Table[BoxNews_row](_tableTag,schema,"news") {
     def * = (Rep.Some(news_uuid), datetime, author) <> (BoxNews_row.tupled, BoxNews_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(news_uuid), datetime, author).shaped.<>({ r=>import r._; _1.map(_=> BoxNews_row.tupled((_1, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
@@ -44,7 +44,7 @@ object BoxNews {
 
   /** Table description of table fo
     * rm_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class BoxNews_i18n(_tableTag: Tag) extends Table[BoxNews_i18n_row](_tableTag,Some(BoxSchema.schema), "news_i18n") {
+  class BoxNews_i18n(_tableTag: Tag) extends Table[BoxNews_i18n_row](_tableTag,schema, "news_i18n") {
     def * = (Rep.Some(news_uuid), lang, title, text) <> (BoxNews_i18n_row.tupled, BoxNews_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(news_uuid), lang, title, text).shaped.<>({ r=>import r._; _1.map(_=> BoxNews_i18n_row.tupled((_1, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))

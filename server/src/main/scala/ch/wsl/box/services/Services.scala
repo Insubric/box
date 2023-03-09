@@ -2,7 +2,6 @@ package ch.wsl.box.services
 
 import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.Connection
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.routes.v1.NotificationChannels
 import ch.wsl.box.rest.utils.BoxSession
 import ch.wsl.box.services.config.{Config, FullConfig}

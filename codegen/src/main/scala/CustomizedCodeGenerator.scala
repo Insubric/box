@@ -40,7 +40,7 @@ case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:
       generatedRoutes = RoutesGenerator(calculatedViews, calculatedTables, dbModel),
       entityActionsRegistry = EntityActionsRegistryGenerator(calculatedViews ++ calculatedTables, dbModel),
       fileAccessGenerator = FileAccessGenerator(dbModel),
-      registry = RegistryGenerator(dbModel),
+      registry = RegistryGenerator(dbModel,dbSchema),
       fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel),
     )
 
@@ -59,7 +59,7 @@ object CustomizedCodeGenerator  {
       dbConf.as[Seq[String]]("generator.excludes"),
       dbConf.as[Seq[String]]("generator.excludeFields"),
       conf.schemaName,
-      conf.boxSchemaName.getOrElse("box"),
+      conf.boxSchemaName,
       conf.langs
     )
 

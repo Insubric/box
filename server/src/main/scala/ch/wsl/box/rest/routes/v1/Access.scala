@@ -3,9 +3,9 @@ package ch.wsl.box.rest.routes.v1
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, path, pathPrefix}
 import ch.wsl.box.jdbc.Connection
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.EntityKind
 import ch.wsl.box.rest.logic.TableAccess
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.BoxSession
 import ch.wsl.box.services.Services
 import io.circe._
@@ -23,7 +23,7 @@ case class Access(session:BoxSession)(implicit ec:ExecutionContext,services:Serv
     pathPrefix(EntityKind.BOX_FORM.kind | EntityKind.BOX_TABLE.kind) {
       pathPrefix(Segment) { table =>
         path("table-access") {
-          complete(TableAccess(table,BoxSchema.schema,session.username,services.connection.adminDB).map(_.asJson))
+          complete(TableAccess(table,Registry.box().schema,session.username,services.connection.adminDB).map(_.asJson))
         }
       }
     } ~

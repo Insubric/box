@@ -26,7 +26,7 @@ object StubMetadataFactory {
 
     val dbio = for{
       langs <- DBIO.from(Future.sequence(services.config.langs.map{ lang =>
-        EntityMetadataFactory.of(services.connection.dbSchema,entity,lang, Registry()).map(x => (lang,x))
+        EntityMetadataFactory.of(entity,lang, Registry()).map(x => (lang,x))
       }))
       metadata = langs.head._2
       form <- {

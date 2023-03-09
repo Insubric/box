@@ -2,6 +2,7 @@ package ch.wsl.box.model.boxentities
 
 
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.runtime.Registry
 import slick.model.ForeignKeyAction
 import slick.collection.heterogeneous._
 import slick.collection.heterogeneous.syntax._
@@ -14,13 +15,14 @@ object BoxLabels {
 
 
   val profile = ch.wsl.box.jdbc.PostgresProfile
+  private val schema = Some(Registry.box().schema)
 
   import profile._
 
 
   case class BoxLabels_row(lang: String, key:String, label: Option[String] = None)
 
-  class BoxLabels(_tableTag: Tag) extends profile.api.Table[BoxLabels_row](_tableTag,Some(BoxSchema.schema), "labels") {
+  class BoxLabels(_tableTag: Tag) extends profile.api.Table[BoxLabels_row](_tableTag,schema, "labels") {
     def * = (lang, key, label) <> (BoxLabels_row.tupled, BoxLabels_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
 
