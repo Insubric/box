@@ -13,13 +13,11 @@ object FieldAccessRegistry extends FieldRegistry {
       "db_subchild",
       "json_test",
       "simple",
-      "spatial_ref_sys",
       "test_list_types"
   )
 
   override def views: Seq[String] = Seq(
-      "geography_columns",
-      "geometry_columns"
+      ""
   )
 
   def tableFields:Map[String,Map[String,ColType]] = Map(
@@ -31,10 +29,7 @@ object FieldAccessRegistry extends FieldRegistry {
         "db_subchild" -> db_subchild_map,
         "json_test" -> json_test_map,
         "simple" -> simple_map,
-        "spatial_ref_sys" -> spatial_ref_sys_map,
         "test_list_types" -> test_list_types_map,
-        "geography_columns" -> geography_columns_map,
-        "geometry_columns" -> geometry_columns_map,
   )
 
   private def app_child_map =  Map(
@@ -73,36 +68,11 @@ object FieldAccessRegistry extends FieldRegistry {
               "id" -> ColType("Int","integer",true,false),
               "name" -> ColType("String","string",false,true)
 )
-  private def spatial_ref_sys_map =  Map(
-              "srid" -> ColType("Int","integer",false,false),
-              "auth_name" -> ColType("String","string",false,true),
-              "auth_srid" -> ColType("Int","integer",false,true),
-              "srtext" -> ColType("String","string",false,true),
-              "proj4text" -> ColType("String","string",false,true)
-)
   private def test_list_types_map =  Map(
               "id" -> ColType("Int","integer",true,false),
               "texts" -> ColType("List[String]","array_string",false,true),
               "ints" -> ColType("List[Int]","array_number",false,true),
               "numbers" -> ColType("List[Double]","array_number",false,true)
-)
-  private def geography_columns_map =  Map(
-              "f_table_catalog" -> ColType("String","string",false,true),
-              "f_table_schema" -> ColType("String","string",false,true),
-              "f_table_name" -> ColType("String","string",false,true),
-              "f_geography_column" -> ColType("String","string",false,true),
-              "coord_dimension" -> ColType("Int","integer",false,true),
-              "srid" -> ColType("Int","integer",false,true),
-              "type" -> ColType("String","string",false,true)
-)
-  private def geometry_columns_map =  Map(
-              "f_table_catalog" -> ColType("String","string",false,true),
-              "f_table_schema" -> ColType("String","string",false,true),
-              "f_table_name" -> ColType("String","string",false,true),
-              "f_geometry_column" -> ColType("String","string",false,true),
-              "coord_dimension" -> ColType("Int","integer",false,true),
-              "srid" -> ColType("Int","integer",false,true),
-              "type" -> ColType("String","string",false,true)
 )
 
 

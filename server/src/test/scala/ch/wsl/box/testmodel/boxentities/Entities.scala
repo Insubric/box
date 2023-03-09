@@ -55,7 +55,7 @@ object Entities {
   /** GetResult implicit for fetching Access_level_row objects using plain SQL queries */
 
   /** Table description of table access_level. Objects of this class serve as prototypes for rows in queries. */
-  class Access_level(_tableTag: Tag) extends Table[Access_level_row](_tableTag, Some("box"), "access_level") with UpdateTable[Access_level_row] {
+  class Access_level(_tableTag: Tag) extends Table[Access_level_row](_tableTag, Some("test_box"), "access_level") with UpdateTable[Access_level_row] {
 
     def boxGetResult = GR(r => Access_level_row(r.<<,r.<<))
 
@@ -63,7 +63,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."access_level" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."access_level" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "access_level_id","access_level" """
@@ -74,7 +74,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Access_level_row]] = {
-        val sqlActionBuilder = concat(sql"""select "access_level_id","access_level" from "box"."access_level" """,where)
+        val sqlActionBuilder = concat(sql"""select "access_level_id","access_level" from "test_box"."access_level" """,where)
         sqlActionBuilder.as[Access_level_row](boxGetResult)
       }
 
@@ -109,7 +109,7 @@ object Entities {
   /** GetResult implicit for fetching Conf_row objects using plain SQL queries */
 
   /** Table description of table conf. Objects of this class serve as prototypes for rows in queries. */
-  class Conf(_tableTag: Tag) extends Table[Conf_row](_tableTag, Some("box"), "conf") with UpdateTable[Conf_row] {
+  class Conf(_tableTag: Tag) extends Table[Conf_row](_tableTag, Some("test_box"), "conf") with UpdateTable[Conf_row] {
 
     def boxGetResult = GR(r => Conf_row(r.<<,r.<<))
 
@@ -117,7 +117,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."conf" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."conf" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "key","value" """
@@ -128,7 +128,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Conf_row]] = {
-        val sqlActionBuilder = concat(sql"""select "key","value" from "box"."conf" """,where)
+        val sqlActionBuilder = concat(sql"""select "key","value" from "test_box"."conf" """,where)
         sqlActionBuilder.as[Conf_row](boxGetResult)
       }
 
@@ -164,7 +164,7 @@ object Entities {
   /** GetResult implicit for fetching Cron_row objects using plain SQL queries */
 
   /** Table description of table cron. Objects of this class serve as prototypes for rows in queries. */
-  class Cron(_tableTag: Tag) extends Table[Cron_row](_tableTag, Some("box"), "cron") with UpdateTable[Cron_row] {
+  class Cron(_tableTag: Tag) extends Table[Cron_row](_tableTag, Some("test_box"), "cron") with UpdateTable[Cron_row] {
 
     def boxGetResult = GR(r => Cron_row(r.<<,r.<<,r.<<))
 
@@ -172,7 +172,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."cron" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."cron" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "name","cron","sql" """
@@ -183,7 +183,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Cron_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","cron","sql" from "box"."cron" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","cron","sql" from "test_box"."cron" """,where)
         sqlActionBuilder.as[Cron_row](boxGetResult)
       }
 
@@ -226,7 +226,7 @@ object Entities {
   /** GetResult implicit for fetching Export_row objects using plain SQL queries */
 
   /** Table description of table export. Objects of this class serve as prototypes for rows in queries. */
-  class Export(_tableTag: Tag) extends Table[Export_row](_tableTag, Some("box"), "export") with UpdateTable[Export_row] {
+  class Export(_tableTag: Tag) extends Table[Export_row](_tableTag, Some("test_box"), "export") with UpdateTable[Export_row] {
 
     def boxGetResult = GR(r => Export_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextUUIDOption))
 
@@ -234,7 +234,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."export" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."export" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "name","function","description","layout","parameters","order","access_role","export_uuid" """
@@ -245,7 +245,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Export_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","function","description","layout","parameters","order","access_role","export_uuid" from "box"."export" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","function","description","layout","parameters","order","access_role","export_uuid" from "test_box"."export" """,where)
         sqlActionBuilder.as[Export_row](boxGetResult)
       }
 
@@ -302,7 +302,7 @@ object Entities {
 
   /** Table description of table export_field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Export_field(_tableTag: Tag) extends Table[Export_field_row](_tableTag, Some("box"), "export_field") with UpdateTable[Export_field_row] {
+  class Export_field(_tableTag: Tag) extends Table[Export_field_row](_tableTag, Some("test_box"), "export_field") with UpdateTable[Export_field_row] {
 
     def boxGetResult = GR(r => Export_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -310,7 +310,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."export_field" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."export_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid" """
@@ -321,7 +321,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Export_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid" from "box"."export_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid" from "test_box"."export_field" """,where)
         sqlActionBuilder.as[Export_field_row](boxGetResult)
       }
 
@@ -384,7 +384,7 @@ object Entities {
   /** GetResult implicit for fetching Export_field_i18n_row objects using plain SQL queries */
 
   /** Table description of table export_field_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class Export_field_i18n(_tableTag: Tag) extends Table[Export_field_i18n_row](_tableTag, Some("box"), "export_field_i18n") with UpdateTable[Export_field_i18n_row] {
+  class Export_field_i18n(_tableTag: Tag) extends Table[Export_field_i18n_row](_tableTag, Some("test_box"), "export_field_i18n") with UpdateTable[Export_field_i18n_row] {
 
     def boxGetResult = GR(r => Export_field_i18n_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -392,7 +392,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."export_field_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."export_field_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" """
@@ -403,7 +403,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Export_field_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" from "box"."export_field_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" from "test_box"."export_field_i18n" """,where)
         sqlActionBuilder.as[Export_field_i18n_row](boxGetResult)
       }
 
@@ -461,7 +461,7 @@ object Entities {
   /** GetResult implicit for fetching Export_i18n_row objects using plain SQL queries */
 
   /** Table description of table export_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class Export_i18n(_tableTag: Tag) extends Table[Export_i18n_row](_tableTag, Some("box"), "export_i18n") with UpdateTable[Export_i18n_row] {
+  class Export_i18n(_tableTag: Tag) extends Table[Export_i18n_row](_tableTag, Some("test_box"), "export_i18n") with UpdateTable[Export_i18n_row] {
 
     def boxGetResult = GR(r => Export_i18n_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -469,7 +469,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."export_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."export_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","label","tooltip","hint","function","uuid","export_uuid" """
@@ -480,7 +480,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Export_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","label","tooltip","hint","function","uuid","export_uuid" from "box"."export_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","label","tooltip","hint","function","uuid","export_uuid" from "test_box"."export_i18n" """,where)
         sqlActionBuilder.as[Export_i18n_row](boxGetResult)
       }
 
@@ -551,7 +551,7 @@ object Entities {
 
   /** Table description of table field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Field(_tableTag: Tag) extends Table[Field_row](_tableTag, Some("box"), "field") with UpdateTable[Field_row] {
+  class Field(_tableTag: Tag) extends Table[Field_row](_tableTag, Some("test_box"), "field") with UpdateTable[Field_row] {
 
     def boxGetResult = GR(r => Field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.nextUUIDOption,r.<<,r.<<,r.<<))
 
@@ -559,7 +559,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."field" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max" """
@@ -570,7 +570,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max" from "box"."field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max" from "test_box"."field" """,where)
         sqlActionBuilder.as[Field_row](boxGetResult)
       }
 
@@ -651,7 +651,7 @@ object Entities {
   /** GetResult implicit for fetching Field_file_row objects using plain SQL queries */
 
   /** Table description of table field_file. Objects of this class serve as prototypes for rows in queries. */
-  class Field_file(_tableTag: Tag) extends Table[Field_file_row](_tableTag, Some("box"), "field_file") with UpdateTable[Field_file_row] {
+  class Field_file(_tableTag: Tag) extends Table[Field_file_row](_tableTag, Some("test_box"), "field_file") with UpdateTable[Field_file_row] {
 
     def boxGetResult = GR(r => Field_file_row(r.<<,r.<<,r.<<,r.nextUUID))
 
@@ -659,7 +659,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."field_file" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."field_file" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "file_field","thumbnail_field","name_field","field_uuid" """
@@ -670,7 +670,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Field_file_row]] = {
-        val sqlActionBuilder = concat(sql"""select "file_field","thumbnail_field","name_field","field_uuid" from "box"."field_file" """,where)
+        val sqlActionBuilder = concat(sql"""select "file_field","thumbnail_field","name_field","field_uuid" from "test_box"."field_file" """,where)
         sqlActionBuilder.as[Field_file_row](boxGetResult)
       }
 
@@ -718,7 +718,7 @@ object Entities {
   /** GetResult implicit for fetching Field_i18n_row objects using plain SQL queries */
 
   /** Table description of table field_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class Field_i18n(_tableTag: Tag) extends Table[Field_i18n_row](_tableTag, Some("box"), "field_i18n") with UpdateTable[Field_i18n_row] {
+  class Field_i18n(_tableTag: Tag) extends Table[Field_i18n_row](_tableTag, Some("test_box"), "field_i18n") with UpdateTable[Field_i18n_row] {
 
     def boxGetResult = GR(r => Field_i18n_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -726,7 +726,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."field_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."field_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" """
@@ -737,7 +737,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Field_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" from "box"."field_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" from "test_box"."field_i18n" """,where)
         sqlActionBuilder.as[Field_i18n_row](boxGetResult)
       }
 
@@ -799,7 +799,7 @@ object Entities {
 
   /** Table description of table flyway_schema_history_box. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Flyway_schema_history_box(_tableTag: Tag) extends Table[Flyway_schema_history_box_row](_tableTag, Some("box"), "flyway_schema_history_box") with UpdateTable[Flyway_schema_history_box_row] {
+  class Flyway_schema_history_box(_tableTag: Tag) extends Table[Flyway_schema_history_box_row](_tableTag, Some("test_box"), "flyway_schema_history_box") with UpdateTable[Flyway_schema_history_box_row] {
 
     def boxGetResult = GR(r => Flyway_schema_history_box_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
@@ -807,7 +807,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."flyway_schema_history_box" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."flyway_schema_history_box" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success" """
@@ -818,7 +818,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Flyway_schema_history_box_row]] = {
-        val sqlActionBuilder = concat(sql"""select "installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success" from "box"."flyway_schema_history_box" """,where)
+        val sqlActionBuilder = concat(sql"""select "installed_rank","version","description","type","script","checksum","installed_by","installed_on","execution_time","success" from "test_box"."flyway_schema_history_box" """,where)
         sqlActionBuilder.as[Flyway_schema_history_box_row](boxGetResult)
       }
 
@@ -884,7 +884,7 @@ object Entities {
   /** GetResult implicit for fetching Form_row objects using plain SQL queries */
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
-  class Form(_tableTag: Tag) extends Table[Form_row](_tableTag, Some("box"), "form") with UpdateTable[Form_row] {
+  class Form(_tableTag: Tag) extends Table[Form_row](_tableTag, Some("test_box"), "form") with UpdateTable[Form_row] {
 
     def boxGetResult = GR(r => Form_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.<<))
 
@@ -892,7 +892,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."form" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."form" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" """
@@ -903,7 +903,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" from "box"."form" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" from "test_box"."form" """,where)
         sqlActionBuilder.as[Form_row](boxGetResult)
       }
 
@@ -972,7 +972,7 @@ object Entities {
   /** GetResult implicit for fetching Form_actions_row objects using plain SQL queries */
 
   /** Table description of table form_actions. Objects of this class serve as prototypes for rows in queries. */
-  class Form_actions(_tableTag: Tag) extends Table[Form_actions_row](_tableTag, Some("box"), "form_actions") with UpdateTable[Form_actions_row] {
+  class Form_actions(_tableTag: Tag) extends Table[Form_actions_row](_tableTag, Some("test_box"), "form_actions") with UpdateTable[Form_actions_row] {
 
     def boxGetResult = GR(r => Form_actions_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<,r.<<,r.<<,r.<<))
 
@@ -980,7 +980,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."form_actions" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."form_actions" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check" """
@@ -991,7 +991,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_actions_row]] = {
-        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check" from "box"."form_actions" """,where)
+        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check" from "test_box"."form_actions" """,where)
         sqlActionBuilder.as[Form_actions_row](boxGetResult)
       }
 
@@ -1069,7 +1069,7 @@ object Entities {
   /** GetResult implicit for fetching Form_actions_table_row objects using plain SQL queries */
 
   /** Table description of table form_actions_table. Objects of this class serve as prototypes for rows in queries. */
-  class Form_actions_table(_tableTag: Tag) extends Table[Form_actions_table_row](_tableTag, Some("box"), "form_actions_table") with UpdateTable[Form_actions_table_row] {
+  class Form_actions_table(_tableTag: Tag) extends Table[Form_actions_table_row](_tableTag, Some("test_box"), "form_actions_table") with UpdateTable[Form_actions_table_row] {
 
     def boxGetResult = GR(r => Form_actions_table_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
@@ -1077,7 +1077,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."form_actions_table" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."form_actions_table" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","need_update_right","need_delete_right","when_no_update_right","target" """
@@ -1088,7 +1088,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_actions_table_row]] = {
-        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","need_update_right","need_delete_right","when_no_update_right","target" from "box"."form_actions_table" """,where)
+        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","need_update_right","need_delete_right","when_no_update_right","target" from "test_box"."form_actions_table" """,where)
         sqlActionBuilder.as[Form_actions_table_row](boxGetResult)
       }
 
@@ -1171,7 +1171,7 @@ object Entities {
   /** GetResult implicit for fetching Form_actions_top_table_row objects using plain SQL queries */
 
   /** Table description of table form_actions_top_table. Objects of this class serve as prototypes for rows in queries. */
-  class Form_actions_top_table(_tableTag: Tag) extends Table[Form_actions_top_table_row](_tableTag, Some("box"), "form_actions_top_table") with UpdateTable[Form_actions_top_table_row] {
+  class Form_actions_top_table(_tableTag: Tag) extends Table[Form_actions_top_table_row](_tableTag, Some("test_box"), "form_actions_top_table") with UpdateTable[Form_actions_top_table_row] {
 
     def boxGetResult = GR(r => Form_actions_top_table_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
@@ -1179,7 +1179,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."form_actions_top_table" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."form_actions_top_table" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "action","importance","after_action_goto","label","confirm_text","uuid","form_uuid","execute_function","action_order","condition","need_update_right","need_delete_right","need_insert_right","when_no_update_right","target" """
@@ -1190,7 +1190,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_actions_top_table_row]] = {
-        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","confirm_text","uuid","form_uuid","execute_function","action_order","condition","need_update_right","need_delete_right","need_insert_right","when_no_update_right","target" from "box"."form_actions_top_table" """,where)
+        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","confirm_text","uuid","form_uuid","execute_function","action_order","condition","need_update_right","need_delete_right","need_insert_right","when_no_update_right","target" from "test_box"."form_actions_top_table" """,where)
         sqlActionBuilder.as[Form_actions_top_table_row](boxGetResult)
       }
 
@@ -1258,7 +1258,7 @@ object Entities {
   /** GetResult implicit for fetching Form_i18n_row objects using plain SQL queries */
 
   /** Table description of table form_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class Form_i18n(_tableTag: Tag) extends Table[Form_i18n_row](_tableTag, Some("box"), "form_i18n") with UpdateTable[Form_i18n_row] {
+  class Form_i18n(_tableTag: Tag) extends Table[Form_i18n_row](_tableTag, Some("test_box"), "form_i18n") with UpdateTable[Form_i18n_row] {
 
     def boxGetResult = GR(r => Form_i18n_row(r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -1266,7 +1266,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."form_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."form_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","label","view_table","dynamic_label","uuid","form_uuid" """
@@ -1277,7 +1277,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","label","view_table","dynamic_label","uuid","form_uuid" from "box"."form_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","label","view_table","dynamic_label","uuid","form_uuid" from "test_box"."form_i18n" """,where)
         sqlActionBuilder.as[Form_i18n_row](boxGetResult)
       }
 
@@ -1336,7 +1336,7 @@ object Entities {
   /** GetResult implicit for fetching Form_navigation_actions_row objects using plain SQL queries */
 
   /** Table description of table form_navigation_actions. Objects of this class serve as prototypes for rows in queries. */
-  class Form_navigation_actions(_tableTag: Tag) extends Table[Form_navigation_actions_row](_tableTag, Some("box"), "form_navigation_actions") with UpdateTable[Form_navigation_actions_row] {
+  class Form_navigation_actions(_tableTag: Tag) extends Table[Form_navigation_actions_row](_tableTag, Some("test_box"), "form_navigation_actions") with UpdateTable[Form_navigation_actions_row] {
 
     def boxGetResult = GR(r => Form_navigation_actions_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -1344,7 +1344,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."form_navigation_actions" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."form_navigation_actions" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","execute_function","action_order","uuid","form_uuid" """
@@ -1355,7 +1355,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_navigation_actions_row]] = {
-        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","execute_function","action_order","uuid","form_uuid" from "box"."form_navigation_actions" """,where)
+        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","execute_function","action_order","uuid","form_uuid" from "test_box"."form_navigation_actions" """,where)
         sqlActionBuilder.as[Form_navigation_actions_row](boxGetResult)
       }
 
@@ -1420,7 +1420,7 @@ object Entities {
   /** GetResult implicit for fetching Function_row objects using plain SQL queries */
 
   /** Table description of table function. Objects of this class serve as prototypes for rows in queries. */
-  class Function(_tableTag: Tag) extends Table[Function_row](_tableTag, Some("box"), "function") with UpdateTable[Function_row] {
+  class Function(_tableTag: Tag) extends Table[Function_row](_tableTag, Some("test_box"), "function") with UpdateTable[Function_row] {
 
     def boxGetResult = GR(r => Function_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.<<,r.<<,r.nextUUIDOption))
 
@@ -1428,7 +1428,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."function" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."function" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "name","function","description","layout","order","access_role","presenter","mode","function_uuid" """
@@ -1439,7 +1439,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Function_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","function","description","layout","order","access_role","presenter","mode","function_uuid" from "box"."function" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","function","description","layout","order","access_role","presenter","mode","function_uuid" from "test_box"."function" """,where)
         sqlActionBuilder.as[Function_row](boxGetResult)
       }
 
@@ -1498,7 +1498,7 @@ object Entities {
 
   /** Table description of table function_field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Function_field(_tableTag: Tag) extends Table[Function_field_row](_tableTag, Some("box"), "function_field") with UpdateTable[Function_field_row] {
+  class Function_field(_tableTag: Tag) extends Table[Function_field_row](_tableTag, Some("test_box"), "function_field") with UpdateTable[Function_field_row] {
 
     def boxGetResult = GR(r => Function_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -1506,7 +1506,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."function_field" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."function_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid" """
@@ -1517,7 +1517,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Function_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid" from "box"."function_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid" from "test_box"."function_field" """,where)
         sqlActionBuilder.as[Function_field_row](boxGetResult)
       }
 
@@ -1580,7 +1580,7 @@ object Entities {
   /** GetResult implicit for fetching Function_field_i18n_row objects using plain SQL queries */
 
   /** Table description of table function_field_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class Function_field_i18n(_tableTag: Tag) extends Table[Function_field_i18n_row](_tableTag, Some("box"), "function_field_i18n") with UpdateTable[Function_field_i18n_row] {
+  class Function_field_i18n(_tableTag: Tag) extends Table[Function_field_i18n_row](_tableTag, Some("test_box"), "function_field_i18n") with UpdateTable[Function_field_i18n_row] {
 
     def boxGetResult = GR(r => Function_field_i18n_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -1588,7 +1588,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."function_field_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."function_field_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" """
@@ -1599,7 +1599,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Function_field_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" from "box"."function_field_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","label","placeholder","tooltip","hint","lookupTextField","uuid","field_uuid" from "test_box"."function_field_i18n" """,where)
         sqlActionBuilder.as[Function_field_i18n_row](boxGetResult)
       }
 
@@ -1657,7 +1657,7 @@ object Entities {
   /** GetResult implicit for fetching Function_i18n_row objects using plain SQL queries */
 
   /** Table description of table function_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class Function_i18n(_tableTag: Tag) extends Table[Function_i18n_row](_tableTag, Some("box"), "function_i18n") with UpdateTable[Function_i18n_row] {
+  class Function_i18n(_tableTag: Tag) extends Table[Function_i18n_row](_tableTag, Some("test_box"), "function_i18n") with UpdateTable[Function_i18n_row] {
 
     def boxGetResult = GR(r => Function_i18n_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
 
@@ -1665,7 +1665,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."function_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."function_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","label","tooltip","hint","function","uuid","function_uuid" """
@@ -1676,7 +1676,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Function_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","label","tooltip","hint","function","uuid","function_uuid" from "box"."function_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","label","tooltip","hint","function","uuid","function_uuid" from "test_box"."function_i18n" """,where)
         sqlActionBuilder.as[Function_i18n_row](boxGetResult)
       }
 
@@ -1727,7 +1727,7 @@ object Entities {
   /** GetResult implicit for fetching Image_cache_row objects using plain SQL queries */
 
   /** Table description of table image_cache. Objects of this class serve as prototypes for rows in queries. */
-  class Image_cache(_tableTag: Tag) extends Table[Image_cache_row](_tableTag, Some("box"), "image_cache") with UpdateTable[Image_cache_row] {
+  class Image_cache(_tableTag: Tag) extends Table[Image_cache_row](_tableTag, Some("test_box"), "image_cache") with UpdateTable[Image_cache_row] {
 
     def boxGetResult = GR(r => Image_cache_row(r.<<,r.<<))
 
@@ -1735,7 +1735,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."image_cache" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."image_cache" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "key", ''::bytea as "data"  """
@@ -1746,7 +1746,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Image_cache_row]] = {
-        val sqlActionBuilder = concat(sql"""select "key", ''::bytea as "data"  from "box"."image_cache" """,where)
+        val sqlActionBuilder = concat(sql"""select "key", ''::bytea as "data"  from "test_box"."image_cache" """,where)
         sqlActionBuilder.as[Image_cache_row](boxGetResult)
       }
 
@@ -1782,7 +1782,7 @@ object Entities {
   /** GetResult implicit for fetching Labels_row objects using plain SQL queries */
 
   /** Table description of table labels. Objects of this class serve as prototypes for rows in queries. */
-  class Labels(_tableTag: Tag) extends Table[Labels_row](_tableTag, Some("box"), "labels") with UpdateTable[Labels_row] {
+  class Labels(_tableTag: Tag) extends Table[Labels_row](_tableTag, Some("test_box"), "labels") with UpdateTable[Labels_row] {
 
     def boxGetResult = GR(r => Labels_row(r.<<,r.<<,r.<<))
 
@@ -1790,7 +1790,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."labels" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."labels" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","key","label" """
@@ -1801,7 +1801,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Labels_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","key","label" from "box"."labels" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","key","label" from "test_box"."labels" """,where)
         sqlActionBuilder.as[Labels_row](boxGetResult)
       }
 
@@ -1852,7 +1852,7 @@ object Entities {
   /** GetResult implicit for fetching Mails_row objects using plain SQL queries */
 
   /** Table description of table mails. Objects of this class serve as prototypes for rows in queries. */
-  class Mails(_tableTag: Tag) extends Table[Mails_row](_tableTag, Some("box"), "mails") with UpdateTable[Mails_row] {
+  class Mails(_tableTag: Tag) extends Table[Mails_row](_tableTag, Some("test_box"), "mails") with UpdateTable[Mails_row] {
 
     def boxGetResult = GR(r => Mails_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArray[String].toList,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArray[String].toList,r.nextArray[String].toList))
 
@@ -1860,7 +1860,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."mails" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."mails" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc" """
@@ -1871,7 +1871,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Mails_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc" from "box"."mails" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc" from "test_box"."mails" """,where)
         sqlActionBuilder.as[Mails_row](boxGetResult)
       }
 
@@ -1929,7 +1929,7 @@ object Entities {
   /** GetResult implicit for fetching News_row objects using plain SQL queries */
 
   /** Table description of table news. Objects of this class serve as prototypes for rows in queries. */
-  class News(_tableTag: Tag) extends Table[News_row](_tableTag, Some("box"), "news") with UpdateTable[News_row] {
+  class News(_tableTag: Tag) extends Table[News_row](_tableTag, Some("test_box"), "news") with UpdateTable[News_row] {
 
     def boxGetResult = GR(r => News_row(r.<<,r.<<,r.nextUUIDOption))
 
@@ -1937,7 +1937,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."news" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."news" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "datetime","author","news_uuid" """
@@ -1948,7 +1948,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[News_row]] = {
-        val sqlActionBuilder = concat(sql"""select "datetime","author","news_uuid" from "box"."news" """,where)
+        val sqlActionBuilder = concat(sql"""select "datetime","author","news_uuid" from "test_box"."news" """,where)
         sqlActionBuilder.as[News_row](boxGetResult)
       }
 
@@ -1987,7 +1987,7 @@ object Entities {
   /** GetResult implicit for fetching News_i18n_row objects using plain SQL queries */
 
   /** Table description of table news_i18n. Objects of this class serve as prototypes for rows in queries. */
-  class News_i18n(_tableTag: Tag) extends Table[News_i18n_row](_tableTag, Some("box"), "news_i18n") with UpdateTable[News_i18n_row] {
+  class News_i18n(_tableTag: Tag) extends Table[News_i18n_row](_tableTag, Some("test_box"), "news_i18n") with UpdateTable[News_i18n_row] {
 
     def boxGetResult = GR(r => News_i18n_row(r.<<,r.<<,r.<<,r.nextUUID))
 
@@ -1995,7 +1995,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."news_i18n" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."news_i18n" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "lang","text","title","news_uuid" """
@@ -2006,7 +2006,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[News_i18n_row]] = {
-        val sqlActionBuilder = concat(sql"""select "lang","text","title","news_uuid" from "box"."news_i18n" """,where)
+        val sqlActionBuilder = concat(sql"""select "lang","text","title","news_uuid" from "test_box"."news_i18n" """,where)
         sqlActionBuilder.as[News_i18n_row](boxGetResult)
       }
 
@@ -2052,7 +2052,7 @@ object Entities {
   /** GetResult implicit for fetching Public_entities_row objects using plain SQL queries */
 
   /** Table description of table public_entities. Objects of this class serve as prototypes for rows in queries. */
-  class Public_entities(_tableTag: Tag) extends Table[Public_entities_row](_tableTag, Some("box"), "public_entities") with UpdateTable[Public_entities_row] {
+  class Public_entities(_tableTag: Tag) extends Table[Public_entities_row](_tableTag, Some("test_box"), "public_entities") with UpdateTable[Public_entities_row] {
 
     def boxGetResult = GR(r => Public_entities_row(r.<<,r.<<,r.<<))
 
@@ -2060,7 +2060,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."public_entities" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."public_entities" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "entity","insert","update" """
@@ -2071,7 +2071,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Public_entities_row]] = {
-        val sqlActionBuilder = concat(sql"""select "entity","insert","update" from "box"."public_entities" """,where)
+        val sqlActionBuilder = concat(sql"""select "entity","insert","update" from "test_box"."public_entities" """,where)
         sqlActionBuilder.as[Public_entities_row](boxGetResult)
       }
 
@@ -2109,7 +2109,7 @@ object Entities {
   /** GetResult implicit for fetching Ui_row objects using plain SQL queries */
 
   /** Table description of table ui. Objects of this class serve as prototypes for rows in queries. */
-  class Ui(_tableTag: Tag) extends Table[Ui_row](_tableTag, Some("box"), "ui") with UpdateTable[Ui_row] {
+  class Ui(_tableTag: Tag) extends Table[Ui_row](_tableTag, Some("test_box"), "ui") with UpdateTable[Ui_row] {
 
     def boxGetResult = GR(r => Ui_row(r.<<,r.<<,r.<<))
 
@@ -2117,7 +2117,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."ui" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."ui" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "key","value","access_level_id" """
@@ -2128,7 +2128,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Ui_row]] = {
-        val sqlActionBuilder = concat(sql"""select "key","value","access_level_id" from "box"."ui" """,where)
+        val sqlActionBuilder = concat(sql"""select "key","value","access_level_id" from "test_box"."ui" """,where)
         sqlActionBuilder.as[Ui_row](boxGetResult)
       }
 
@@ -2171,7 +2171,7 @@ object Entities {
   /** GetResult implicit for fetching Ui_src_row objects using plain SQL queries */
 
   /** Table description of table ui_src. Objects of this class serve as prototypes for rows in queries. */
-  class Ui_src(_tableTag: Tag) extends Table[Ui_src_row](_tableTag, Some("box"), "ui_src") with UpdateTable[Ui_src_row] {
+  class Ui_src(_tableTag: Tag) extends Table[Ui_src_row](_tableTag, Some("test_box"), "ui_src") with UpdateTable[Ui_src_row] {
 
     def boxGetResult = GR(r => Ui_src_row(r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption))
 
@@ -2179,7 +2179,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."ui_src" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."ui_src" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning  ''::bytea as "file" ,"mime","name","access_level_id","uuid" """
@@ -2190,7 +2190,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Ui_src_row]] = {
-        val sqlActionBuilder = concat(sql"""select  ''::bytea as "file" ,"mime","name","access_level_id","uuid" from "box"."ui_src" """,where)
+        val sqlActionBuilder = concat(sql"""select  ''::bytea as "file" ,"mime","name","access_level_id","uuid" from "test_box"."ui_src" """,where)
         sqlActionBuilder.as[Ui_src_row](boxGetResult)
       }
 
@@ -2231,7 +2231,7 @@ object Entities {
   /** GetResult implicit for fetching Users_row objects using plain SQL queries */
 
   /** Table description of table users. Objects of this class serve as prototypes for rows in queries. */
-  class Users(_tableTag: Tag) extends Table[Users_row](_tableTag, Some("box"), "users") with UpdateTable[Users_row] {
+  class Users(_tableTag: Tag) extends Table[Users_row](_tableTag, Some("test_box"), "users") with UpdateTable[Users_row] {
 
     def boxGetResult = GR(r => Users_row(r.<<,r.<<))
 
@@ -2239,7 +2239,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."users" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."users" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "username","access_level_id" """
@@ -2250,7 +2250,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Users_row]] = {
-        val sqlActionBuilder = concat(sql"""select "username","access_level_id" from "box"."users" """,where)
+        val sqlActionBuilder = concat(sql"""select "username","access_level_id" from "test_box"."users" """,where)
         sqlActionBuilder.as[Users_row](boxGetResult)
       }
 
@@ -2306,7 +2306,7 @@ object Entities {
 
   /** Table description of table v_field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class V_field(_tableTag: Tag) extends Table[V_field_row](_tableTag, Some("box"), "v_field") with UpdateTable[V_field_row] {
+  class V_field(_tableTag: Tag) extends Table[V_field_row](_tableTag, Some("test_box"), "v_field") with UpdateTable[V_field_row] {
 
     def boxGetResult = GR(r => V_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUIDOption,r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))
 
@@ -2314,7 +2314,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."v_field" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."v_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field" """
@@ -2325,7 +2325,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field" from "box"."v_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field" from "test_box"."v_field" """,where)
         sqlActionBuilder.as[V_field_row](boxGetResult)
       }
 
@@ -2399,7 +2399,7 @@ object Entities {
   /** GetResult implicit for fetching V_labels_row objects using plain SQL queries */
 
   /** Table description of table v_labels. Objects of this class serve as prototypes for rows in queries. */
-  class V_labels(_tableTag: Tag) extends Table[V_labels_row](_tableTag, Some("box"), "v_labels") with UpdateTable[V_labels_row] {
+  class V_labels(_tableTag: Tag) extends Table[V_labels_row](_tableTag, Some("test_box"), "v_labels") with UpdateTable[V_labels_row] {
 
     def boxGetResult = GR(r => V_labels_row(r.<<,r.<<))
 
@@ -2407,7 +2407,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."v_labels" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."v_labels" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "key","en" """
@@ -2418,7 +2418,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_labels_row]] = {
-        val sqlActionBuilder = concat(sql"""select "key","en" from "box"."v_labels" """,where)
+        val sqlActionBuilder = concat(sql"""select "key","en" from "test_box"."v_labels" """,where)
         sqlActionBuilder.as[V_labels_row](boxGetResult)
       }
 
@@ -2460,7 +2460,7 @@ object Entities {
   /** GetResult implicit for fetching V_roles_row objects using plain SQL queries */
 
   /** Table description of table v_roles. Objects of this class serve as prototypes for rows in queries. */
-  class V_roles(_tableTag: Tag) extends Table[V_roles_row](_tableTag, Some("box"), "v_roles") with UpdateTable[V_roles_row] {
+  class V_roles(_tableTag: Tag) extends Table[V_roles_row](_tableTag, Some("test_box"), "v_roles") with UpdateTable[V_roles_row] {
 
     def boxGetResult = GR(r => V_roles_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
@@ -2468,7 +2468,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "box"."v_roles" set """,chunks.head)
+          val head = concat(sql"""update "test_box"."v_roles" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls" """
@@ -2479,7 +2479,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_roles_row]] = {
-        val sqlActionBuilder = concat(sql"""select "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls" from "box"."v_roles" """,where)
+        val sqlActionBuilder = concat(sql"""select "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls" from "test_box"."v_roles" """,where)
         sqlActionBuilder.as[V_roles_row](boxGetResult)
       }
 

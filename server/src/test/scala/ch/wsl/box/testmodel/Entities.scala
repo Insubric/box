@@ -32,7 +32,7 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Geography_columns.schema, Geometry_columns.schema, Json_test.schema, Simple.schema, Spatial_ref_sys.schema, Test_list_types.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Json_test.schema, Simple.schema, Test_list_types.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -56,7 +56,7 @@ object Entities {
   /** GetResult implicit for fetching App_child_row objects using plain SQL queries */
 
   /** Table description of table app_child. Objects of this class serve as prototypes for rows in queries. */
-  class App_child(_tableTag: Tag) extends Table[App_child_row](_tableTag, "app_child") with UpdateTable[App_child_row] {
+  class App_child(_tableTag: Tag) extends Table[App_child_row](_tableTag, Some("test_public"), "app_child") with UpdateTable[App_child_row] {
 
     def boxGetResult = GR(r => App_child_row(r.<<,r.<<,r.<<))
 
@@ -64,7 +64,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "app_child" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."app_child" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","name","parent_id" """
@@ -75,7 +75,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[App_child_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","name","parent_id" from "app_child" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","name","parent_id" from "test_public"."app_child" """,where)
         sqlActionBuilder.as[App_child_row](boxGetResult)
       }
 
@@ -115,7 +115,7 @@ object Entities {
   /** GetResult implicit for fetching App_parent_row objects using plain SQL queries */
 
   /** Table description of table app_parent. Objects of this class serve as prototypes for rows in queries. */
-  class App_parent(_tableTag: Tag) extends Table[App_parent_row](_tableTag, "app_parent") with UpdateTable[App_parent_row] {
+  class App_parent(_tableTag: Tag) extends Table[App_parent_row](_tableTag, Some("test_public"), "app_parent") with UpdateTable[App_parent_row] {
 
     def boxGetResult = GR(r => App_parent_row(r.<<,r.<<))
 
@@ -123,7 +123,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "app_parent" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."app_parent" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","name" """
@@ -134,7 +134,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[App_parent_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","name" from "app_parent" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","name" from "test_public"."app_parent" """,where)
         sqlActionBuilder.as[App_parent_row](boxGetResult)
       }
 
@@ -170,7 +170,7 @@ object Entities {
   /** GetResult implicit for fetching App_subchild_row objects using plain SQL queries */
 
   /** Table description of table app_subchild. Objects of this class serve as prototypes for rows in queries. */
-  class App_subchild(_tableTag: Tag) extends Table[App_subchild_row](_tableTag, "app_subchild") with UpdateTable[App_subchild_row] {
+  class App_subchild(_tableTag: Tag) extends Table[App_subchild_row](_tableTag, Some("test_public"), "app_subchild") with UpdateTable[App_subchild_row] {
 
     def boxGetResult = GR(r => App_subchild_row(r.<<,r.<<,r.<<))
 
@@ -178,7 +178,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "app_subchild" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."app_subchild" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","child_id","name" """
@@ -189,7 +189,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[App_subchild_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","child_id","name" from "app_subchild" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","child_id","name" from "test_public"."app_subchild" """,where)
         sqlActionBuilder.as[App_subchild_row](boxGetResult)
       }
 
@@ -230,7 +230,7 @@ object Entities {
   /** GetResult implicit for fetching Db_child_row objects using plain SQL queries */
 
   /** Table description of table db_child. Objects of this class serve as prototypes for rows in queries. */
-  class Db_child(_tableTag: Tag) extends Table[Db_child_row](_tableTag, "db_child") with UpdateTable[Db_child_row] {
+  class Db_child(_tableTag: Tag) extends Table[Db_child_row](_tableTag, Some("test_public"), "db_child") with UpdateTable[Db_child_row] {
 
     def boxGetResult = GR(r => Db_child_row(r.<<,r.<<,r.<<))
 
@@ -238,7 +238,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "db_child" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."db_child" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","name","parent_id" """
@@ -249,7 +249,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Db_child_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","name","parent_id" from "db_child" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","name","parent_id" from "test_public"."db_child" """,where)
         sqlActionBuilder.as[Db_child_row](boxGetResult)
       }
 
@@ -289,7 +289,7 @@ object Entities {
   /** GetResult implicit for fetching Db_parent_row objects using plain SQL queries */
 
   /** Table description of table db_parent. Objects of this class serve as prototypes for rows in queries. */
-  class Db_parent(_tableTag: Tag) extends Table[Db_parent_row](_tableTag, "db_parent") with UpdateTable[Db_parent_row] {
+  class Db_parent(_tableTag: Tag) extends Table[Db_parent_row](_tableTag, Some("test_public"), "db_parent") with UpdateTable[Db_parent_row] {
 
     def boxGetResult = GR(r => Db_parent_row(r.<<,r.<<))
 
@@ -297,7 +297,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "db_parent" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."db_parent" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","name" """
@@ -308,7 +308,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Db_parent_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","name" from "db_parent" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","name" from "test_public"."db_parent" """,where)
         sqlActionBuilder.as[Db_parent_row](boxGetResult)
       }
 
@@ -344,7 +344,7 @@ object Entities {
   /** GetResult implicit for fetching Db_subchild_row objects using plain SQL queries */
 
   /** Table description of table db_subchild. Objects of this class serve as prototypes for rows in queries. */
-  class Db_subchild(_tableTag: Tag) extends Table[Db_subchild_row](_tableTag, "db_subchild") with UpdateTable[Db_subchild_row] {
+  class Db_subchild(_tableTag: Tag) extends Table[Db_subchild_row](_tableTag, Some("test_public"), "db_subchild") with UpdateTable[Db_subchild_row] {
 
     def boxGetResult = GR(r => Db_subchild_row(r.<<,r.<<,r.<<))
 
@@ -352,7 +352,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "db_subchild" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."db_subchild" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","child_id","name" """
@@ -363,7 +363,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Db_subchild_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","child_id","name" from "db_subchild" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","child_id","name" from "test_public"."db_subchild" """,where)
         sqlActionBuilder.as[Db_subchild_row](boxGetResult)
       }
 
@@ -384,144 +384,6 @@ object Entities {
   /** Collection-like TableQuery object for table Db_subchild */
   lazy val Db_subchild = new TableQuery(tag => new Db_subchild(tag))
 
-  /** Entity class storing rows of table Geography_columns
-   *  @param f_table_catalog Database column f_table_catalog SqlType(name), Default(None)
-   *  @param f_table_schema Database column f_table_schema SqlType(name), Default(None)
-   *  @param f_table_name Database column f_table_name SqlType(name), Default(None)
-   *  @param f_geography_column Database column f_geography_column SqlType(name), Default(None)
-   *  @param coord_dimension Database column coord_dimension SqlType(int4), Default(None)
-   *  @param srid Database column srid SqlType(int4), Default(None)
-   *  @param `type` Database column type SqlType(text), Default(None) */
-  case class Geography_columns_row(f_table_catalog: Option[String] = None, f_table_schema: Option[String] = None, f_table_name: Option[String] = None, f_geography_column: Option[String] = None, coord_dimension: Option[Int] = None, srid: Option[Int] = None, `type`: Option[String] = None)
-
-
-  val decodeGeography_columns_row:Decoder[Geography_columns_row] = Decoder.forProduct7("f_table_catalog","f_table_schema","f_table_name","f_geography_column","coord_dimension","srid","type")(Geography_columns_row.apply)
-  val encodeGeography_columns_row:EncoderWithBytea[Geography_columns_row] = { e =>
-    implicit def byteE = e
-    Encoder.forProduct7("f_table_catalog","f_table_schema","f_table_name","f_geography_column","coord_dimension","srid","type")(x =>
-      (x.f_table_catalog, x.f_table_schema, x.f_table_name, x.f_geography_column, x.coord_dimension, x.srid, x.`type`)
-    )
-  }
-
-
-
-  /** GetResult implicit for fetching Geography_columns_row objects using plain SQL queries */
-
-  /** Table description of table geography_columns. Objects of this class serve as prototypes for rows in queries.
-   *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Geography_columns(_tableTag: Tag) extends Table[Geography_columns_row](_tableTag, "geography_columns") with UpdateTable[Geography_columns_row] {
-
-    def boxGetResult = GR(r => Geography_columns_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
-
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Geography_columns_row]] = {
-        val kv = keyValueComposer(this)
-        val chunks = fields.flatMap(kv)
-        if(chunks.nonEmpty) {
-          val head = concat(sql"""update "geography_columns" set """,chunks.head)
-          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
-
-          val returning = sql""" returning "f_table_catalog","f_table_schema","f_table_name","f_geography_column","coord_dimension","srid","type" """
-
-          val sqlActionBuilder = concat(concat(set,where),returning)
-          sqlActionBuilder.as[Geography_columns_row](boxGetResult).head.map(x => Some(x))
-        } else DBIO.successful(None)
-      }
-
-      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Geography_columns_row]] = {
-        val sqlActionBuilder = concat(sql"""select "f_table_catalog","f_table_schema","f_table_name","f_geography_column","coord_dimension","srid","type" from "geography_columns" """,where)
-        sqlActionBuilder.as[Geography_columns_row](boxGetResult)
-      }
-
-    def * = (f_table_catalog, f_table_schema, f_table_name, f_geography_column, coord_dimension, srid, `type`) <> (Geography_columns_row.tupled, Geography_columns_row.unapply)
-
-    /** Database column f_table_catalog SqlType(name), Default(None) */
-    val f_table_catalog: Rep[Option[String]] = column[Option[String]]("f_table_catalog", O.Default(None))
-    /** Database column f_table_schema SqlType(name), Default(None) */
-    val f_table_schema: Rep[Option[String]] = column[Option[String]]("f_table_schema", O.Default(None))
-    /** Database column f_table_name SqlType(name), Default(None) */
-    val f_table_name: Rep[Option[String]] = column[Option[String]]("f_table_name", O.Default(None))
-    /** Database column f_geography_column SqlType(name), Default(None) */
-    val f_geography_column: Rep[Option[String]] = column[Option[String]]("f_geography_column", O.Default(None))
-    /** Database column coord_dimension SqlType(int4), Default(None) */
-    val coord_dimension: Rep[Option[Int]] = column[Option[Int]]("coord_dimension", O.Default(None))
-    /** Database column srid SqlType(int4), Default(None) */
-    val srid: Rep[Option[Int]] = column[Option[Int]]("srid", O.Default(None))
-    /** Database column type SqlType(text), Default(None)
-     *  NOTE: The name was escaped because it collided with a Scala keyword. */
-    val `type`: Rep[Option[String]] = column[Option[String]]("type", O.Default(None))
-  }
-  /** Collection-like TableQuery object for table Geography_columns */
-  lazy val Geography_columns = new TableQuery(tag => new Geography_columns(tag))
-
-  /** Entity class storing rows of table Geometry_columns
-   *  @param f_table_catalog Database column f_table_catalog SqlType(varchar), Length(256,true), Default(None)
-   *  @param f_table_schema Database column f_table_schema SqlType(name), Default(None)
-   *  @param f_table_name Database column f_table_name SqlType(name), Default(None)
-   *  @param f_geometry_column Database column f_geometry_column SqlType(name), Default(None)
-   *  @param coord_dimension Database column coord_dimension SqlType(int4), Default(None)
-   *  @param srid Database column srid SqlType(int4), Default(None)
-   *  @param `type` Database column type SqlType(varchar), Length(30,true), Default(None) */
-  case class Geometry_columns_row(f_table_catalog: Option[String] = None, f_table_schema: Option[String] = None, f_table_name: Option[String] = None, f_geometry_column: Option[String] = None, coord_dimension: Option[Int] = None, srid: Option[Int] = None, `type`: Option[String] = None)
-
-
-  val decodeGeometry_columns_row:Decoder[Geometry_columns_row] = Decoder.forProduct7("f_table_catalog","f_table_schema","f_table_name","f_geometry_column","coord_dimension","srid","type")(Geometry_columns_row.apply)
-  val encodeGeometry_columns_row:EncoderWithBytea[Geometry_columns_row] = { e =>
-    implicit def byteE = e
-    Encoder.forProduct7("f_table_catalog","f_table_schema","f_table_name","f_geometry_column","coord_dimension","srid","type")(x =>
-      (x.f_table_catalog, x.f_table_schema, x.f_table_name, x.f_geometry_column, x.coord_dimension, x.srid, x.`type`)
-    )
-  }
-
-
-
-  /** GetResult implicit for fetching Geometry_columns_row objects using plain SQL queries */
-
-  /** Table description of table geometry_columns. Objects of this class serve as prototypes for rows in queries.
-   *  NOTE: The following names collided with Scala keywords and were escaped: type */
-  class Geometry_columns(_tableTag: Tag) extends Table[Geometry_columns_row](_tableTag, "geometry_columns") with UpdateTable[Geometry_columns_row] {
-
-    def boxGetResult = GR(r => Geometry_columns_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
-
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Geometry_columns_row]] = {
-        val kv = keyValueComposer(this)
-        val chunks = fields.flatMap(kv)
-        if(chunks.nonEmpty) {
-          val head = concat(sql"""update "geometry_columns" set """,chunks.head)
-          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
-
-          val returning = sql""" returning "f_table_catalog","f_table_schema","f_table_name","f_geometry_column","coord_dimension","srid","type" """
-
-          val sqlActionBuilder = concat(concat(set,where),returning)
-          sqlActionBuilder.as[Geometry_columns_row](boxGetResult).head.map(x => Some(x))
-        } else DBIO.successful(None)
-      }
-
-      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Geometry_columns_row]] = {
-        val sqlActionBuilder = concat(sql"""select "f_table_catalog","f_table_schema","f_table_name","f_geometry_column","coord_dimension","srid","type" from "geometry_columns" """,where)
-        sqlActionBuilder.as[Geometry_columns_row](boxGetResult)
-      }
-
-    def * = (f_table_catalog, f_table_schema, f_table_name, f_geometry_column, coord_dimension, srid, `type`) <> (Geometry_columns_row.tupled, Geometry_columns_row.unapply)
-
-    /** Database column f_table_catalog SqlType(varchar), Length(256,true), Default(None) */
-    val f_table_catalog: Rep[Option[String]] = column[Option[String]]("f_table_catalog", O.Length(256,varying=true), O.Default(None))
-    /** Database column f_table_schema SqlType(name), Default(None) */
-    val f_table_schema: Rep[Option[String]] = column[Option[String]]("f_table_schema", O.Default(None))
-    /** Database column f_table_name SqlType(name), Default(None) */
-    val f_table_name: Rep[Option[String]] = column[Option[String]]("f_table_name", O.Default(None))
-    /** Database column f_geometry_column SqlType(name), Default(None) */
-    val f_geometry_column: Rep[Option[String]] = column[Option[String]]("f_geometry_column", O.Default(None))
-    /** Database column coord_dimension SqlType(int4), Default(None) */
-    val coord_dimension: Rep[Option[Int]] = column[Option[Int]]("coord_dimension", O.Default(None))
-    /** Database column srid SqlType(int4), Default(None) */
-    val srid: Rep[Option[Int]] = column[Option[Int]]("srid", O.Default(None))
-    /** Database column type SqlType(varchar), Length(30,true), Default(None)
-     *  NOTE: The name was escaped because it collided with a Scala keyword. */
-    val `type`: Rep[Option[String]] = column[Option[String]]("type", O.Length(30,varying=true), O.Default(None))
-  }
-  /** Collection-like TableQuery object for table Geometry_columns */
-  lazy val Geometry_columns = new TableQuery(tag => new Geometry_columns(tag))
-
   /** Entity class storing rows of table Json_test
    *  @param id Database column id SqlType(serial), AutoInc
    *  @param obj Database column obj SqlType(jsonb), Default(None) */
@@ -541,7 +403,7 @@ object Entities {
   /** GetResult implicit for fetching Json_test_row objects using plain SQL queries */
 
   /** Table description of table json_test. Objects of this class serve as prototypes for rows in queries. */
-  class Json_test(_tableTag: Tag) extends Table[Json_test_row](_tableTag, "json_test") with UpdateTable[Json_test_row] {
+  class Json_test(_tableTag: Tag) extends Table[Json_test_row](_tableTag, Some("test_public"), "json_test") with UpdateTable[Json_test_row] {
 
     def boxGetResult = GR(r => Json_test_row(r.<<,r.<<))
 
@@ -549,7 +411,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "json_test" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."json_test" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","obj" """
@@ -560,7 +422,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Json_test_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","obj" from "json_test" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","obj" from "test_public"."json_test" """,where)
         sqlActionBuilder.as[Json_test_row](boxGetResult)
       }
 
@@ -595,7 +457,7 @@ object Entities {
   /** GetResult implicit for fetching Simple_row objects using plain SQL queries */
 
   /** Table description of table simple. Objects of this class serve as prototypes for rows in queries. */
-  class Simple(_tableTag: Tag) extends Table[Simple_row](_tableTag, "simple") with UpdateTable[Simple_row] {
+  class Simple(_tableTag: Tag) extends Table[Simple_row](_tableTag, Some("test_public"), "simple") with UpdateTable[Simple_row] {
 
     def boxGetResult = GR(r => Simple_row(r.<<,r.<<))
 
@@ -603,7 +465,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "simple" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."simple" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","name" """
@@ -614,7 +476,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Simple_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","name" from "simple" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","name" from "test_public"."simple" """,where)
         sqlActionBuilder.as[Simple_row](boxGetResult)
       }
 
@@ -629,69 +491,6 @@ object Entities {
   }
   /** Collection-like TableQuery object for table Simple */
   lazy val Simple = new TableQuery(tag => new Simple(tag))
-
-  /** Entity class storing rows of table Spatial_ref_sys
-   *  @param srid Database column srid SqlType(int4), PrimaryKey
-   *  @param auth_name Database column auth_name SqlType(varchar), Length(256,true), Default(None)
-   *  @param auth_srid Database column auth_srid SqlType(int4), Default(None)
-   *  @param srtext Database column srtext SqlType(varchar), Length(2048,true), Default(None)
-   *  @param proj4text Database column proj4text SqlType(varchar), Length(2048,true), Default(None) */
-  case class Spatial_ref_sys_row(srid: Int, auth_name: Option[String] = None, auth_srid: Option[Int] = None, srtext: Option[String] = None, proj4text: Option[String] = None)
-
-
-  val decodeSpatial_ref_sys_row:Decoder[Spatial_ref_sys_row] = Decoder.forProduct5("srid","auth_name","auth_srid","srtext","proj4text")(Spatial_ref_sys_row.apply)
-  val encodeSpatial_ref_sys_row:EncoderWithBytea[Spatial_ref_sys_row] = { e =>
-    implicit def byteE = e
-    Encoder.forProduct5("srid","auth_name","auth_srid","srtext","proj4text")(x =>
-      (x.srid, x.auth_name, x.auth_srid, x.srtext, x.proj4text)
-    )
-  }
-
-
-
-  /** GetResult implicit for fetching Spatial_ref_sys_row objects using plain SQL queries */
-
-  /** Table description of table spatial_ref_sys. Objects of this class serve as prototypes for rows in queries. */
-  class Spatial_ref_sys(_tableTag: Tag) extends Table[Spatial_ref_sys_row](_tableTag, "spatial_ref_sys") with UpdateTable[Spatial_ref_sys_row] {
-
-    def boxGetResult = GR(r => Spatial_ref_sys_row(r.<<,r.<<,r.<<,r.<<,r.<<))
-
-    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Spatial_ref_sys_row]] = {
-        val kv = keyValueComposer(this)
-        val chunks = fields.flatMap(kv)
-        if(chunks.nonEmpty) {
-          val head = concat(sql"""update "spatial_ref_sys" set """,chunks.head)
-          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
-
-          val returning = sql""" returning "srid","auth_name","auth_srid","srtext","proj4text" """
-
-          val sqlActionBuilder = concat(concat(set,where),returning)
-          sqlActionBuilder.as[Spatial_ref_sys_row](boxGetResult).head.map(x => Some(x))
-        } else DBIO.successful(None)
-      }
-
-      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Spatial_ref_sys_row]] = {
-        val sqlActionBuilder = concat(sql"""select "srid","auth_name","auth_srid","srtext","proj4text" from "spatial_ref_sys" """,where)
-        sqlActionBuilder.as[Spatial_ref_sys_row](boxGetResult)
-      }
-
-    def * = (srid, auth_name, auth_srid, srtext, proj4text) <> (Spatial_ref_sys_row.tupled, Spatial_ref_sys_row.unapply)
-    /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(srid), auth_name, auth_srid, srtext, proj4text)).shaped.<>({r=>import r._; _1.map(_=> Spatial_ref_sys_row.tupled((_1.get, _2, _3, _4, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
-
-    /** Database column srid SqlType(int4), PrimaryKey */
-    val srid: Rep[Int] = column[Int]("srid", O.PrimaryKey)
-    /** Database column auth_name SqlType(varchar), Length(256,true), Default(None) */
-    val auth_name: Rep[Option[String]] = column[Option[String]]("auth_name", O.Length(256,varying=true), O.Default(None))
-    /** Database column auth_srid SqlType(int4), Default(None) */
-    val auth_srid: Rep[Option[Int]] = column[Option[Int]]("auth_srid", O.Default(None))
-    /** Database column srtext SqlType(varchar), Length(2048,true), Default(None) */
-    val srtext: Rep[Option[String]] = column[Option[String]]("srtext", O.Length(2048,varying=true), O.Default(None))
-    /** Database column proj4text SqlType(varchar), Length(2048,true), Default(None) */
-    val proj4text: Rep[Option[String]] = column[Option[String]]("proj4text", O.Length(2048,varying=true), O.Default(None))
-  }
-  /** Collection-like TableQuery object for table Spatial_ref_sys */
-  lazy val Spatial_ref_sys = new TableQuery(tag => new Spatial_ref_sys(tag))
 
   /** Entity class storing rows of table Test_list_types
    *  @param id Database column id SqlType(serial), AutoInc
@@ -714,7 +513,7 @@ object Entities {
   /** GetResult implicit for fetching Test_list_types_row objects using plain SQL queries */
 
   /** Table description of table test_list_types. Objects of this class serve as prototypes for rows in queries. */
-  class Test_list_types(_tableTag: Tag) extends Table[Test_list_types_row](_tableTag, "test_list_types") with UpdateTable[Test_list_types_row] {
+  class Test_list_types(_tableTag: Tag) extends Table[Test_list_types_row](_tableTag, Some("test_public"), "test_list_types") with UpdateTable[Test_list_types_row] {
 
     def boxGetResult = GR(r => Test_list_types_row(r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[Int].map(_.toList),r.nextArrayOption[Double].map(_.toList)))
 
@@ -722,7 +521,7 @@ object Entities {
         val kv = keyValueComposer(this)
         val chunks = fields.flatMap(kv)
         if(chunks.nonEmpty) {
-          val head = concat(sql"""update "test_list_types" set """,chunks.head)
+          val head = concat(sql"""update "test_public"."test_list_types" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
           val returning = sql""" returning "id","texts","ints","numbers" """
@@ -733,7 +532,7 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Test_list_types_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","texts","ints","numbers" from "test_list_types" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","texts","ints","numbers" from "test_public"."test_list_types" """,where)
         sqlActionBuilder.as[Test_list_types_row](boxGetResult)
       }
 

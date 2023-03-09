@@ -2,7 +2,7 @@ package ch.wsl.box
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import ch.wsl.box.jdbc.{ConnectionTestContainerImpl, FullDatabase, PublicSchema, UserDatabase}
+import ch.wsl.box.jdbc.{ConnectionTestContainerImpl, FullDatabase, UserDatabase}
 import ch.wsl.box.model.TestDatabase
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile

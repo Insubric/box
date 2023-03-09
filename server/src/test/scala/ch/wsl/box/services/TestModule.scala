@@ -1,7 +1,7 @@
 package ch.wsl.box.services
 
 import akka.actor.ActorSystem
-import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl, ConnectionTestContainerImpl, PublicSchema}
+import ch.wsl.box.jdbc.{Connection}
 import ch.wsl.box.rest.Module
 import ch.wsl.box.rest.routes.v1.NotificationChannels
 import ch.wsl.box.rest.utils.BoxSession

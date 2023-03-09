@@ -136,10 +136,10 @@ class ConnectionConfImpl extends Connection {
   override def close(): Unit = dbConnection.close()
 }
 
-class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:PublicSchema) extends Connection {
+class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) extends Connection {
   val dbPath = container.jdbcUrl
   val dbPassword = container.password
-  val dbSchema = schema.name
+  val dbSchema = schema
   val adminPoolSize = 15
   val adminUser = container.username
   val leakDetectionThreshold =  100000
