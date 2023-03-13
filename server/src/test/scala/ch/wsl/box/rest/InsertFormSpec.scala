@@ -36,7 +36,7 @@ class InsertFormSpec extends BaseSpec {
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
+      form <- up.db.run(FormMetadataFactory().of(formName,"en"))
       actions = FormActions(form,Registry(),FormMetadataFactory())
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))

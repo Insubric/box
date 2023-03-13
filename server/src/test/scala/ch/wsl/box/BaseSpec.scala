@@ -33,9 +33,24 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
   implicit val materializer = ActorMaterializer()
 
 
-  def withServices[A](run: Services => Future[A]): A = {
+  def logginSetupPhase() = {
+    Logger.root.clearHandlers()
+      .withHandler(minimumLevel = Some(Level.Warn))
+      //      .withModifier(
+      //        select(packageName.startsWith("slick.jdbc"))
+      //          .boosted(Level.Debug,Level.Warn)
+      //          .priority(Priority.Important)
+      //      )
+      .withModifier(
+        select(
+          packageName.startsWith("org.flyway"),
+          packageName.startsWith("org.testcontainers"),
+        ).exclude(level <= Level.Error)
+          .priority(Priority.Important)
+      ).replace()
+  }
 
-
+  def logginTestPhase() = {
     Logger.root.clearHandlers()
       .withHandler(minimumLevel = Some(Level.Warn))
 //      .withModifier(
@@ -50,6 +65,13 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
         ).exclude(level <= Level.Error)
           .priority(Priority.Important)
       ).replace()
+  }
+
+
+
+  def withServices[A](run: Services => Future[A]): A = {
+
+    logginSetupPhase()
 
     val container = TestDatabase.containerDef.start()
     val connection = new ConnectionTestContainerImpl(container, TestDatabase.publicSchema)
@@ -59,8 +81,10 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
 
       TestDatabase.setUp(connection)
 
+      logginTestPhase()
       val result = Await.result(run(services), 60.seconds)
 
+      logginSetupPhase()
       container.stop()
 
       result

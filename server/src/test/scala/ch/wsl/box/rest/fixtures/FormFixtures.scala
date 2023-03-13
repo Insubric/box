@@ -2,7 +2,7 @@ package ch.wsl.box.rest.fixtures
 
 import ch.wsl.box.model.boxentities.BoxField.{BoxFieldTable, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_row}
-import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.model.shared.{JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.UserDatabase
@@ -36,8 +36,8 @@ object FormFixtures{
   )
 
   private def simpleFormFields(simpleFormId:UUID) = Seq(
-    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.NUMBER, name = "id"),
-    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.STRING, name = "name", required = Some(false)),
+    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.STRING, name = "name", required = Some(false), widget = Some(WidgetsNames.input)),
   )
 
   def insertSimple(implicit db:UserDatabase, ec:ExecutionContext): Future[(String, UUID)] = for{
@@ -121,22 +121,22 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
   )
 
   private def parentFormFields(parentFormId:UUID,childFormId:UUID) = Seq(
-    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.NUMBER, name = "id"),
-    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.STRING, name = "name"),
-    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.CHILD, name = "childs",child_form_uuid = Some(childFormId),masterFields = Some("id"),childFields = Some("parent_id"))
+    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.STRING, name = "name", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.CHILD, name = "childs", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(childFormId),masterFields = Some("id"),childFields = Some("parent_id"))
   )
 
   private def childFormFields(childFormId:UUID,subchildFormId:UUID) = Seq(
-    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.NUMBER, name = "id"),
-    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.STRING, name = "name"),
-    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.NUMBER, name = "parent_id"),
-    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.CHILD, name = "subchilds",child_form_uuid = Some(subchildFormId),masterFields = Some("id"),childFields = Some("child_id")),
+    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.STRING, name = "name", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.NUMBER, name = "parent_id", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.CHILD, name = "subchilds", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(subchildFormId),masterFields = Some("id"),childFields = Some("child_id")),
   )
 
   private def subchildFormFields(subchildFormId:UUID) = Seq(
-    BoxField_row(form_uuid = subchildFormId, `type` = JSONFieldTypes.NUMBER, name = "id"),
-    BoxField_row(form_uuid = subchildFormId, `type` = JSONFieldTypes.STRING, name = "name"),
-    BoxField_row(form_uuid = subchildFormId, `type` = JSONFieldTypes.NUMBER, name = "child_id"),
+    BoxField_row(form_uuid = subchildFormId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = subchildFormId, `type` = JSONFieldTypes.STRING, name = "name", widget = Some(WidgetsNames.input)),
+    BoxField_row(form_uuid = subchildFormId, `type` = JSONFieldTypes.NUMBER, name = "child_id", widget = Some(WidgetsNames.input)),
   )
 
 

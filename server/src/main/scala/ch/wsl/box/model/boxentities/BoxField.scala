@@ -19,7 +19,7 @@ object BoxField {
                            form_uuid: java.util.UUID,
                            `type`: String,
                            name: String,
-                           widget: Option[String] = None,
+                           widget: Option[String],
                            lookupEntity: Option[String] = None,
                            lookupValueField: Option[String] = None,
                            lookupQuery:Option[String] = None,
