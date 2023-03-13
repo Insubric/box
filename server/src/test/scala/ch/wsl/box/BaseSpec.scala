@@ -14,7 +14,9 @@ import io.circe.parser.parse
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.utility.DockerImageName
-import scribe.{Level, Logger, Logging}
+import scribe.filter._
+import scribe.handler._
+import scribe._
 import slick.util.AsyncExecutor
 
 import scala.concurrent.duration.DurationInt
@@ -22,15 +24,8 @@ import scala.concurrent.{Await, Future}
 
 trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
 
-  private val executor = AsyncExecutor("public-executor", 50, 50, 1000, 50)
 
-  Logger.root.clearHandlers().withHandler(minimumLevel = Some(Level.Info)).replace()
-  //Logger.select(className("scala.slick")).setLevel(Level.Debug)
 
-  val containerDef = PostgreSQLContainer.Def(
-    dockerImageName = DockerImageName.parse("postgis/postgis:13-master").asCompatibleSubstituteFor("postgres"),
-    mountPostgresDataToTmpfs = true
-  )
 
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
@@ -39,13 +34,30 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
 
 
   def withServices[A](run: Services => Future[A]): A = {
-    val container = containerDef.start()
-    val connection = new ConnectionTestContainerImpl(container, PublicSchema.default)
+
+
+    Logger.root.clearHandlers()
+      .withHandler(minimumLevel = Some(Level.Warn))
+//      .withModifier(
+//        select(packageName.startsWith("slick.jdbc"))
+//          .boosted(Level.Debug,Level.Warn)
+//          .priority(Priority.Important)
+//      )
+      .withModifier(
+        select(
+          packageName.startsWith("org.flyway"),
+          packageName.startsWith("org.testcontainers"),
+        ).exclude(level <= Level.Error)
+          .priority(Priority.Important)
+      ).replace()
+
+    val container = TestDatabase.containerDef.start()
+    val connection = new ConnectionTestContainerImpl(container, TestDatabase.publicSchema)
     TestModule(connection).injector.run[Services, A] { implicit services =>
       Registry.inject(new GenRegistry())
       Registry.injectBox(new boxentities.GenRegistry())
 
-      TestDatabase.setUp(connection, "box")
+      TestDatabase.setUp(connection)
 
       val result = Await.result(run(services), 60.seconds)
 

@@ -6,6 +6,7 @@ import ch.wsl.box.jdbc.{Connection, ConnectionTestContainerImpl}
 import ch.wsl.box.rest.runtime.{ActionRegistry, FieldRegistry, GeneratedFileRoutes, GeneratedRoutes, Registry, RegistryInstance}
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
+import schemagen.SchemaGenerator
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,6 +18,13 @@ object TestDatabase{
 
   val publicSchema = "test_public"
   val boxSchema = "test_box"
+  val langs = Seq("en")
+
+  val containerDef = PostgreSQLContainer.Def(
+    dockerImageName = DockerImageName.parse("postgis/postgis:13-master").asCompatibleSubstituteFor("postgres"),
+    mountPostgresDataToTmpfs = true,
+    username = "postgres"
+  )
 
   def setUp(connection:Connection) = {
 
@@ -35,17 +43,17 @@ set search_path=#${publicSchema};
 
 """.transactionally), 120.seconds)
 
+
     BuildBox.install(connection,boxSchema)
+
+    Await.result(new SchemaGenerator(connection,langs,boxSchema).run(),100.seconds)
   }
 }
 
 object TestCodeGenerator extends App {
 
-  val containerDef = PostgreSQLContainer.Def(
-    dockerImageName = DockerImageName.parse("postgis/postgis:13-master").asCompatibleSubstituteFor("postgres"),
-    mountPostgresDataToTmpfs = true
-  )
-  val container: PostgreSQLContainer = containerDef.start()
+
+  val container: PostgreSQLContainer = TestDatabase.containerDef.start()
 
 
   Registry.injectBox(new RegistryInstance {

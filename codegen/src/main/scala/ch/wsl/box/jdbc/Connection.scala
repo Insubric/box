@@ -146,6 +146,7 @@ class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) 
   val maxLifetime =  600000
   val idleTimeout =  300000
 
+  println("username: " + container.username)
 
 
 

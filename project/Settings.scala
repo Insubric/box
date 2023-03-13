@@ -68,7 +68,7 @@ object Settings {
     val udash = "0.9.0-M39"
     val udashJQuery = "3.0.4"
 
-    val scribe = "2.7.12"
+    val scribe = "3.0.2"
 
     val scalaJsonSchema = "0.2.6"
 
@@ -104,6 +104,8 @@ object Settings {
     "org.locationtech.jts" % "jts-core" % "1.16.1",
     "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion,
     "org.flywaydb" % "flyway-core" % "7.9.1",
+    "com.outr"                 %% "scribe"           % versions.scribe,
+    "com.outr"                 %% "scribe-slf4j18"           % versions.scribe,
   ))
 
   val codegenDependecies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
@@ -138,8 +140,6 @@ object Settings {
     "com.typesafe.akka"        %% "akka-testkit"     % versions.akka      % "test",
     "com.typesafe.akka"        %% "akka-http-testkit"% versions.akkaHttp  % "test",
     "com.dimafeng"             %% "testcontainers-scala-scalatest" % versions.testcontainersScalaVersion % "test",
-    "com.outr"                 %% "scribe"           % versions.scribe,
-    "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
     "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
     "javax.servlet"            % "javax.servlet-api" % "3.1.0" % "provided",
     "org.mitre.dsmiley.httpproxy" % "smiley-http-proxy-servlet" % "1.10",
