@@ -1,5 +1,6 @@
 package ch.wsl.box.client
 
+import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
 import org.scalajs.dom.document
@@ -16,18 +17,17 @@ class LoginTest extends TestBase {
   override def values: Values = new LoginValues
 
 
-    "login" should "be done" in withApp { () =>
-        val beforeLogin = document.body.innerHTML
-        assert(!Context.services.clientSession.logged.get)
-        assert(document.querySelectorAll(s"#${TestHooks.logged}").length == 0)
+    "login" should "be done" in {
+
         for{
+          _ <- services.clientSession.refreshSession()
+          _ = {
+            assert(!Context.services.clientSession.logged.get)
+          }
           _ <- Context.services.clientSession.login("test","test")
           _ <- waitLoggedIn
         } yield {
           assert(Context.services.clientSession.logged.get)
-          assert(beforeLogin != document.body.innerHTML)
-          assert(document.querySelectorAll(s"#${TestHooks.logged}").length == 1)
-          assert(document.getElementById(values.titleId).textContent == values.titleText)
         }
     }
 

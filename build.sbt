@@ -204,6 +204,7 @@ lazy val client: Project = (project in file("client"))
     //To use jsdom headless browser uncomment the following lines
     Test / requireJsDomEnv := true,
     Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / parallelExecution := false,
     Test / jsEnvInput := Def.task{
       val targetDir = (npmUpdate in Test).value
       println(targetDir)
@@ -220,7 +221,6 @@ lazy val client: Project = (project in file("client"))
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
-    Test / requireJsDomEnv := true,
 
   )
   .settings(publishSettings)

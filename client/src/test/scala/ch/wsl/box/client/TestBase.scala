@@ -46,15 +46,13 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   def login: Future[Boolean] = Context.services.clientSession.login("test", "test")
 
-  def waitLoggedIn: Future[Assertion] = waitElement({ () => document.getElementById(TestHooks.logged)},"Logged div")
-
-  private def waiter(w:() => Boolean,name:String = ""):Future[Assertion] = {
+  private def waiter(w:() => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
     val promise = Promise[Assertion]()
     logger.info("Waiter")
     val timeout = window.setTimeout({() =>
       println(s"Errored html: \n ${document.body.innerHTML}")
-      promise.success(fail(s"Element $name not found after 10 seconds"))
-    },10000)
+      promise.success(fail(s"Element $name not found after $patience seconds"))
+    },patience*1000)
     val observer = new MutationObserver({(mutations,observer) =>
       logger.info("Observer")
       if(w()) {
@@ -86,9 +84,12 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     document.getElementById(id)
   },if(name.isEmpty) s"Wait for not id: $id" else name)
 
-  def waitElement(elementExtractor:() => Element,name:String): Future[Assertion] = waiter(() => document.contains(elementExtractor()),name)
+  def waitElement(elementExtractor:() => Element,name:String,patience:Int = 10): Future[Assertion] = waiter(() => document.contains(elementExtractor()),name, patience)
 
   def waitNotElement(elementExtractor:() => Element,name:String): Future[Assertion] = waiter(() => !document.contains(elementExtractor()),name)
+
+
+  def waitLoggedIn: Future[Assertion] = waitElement({ () => document.getElementById(TestHooks.logged)},"Logged div")
 
   def shouldBe(condition: Boolean): Assertion = {
     if(!condition) {
@@ -99,12 +100,5 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   def formChanged: Future[Assertion] = waitId(TestHooks.dataChanged)
   def formUnchanged: Future[Assertion] = waitNotId(TestHooks.dataChanged)
-
-  def withApp(testCase:() => Future[Assertion]) = {
-    document.body.innerHTML = ""
-    Main.setupUI().flatMap { _ =>
-      testCase()
-    }
-  }
 
 }
