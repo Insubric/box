@@ -87,12 +87,12 @@ lazy val server: Project  = project
     Assets / pipelineStages := Seq(scalaJSPipeline),
     Assets / scalaJSStage := FullOptStage,
     scalaJSProjects := {
-      if (sys.env.get("DEV_SERVER").isDefined) Seq() else Seq(client)
+      if (sys.env.contains("DEV_SERVER") || sys.env.contains("RUNNING_TEST")) Seq() else Seq(client)
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free","choices.js").map{ p =>
-      if (!sys.env.get("RUNNING_TEST").isDefined)
+      if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
         }.value

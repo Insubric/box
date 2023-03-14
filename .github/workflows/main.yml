@@ -28,6 +28,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=2048
       SBT_NATIVE_CLIENT: true
       DEV_SERVER: true
+      RUNNING_TEST: true
 
     steps:
       - name: Checkout

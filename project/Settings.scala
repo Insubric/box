@@ -159,6 +159,7 @@ object Settings {
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
     "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % Test,
+    "com.vladsch.flexmark" % "flexmark-profile-pegdown" % "0.62.2" % Test,
     "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
     "org.geotools" % "gt-shapefile" % "27.2",
     "com.google.zxing" % "core" % "3.5.0",

@@ -58,9 +58,8 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   val parameters = new URLSearchParams(dom.window.location.search)
   Try(parameters.get("lang")).toOption.foreach { l =>
-    if(l.nonEmpty && l != "null" && l != null) {
-
-      if(l.length > 1) {
+    if (l != null && l != "null" && l.nonEmpty ) {
+      if (l.length > 1) {
         logger.info(s"Setting language session $l")
         dom.window.sessionStorage.setItem(LANG, l)
       }
@@ -127,7 +126,9 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def isSet(key:String):Boolean = {
-    Try(dom.window.sessionStorage.getItem(key).size > 0).isSuccess
+    val item = dom.window.sessionStorage.getItem(key)
+    if(item == null) return false
+    item.nonEmpty
   }
 
   def login(username:String,password:String):Future[Boolean] = {
