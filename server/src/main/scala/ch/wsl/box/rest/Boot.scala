@@ -51,8 +51,7 @@ class Box(name:String,version:String)(implicit services: Services) {
 
     //val preloading: Future[Http.ServerBinding] = Http().bindAndHandle(Preloading.route, host, port)
 
-    Registry.load()
-    Registry.loadBox()
+
 
     Log.load()
 
@@ -114,6 +113,10 @@ object Boot extends App  {
       mainThread.join()
       println("[BOX framework] - shutdown completed")
     }
+
+
+    Registry.load()
+    Registry.loadBox()
 
     module.build[Services] { services =>
       val server = new Box(name, app_version)(services)
