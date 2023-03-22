@@ -6,6 +6,7 @@ import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.DefaultModule
+import ch.wsl.box.services.ServicesWithoutGeneration
 import ch.wsl.box.services.config.ConfigFileImpl
 
 import scala.concurrent.Await
@@ -21,11 +22,9 @@ object BuildBox {
   def main(args: Array[String]): Unit = {
     println("Installing BOX")
 
-    DefaultModule.connectionOnly.build[Connection] { connection =>
-      val conf = new ConfigFileImpl()
-      install(connection,conf.boxSchemaName)
+    DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { services =>
+      install(services.connection,services.config.boxSchemaName)
 
-      connection.close()
 
       println("Box schema ready")
     }
@@ -469,7 +468,7 @@ ALTER TABLE ONLY #${boxSchema}.function_field
         BoxUITable.BoxUI_row(key = "info", value = "ui.info", accessLevel = 1),
       )
       _ <- BoxUser.BoxUserTable += BoxUser.BoxUser_row(username, 1000)
-      _ <- BoxLabels.BoxLabelsTable ++= DefaultLabels.labels
+      _ <- BoxLabels.BoxLabelsTable(boxSchema) ++= DefaultLabels.labels
 
       _ <-
         sqlu"""CREATE OR REPLACE VIEW #${boxSchema}."v_roles" AS

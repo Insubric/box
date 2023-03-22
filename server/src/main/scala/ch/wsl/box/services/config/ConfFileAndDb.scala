@@ -4,14 +4,14 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
 import com.typesafe.config.ConfigFactory
+import net.ceedubs.ficus.Ficus._
 import scribe.{Level, Logging}
 
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Try
-import net.ceedubs.ficus.Ficus._
 
 class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
   private var conf: Map[String, String] = Map()

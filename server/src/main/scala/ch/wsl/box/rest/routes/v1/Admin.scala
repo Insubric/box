@@ -64,13 +64,13 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
   def boxDefinition = pathPrefix("box-definition") {
     get{
-      complete(BoxDefinition.`export`(services.connection.adminDB).map(_.asJson))
+      complete(BoxDefinition.`export`(services.connection.adminDB,services.config.boxSchemaName).map(_.asJson))
     } ~
     path("diff") {
       post{
         entity(as[BoxDefinition]) {  newDef =>
           complete {
-            BoxDefinition.`export`(services.connection.adminDB).map { oldDef =>
+            BoxDefinition.`export`(services.connection.adminDB,services.config.boxSchemaName).map { oldDef =>
               BoxDefinition.diff(oldDef, newDef).asJson
             }
           }

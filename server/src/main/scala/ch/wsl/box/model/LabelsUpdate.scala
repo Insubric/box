@@ -1,9 +1,9 @@
 package ch.wsl.box.model
 
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.boxentities.BoxLabels.{BoxLabelsTable, BoxLabels_row}
+import ch.wsl.box.model.boxentities.BoxLabels._
 import ch.wsl.box.model.shared.SharedLabels
-import ch.wsl.box.services.Services
+import ch.wsl.box.services.{Services, ServicesWithoutGeneration}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -11,11 +11,12 @@ object LabelsUpdate {
 
 
 
-  def run(services:Services)(implicit ec:ExecutionContext): Future[Int] = {
+  def run(services:ServicesWithoutGeneration)(implicit ec:ExecutionContext): Future[Int] = {
 
     val db = services.connection.dbConnection
+    val table = BoxLabelsTable(services.config.boxSchemaName)
 
-    val all = db.run{BoxLabelsTable.result}
+    val all = db.run{table.result}
 
     val allLabelsFut = all.map(x => (x.map(_.key) ++ SharedLabels.all).distinct)
 
@@ -26,7 +27,7 @@ object LabelsUpdate {
         allLabels <- allLabelsFut
         labelsToInsert = allLabels.diff(labels.filter(_.lang == lang).map(_.key))
         inserted <- db.run {
-          BoxLabelsTable ++= labelsToInsert.map { key =>
+          table ++= labelsToInsert.map { key =>
             BoxLabels_row(lang, key)
           }
         }

@@ -3,7 +3,7 @@ package ch.wsl.box.model
 
 import ch.wsl.box.codegen.MigrateDB
 import ch.wsl.box.rest.DefaultModule
-import ch.wsl.box.services.Services
+import ch.wsl.box.services.{ServicesWithoutGeneration}
 import schemagen.SchemaGenerator
 
 import scala.concurrent.{Await, Future}
@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 object Migrate {
 
 
-  def all(services: Services) = {
+  def all(services: ServicesWithoutGeneration) = {
     for {
      _ <- MigrateDB.box(services.connection,services.config.boxSchemaName)
      _ <- Future{ MigrateDB.app(services.connection) }
@@ -23,7 +23,7 @@ object Migrate {
   }
 
   def main(args: Array[String]): Unit = {
-    DefaultModule.injector.build[Services] { services =>
+    DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { services =>
       Await.result(all(services).recover{ case t =>
         t.printStackTrace()
       },10.seconds)

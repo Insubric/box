@@ -104,7 +104,7 @@ object JdbcConnect extends Logging {
 
   private def useI18nHeader(lang:String,keys: Seq[String])(implicit ec:ExecutionContext,services:Services):Future[Seq[String]] = Future.sequence{
     keys.map{ key =>
-      services.connection.adminDB.run(BoxLabels.BoxLabelsTable.filter(e => e.key === "export-header." + key && e.lang === lang).result).map { label =>
+      services.connection.adminDB.run(BoxLabels.BoxLabelsTable(services.config.boxSchemaName).filter(e => e.key === "export-header." + key && e.lang === lang).result).map { label =>
         if(label.isEmpty) logger.warn(s"No translation for $key in $lang, insert export-header.$key translation in labels")
         label.headOption.flatMap(_.label).getOrElse(key)
       }

@@ -7,6 +7,8 @@ import slick.model.ForeignKeyAction
 import slick.collection.heterogeneous._
 import slick.collection.heterogeneous.syntax._
 
+import scala.util.Try
+
 /**
   * Created by andre on 5/15/2017.
   */
@@ -15,14 +17,13 @@ object BoxLabels {
 
 
   val profile = ch.wsl.box.jdbc.PostgresProfile
-  private val schema = Some(Registry.box().schema)
 
   import profile._
 
 
   case class BoxLabels_row(lang: String, key:String, label: Option[String] = None)
 
-  class BoxLabels(_tableTag: Tag) extends profile.api.Table[BoxLabels_row](_tableTag,schema, "labels") {
+  class BoxLabels(_tableTag: Tag,schema:String) extends profile.api.Table[BoxLabels_row](_tableTag,Some(schema), "labels") {
     def * = (lang, key, label) <> (BoxLabels_row.tupled, BoxLabels_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
 
@@ -34,6 +35,6 @@ object BoxLabels {
 
   }
   /** Collection-like TableQuery object for table Form */
-  lazy val BoxLabelsTable = new TableQuery(tag => new BoxLabels(tag))
+  def BoxLabelsTable(schema:String) = new TableQuery(tag => new BoxLabels(tag,schema))
 
 }
