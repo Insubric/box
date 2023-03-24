@@ -56,8 +56,11 @@ trait LookupWidget extends Widget with HasData {
   override def text() = model.transform(_.map(_.value).getOrElse(""))
 
 
-  private def setNewLookup(newLookup:Seq[JSONLookup]) = {
+  private def setNewLookup(_newLookup:Seq[JSONLookup]) = {
 
+    val newLookup = if(data.get != Json.Null && !_newLookup.exists(_.id == data.get)) {
+      _newLookup ++ Seq(JSONLookup(data.get,Seq(data.get.string)))
+    } else _newLookup
 
     if (newLookup.exists(_.id != Json.Null) && newLookup.length != lookup.get.length || newLookup.exists(lu => lookup.get.exists(_.id != lu.id))) {
 

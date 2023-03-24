@@ -1,6 +1,7 @@
 package ch.wsl.box.client.views.components.widget.helpers
 
 import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.utils.TestHooks
 import io.circe.Json
 import org.scalajs.dom.Event
 import scalatags.JsDom.all._
@@ -28,7 +29,9 @@ trait Link extends Logging {
 
     linkParam match {
       case Some(Param(style,_color,background)) if style == "box" => {
-        a(onclick :+= click,
+        a(
+          id := TestHooks.linkedFormButton(label.toString),
+          onclick :+= click,
           div(ClientConf.style.boxedLink,
             color := _color.getOrElse(ClientConf.colorLink),
             backgroundColor := background.getOrElse(ClientConf.colorMain),

@@ -5,7 +5,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.utils.URLQuery
+import ch.wsl.box.client.utils.{TestHooks, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
@@ -535,6 +535,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                         case DeleteAction => ???
                         case NoAction => {
                           button(importance,
+                            id := TestHooks.actionButton(ta.label),
                             onclick :+= { (e: Event) =>
                               val execute = ta.confirmText match {
                                 case Some(msg) => window.confirm(msg)
@@ -578,7 +579,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               div(
                 releaser(produce(model.subProp(_.name)) { m =>
 
-                  button(ClientConf.style.mobileBoxAction,Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+                  button(id := TestHooks.mobileTableAdd,ClientConf.style.mobileBoxAction,Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
                 })
               ),
             ).render
@@ -639,17 +640,17 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               val selected = model.subProp(_.selectedRow).transform(_.exists(_ == el.get))
 
               def show = a(
-                cls := "primary action",
+                cls := "primary action " + TestHooks.tableActionButton("show"),
                 onclick :+= presenter.show(el.get)
               )(Labels.entity.show)
 
               def edit = a(
-                cls := "primary action",
+                cls := "primary action " + TestHooks.tableActionButton("edit"),
                 onclick :+= presenter.edit(el.get)
               )(Labels.entity.edit)
 
               def delete = a(
-                cls := "danger action",
+                cls := "danger action " + TestHooks.tableActionButton("delete"),
                 onclick :+= presenter.delete(el.get)
               )(Labels.entity.delete)
 
@@ -669,7 +670,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                       case EditAction => edit
                       case ShowAction => show
                       case NoAction => a(
-                        cls := "primary action",
+                        cls := "primary action " + TestHooks.tableActionButton(ta.label),
                         onclick :+= { (e: Event) =>
                             val id = presenter.ids(el.get)
                             val tab = ta.target match {
