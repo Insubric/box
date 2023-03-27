@@ -16,14 +16,12 @@ object Log {
     println(s"Logger level: ${services.config.loggerLevel}")
 
     Logger.root.clearHandlers()
-      .withHandler(minimumLevel = Some(Level.Warn))
+      .withHandler(minimumLevel = Some(services.config.loggerLevel), writer = loggerWriter)
 //      .withModifier(
-//          select(packageName.startsWith("slick.jdbc"))
-//          .boosted(Level.Debug,Level.Warn)
+//        select(packageName.startsWith("slick.jdbc"))
+//          .boosted(Level.Debug, Level.Warn)
 //          .priority(Priority.Important)
 //      )
       .replace()
-
-    //Logger.root.clearHandlers().withHandler(minimumLevel = Some(services.config.loggerLevel), writer = loggerWriter).replace()
   }
 }

@@ -38,8 +38,8 @@ class UpdateFormSpec extends BaseSpec {
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,Registry(),FormMetadataFactory())
+      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.upsertIfNeeded(id,json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
     } yield {

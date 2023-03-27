@@ -25,18 +25,17 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   import ch.wsl.box.jdbc.Connection
   import ch.wsl.box.rest.utils.JSONSupport._
 
-
   def form = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,Registry.box(),new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind).route
+        Form(name, lang,Registry.box(),BoxFormMetadataFactory,userProfile.db,EntityKind.BOX_FORM.kind).route
       }
     }
   }
 
   def forms = path(EntityKind.BOX_FORM.plural) {
     get {
-      complete(services.connection.adminDB.run(new BoxFormMetadataFactory().list))
+      complete(services.connection.adminDB.run(BoxFormMetadataFactory.list))
     }
   }
 

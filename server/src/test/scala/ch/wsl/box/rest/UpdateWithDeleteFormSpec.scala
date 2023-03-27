@@ -28,8 +28,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,Registry(),FormMetadataFactory())
+      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
     } yield {
@@ -44,8 +44,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,Registry(),FormMetadataFactory())
+      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.update(id,json).transactionally)
       result <- up.db.run(actions.getById(id))
     } yield (i,result)
@@ -57,8 +57,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,Registry(),FormMetadataFactory())
+      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.upsertIfNeeded(Some(id),json).transactionally)
       result <- up.db.run(actions.getById(id))
     } yield (i,result)

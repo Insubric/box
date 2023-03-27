@@ -28,7 +28,7 @@ import scala.util.Try
   *
   * mapping from form specs in box schema into JSONForm
   */
-object FormMetadataFactory{
+object FormMetadataFactory extends Logging with MetadataFactory{
   /**
    * Caches
    * cache keys contains lang identifier of the form (id or name) and username,
@@ -54,17 +54,11 @@ object FormMetadataFactory{
   }}
 
 
-}
-
-
-
-case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with MetadataFactory {
-
-  def list: DBIO[Seq[String]] = {
+  def list(implicit ec:ExecutionContext,services:Services): DBIO[Seq[String]] = {
     BoxForm.BoxFormTable.result
   }.map{_.map(_.name)}
 
-  def of(id:UUID, lang:String):DBIO[JSONMetadata] = {
+  def of(id:UUID, lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
     val cacheKey = (id,lang)
     FormMetadataFactory.cacheFormId.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
@@ -88,7 +82,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     }
   }
 
-  def of(name:String, lang:String):DBIO[JSONMetadata] = {
+  def of(name:String, lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
     val cacheKey = (name,lang)
     FormMetadataFactory.cacheFormName.lift(cacheKey) match {
       case Some(r) => DBIO.successful(r)
@@ -114,7 +108,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   }
 
-  def children(form:JSONMetadata):DBIO[Seq[JSONMetadata]] = {
+  def children(form:JSONMetadata)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[JSONMetadata]] = {
     val result = DBIO.sequence{
       form.fields.flatMap(_.child).map{ child =>
         of(child.objId,form.lang)
@@ -131,7 +125,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   }
 
-  private def keys(form:BoxForm_row):DBIO[Seq[String]] = form.edit_key_field.map{x =>
+  private def keys(form:BoxForm_row)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[String]] = form.edit_key_field.map{x =>
     DBIO.successful(x.split(",").toSeq.map(_.trim))
   }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
@@ -145,7 +139,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     }
   }
 
-  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String) = {
+  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String)(implicit ec:ExecutionContext,services:Services) = {
 
     import io.circe.generic.auto._
 
@@ -311,7 +305,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     WidgetsNames.defaults.getOrElse(jsonType,WidgetsNames.input)
   }
 
-  private def linkedForms(field:BoxField_row,field_i18n_row:Option[BoxField_i18n_row]):DBIO[Option[LinkedForm]] = {
+  private def linkedForms(field:BoxField_row,field_i18n_row:Option[BoxField_i18n_row])(implicit ec:ExecutionContext,services:Services):DBIO[Option[LinkedForm]] = {
     val linkedFormOpt = for{
       formId <- field.child_form_uuid
     } yield {
@@ -374,7 +368,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   } yield ConditionalField(fieldId,json)
 
 
-  private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String):DBIO[String] = {
+  private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[String] = {
 
     field.child_form_uuid match {
       case None => DBIO.successful(fieldI18n.flatMap(_.label).getOrElse(field.name))
@@ -388,7 +382,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     }
   }
 
-  private def subform(field:BoxField_row) = field.`type` match {
+  private def subform(field:BoxField_row)(implicit ec:ExecutionContext) = field.`type` match {
     case JSONFieldTypes.CHILD => {
 
       import io.circe.generic.auto._
@@ -418,7 +412,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case _ => DBIO.successful(None)
   }
 
-  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row]): Option[JSONFieldLookup] = {for{
+  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row])(implicit ec:ExecutionContext,services:Services): Option[JSONFieldLookup] = {for{
     refEntity <- field.lookupEntity
     value <- field.lookupValueField
     text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,None))
@@ -431,7 +425,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case None => None
   }
 
-  private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
+  private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String)(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONField]] = {
 
     val jsonFields = fields.map{ case ((field,fieldI18n),colType) =>
 

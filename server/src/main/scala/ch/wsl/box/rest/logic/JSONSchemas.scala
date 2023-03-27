@@ -24,7 +24,7 @@ class JSONSchemas()(implicit up:UserProfile, mat:Materializer, ec:ExecutionConte
         title = Some(field.name)
       ))
       case Some(child) => for{
-        m <- FormMetadataFactory().of(child.objId,lang)
+        m <- FormMetadataFactory.of(child.objId,lang)
         schema <- of(m)
       } yield field.name -> schema
 
