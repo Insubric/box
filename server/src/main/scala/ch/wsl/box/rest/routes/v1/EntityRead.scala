@@ -57,7 +57,7 @@ object EntityRead extends Logging  {
     implicit def encoder = enc.light()
 
     def jsonMetadata:JSONMetadata = {
-      val fut = EntityMetadataFactory.of(name, lang, Registry())
+      val fut = EntityMetadataFactory.of(name, Registry())
       Await.result(fut,20.seconds)
     }
 
@@ -103,7 +103,7 @@ object EntityRead extends Logging  {
         path("metadata") {
           get {
             complete {
-              EntityMetadataFactory.of(name, lang, Registry())
+              EntityMetadataFactory.of(name, Registry())
             }
           }
         } ~

@@ -25,10 +25,7 @@ object StubMetadataFactory {
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
     val dbio = for{
-      langs <- DBIO.from(Future.sequence(services.config.langs.map{ lang =>
-        EntityMetadataFactory.of(entity,lang, Registry()).map(x => (lang,x))
-      }))
-      metadata = langs.head._2
+      metadata <- DBIO.from(EntityMetadataFactory.of(entity,Registry())) //.map(x => (lang,x))
       form <- {
         val newForm = BoxForm_row(
           form_uuid = None,
@@ -46,10 +43,10 @@ object StubMetadataFactory {
         BoxForm.BoxFormTable.returning(BoxForm.BoxFormTable) += newForm
 
       }
-      formI18n <- DBIO.sequence(langs.map{ lang =>
+      formI18n <- DBIO.sequence(services.config.langs.map{ lang =>
         val newFormI18n = BoxForm_i18n_row(
           form_uuid = form.form_uuid,
-          lang = Some(lang._1),
+          lang = Some(lang),
           label = Some(entity)
         )
 
@@ -77,8 +74,8 @@ object StubMetadataFactory {
         BoxField.BoxFieldTable.filter(_.form_uuid === form.form_uuid.get ).result
       }
       fieldsI18n <- {
-        val langFields: Seq[(String, JSONMetadata, JSONField)] = langs.flatMap(x => x._2.fields.map(y => (x._1,x._2,y)))
-        DBIO.sequence(langFields.map{ case (lang,metadata,field) =>
+        val langFields: Seq[(String, JSONField)] = services.config.langs.flatMap(l => metadata.fields.map(f => (l,f)))
+        DBIO.sequence(langFields.map{ case (lang,field) =>
 
             val dbField:BoxField.BoxField_row = fields.find(_.name == field.name ).get
 

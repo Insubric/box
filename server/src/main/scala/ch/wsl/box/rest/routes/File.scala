@@ -69,7 +69,7 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   val registry = table.baseTableRow.registry
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(table.baseTableRow.tableName, "", registry)
+    val fut = EntityMetadataFactory.of(table.baseTableRow.tableName, registry)
     Await.result(fut,20.seconds)
   }
 

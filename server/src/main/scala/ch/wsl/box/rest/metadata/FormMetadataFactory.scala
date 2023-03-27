@@ -418,10 +418,10 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     case _ => DBIO.successful(None)
   }
 
-  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String): Option[JSONFieldLookup] = {for{
+  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row]): Option[JSONFieldLookup] = {for{
     refEntity <- field.lookupEntity
     value <- field.lookupValueField
-    text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,lang,None))
+    text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,None))
   } yield {
 
       Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), field.lookupQuery))
@@ -439,7 +439,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
       for{
         lab <- label(field, fieldI18n, lang)
-        look = lookup(field, fieldI18n, lang)
+        look = lookup(field, fieldI18n)
         linked <- linkedForms(field, fieldI18n)
         subform <- subform(field)
       } yield {

@@ -82,7 +82,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
 
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(name, lang, registry)
+    val fut = EntityMetadataFactory.of(name, registry)
     Await.result(fut,20.seconds)
   }
 
@@ -200,7 +200,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
 
             onComplete(db.run(dbActions.find(query))) {
               case Success(q) => {
-                val csv = Source.fromFuture(EntityMetadataFactory.of(name,lang, registry).map{ metadata =>
+                val csv = Source.fromFuture(EntityMetadataFactory.of(name, registry).map{ metadata =>
                   Seq(metadata.fields.map(_.name)).asCsv(rfc)
                 }).concat(Source.fromPublisher(db.stream(q)).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
                 complete(csv)

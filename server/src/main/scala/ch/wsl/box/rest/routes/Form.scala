@@ -80,7 +80,7 @@ case class Form(
     def tabularMetadata(fields:Option[Seq[String]] = None) = {
       val filteredFields = metadata.view match {
         case None => DBIO.successful(_tabMetadata(fields,metadata))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(view,lang,registry).map{ vm =>
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(view,registry).map{ vm =>
           viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }
