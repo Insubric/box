@@ -43,7 +43,8 @@ object HtmlWidget extends ComponentWidgetFactory {
             v -> js.js(v).toMustacheValue
           } ++ Seq(
             "BASE_URI" -> Value.of(Routes.baseUri),
-            "FULL_URL" -> Value.of(Routes.fullUrl)
+            "FULL_URL" -> Value.of(Routes.fullUrl),
+            "ORIGIN_URL" -> Value.of(Routes.originUrl)
           )
           Context(values:_*)
         }

@@ -2,7 +2,7 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.model.boxentities.{BoxForm, BoxFunction, BoxUser}
+import ch.wsl.box.model.boxentities._
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
@@ -11,8 +11,7 @@ import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext, services:Services) extends Logging with MetadataFactory {
-
+object BoxFormMetadataFactory extends Logging with MetadataFactory {
 
 
   import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -22,12 +21,12 @@ class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext, ser
   import ch.wsl.box.rest.metadata.box._
 
 
-  val viewsOnly = Registry().fields.views.sorted
-  val tablesAndViews = (viewsOnly ++ Registry().fields.tables).sorted
+  lazy val viewsOnly = Registry().fields.views.sorted
+  lazy val tablesAndViews = (viewsOnly ++ Registry().fields.tables).sorted
 
 
 
-  def registry = for{
+  def registry(implicit ec:ExecutionContext,services:Services) = for{
     forms <- getForms()
     users <- getUsers()
     functions <- getFunctions()
@@ -70,13 +69,13 @@ class BoxFormMetadataFactory(implicit mat:Materializer, ec:ExecutionContext, ser
 
   val visibleAdmin = Seq(FUNCTION,FORM,PAGE,NEWS,LABEL)
 
-  override def list: DBIO[Seq[String]] = registry.map(_.filter(f => visibleAdmin.contains(f.objId)).map(_.name))
+  override def list(implicit ec:ExecutionContext,services:Services): DBIO[Seq[String]] = registry.map(_.filter(f => visibleAdmin.contains(f.objId)).map(_.name))
 
-  override def of(name: String, lang: String): DBIO[JSONMetadata] = registry.map(_.find(_.name == name).get)
+  override def of(name: String, lang: String)(implicit ec:ExecutionContext,services:Services): DBIO[JSONMetadata] = registry.map(_.find(_.name == name).get)
 
-  override def of(id: UUID, lang: String): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
+  override def of(id: UUID, lang: String)(implicit ec:ExecutionContext,services:Services): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
 
-  override def children(form: JSONMetadata): DBIO[Seq[JSONMetadata]] = for{
+  override def children(form: JSONMetadata)(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONMetadata]] = for{
     forms <- getForms()
     functions <- getFunctions()
   } yield {

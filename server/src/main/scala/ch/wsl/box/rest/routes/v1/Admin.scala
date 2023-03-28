@@ -6,7 +6,6 @@ import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
 import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge}
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.{BoxTranslationsFields, EntityKind}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.routes.{Form, Table}
@@ -26,18 +25,17 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   import ch.wsl.box.jdbc.Connection
   import ch.wsl.box.rest.utils.JSONSupport._
 
-
   def form = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,Registry.box(),new BoxFormMetadataFactory(),userProfile.db,EntityKind.BOX_FORM.kind,schema = BoxSchema.schema).route
+        Form(name, lang,Registry.box(),BoxFormMetadataFactory,userProfile.db,EntityKind.BOX_FORM.kind).route
       }
     }
   }
 
   def forms = path(EntityKind.BOX_FORM.plural) {
     get {
-      complete(services.connection.adminDB.run(new BoxFormMetadataFactory().list))
+      complete(services.connection.adminDB.run(BoxFormMetadataFactory.list))
     }
   }
 
@@ -65,13 +63,13 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
   def boxDefinition = pathPrefix("box-definition") {
     get{
-      complete(BoxDefinition.`export`(services.connection.adminDB).map(_.asJson))
+      complete(BoxDefinition.`export`(services.connection.adminDB,services.config.boxSchemaName).map(_.asJson))
     } ~
     path("diff") {
       post{
         entity(as[BoxDefinition]) {  newDef =>
           complete {
-            BoxDefinition.`export`(services.connection.adminDB).map { oldDef =>
+            BoxDefinition.`export`(services.connection.adminDB,services.config.boxSchemaName).map { oldDef =>
               BoxDefinition.diff(oldDef, newDef).asJson
             }
           }

@@ -4,6 +4,7 @@ import ch.wsl.box.jdbc.UserDatabase
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm, BoxLabels}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{BoxTranslationsFields, Field}
+import ch.wsl.box.services.Services
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -14,6 +15,8 @@ object Translations {
   private val fieldSource = "field_i18n"
   private val formSource = "form_i18n"
   private val labelSource = "labels"
+
+  def tableInstance(implicit services:Services) = BoxLabels.BoxLabelsTable(services.config.boxSchemaName)
 
   private def getFieldI18n(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = {
 
@@ -31,7 +34,7 @@ object Translations {
     })
   }
 
-  private def getLabels(langSource:String)(implicit ec:ExecutionContext):DBIO[Seq[Field]] = BoxLabels.BoxLabelsTable.filter(f => f.lang === langSource && f.label.nonEmpty )
+  private def getLabels(langSource:String)(implicit ec:ExecutionContext, services: Services):DBIO[Seq[Field]] = tableInstance.filter(f => f.lang === langSource && f.label.nonEmpty )
     .sortBy(_.label)
     .result.map { _.map{ f =>
       Field(f.key,"Global labels",labelSource,f.label.get, "","","")
@@ -53,7 +56,8 @@ object Translations {
 
   }
 
-  def exportFields(langSource:String,db:UserDatabase)(implicit ec:ExecutionContext):Future[Seq[Field]] = {
+  def exportFields(langSource:String,db:UserDatabase)(implicit ec:ExecutionContext, services:Services):Future[Seq[Field]] = {
+
     db.run {
       for{
         fieldI18n <- getFieldI18n(langSource)
@@ -65,7 +69,9 @@ object Translations {
 
   def emptyToNone(str:String):Option[String] = if(str.isEmpty) None else Some(str)
 
-  def updateFields(data:BoxTranslationsFields,db:UserDatabase)(implicit ec:ExecutionContext) = {
+  def updateFields(data:BoxTranslationsFields,db:UserDatabase)(implicit ec:ExecutionContext, services: Services) = {
+
+    val table = tableInstance
 
     def extractDestsField(source:BoxField.BoxField_i18n_row,dest:Field):DBIO[BoxField.BoxField_i18n_row] = {
       for{
@@ -136,9 +142,9 @@ object Translations {
     }
 
 
-    def extractDestsLabels(source:BoxLabels.BoxLabels_row,dest:Field):DBIO[BoxLabels.BoxLabels_row] = {
+    def extractDestsLabels(source:BoxLabels.BoxLabels_row,dest:Field)(implicit services: Services):DBIO[BoxLabels.BoxLabels_row] = {
       for{
-        existing <- BoxLabels.BoxLabelsTable.filter(f =>
+        existing <- table.filter(f =>
           f.lang === data.destLang && f.key === source.key
         ).result
       } yield existing.find(_.key == source.key) match {
@@ -156,11 +162,11 @@ object Translations {
 
     val ioLabels = data.translations.filter(_.dest.source == labelSource).map{ t =>
       for{
-        source <- BoxLabels.BoxLabelsTable.filter(f =>
+        source <- table.filter(f =>
           f.lang === data.sourceLang && f.key === t.source.uuid
         ).result
         dest <- extractDestsLabels(source.head,t.dest)
-        result <- BoxLabels.BoxLabelsTable.insertOrUpdate(dest)
+        result <- table.insertOrUpdate(dest)
       } yield result
     }
 

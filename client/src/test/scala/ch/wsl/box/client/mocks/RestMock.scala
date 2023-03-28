@@ -22,7 +22,10 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def me(): Future[String] = Future.successful("postgres")
+  override def me(): Future[String] = values.loggedUser match {
+    case Some(value) => Future.successful(value)
+    case None => Future.failed(new Exception("Not logged in"))
+  }
 
   override def cacheReset(): Future[String] = {
     println("cacheReset not implemented")

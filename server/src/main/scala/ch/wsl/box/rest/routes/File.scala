@@ -19,7 +19,6 @@ import nz.co.rossphillips.thumbnailer.thumbnailers.{DOCXThumbnailer, ImageThumbn
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
@@ -67,10 +66,10 @@ case class File[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   implicit val boxDb = FullDatabase(db,services.connection.adminDB)
   val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
 
-  val registry = if(table.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
+  val registry = table.baseTableRow.registry
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(table.baseTableRow.schemaName.getOrElse(services.connection.dbSchema),table.baseTableRow.tableName, "", registry)
+    val fut = EntityMetadataFactory.of(table.baseTableRow.tableName, registry)
     Await.result(fut,20.seconds)
   }
 

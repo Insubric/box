@@ -183,7 +183,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
       logger.warn(s"Form validation failed")
 
-      throw new Exception("Validation failed")
+      return Future.failed(new Exception("Validation failed"))
     }
 
     val m = model.get

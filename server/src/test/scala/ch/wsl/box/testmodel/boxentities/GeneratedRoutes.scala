@@ -30,6 +30,8 @@ object GeneratedRoutes extends GeneratedRoutes {
     ch.wsl.box.rest.routes.Table[Flyway_schema_history_box,Flyway_schema_history_box_row]("flyway_schema_history_box",Flyway_schema_history_box, lang)(Entities.encodeFlyway_schema_history_box_row,Entities.decodeFlyway_schema_history_box_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Form,Form_row]("form",Form, lang)(Entities.encodeForm_row,Entities.decodeForm_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Form_actions,Form_actions_row]("form_actions",Form_actions, lang)(Entities.encodeForm_actions_row,Entities.decodeForm_actions_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Form_actions_table,Form_actions_table_row]("form_actions_table",Form_actions_table, lang)(Entities.encodeForm_actions_table_row,Entities.decodeForm_actions_table_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Form_actions_top_table,Form_actions_top_table_row]("form_actions_top_table",Form_actions_top_table, lang)(Entities.encodeForm_actions_top_table_row,Entities.decodeForm_actions_top_table_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Form_i18n,Form_i18n_row]("form_i18n",Form_i18n, lang)(Entities.encodeForm_i18n_row,Entities.decodeForm_i18n_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Form_navigation_actions,Form_navigation_actions_row]("form_navigation_actions",Form_navigation_actions, lang)(Entities.encodeForm_navigation_actions_row,Entities.decodeForm_navigation_actions_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Function,Function_row]("function",Function, lang)(Entities.encodeFunction_row,Entities.decodeFunction_row,mat,up,ec,services).route ~ 
@@ -38,7 +40,6 @@ object GeneratedRoutes extends GeneratedRoutes {
     ch.wsl.box.rest.routes.Table[Function_i18n,Function_i18n_row]("function_i18n",Function_i18n, lang)(Entities.encodeFunction_i18n_row,Entities.decodeFunction_i18n_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Image_cache,Image_cache_row]("image_cache",Image_cache, lang)(Entities.encodeImage_cache_row,Entities.decodeImage_cache_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Labels,Labels_row]("labels",Labels, lang)(Entities.encodeLabels_row,Entities.decodeLabels_row,mat,up,ec,services).route ~ 
-    ch.wsl.box.rest.routes.Table[Log,Log_row]("log",Log, lang)(Entities.encodeLog_row,Entities.decodeLog_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Mails,Mails_row]("mails",Mails, lang)(Entities.encodeMails_row,Entities.decodeMails_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[News,News_row]("news",News, lang)(Entities.encodeNews_row,Entities.decodeNews_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[News_i18n,News_i18n_row]("news_i18n",News_i18n, lang)(Entities.encodeNews_i18n_row,Entities.decodeNews_i18n_row,mat,up,ec,services).route ~ 

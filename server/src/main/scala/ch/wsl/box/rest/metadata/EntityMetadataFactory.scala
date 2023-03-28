@@ -22,20 +22,33 @@ import scala.util.Try
 
 object EntityMetadataFactory extends Logging {
 
+  private case class SchemaCache(
+                          cacheTable:scala.collection.mutable.Map[String, JSONMetadata],
+                          cacheKeys: scala.collection.mutable.Map[String, Seq[String]]
+  )
 
   val excludeFields:Seq[String] = Try{
     com.typesafe.config.ConfigFactory.load().as[Seq[String]]("db.generator.excludeFields")
   }.getOrElse(Seq())
-  private val cacheTable = scala.collection.mutable.Map[(String, String, String), JSONMetadata]()   //  (up.name, schema, table, lang,lookupMaxRows)
-  private val cacheKeys = scala.collection.mutable.Map[(String,String), Seq[String]]()                            //  (schema,table)
+  private val schemaCache = scala.collection.mutable.Map[String,SchemaCache]()
+  private def getSchema(schema:String):SchemaCache = {
+    schemaCache.getOrElse(schema,{
+      val newSchemaCache = SchemaCache(scala.collection.mutable.Map[String, JSONMetadata](),scala.collection.mutable.Map[String, Seq[String]]())
+      schemaCache.put(schema,newSchemaCache)
+      newSchemaCache
+    })
+  }
 
-  def resetCache() = {
-    cacheTable.clear()
-    cacheKeys.clear()
+  def resetCache(schema:String) = {
+    schemaCache.get(schema).foreach { s =>
+      s.cacheTable.clear()
+      s.cacheKeys.clear()
+    }
+
   }
 
 
-  def lookupField(referencingTable:String,lang:String, firstNoPK:Option[String])(implicit services: Services):String = {
+  def lookupField(referencingTable:String, firstNoPK:Option[String])(implicit services: Services):String = {
 
     val lookupLabelFields = services.config.fksLookupLabels
 
@@ -43,7 +56,6 @@ object EntityMetadataFactory extends Logging {
 
     val myDefaultTableLookupLabelField: String = default match {
       case "firstNoPKField" => firstNoPK.getOrElse("name")
-      case JSONUtils.LANG => lang
       case _ => default
     }
 
@@ -51,20 +63,20 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def of(_schema:String,table:String, lang:String ,registry:RegistryInstance)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
+  def of(table:String,registry:RegistryInstance)(implicit up:UserProfile, ec:ExecutionContext,boxDatabase: FullDatabase,services: Services):Future[JSONMetadata] = boxDatabase.adminDb.run{
 
-    val cacheKey = (_schema, table, lang)
+    val cacheKey = (registry.schema, table)
 
     logger.info(s"searching cache table for $cacheKey")
 
 
 
-    cacheTable.get(cacheKey) match {
+    getSchema(registry.schema).cacheTable.get(table) match {
       case Some(r) => DBIO.successful(r)
       case None => {
-        logger.warn(s"Metadata table cache miss! cache key: $cacheKey, cache: ${cacheTable.map{case (k,v) => k -> v.name}}")
+        logger.warn(s"Metadata table cache miss! cache key: $cacheKey")
 
-        val schema = new PgInformationSchema(_schema,table, excludeFields)(ec)
+        val schema = new PgInformationSchema(registry.schema,table, excludeFields)(ec)
 
         //    println(schema.fk)
 
@@ -74,7 +86,7 @@ object EntityMetadataFactory extends Logging {
           for {
             fk <- schema.findFk(field.column_name)
             firstNoPK <- fk match {
-              case Some(f) => firstNoPKField(_schema,f.referencingTable)
+              case Some(f) => firstNoPKField(registry.schema,f.referencingTable)
               case None => DBIO.successful(None)
             }
           } yield {
@@ -89,7 +101,7 @@ object EntityMetadataFactory extends Logging {
                   constraints = fk.constraintName :: constraints //add fk constraint to contraint list
 
 
-                  val text = lookupField(fk.referencingTable, lang, firstNoPK)
+                  val text = lookupField(fk.referencingTable, firstNoPK)
 
                   val model = fk.referencingTable
                   val value = fk.referencingKeys.head //todo verify for multiple keys
@@ -122,7 +134,7 @@ object EntityMetadataFactory extends Logging {
         val result = for {
           c <- schema.columns
           fields <- DBIO.from(up.db.run(DBIO.sequence(c.map(field2form))))
-          keys <- EntityMetadataFactory.keysOf(_schema,table)
+          keys <- EntityMetadataFactory.keysOf(registry.schema,table)
         } yield {
 
           val keyStrategy = if(Managed(table)) SurrugateKey else NaturalKey
@@ -136,7 +148,7 @@ object EntityMetadataFactory extends Logging {
             fields,
             Layout.fromFields(fields),
             table,
-            lang,
+            "",
             fieldList,
             fieldList,
             keys,
@@ -154,7 +166,7 @@ object EntityMetadataFactory extends Logging {
         } yield {
           if(services.config.enableCache) {
             logger.warn("adding to cache table " + cacheKey)
-            DBIO.successful(cacheTable.put(cacheKey,metadata))
+            DBIO.successful(getSchema(registry.schema).cacheTable.put(table,metadata))
           }
           metadata
         }
@@ -168,10 +180,10 @@ object EntityMetadataFactory extends Logging {
 
     val cacheKey = (schema,table)
     logger.info("Getting " + cacheKey + " keys")
-    cacheKeys.get(cacheKey) match {
+    getSchema(schema).cacheKeys.get(table) match {
       case Some(r) => DBIO.successful(r)
       case None => {
-        logger.info(s"Metadata keys cache miss! cache key: ($table), cache: ${cacheKeys}")
+        logger.info(s"Metadata keys cache miss! cache key: ($table)")
 
         val result = new PgInformationSchema(schema,table)(ec).pk.map { pk => //map to enter the future
           logger.info(pk.toString)
@@ -183,7 +195,7 @@ object EntityMetadataFactory extends Logging {
           keys <- result
         } yield {
           if(services.config.enableCache) {
-            DBIO.successful(cacheKeys.put(cacheKey,keys))
+            DBIO.successful(getSchema(schema).cacheKeys.put(table,keys))
           }
           keys
         }

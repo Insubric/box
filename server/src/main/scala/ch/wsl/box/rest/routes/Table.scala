@@ -21,7 +21,6 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
@@ -43,7 +42,7 @@ import scala.util.{Failure, Success}
  */
 
 
-case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false, schema:Option[String] = None)
+case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false)
                                                                                                  (implicit
                                                                                                   enc: EncoderWithBytea[M],
                                                                                                   dec:Decoder[M],
@@ -70,7 +69,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
-  val registry = if(table.baseTableRow.schemaName == BoxSchema.schema) Registry.box() else Registry()
+  val registry = table.baseTableRow.registry
 
     val dbActions = new DbActions[T,M](table)
     val jsonActions = JSONTableActions[T,M](table)
@@ -83,7 +82,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
 
 
   def jsonMetadata:JSONMetadata = {
-    val fut = EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, registry)
+    val fut = EntityMetadataFactory.of(name, registry)
     Await.result(fut,20.seconds)
   }
 
@@ -201,7 +200,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
 
             onComplete(db.run(dbActions.find(query))) {
               case Success(q) => {
-                val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, registry).map{ metadata =>
+                val csv = Source.fromFuture(EntityMetadataFactory.of(name, registry).map{ metadata =>
                   Seq(metadata.fields.map(_.name)).asCsv(rfc)
                 }).concat(Source.fromPublisher(db.stream(q)).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
                 complete(csv)

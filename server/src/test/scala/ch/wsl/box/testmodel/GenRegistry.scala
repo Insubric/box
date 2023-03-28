@@ -8,6 +8,7 @@ class GenRegistry() extends RegistryInstance {
     override val fileRoutes = FileRoutes
     override val actions = EntityActionsRegistry
     override val fields = FieldAccessRegistry
+    override val schema = "test_public"
 
 }
            

@@ -6,7 +6,6 @@ import geotrellis.vector.io.json.Implicits._
 import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.model.shared.{Filter, JSONQuery, JSONQueryFilter, JSONSort}
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
@@ -17,7 +16,7 @@ import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 
-trait UpdateTable[T] { t:Table[T] =>
+trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
 
@@ -100,8 +99,6 @@ trait UpdateTable[T] { t:Table[T] =>
 
 
 
-    val registry = if(table.schemaName == BoxSchema.schema) Registry.box() else Registry()
-
     val col = table.typ(key,registry)
 
     val result = col.name match {
@@ -164,8 +161,6 @@ trait UpdateTable[T] { t:Table[T] =>
       Some(result)
 
     }
-
-    val registry = if(table.schemaName == BoxSchema.schema) Registry.box() else Registry()
 
     val col = table.typ(key,registry)
 

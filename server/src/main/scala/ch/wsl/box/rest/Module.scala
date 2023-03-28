@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.rest.routes.v1.{NotificationChannels, NotificationChannelsImpl}
 import ch.wsl.box.rest.utils.BoxSession
-import ch.wsl.box.services.Services
-import ch.wsl.box.services.config.{ConfFileAndDb, Config, ConfigFileImpl, FullConfig}
+import ch.wsl.box.services.{Services, ServicesWithoutGeneration}
+import ch.wsl.box.services.config.{ConfFileAndDb, Config, ConfigFileImpl, FullConfig, FullConfigFileOnlyImpl}
 import ch.wsl.box.services.file.ImageCacheStorage
 import ch.wsl.box.services.files.{InMemoryImageCacheStorage, PgImageCacheStorage}
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDummy}
@@ -21,6 +21,19 @@ trait Module{
 }
 
 object DefaultModule extends Module {
+
+  val injectorWithoutGeneration = newDesign
+    .bind[ExecutionContext].toInstance {
+      ExecutionContext.fromExecutor(
+        new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
+      )
+    }
+    .bind[Connection].to[ConnectionConfImpl]
+    .bind[FullConfig].to[FullConfigFileOnlyImpl]
+    .bind[ServicesWithoutGeneration].toEagerSingleton
+    .onShutdown { s =>
+      s.connection.close()
+    }
 
   val injector = newDesign
     .bind[ExecutionContext].toInstance{

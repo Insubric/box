@@ -1,4 +1,4 @@
-create or replace function box.ui_notification(
+create or replace function ui_notification(
     topic text,
     users text[],
     payload json
@@ -17,12 +17,12 @@ returns void as $$
     end;
 $$ LANGUAGE plpgsql;
 
-create or replace function box.ui_notification_forall(
+create or replace function ui_notification_forall(
     topic text,
     payload json
 )
     returns void as $$
 begin
-    PERFORM box.ui_notification(topic,'{"ALL_USERS"}'::text[],payload);
+    PERFORM ui_notification(topic,'{"ALL_USERS"}'::text[],payload);
 end;
 $$ LANGUAGE plpgsql;

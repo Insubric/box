@@ -11,99 +11,69 @@ object FieldAccessRegistry extends FieldRegistry {
       "db_child",
       "db_parent",
       "db_subchild",
-      "flyway_schema_history",
       "json_test",
       "simple",
-      "spatial_ref_sys",
       "test_list_types"
   )
 
   override def views: Seq[String] = Seq(
-      "geography_columns",
-      "geometry_columns"
+      ""
   )
 
-  val tableFields:Map[String,Map[String,ColType]] = Map(
-        "app_child" -> Map(
-              "id" -> ColType("Int","integer",false,false),
-              "name" -> ColType("String","string",true,true),
-              "parent_id" -> ColType("Int","integer",true,true)
-        ),
-        "app_parent" -> Map(
-              "id" -> ColType("Int","integer",false,false),
-              "name" -> ColType("String","string",true,true)
-        ),
-        "app_subchild" -> Map(
-              "id" -> ColType("Int","integer",false,false),
-              "child_id" -> ColType("Int","integer",true,true),
-              "name" -> ColType("String","string",true,true)
-        ),
-        "db_child" -> Map(
-              "id" -> ColType("Int","integer",true,false),
-              "name" -> ColType("String","string",true,true),
-              "parent_id" -> ColType("Int","integer",true,true)
-        ),
-        "db_parent" -> Map(
-              "id" -> ColType("Int","integer",true,false),
-              "name" -> ColType("String","string",true,true)
-        ),
-        "db_subchild" -> Map(
-              "id" -> ColType("Int","integer",true,false),
-              "child_id" -> ColType("Int","integer",true,true),
-              "name" -> ColType("String","string",true,true)
-        ),
-        "flyway_schema_history" -> Map(
-              "installed_rank" -> ColType("Int","integer",false,false),
-              "version" -> ColType("String","string",true,true),
-              "description" -> ColType("String","string",false,false),
-              "type" -> ColType("String","string",false,false),
-              "script" -> ColType("String","string",false,false),
-              "checksum" -> ColType("Int","integer",true,true),
-              "installed_by" -> ColType("String","string",false,false),
-              "installed_on" -> ColType("java.time.LocalDateTime","datetime",true,false),
-              "execution_time" -> ColType("Int","integer",false,false),
-              "success" -> ColType("Boolean","boolean",false,false)
-        ),
-        "json_test" -> Map(
-              "id" -> ColType("Int","integer",true,false),
-              "obj" -> ColType("io.circe.Json","json",true,true)
-        ),
-        "simple" -> Map(
-              "id" -> ColType("Int","integer",true,false),
-              "name" -> ColType("String","string",true,true)
-        ),
-        "spatial_ref_sys" -> Map(
-              "srid" -> ColType("Int","integer",false,false),
-              "auth_name" -> ColType("String","string",true,true),
-              "auth_srid" -> ColType("Int","integer",true,true),
-              "srtext" -> ColType("String","string",true,true),
-              "proj4text" -> ColType("String","string",true,true)
-        ),
-        "test_list_types" -> Map(
-              "id" -> ColType("Int","integer",true,false),
-              "texts" -> ColType("List[String]","null",true,true),
-              "ints" -> ColType("List[Int]","array_number",true,true),
-              "numbers" -> ColType("List[Double]","array_number",true,true)
-        ),
-        "geography_columns" -> Map(
-              "f_table_catalog" -> ColType("String","string",true,true),
-              "f_table_schema" -> ColType("String","string",true,true),
-              "f_table_name" -> ColType("String","string",true,true),
-              "f_geography_column" -> ColType("String","string",true,true),
-              "coord_dimension" -> ColType("Int","integer",true,true),
-              "srid" -> ColType("Int","integer",true,true),
-              "type" -> ColType("String","string",true,true)
-        ),
-        "geometry_columns" -> Map(
-              "f_table_catalog" -> ColType("String","string",true,true),
-              "f_table_schema" -> ColType("String","string",true,true),
-              "f_table_name" -> ColType("String","string",true,true),
-              "f_geometry_column" -> ColType("String","string",true,true),
-              "coord_dimension" -> ColType("Int","integer",true,true),
-              "srid" -> ColType("Int","integer",true,true),
-              "type" -> ColType("String","string",true,true)
-        ),
+  def tableFields:Map[String,Map[String,ColType]] = Map(
+        "app_child" -> app_child_map,
+        "app_parent" -> app_parent_map,
+        "app_subchild" -> app_subchild_map,
+        "db_child" -> db_child_map,
+        "db_parent" -> db_parent_map,
+        "db_subchild" -> db_subchild_map,
+        "json_test" -> json_test_map,
+        "simple" -> simple_map,
+        "test_list_types" -> test_list_types_map,
   )
+
+  private def app_child_map =  Map(
+              "id" -> ColType("Int","integer",false,false),
+              "name" -> ColType("String","string",false,true),
+              "parent_id" -> ColType("Int","integer",false,true)
+)
+  private def app_parent_map =  Map(
+              "id" -> ColType("Int","integer",false,false),
+              "name" -> ColType("String","string",false,true)
+)
+  private def app_subchild_map =  Map(
+              "id" -> ColType("Int","integer",false,false),
+              "child_id" -> ColType("Int","integer",false,true),
+              "name" -> ColType("String","string",false,true)
+)
+  private def db_child_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "name" -> ColType("String","string",false,true),
+              "parent_id" -> ColType("Int","integer",false,true)
+)
+  private def db_parent_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "name" -> ColType("String","string",false,true)
+)
+  private def db_subchild_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "child_id" -> ColType("Int","integer",false,true),
+              "name" -> ColType("String","string",false,true)
+)
+  private def json_test_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "obj" -> ColType("io.circe.Json","json",false,true)
+)
+  private def simple_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "name" -> ColType("String","string",false,true)
+)
+  private def test_list_types_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "texts" -> ColType("List[String]","array_string",false,true),
+              "ints" -> ColType("List[Int]","array_number",false,true),
+              "numbers" -> ColType("List[Double]","array_number",false,true)
+)
 
 
 }

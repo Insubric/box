@@ -42,9 +42,9 @@ jobs:
         with:
           java-version: "adopt@1.8"
       - name: Node 14.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
-          node-version: 14.18.2
+          node-version: 14
       - name: Setup client test env
         run: npm install
       - name: Run tests client

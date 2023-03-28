@@ -3,7 +3,7 @@ package ch.wsl.box.model.boxentities
 import ch.wsl.box.jdbc.PostgresProfile.api._
 
 object Schema {
-  val box =
+  def box(boxSchema:String) =
     BoxAccessLevel.BoxAccessLevelTable.schema ++
       BoxConf.BoxConfTable.schema ++
       BoxExport.BoxExportTable.schema ++
@@ -16,7 +16,7 @@ object Schema {
       BoxForm.BoxFormTable.schema ++
       BoxForm.BoxForm_i18nTable.schema ++
       BoxForm.BoxForm_actions.schema ++
-      BoxLabels.BoxLabelsTable.schema ++
+      BoxLabels.BoxLabelsTable(boxSchema).schema ++
       BoxUITable.BoxUITable.schema ++
       BoxUIsrcTable.BoxUIsrcTable.schema ++
       BoxUser.BoxUserTable.schema ++

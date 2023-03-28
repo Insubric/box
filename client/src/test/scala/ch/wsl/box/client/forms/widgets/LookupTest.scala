@@ -6,6 +6,7 @@ import ch.wsl.box.client.views.components.widget.{WidgetCallbackActions, WidgetP
 import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash._
+import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import scalatags.JsDom.all._
 
 class LookupTest extends TestBase {
@@ -38,7 +39,7 @@ class LookupTest extends TestBase {
   )
 
   "Lookup widget" should "be unitary" in {
-    val el = div(factory.create(params).render(true,Property(true))).render
+    val el = div(factory.create(params).render(true,Property(true),NestedInterceptor.Identity)).render
     el.innerHTML.contains("select") shouldBe true
   }
 

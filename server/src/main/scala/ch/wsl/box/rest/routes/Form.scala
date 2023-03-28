@@ -14,7 +14,6 @@ import io.circe.Json
 import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.io.csv.CSV
 import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
@@ -37,8 +36,7 @@ case class Form(
                  metadataFactory: MetadataFactory,
                  db:UserDatabase,
                  kind:String,
-                 public: Boolean = false,
-                 schema:Option[String] = None
+                 public: Boolean = false
                )(implicit up:UserProfile, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] {
 
     import JSONSupport._
@@ -82,7 +80,7 @@ case class Form(
     def tabularMetadata(fields:Option[Seq[String]] = None) = {
       val filteredFields = metadata.view match {
         case None => DBIO.successful(_tabMetadata(fields,metadata))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang,registry).map{ vm =>
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(view,registry).map{ vm =>
           viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }
@@ -158,6 +156,10 @@ case class Form(
     }
   }
 
+  def resetCacheOnBox() = if(registry.schema == Registry.box().schema) {
+    Cache.reset()
+  }
+
   def updateDiff = put {
     privateOnly {
       entity(as[JSONDiff]) { e =>
@@ -167,9 +169,7 @@ case class Form(
               actions.updateDiff(e).transactionally
             }
           } yield {
-            if(schema == BoxSchema.schema) {
-              Cache.reset()
-            }
+            resetCacheOnBox()
             if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
           }
         }
@@ -233,9 +233,7 @@ case class Form(
                 DBIO.sequence(values.zip(ids).map{ case (x,id) => actions.update(id, x)}).transactionally
               }
             } yield {
-              if(schema == BoxSchema.schema) {
-                Cache.reset()
-              }
+              resetCacheOnBox()
               if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
             }
 
@@ -295,7 +293,7 @@ case class Form(
     path("keys") {
       get {
         complete {
-          boxDb.adminDb.run( EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),metadata.entity))
+          boxDb.adminDb.run( EntityMetadataFactory.keysOf(registry.schema,metadata.entity))
         }
       }
     } ~

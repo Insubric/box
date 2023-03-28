@@ -1,5 +1,5 @@
 
-create table box.form_actions_table
+create table form_actions_table
 (
     action            text                              not null,
     importance        text                              not null,
@@ -14,7 +14,7 @@ create table box.form_actions_table
             primary key,
     form_uuid         uuid                              not null
         constraint form_actions_table_form_form_id_fk
-            references box.form
+            references form
             on update cascade on delete cascade,
     execute_function  text,
     action_order      double precision                  not null,
@@ -25,6 +25,6 @@ create table box.form_actions_table
     when_no_update_right boolean default false  not null
 );
 
-alter table box.form_actions_table
+alter table form_actions_table
     owner to postgres;
 

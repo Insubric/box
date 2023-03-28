@@ -3,12 +3,15 @@ package ch.wsl.box.model.boxentities
 import ch.wsl.box.model.shared.FunctionKind
 import slick.model.ForeignKeyAction
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.runtime.Registry
 
 object BoxFunction {
 
+
+  private val schema = Some(Registry.box().schema)
   case class BoxFunction_row(function_uuid: Option[java.util.UUID] = None, name: String, mode:String, function:String, presenter:Option[String], description: Option[String] = None, layout: Option[String] = None, order: Option[Double], access_role:Option[List[String]])
 
-  class BoxFunction(_tableTag: Tag) extends Table[BoxFunction_row](_tableTag,BoxSchema.schema, "function") {
+  class BoxFunction(_tableTag: Tag) extends Table[BoxFunction_row](_tableTag,schema, "function") {
     def * = (Rep.Some(function_uuid), name, mode, function, presenter, description, layout, order ,access_role) <> (BoxFunction_row.tupled, BoxFunction_row.unapply)
     def ? = (Rep.Some(function_uuid), name, mode, function, presenter, description, layout, order, access_role).shaped.<>({ r=>import r._; _1.map(_=> BoxFunction_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8, _9)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -32,7 +35,7 @@ object BoxFunction {
                                   lang: Option[String] = None, label: Option[String] = None,
                                   tooltip: Option[String] = None, hint: Option[String] = None, function: Option[String] = None)
 
-  class BoxFunction_i18n(_tableTag: Tag) extends Table[BoxFunction_i18n_row](_tableTag,BoxSchema.schema, "function_i18n") {
+  class BoxFunction_i18n(_tableTag: Tag) extends Table[BoxFunction_i18n_row](_tableTag,schema, "function_i18n") {
     def * = (Rep.Some(uuid), function_uuid, lang, label, tooltip, hint, function) <> (BoxFunction_i18n_row.tupled, BoxFunction_i18n_row.unapply)
     def ? = (Rep.Some(uuid), function_uuid, lang, label, tooltip, hint, function).shaped.<>({ r=>import r._; _1.map(_=> BoxFunction_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -58,7 +61,7 @@ object BoxFunction {
                                   default:Option[String] = None, conditionFieldId:Option[String] = None, conditionValues:Option[String] = None)
 
 
-  class BoxFunctionField(_tableTag: Tag) extends Table[BoxFunctionField_row](_tableTag,BoxSchema.schema, "function_field") {
+  class BoxFunctionField(_tableTag: Tag) extends Table[BoxFunctionField_row](_tableTag,schema, "function_field") {
     def * = (Rep.Some(field_uuid), function_uuid, `type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues) <> (BoxFunctionField_row.tupled, BoxFunctionField_row.unapply)
     def ? = (Rep.Some(field_uuid), Rep.Some(function_uuid), Rep.Some(`type`),  name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues).shaped.<>({ r=>import r._; _1.map(_=> BoxFunctionField_row.tupled((_1, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10, _11)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -83,7 +86,7 @@ object BoxFunction {
                                        placeholder: Option[String] = None, tooltip: Option[String] = None, hint: Option[String] = None,
                                        lookupTextField: Option[String] = None)
 
-  class BoxFunctionField_i18n(_tableTag: Tag) extends Table[BoxFunctionField_i18n_row](_tableTag,BoxSchema.schema, "function_field_i18n") {
+  class BoxFunctionField_i18n(_tableTag: Tag) extends Table[BoxFunctionField_i18n_row](_tableTag,schema, "function_field_i18n") {
     def * = (Rep.Some(uuid), field_uuid, lang, label, placeholder, tooltip, hint, lookupTextField) <> (BoxFunctionField_i18n_row.tupled, BoxFunctionField_i18n_row.unapply)
     def ? = (Rep.Some(uuid), field_uuid, lang, label, placeholder, tooltip, hint, lookupTextField).shaped.<>({ r=>import r._; _1.map(_=> BoxFunctionField_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 

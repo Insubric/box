@@ -87,12 +87,12 @@ lazy val server: Project  = project
     Assets / pipelineStages := Seq(scalaJSPipeline),
     Assets / scalaJSStage := FullOptStage,
     scalaJSProjects := {
-      if (sys.env.get("DEV_SERVER").isDefined) Seq() else Seq(client)
+      if (sys.env.contains("DEV_SERVER") || sys.env.contains("RUNNING_TEST")) Seq() else Seq(client)
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
     Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free","choices.js").map{ p =>
-      if (!sys.env.get("RUNNING_TEST").isDefined)
+      if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
         }.value
@@ -204,6 +204,7 @@ lazy val client: Project = (project in file("client"))
     //To use jsdom headless browser uncomment the following lines
     Test / requireJsDomEnv := true,
     Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / parallelExecution := false,
     Test / jsEnvInput := Def.task{
       val targetDir = (npmUpdate in Test).value
       println(targetDir)
@@ -220,7 +221,6 @@ lazy val client: Project = (project in file("client"))
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
-    Test / requireJsDomEnv := true,
 
   )
   .settings(publishSettings)
@@ -281,10 +281,12 @@ lazy val slickTest = taskKey[Seq[File]]("gen-test-tables")
 lazy val slickTestCodeGenTask = Def.task{
   val dir = sourceDirectory.value
   val cp = (Compile / dependencyClasspath).value
+  val fcp = (Compile / fullClasspath).value
+  println()
   val s = streams.value
   val outputDir = (dir / "test" / "scala").getPath // place generated files in sbt's managed sources folder
   println(outputDir)
-  runner.value.run("ch.wsl.box.codegen.TestCodeGenerator", cp.files, Array(outputDir), s.log).failed foreach (sys error _.getMessage)
+  runner.value.run("ch.wsl.box.model.TestCodeGenerator", cp.files ++ fcp.files, Array(outputDir), s.log).failed foreach (sys error _.getMessage)
   val fname = outputDir + "/ch/wsl/box/testmodel/Entities.scala"
   val ffname = outputDir + "/ch/wsl/box/testmodel/FileTables.scala"
   val rname = outputDir + "/ch/wsl/box/testmodel/GeneratedRoutes.scala"

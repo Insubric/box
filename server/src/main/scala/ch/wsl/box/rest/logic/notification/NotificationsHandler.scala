@@ -39,7 +39,7 @@ class Listener(connection:Connection,channel:String,callback: (String) => Future
   }
 
   private def reloadConnection() = {
-    conn = connection.dataSource(s"Notification $channel").getConnection()
+    conn = connection.dataSource(s"Notification $channel",connection.dbSchema).getConnection()
     val stmt = conn.createStatement
     val listenQuery = s"""SET ROLE "$user"; LISTEN $channel"""
     logger.info(listenQuery)

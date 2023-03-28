@@ -13,14 +13,8 @@ trait RegistryInstance{
   def routes: GeneratedRoutes
   def actions: ActionRegistry
   def fields: FieldRegistry
+  def schema:String
 }
-
-case class GeneratedRegistry(
-                   fileRoutes:GeneratedFileRoutes,
-                   routes: GeneratedRoutes,
-                   actions: ActionRegistry,
-                   fields: FieldRegistry
-                   ) extends RegistryInstance
 
 object Registry extends Logging {
 
@@ -38,7 +32,7 @@ object Registry extends Logging {
    */
   def set(r:RegistryInstance) = _registry = r
 
-  def load()(implicit services:Services) = {
+  def load() = {
 
     try {
       _registry = Class.forName("ch.wsl.box.generated.GenRegistry")
@@ -51,7 +45,7 @@ object Registry extends Logging {
     }
   }
 
-  def loadBox()(implicit services:Services) = {
+  def loadBox() = {
 
     try {
       _boxRegistry = Class.forName("ch.wsl.box.generated.boxentities.GenRegistry")

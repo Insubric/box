@@ -1,5 +1,5 @@
-alter table box.form
+alter table form
 	add view_table text;
 
-alter table box.form
+alter table form
 	add view_id text;

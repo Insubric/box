@@ -9,7 +9,9 @@ import java.util.UUID
 
 class Values {
 
-  def loggerLevel:Level = Level.Debug
+  def loggerLevel:Level = Level.Error
+
+  def loggedUser: Option[String] = Some("postgres")
 
   val headerLangEn = "test header en"
   val headerLangIt = "test header it"
@@ -90,7 +92,8 @@ class Values {
           masterFields = "id",
           childFields = "parent_id",
           childQuery = None,
-          props = ""
+          props = "",
+          hasData = true
         ))
       )
     ),
@@ -146,7 +149,8 @@ class Values {
           masterFields = "id",
           childFields = "child_id",
           childQuery = None,
-          props = ""
+          props = "",
+          hasData = true
         ))
       )
     ),

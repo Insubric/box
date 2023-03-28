@@ -1,7 +1,6 @@
 package ch.wsl.box.model
 
 import ch.wsl.box.jdbc.UserDatabase
-import ch.wsl.box.model.boxentities.BoxAccessLevel
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.utils.Cache
@@ -62,7 +61,7 @@ case class BoxDefinitionMerge(
                              )
 
 object BoxDefinition {
-  def export(db:UserDatabase)(implicit ec:ExecutionContext):Future[BoxDefinition] = {
+  def export(db:UserDatabase,boxSchema:String)(implicit ec:ExecutionContext):Future[BoxDefinition] = {
     val boxDef = for {
       //access_levels <- BoxAccessLevel.BoxAccessLevelTable.result
       //conf <- BoxConf.BoxConfTable.result
@@ -80,7 +79,7 @@ object BoxDefinition {
       function_i18n <- BoxFunction.BoxFunction_i18nTable.result
       function_field <- BoxFunction.BoxFunctionFieldTable.result
       function_field_i18n <- BoxFunction.BoxFunctionField_i18nTable.result
-      labels <- BoxLabels.BoxLabelsTable.result
+      labels <- BoxLabels.BoxLabelsTable(boxSchema).result
       news <- BoxNews.BoxNewsTable.result
       news_i18n <- BoxNews.BoxNews_i18nTable.result
 //      ui <- BoxUITable.BoxUITable.result
@@ -175,6 +174,8 @@ object BoxDefinition {
 
     }
 
+    val boxLabelTable = BoxLabels.BoxLabelsTable(services.config.boxSchemaName)
+
     val actions = Seq(
 
       commit[BoxCron.BoxCron_row,BoxCron.BoxCron](
@@ -234,8 +235,8 @@ object BoxDefinition {
         x => BoxFunction.BoxFunctionTable.filter(_.function_uuid === x.function_uuid)
       ),
       commit[BoxLabels.BoxLabels_row,BoxLabels.BoxLabels](
-        _.labels,BoxLabels.BoxLabelsTable,
-        x => BoxLabels.BoxLabelsTable.filter(db => db.key === x.key && db.lang === x.lang),
+        _.labels,boxLabelTable,
+        x => boxLabelTable.filter(db => db.key === x.key && db.lang === x.lang),
       ),
       commit[BoxNews.BoxNews_i18n_row,BoxNews.BoxNews_i18n](
         _.news_i18n,BoxNews.BoxNews_i18nTable,

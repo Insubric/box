@@ -1,1 +1,1 @@
-alter table box.form add column if not exists params jsonb;
+alter table form add column if not exists params jsonb;

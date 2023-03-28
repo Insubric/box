@@ -1,11 +1,11 @@
-create table box.form_actions
+create table form_actions
 (
     id serial
         constraint form_actions_pk
             primary key,
     form_id int not null
         constraint form_actions_form_form_id_fk
-            references box.form,
+            references form,
     action text not null,
     importance text not null,
     after_action_goto text,

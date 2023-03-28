@@ -33,6 +33,7 @@ object Routes extends Logging {
   }
 
   def fullUrl = dom.document.asInstanceOf[js.Dynamic].baseURI.asInstanceOf[String]
+  def originUrl = dom.window.location.origin.getOrElse("/")
 
   def baseUri = {
     val bu = fullUrl

@@ -1,7 +1,7 @@
 package ch.wsl.box.services.config
 
 trait Config {
-  def boxSchemaName: Option[String]
+  def boxSchemaName: String
 
   def schemaName: String
 

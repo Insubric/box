@@ -28,6 +28,7 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
     override def field: JSONField = params.field
 
     val saveBefore = params.field.params.exists(_.js("saveBefore") == Json.True)
+    val noReload = params.field.params.exists(_.js("noReload") == Json.True)
     val confirmText:Option[String] = {
         val ct = params.field.params.flatMap(_.jsOpt("confirm"))
         ct.flatMap(_.as[I18n].toOption) match {
@@ -54,14 +55,15 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
         services.rest.execute(field.function.get, services.clientSession.lang(), allData).foreach { result =>
           services.clientSession.loading.set(false)
           result.errorMessage.foreach(Notification.add)
-          id.foreach(params.actions.reload)
+          if(!noReload)
+            id.foreach(params.actions.reload)
         }
       }
       def action() = saveBefore match {
         case true => params.actions.save().map{ case (id,data) =>
           exec(Some(id),data)
         }
-        case false => exec(None,params.allData.get)
+        case false => exec(params.id.get.flatMap(id => JSONID.fromString(id,params.metadata)),params.allData.get)
       }
 
       confirmText match {

@@ -1,1 +1,1 @@
-alter table box.field add column if not exists required boolean;
+alter table field add column if not exists required boolean;

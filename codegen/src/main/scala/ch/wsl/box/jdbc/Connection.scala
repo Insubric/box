@@ -29,7 +29,7 @@ trait Connection extends Logging {
   def adminUser:String
   def dbSchema:String
   def dbPath:String
-  def dataSource(name:String): DataSource
+  def dataSource(name:String,schema:String): DataSource
   //val executor = AsyncExecutor("public-executor",50,50,10000,50)
 
 
@@ -95,12 +95,13 @@ class ConnectionConfImpl extends Connection {
 
   println(s"DB: $dbPath")
 
-  override def dataSource(name:String): DataSource = {
+  override def dataSource(name:String,schema:String): DataSource = {
     val ds = new PGSimpleDataSource()
     ds.setUrl(dbPath)
     ds.setUser(adminUser)
     ds.setPassword(dbPassword)
     ds.setApplicationName(s"BOX Temp datasource - $name")
+    ds.setCurrentSchema(schema)
     ds
   }
 
@@ -135,10 +136,10 @@ class ConnectionConfImpl extends Connection {
   override def close(): Unit = dbConnection.close()
 }
 
-class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:PublicSchema) extends Connection {
+class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) extends Connection {
   val dbPath = container.jdbcUrl
   val dbPassword = container.password
-  val dbSchema = schema.name
+  val dbSchema = schema
   val adminPoolSize = 15
   val adminUser = container.username
   val leakDetectionThreshold =  100000
@@ -149,13 +150,13 @@ class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:PublicSc
 
 
 
-
-  override def dataSource(name:String): DataSource = {
+  override def dataSource(name:String,schema:String): DataSource = {
     val ds = new PGSimpleDataSource()
     ds.setUrl(dbPath)
     ds.setUser(adminUser)
     ds.setPassword(dbPassword)
     ds.setApplicationName(s"BOX Temp datasource - $name")
+    ds.setCurrentSchema(schema)
     ds
   }
 

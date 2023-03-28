@@ -16,7 +16,6 @@ import com.softwaremill.session.SessionOptions._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
-import ch.wsl.box.model.boxentities.BoxUser
 import ch.wsl.box.services.Services
 
 

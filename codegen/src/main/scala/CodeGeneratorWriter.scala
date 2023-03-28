@@ -12,7 +12,7 @@ object CodeGeneratorWriter{
  def write(connection:Connection, params:GeneratorParams, outFolder:String,pkg:String)(implicit ec:ExecutionContext) = {
 
 
-   Await.result(new SchemaGenerator(connection, params.langs).run(), 120.seconds)
+   Await.result(new SchemaGenerator(connection, params.langs, params.boxSchema).run(), 120.seconds)
 
 
    val files = CodeGenerator(params.schema, connection, params).generatedFiles()

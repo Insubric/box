@@ -52,7 +52,7 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
           _ match {
             case Some(userProfile) => {
               implicit val up = userProfile
-              Form(name, lang, Registry(), FormMetadataFactory(), up.db, EntityKind.FORM.kind).route
+              Form(name, lang, Registry(), FormMetadataFactory, up.db, EntityKind.FORM.kind).route
             }
             case None => complete(StatusCodes.BadRequest, "The form is not public")
           }

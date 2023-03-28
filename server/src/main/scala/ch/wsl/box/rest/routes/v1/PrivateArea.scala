@@ -99,14 +99,14 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
 
   def forms(implicit up:UserProfile) = path(EntityKind.FORM.plural) {
     get {
-      complete(services.connection.adminDB.run(FormMetadataFactory().list))
+      complete(services.connection.adminDB.run(FormMetadataFactory.list))
     }
   }
 
   def form(implicit up:UserProfile) = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,Registry(),FormMetadataFactory(),up.db,EntityKind.FORM.kind).route
+        Form(name, lang,Registry(),FormMetadataFactory,up.db,EntityKind.FORM.kind).route
       }
     }
   }

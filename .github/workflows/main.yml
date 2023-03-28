@@ -28,6 +28,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=2048
       SBT_NATIVE_CLIENT: true
       DEV_SERVER: true
+      RUNNING_TEST: true
 
     steps:
       - name: Checkout
@@ -48,6 +49,7 @@ jobs:
           sbt codegen/clean
           sbt server/clean
           sbt client/clean
+          sbt server/slickTest
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m server/test
       - name: Push server result to testspace
         run: testspace server/target/test-reports/*.xml
