@@ -114,11 +114,16 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
 
+    private def staticProps:Map[String,Json] = {for{
+      params <- field.params
+      propsJs <- params.jsOpt("props")
+      props <- propsJs.asObject
+    } yield props.toMap}.getOrElse(Map())
 
     private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
 
       val props:ReadableProperty[Json] = masterData.transform{js =>
-        child.props.map(p => p -> js.js(p)).toMap.asJson
+        (child.props.map(p => p -> js.js(p)).toMap ++ staticProps).asJson
       }
 
       val id = UUID.randomUUID().toString
