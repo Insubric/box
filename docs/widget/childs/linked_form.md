@@ -1,7 +1,7 @@
 ---
 title: Linked form
-parent: Widgets
-grand_parent: Documentation
+parent: Childs
+grand_parent: Widgets
 nav_order: 9
 ---
 

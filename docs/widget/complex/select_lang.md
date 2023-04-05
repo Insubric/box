@@ -1,7 +1,7 @@
 ---
 title: Dropdown Lang widget
-parent: Widgets
-grand_parent: Documentation
+parent: Complex
+grand_parent: Widgets
 nav_order: 8
 ---
 

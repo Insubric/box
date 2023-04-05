@@ -1,7 +1,7 @@
 ---
 title: Multiple lookup
-parent: Widgets
-grand_parent: Documentation
+parent: Lookups
+grand_parent: Widgets
 nav_order: 17
 ---
 

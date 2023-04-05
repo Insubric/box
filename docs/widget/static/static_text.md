@@ -1,7 +1,7 @@
 ---
 title: Static text
-parent: Widgets
-grand_parent: Documentation
+parent: Static
+grand_parent: Widgets
 nav_order: 18
 ---
 

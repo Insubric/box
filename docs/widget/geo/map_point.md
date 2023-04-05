@@ -1,7 +1,7 @@
 ---
 title: Map Point
-parent: Widgets
-grand_parent: Documentation
+parent: Geo
+grand_parent: Widgets
 nav_order: 11
 ---
 

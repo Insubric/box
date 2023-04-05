@@ -1,7 +1,7 @@
 ---
 title: Rich Text Editor
-parent: Widgets
-grand_parent: Documentation
+parent: Complex
+grand_parent: Widgets
 nav_order: 14
 ---
 

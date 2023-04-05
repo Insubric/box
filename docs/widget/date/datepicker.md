@@ -1,7 +1,7 @@
 ---
 title: Date Picker
-parent: Widgets
-grand_parent: Documentation
+parent: Date/Datetime/Time
+grand_parent: Widgets
 nav_order: 3
 ---
 

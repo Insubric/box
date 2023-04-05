@@ -1,7 +1,7 @@
 ---
 title: Input
-parent: Widgets
-grand_parent: Documentation
+parent: Basic
+grand_parent: Widgets
 nav_order: 7
 ---
 

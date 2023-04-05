@@ -1,7 +1,7 @@
 ---
 title: H1-H5 Titles
-parent: Widgets
-grand_parent: Documentation
+parent: Static
+grand_parent: Widgets
 nav_order: 5
 ---
 

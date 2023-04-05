@@ -1,7 +1,7 @@
 ---
 title: Select boolean
-parent: Widgets
-grand_parent: Documentation
+parent: Boolean
+grand_parent: Widgets
 nav_order: 1
 ---
 

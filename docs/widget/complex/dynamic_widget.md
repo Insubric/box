@@ -1,7 +1,7 @@
 ---
 title: Dynamic widget
-parent: Widgets
-grand_parent: Documentation
+parent: Complex
+grand_parent: Widgets
 nav_order: 2
 ---
 

@@ -1,7 +1,7 @@
 ---
-title: Multi 
-parent: Widgets
-grand_parent: Documentation
+title: Multi
+parent: Complex
+grand_parent: Widgets
 nav_order: 17
 ---
 
