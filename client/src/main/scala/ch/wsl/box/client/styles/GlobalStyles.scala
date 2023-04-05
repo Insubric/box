@@ -53,6 +53,11 @@ object GlobalStyleFactory{
         Font.bold
       ),
 
+      unsafeRoot("h5")(
+        Font.bold,
+        fontSize(14 px)
+      ),
+
       unsafeRoot("body") (
         StyleConstants.defaultFontSize,
         backgroundColor.white,

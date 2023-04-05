@@ -154,10 +154,14 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   import io.udash._
 
+  case class WidgetBlock(block:LayoutBlock,widget:Widget)
+  object WidgetBlock{
+    def ofTab(block:LayoutBlock,widget:Widget) = WidgetBlock(block.copy(width = 12), widget)
+  }
 
   private def render(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
-    def renderBlocks(b:Seq[(LayoutBlock,Widget)]) = b.map{ case (block,widget) =>
+    def renderBlocks(b:Seq[WidgetBlock]) = b.map{ case WidgetBlock(block,widget) =>
       div(BootstrapCol.md(block.width), ClientConf.style.block)(
         div(
           if(block.title.exists(_.nonEmpty)) {
@@ -170,12 +174,12 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
     div(
         div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
-          renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined)),
+          renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined).map(x => WidgetBlock(x._1,x._2))),
           blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (tabGroup,blks) =>
             val tabs = blks.map(_._1.tab).distinct
             val tabKey = SelectedTabKey(metadata.objId,tabGroup)
             val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
-            div(BootstrapCol.md(12),
+            div(BootstrapCol.md(blks.map(_._1.width).max),
               ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
                 tabs.map { name =>
                   val title = name.getOrElse("No title")
@@ -193,7 +197,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
                 }
               ),
               nested(produce(selectedTab) { tabName =>
-                renderBlocks(blks.filter(_._1.tab == tabName)).render
+                renderBlocks(blks.filter(_._1.tab == tabName).map(x => WidgetBlock.ofTab(x._1,x._2))).render
               })
             )
           }
