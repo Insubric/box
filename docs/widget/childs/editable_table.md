@@ -1,12 +1,12 @@
 
 ---
-title: Simple child
-parent: Widgets
-grand_parent: Documentation
+title: Editable table
+parent: Childs
+grand_parent: Widgets
 nav_order: 16
 ---
 
-# Simple child
+# Editable table
 
 
 
@@ -25,4 +25,5 @@ nav_order: 16
 | hideExporters         | Disable export buttons                    | `false` |  |
 | hideEmpty             | Hide empty rows                           | `false` |  |
 | actionHeader          | Action                                    | `false` |  |
+| props                 | Static properties object for child        | `null` |  |
 

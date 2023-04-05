@@ -19,6 +19,8 @@ Renders the link to the form/page, if it's a form it links to the table
 | field              | Child form        | Select the target form   | `true`           | `none`           |
 | field              | Child query       | Filters the child with the selected query (in JSONQuery format), useful in combination with param: `"open": "first"`      | `false`           | `none`          |
 | field translations | Static content    | Label form the link      | `false`           | Form name           |
+| props                 | Static properties object for child        | `null` |  |
+
 
 
 #### Params

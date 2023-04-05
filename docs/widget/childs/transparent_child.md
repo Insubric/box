@@ -1,7 +1,7 @@
 ---
 title: Transparent child
-parent: Widgets
-grand_parent: Documentation
+parent: Childs
+grand_parent: Widgets
 nav_order: 16
 ---
 
@@ -22,3 +22,4 @@ nav_order: 16
 | sortable      | Enable sorting of rows                    | `false` |
 | distribute      | distribute childs using flex              | `false` |
 | width      | child max width                           | `null`  |
+| props                 | Static properties object for child        | `null` | 

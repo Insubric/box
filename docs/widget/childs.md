@@ -1,7 +1,8 @@
 ---
 title: Childs
-parent: Documentation
+parent: Widgets
 nav_order: 6
+has_children: true
 ---
 
 # Childs

@@ -1,17 +1,19 @@
 ---
-title: Table child
-parent: Widgets
-grand_parent: Documentation
-nav_order: 19
+title: Simple child
+parent: Childs
+grand_parent: Widgets
+nav_order: 16
 ---
 
-# Table child
+# Simple child
+
+
 
 
 #### Params
 
-| Key          | Value                                     | Default |
-|:-------------|:------------------------------------------|:--------|
+| Key          | Value             | Default           |
+|:-------------|:------------------|:------------------|
 | disableAdd      | Disable add button                        | `false` |
 | disableRemove      | Disable remove button                     | `false` |
 | disableDuplicate      | Disable duplicate button                  | `false` |
@@ -19,4 +21,4 @@ nav_order: 19
 | enableDeleteOnlyNew      | Enable delete only for newly created rows | `false` |
 | sortable      | Enable sorting of rows                    | `false` |
 | background      | Background color                          | `null`  |
-| borderColor      | Border color                              | `null`  |
+| props                 | Static properties object for child        | `null` |  
