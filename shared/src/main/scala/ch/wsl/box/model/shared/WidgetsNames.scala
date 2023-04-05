@@ -30,6 +30,7 @@ object WidgetsNames {
   val code = "code"
   val richTextEditor = "richTextEditor"
   val richTextEditorFull = "richTextEditorFull"
+  val richTextEditorPopup = "richTextEditorPopup"
   val redactor = "redactor"
   val simpleFile = "simpleFile"
   val simpleChild = "simpleChild"
@@ -81,6 +82,7 @@ object WidgetsNames {
       textarea,
       richTextEditor,
       richTextEditorFull,
+      richTextEditorPopup,
       redactor,
       code,
       select,

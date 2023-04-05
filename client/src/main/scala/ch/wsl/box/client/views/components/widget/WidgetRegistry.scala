@@ -60,6 +60,7 @@ object WidgetRegistry extends Logging {
     MonacoWidget,
     RichTextEditorWidgetFactory(RichTextEditorWidget.Minimal),
     RichTextEditorWidgetFactory(RichTextEditorWidget.Full),
+    RichTextPopup,
     RedactorFactory,
 
     DynamicWidget,
