@@ -61,4 +61,18 @@ object Registry extends Logging {
   def inject(ri:RegistryInstance) { _registry = ri }
   def injectBox(ri:RegistryInstance) { _boxRegistry = ri }
 
+  def boxSchemaOnly(_schema:String): Unit = {
+    injectBox(new RegistryInstance {
+      override def fileRoutes: GeneratedFileRoutes = ???
+
+      override def routes: GeneratedRoutes = ???
+
+      override def actions: ActionRegistry = ???
+
+      override def fields: FieldRegistry = ???
+
+      override def schema: String = _schema
+    })
+  }
+
 }
