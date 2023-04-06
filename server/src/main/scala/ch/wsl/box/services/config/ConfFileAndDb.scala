@@ -3,7 +3,7 @@ package ch.wsl.box.services.config
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigFactory, ConfigValue, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
 import scribe.{Level, Logging}
 
@@ -14,7 +14,7 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Try
 
 class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
-  private var conf: Map[String, String] = Map()
+  private var _conf: Map[String, String] = Map()
 
   def load() = {
 
@@ -28,7 +28,7 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
       }.toMap
     }, 200 seconds)
 
-    conf = tempConf.filterNot(_._1 == "langs") ++ Map(
+    _conf = tempConf.filterNot(_._1 == "langs") ++ Map(
       "langs" -> langs.mkString(","),
       "frontendUrl" -> frontendUrl
     )
@@ -39,7 +39,7 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
 
   def refresh() = load()
 
-  def clientConf:Map[String, String] = conf.filterNot{ case (k,v) =>
+  def clientConf:Map[String, String] = _conf.filterNot{ case (k,v) =>
     Set(
       "host",
       "port",
@@ -54,85 +54,32 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     ).contains(k)}
 
 
-  def fksLookupLabels = ConfigFactory.parseString( Try(conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
+  def fksLookupLabels = ConfigFactory.parseString( Try(_conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
 
-  def fksLookupRowsLimit = Try(conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
+  def fksLookupRowsLimit = Try(_conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
 
 
   def akkaHttpSession = {
-    val cookieName = Try(conf("cookie.name")).getOrElse("_boxsession_myapp")
-    val maxAge = Try(conf("max-age")).getOrElse("2000")
-    val serverSecret = Try(conf("server-secret")).getOrElse {
+    val cookieName = Try(_conf("cookie.name")).getOrElse("_boxsession_myapp")
+    val maxAge = Try(_conf("max-age")).getOrElse("2000")
+    val serverSecret = Try(_conf("server-secret")).getOrElse {
       logger.warn("Set server secret in box.conf table, use the default value only for development")
       "changeMe530573985739845704357308s70487s08970897403854s038954s38754s30894387048s09e8u408su5389s5"
     }
 
-    ConfigFactory.parseString(
-      s"""akka.http.session {
-         |  cookie {
-         |    name = "$cookieName"
-         |    domain = none
-         |    path = /
-         |    secure = false
-         |    http-only = true
-         |    same-site = Lax
-         |  }
-         |  header {
-         |    send-to-client-name = "Set-Authorization"
-         |    get-from-client-name = "Authorization"
-         |  }
-         |  jws {
-         |    alg = "HS256"
-         |  }
-         |  jwt {}
-         |  csrf {
-         |    cookie {
-         |      name = "XSRF-TOKEN"
-         |      domain = none
-         |      path = /
-         |      secure = false
-         |      http-only = false
-         |      same-site = Lax
-         |    }
-         |    submitted-name = "X-XSRF-TOKEN"
-         |  }
-         |  refresh-token {
-         |    cookie {
-         |      name = "_refreshtoken_$cookieName"
-         |      domain = none
-         |      path = /
-         |      secure = false
-         |      http-only = true
-         |      same-site = Lax
-         |    }
-         |    header {
-         |      send-to-client-name = "Set-Refresh-Token"
-         |      get-from-client-name = "Refresh-Token"
-         |    }
-         |    max-age = 30 days
-         |    remove-used-token-after = 5 seconds
-         |  }
-         |
-         |  token-migration {
-         |    v0-5-2 {
-         |      enabled = false
-         |    }
-         |    v0-5-3 {
-         |      enabled = false
-         |    }
-         |  }
-         |  max-age = $maxAge seconds
-         |  encrypt-data = true
-         |  server-secret = "$serverSecret"
-         |}""".stripMargin)
 
-  }.withFallback(ConfigFactory.load())
+    conf.withValue("akka.http.session.cookie.name",ConfigValueFactory.fromAnyRef(cookieName))
+      .withValue("akka.http.session.refresh-token.cookie.name",ConfigValueFactory.fromAnyRef(s"_refreshtoken_$cookieName"))
+      .withValue("akka.http.session.server-secret",ConfigValueFactory.fromAnyRef(serverSecret))
+      .withValue("akka.http.session.max-age",ConfigValueFactory.fromAnyRef(java.time.Duration.ofSeconds(maxAge.toLongOption.getOrElse(3600L))))
 
-  def host = Try(conf("host")).getOrElse("0.0.0.0")
-  def port = Try(conf("port").toInt).getOrElse(8080)
-  def origins = Try(conf("origins")).map(_.split(",").toSeq.map(_.trim)).getOrElse(Seq[String]())
+  }
 
-  def loggerLevel = Try(conf("logger.level")).getOrElse("warn").toLowerCase match {
+  def host = Try(_conf("host")).getOrElse("0.0.0.0")
+  def port = Try(_conf("port").toInt).getOrElse(8080)
+  def origins = Try(_conf("origins")).map(_.split(",").toSeq.map(_.trim)).getOrElse(Seq[String]())
+
+  def loggerLevel = Try(_conf("logger.level")).getOrElse("warn").toLowerCase match {
     case "trace" => Level.Trace
     case "debug" => Level.Debug
     case "info" => Level.Info
@@ -140,23 +87,23 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case "error" => Level.Error
   }
 
-  def logDB = Try(conf("log.db").equals("true")).getOrElse(false)
+  def logDB = Try(_conf("log.db").equals("true")).getOrElse(false)
 
 
   def enableCache:Boolean = {
-    val result = Try(conf("cache.enable").equals("true")).getOrElse(true)
+    val result = Try(_conf("cache.enable").equals("true")).getOrElse(true)
     result
   }
 
   def enableRedactor:Boolean = {
-    Try(conf("redactor.js")).toOption.exists(_.nonEmpty) &&
-      Try(conf("redactor.css")).toOption.exists(_.nonEmpty)
+    Try(_conf("redactor.js")).toOption.exists(_.nonEmpty) &&
+      Try(_conf("redactor.css")).toOption.exists(_.nonEmpty)
   }
 
-  def redactorJs = Try(conf("redactor.js")).getOrElse("")
-  def redactorCSS = Try(conf("redactor.css")).getOrElse("")
+  def redactorJs = Try(_conf("redactor.js")).getOrElse("")
+  def redactorCSS = Try(_conf("redactor.css")).getOrElse("")
 
-  def filterPrecisionDatetime = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
+  def filterPrecisionDatetime = Try(_conf("filter.precision.datetime").toUpperCase).toOption match {
     case Some("DATE") => JSONFieldTypes.DATE
     case Some("DATETIME") => JSONFieldTypes.DATETIME
     case _ => JSONFieldTypes.DATETIME //for None or wrong values
