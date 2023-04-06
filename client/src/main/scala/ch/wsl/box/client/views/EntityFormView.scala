@@ -494,7 +494,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       }
 
 
-    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
+    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && model.subProp(_.insert).get) || (!action.insertOnly && !action.updateOnly)) {
       val actionButton = button(
         id := TestHooks.actionButton(action.label),
         importance,
