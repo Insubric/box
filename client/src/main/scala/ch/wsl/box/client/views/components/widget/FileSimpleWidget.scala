@@ -100,7 +100,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   val urls = widgetParams.allData.transform(url)
 
-  private def showFile(nested:Binding.NestedInterceptor) = div(BootstrapCol.md(12),ClientConf.style.noPadding)(
+  private def showFile(nested:Binding.NestedInterceptor) = div(ClientConf.style.noPadding)(
     nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
       case ((Some(mime),source),nested) => if(mime.startsWith("image")) {
         div(
@@ -109,7 +109,10 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
             case Some(image) => img(src := image, ClientConf.style.maxFullWidth).render
           }
         ).render
-      } else span("File loaded").render
+      } else div(textAlign.center,marginTop := 20.px,
+        div(Icons.fileOk(50)),
+        span("File loaded")
+      ).render
       case ((None,Some(source)),nested) => div(
         nested(produce(urls) {
           case Some((thumb,_download)) => {
