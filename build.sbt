@@ -102,7 +102,7 @@ lazy val server: Project  = project
       Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
-    ),
+    )
   ).settings(publishSettings)
   .enablePlugins(
     GitVersioning,

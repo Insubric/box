@@ -20,7 +20,8 @@ import org.scalajs.dom.{Event, KeyboardEvent}
 import scalacss.internal.StyleA
 import scalatags.JsDom
 import scribe.Logging
-import typings.flatpickr.optionsMod.{DateOption, Hook}
+import typings.flatpickr.distTypesOptionsMod.Hook
+import typings.flatpickr.mod.flatpickr.Options.DateOption
 
 import scala.scalajs.js
 import scala.util.Try
@@ -143,7 +144,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    var flatpicker:typings.flatpickr.instanceMod.Instance = null
+    var flatpicker:typings.flatpickr.mod.flatpickr.Instance = null
 
     def handleDate(d:Json,force:Boolean = false): Unit = {
       if(range) {
@@ -188,7 +189,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    def setListener(immediate: Boolean, flatpicker:typings.flatpickr.instanceMod.Instance) = {
+    def setListener(immediate: Boolean, flatpicker:typings.flatpickr.distTypesInstanceMod.Instance) = {
       changeListener = data.listen({ d =>
         logger.info(s"Changed model to $d")
         handleDate(d)
@@ -199,9 +200,9 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     //scala.scalajs.js.Function4[scala.scalajs.js.Array[typings.flatpickr.globalsMod.global.Date],String,typings.flatpickr.instanceMod.Instance,Any | Unit,Unit]
     val onChange:Hook = (
-                          selectedDates:js.Array[typings.flatpickr.globalsMod.global.Date],
+                          selectedDates:js.Array[typings.flatpickr.distTypesGlobalsMod.global.Date],
                           dateStr:String,
-                          instance: typings.flatpickr.instanceMod.Instance,
+                          instance: typings.flatpickr.distTypesInstanceMod.Instance,
                           _data:js.UndefOr[Any]) => {
       changeListener.cancel()
       logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance ${_data}")
@@ -218,7 +219,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    val options = typings.flatpickr.optionsMod.Options()
+    val options = typings.flatpickr.distTypesOptionsMod.Options()
       .setAllowInput(true)
       .setDisableMobile(true)
       .setOnChange(onChange)

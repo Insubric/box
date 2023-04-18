@@ -17,8 +17,7 @@ import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, doc
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.choiceMod.Choice
-import typings.choicesJs.itemMod.Item
+import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
 import typings.choicesJs.mod
 
 import scala.scalajs.js

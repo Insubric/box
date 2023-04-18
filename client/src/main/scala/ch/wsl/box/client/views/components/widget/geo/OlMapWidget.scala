@@ -27,10 +27,10 @@ import org.scalajs.dom.html.Div
 import scalacss.internal.mutable.StyleSheet
 import scalatags.JsDom
 import scribe.Logging
-import typings.ol.{modifyMod, _}
+import typings.ol._
 import typings.ol.coordinateMod.{Coordinate, createStringXY}
-import typings.ol.igcMod.IGCZ.GPS
-import typings.ol.selectMod.SelectEvent
+import typings.ol.formatIgcMod.IGCZ.GPS
+import typings.ol.interactionSelectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
 import typings.ol.viewMod.FitOptions
 
@@ -78,12 +78,12 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
 
   val simpleStyle = new styleMod.Style(styleStyleMod.Options()
-    .setFill(new styleMod.Fill(fillMod.Options().setColor("rgb(237, 28, 36,0.2)")))
-    .setStroke(new styleMod.Stroke(strokeMod.Options().setColor("#ed1c24").setWidth(2)))
+    .setFill(new styleMod.Fill(styleFillMod.Options().setColor("rgb(237, 28, 36,0.2)")))
+    .setStroke(new styleMod.Stroke(styleStrokeMod.Options().setColor("#ed1c24").setWidth(2)))
     .setImage(
       new styleMod.Circle(styleCircleMod.Options(3)
         .setFill(
-          new styleMod.Fill(fillMod.Options().setColor("rgba(237, 28, 36)"))
+          new styleMod.Fill(styleFillMod.Options().setColor("rgba(237, 28, 36)"))
         )
       )
     )
@@ -95,7 +95,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       .setImage(
         new styleMod.Circle(styleCircleMod.Options(8)
           .setStroke(
-            new styleMod.Stroke(strokeMod.Options().setColor("#ed1c24").setWidth(2))
+            new styleMod.Stroke(styleStrokeMod.Options().setColor("#ed1c24").setWidth(2))
           )
         )
       )
@@ -104,12 +104,12 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   val highlightStyle:js.Array[typings.ol.styleStyleMod.Style] = js.Array(
     new styleMod.Style(styleStyleMod.Options()
-      .setFill(new styleMod.Fill(fillMod.Options().setColor("rgb(237, 28, 36,0.2)")))
-      .setStroke(new styleMod.Stroke(strokeMod.Options().setColor("#ed1c24").setWidth(4)))
+      .setFill(new styleMod.Fill(styleFillMod.Options().setColor("rgb(237, 28, 36,0.2)")))
+      .setStroke(new styleMod.Stroke(styleStrokeMod.Options().setColor("#ed1c24").setWidth(4)))
       .setImage(
         new styleMod.Circle(styleCircleMod.Options(3)
           .setFill(
-            new styleMod.Fill(fillMod.Options().setColor("rgba(237, 28, 36)"))
+            new styleMod.Fill(styleFillMod.Options().setColor("rgba(237, 28, 36)"))
           )
         )
       )
@@ -118,7 +118,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       .setImage(
         new styleMod.Circle(styleCircleMod.Options(8)
           .setStroke(
-            new styleMod.Stroke(strokeMod.Options().setColor("#ed1c24").setWidth(4))
+            new styleMod.Stroke(styleStrokeMod.Options().setColor("#ed1c24").setWidth(4))
           )
         )
       )
@@ -170,7 +170,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   }
 
 
-  def setBaseLayer(baseLayer:baseMod.default) = {
+  def setBaseLayer(baseLayer:layerBaseMod.default) = {
     logger.info(s"Set base layer $baseLayer with $map and $featuresLayer")
     if(map != null) {
       map.removeLayer(map.getLayers().item(0))
@@ -194,7 +194,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       if (xhr.status == 200) {
         logger.info(s"Recived WMTS layer $layer")
         val capabilities = new formatMod.WMTSCapabilities().read(xhr.responseText)
-        val wmtsOptions = wmtsMod.optionsFromCapabilities(capabilities, js.Dictionary(
+        val wmtsOptions = sourceWmtsMod.optionsFromCapabilities(capabilities, js.Dictionary(
           "layer" -> layer
         ))
 
@@ -202,7 +202,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
           wmtsOptions.setDimensions(js.Dictionary("Time" -> t))
         }
 
-        val wmts = new layerMod.Tile(baseTileMod.Options().setSource(new sourceMod.WMTS(wmtsOptions)))
+        val wmts = new layerMod.Tile(layerBaseTileMod.Options().setSource(new sourceMod.WMTS(wmtsOptions)))
         result.success(wmts)
       }
     }
@@ -216,11 +216,11 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     result.future
   }
 
-  var vectorSource: sourceMod.Vector[geometryMod.default] = null
+  var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
   var view: viewMod.default = null
 
   var listener: Registration = null
-  var onAddFeature: js.Function1[VectorSourceEvent[typings.ol.geometryMod.default], Unit] = null
+  var onAddFeature: js.Function1[VectorSourceEvent[typings.ol.geomGeometryMod.default], Unit] = null
 
   def registerListener(immediate: Boolean) = {
     listener = data.listen({ geoData =>
@@ -228,7 +228,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
       if (!geoData.isNull) {
-        val geom = new geoJSONMod.default().readFeature(convertJsonToJs(geoData).asInstanceOf[js.Object]).asInstanceOf[olFeatureMod.default[geometryMod.default]]
+        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geoData).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
         vectorSource.addFeature(geom)
         view.fit(geom.getGeometry().getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
       } else {
@@ -245,7 +245,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     var changes = false
 
-    val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
     convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).foreach { collection =>
 
 
@@ -322,13 +322,13 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   }
 
-  var modify:modifyMod.default = null
-  var drawPoint:drawMod.default = null
-  var drawLineString:drawMod.default = null
-  var drawPolygon:drawMod.default = null
-  var snap:snapMod.default = null
-  var drag:translateMod.default = null
-  var delete:selectMod.default = null
+  var modify:interactionModifyMod.default = null
+  var drawPoint:interactionDrawMod.default = null
+  var drawLineString:interactionDrawMod.default = null
+  var drawPolygon:interactionDrawMod.default = null
+  var snap:interactionSnapMod.default = null
+  var drag:interactionTranslateMod.default = null
+  var delete:interactionSelectMod.default = null
   var drawHole:DrawHole = null
 
   def dynamicInteraction = Seq(
@@ -348,19 +348,19 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
 
 
-     vectorSource = new sourceMod.Vector[geometryMod.default](sourceVectorMod.Options())
+     vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
 
 
     //red #ed1c24
 
 
 
-    featuresLayer = new layerMod.Vector(baseVectorMod.Options()
+    featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)
       .setStyle(vectorStyle)
     )
 
-    val mousePosition = new mousePositionMod.default(mousePositionMod.Options()
+    val mousePosition = new controlMousePositionMod.default(controlMousePositionMod.Options()
         .setCoordinateFormat(coordinateMod.createStringXY())
         .setProjection(defaultProjection)
     )
@@ -388,48 +388,48 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       .setElement(div().render)
     )
 
-    onAddFeature = (e: VectorSourceEvent[geometryMod.default]) => changedFeatures()
+    onAddFeature = (e: VectorSourceEvent[geomGeometryMod.default]) => changedFeatures()
 
     registerListener(true)
 
 
-    vectorSource.on_changefeature(olStrings.changefeature, {(e: VectorSourceEvent[geometryMod.default]) =>
+    vectorSource.on_changefeature(olStrings.changefeature, {(e: VectorSourceEvent[geomGeometryMod.default]) =>
       changedFeatures()
     })
 
 
-    modify = new modifyMod.default(modifyMod.Options()
+    modify = new interactionModifyMod.default(interactionModifyMod.Options()
       .setSource(vectorSource)
       .setStyle(simpleStyle)
     )
     //modify.on_modifyend(olStrings.modifyend,(e:ModifyEvent) => changedFeatures())
 
-    drawPoint = new drawMod.default(drawMod.Options(geometryTypeMod.default.POINT)
+    drawPoint = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.POINT)
       .setSource(vectorSource)
       .setStyle(vectorStyle)
     )
     //drawPoint.on_change(olStrings.change,e => changedFeatures())
 
-    drawLineString = new drawMod.default(drawMod.Options(geometryTypeMod.default.LINE_STRING)
+    drawLineString = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.LINE_STRING)
       .setSource(vectorSource)
       .setStyle(simpleStyle)
     )
     //drawLineString.on_change(olStrings.change,e => changedFeatures())
 
-    drawPolygon = new drawMod.default(drawMod.Options(geometryTypeMod.default.POLYGON)
+    drawPolygon = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.POLYGON)
       .setSource(vectorSource)
       .setStyle(simpleStyle)
     )
     drawPolygon.finishDrawing()
     //drawPolygon.on_change(olStrings.change,e => changedFeatures())
 
-    drag = new translateMod.default(translateMod.Options())
+    drag = new interactionTranslateMod.default(interactionTranslateMod.Options())
     //drag.on_translateend(olStrings.translateend, (e:TranslateEvent) => changedFeatures())
 
 
-    snap = new snapMod.default(snapMod.Options().setSource(vectorSource))
+    snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vectorSource))
 
-    delete = new selectMod.default(selectMod.Options())
+    delete = new interactionSelectMod.default(interactionSelectMod.Options())
 
     delete.on_select(olStrings.select, (e: SelectEvent) => {
       if (window.confirm(Labels.form.removeMap)) {
@@ -441,15 +441,15 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {
 
-      val features:js.Array[typings.ol.olFeatureMod.default[typings.ol.geometryMod.default]] = map.getFeaturesAtPixel(e.pixel).flatMap{
-        case x:typings.ol.olFeatureMod.default[typings.ol.geometryMod.default] => Some(x)
+      val features:js.Array[typings.ol.featureMod.default[typings.ol.geomGeometryMod.default]] = map.getFeaturesAtPixel(e.pixel).flatMap{
+        case x:typings.ol.featureMod.default[typings.ol.geomGeometryMod.default] => Some(x)
         case _ => None
       }
 
       features.nonEmpty && activeControl.get == Control.VIEW match {
         case true => {
           infoOverlay.element.innerHTML = ""
-          val geoJson = new geoJSONMod.default().writeFeaturesObject(features)
+          val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(features)
           for{
             json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
             collection <- FeatureCollection.decode(json).toOption
@@ -769,9 +769,9 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     }
   }
 
-  def findFeature(g:Geometry): Option[olFeatureMod.default[geometryMod.default]] = {
+  def findFeature(g:Geometry): Option[featureMod.default[geomGeometryMod.default]] = {
     if(vectorSource!= null) {
-      val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+      val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
       convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).toOption.flatMap { collection =>
         import ch.wsl.box.model.shared.GeoJson.Geometry._
         import ch.wsl.box.model.shared.GeoJson._
@@ -817,7 +817,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     span(name)
   }
 
-  var selected:Option[olFeatureMod.default[geometryMod.default]] = None
+  var selected:Option[featureMod.default[geomGeometryMod.default]] = None
 
   def highlight(g:Geometry): Unit = {
     selected.foreach(_.setStyle(vectorStyle))
@@ -878,7 +878,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
       parseCoordinates(insertCoordinateField.get).foreach { p =>
-        val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
+        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p))
         vectorSource.addFeature(feature)
       }
       e.preventDefault()

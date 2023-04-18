@@ -5,7 +5,7 @@ import net.ceedubs.ficus.Ficus._
 
 class ConfigFileImpl extends Config {
 
-  protected lazy val conf = ConfigFactory.load(this.getClass.getClassLoader)
+  protected lazy val conf = ConfigFactory.load()
 
   override def boxSchemaName: String = conf.as[String]("box.db.schema")
   override def schemaName: String = conf.as[Option[String]]("db.schema").getOrElse("public")
