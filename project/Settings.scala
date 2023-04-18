@@ -180,7 +180,7 @@ object Settings {
     "com.github.japgolly.scalacss" %%% "core" % versions.scalaCss,
     "com.github.japgolly.scalacss" %%% "ext-scalatags" % versions.scalaCss,
     "io.circe" %%% "circe-scalajs" % versions.circe,
-    "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+    "org.scala-js" %%% "scalajs-dom" % "2.4.0",
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.scalatest" %%% "scalatest" % "3.2.5" % Test,

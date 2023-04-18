@@ -98,13 +98,13 @@ trait LookupWidget extends Widget with HasData {
       val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
 
-      _lookup.set(Seq(), true) //reset lookup state
+
 
 
       LookupWidget.remoteLookup.get(cacheKey) match {
         case Some(value) => value.map(setNewLookup)
         case _ => {
-
+          _lookup.set(Seq(), true) //reset lookup state
           val request = services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public).map { lookups =>
             logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
             if (lookups.isEmpty) {

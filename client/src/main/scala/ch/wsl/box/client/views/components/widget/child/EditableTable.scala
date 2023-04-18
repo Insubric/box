@@ -186,7 +186,7 @@ object EditableTable extends ChildRendererFactory {
         field.dynamicLabel match {
           case Some(value) => {
             val title = entity.transform { e =>
-              val rows = e.flatMap(row => getWidget(row).data.get.getOpt(value))
+              val rows = e.flatMap(row => getWidget(row)._1.data.get.getOpt(value))
               if (rows.isEmpty) name else rows.distinct.mkString(", ")
             }
             title
@@ -368,6 +368,38 @@ object EditableTable extends ChildRendererFactory {
       )
     }
 
+    def handleEnter(e:Event) = {
+      e match {
+        case ke:KeyboardEvent if ke.key == "Enter" => {
+
+          val column = document.activeElement.closest("td") match {
+            case element: dom.HTMLElement => element.dataset.lift("column").flatMap(_.toIntOption)
+            case _ => None
+          }
+          val row = document.activeElement.closest("tr") match {
+            case element: dom.HTMLElement => element.dataset.lift("row").flatMap(_.toIntOption)
+            case _ => None
+          }
+
+          for{
+            c <- column
+            r <- row
+          } yield {
+            Seq("select","input").foreach { tagname =>
+              document
+                .querySelector(s"tr[data-row='${r + 1}'] > td[data-column='$c']")
+                .getElementsByTagName(tagname).headOption.foreach { case e: dom.HTMLElement => e.focus() }
+            }
+
+          }
+
+
+
+        }
+        case _ => ()
+      }
+    }
+
     def renderTable(write: Boolean,nested:Binding.NestedInterceptor):Modifier = metadata match {
       case None => p("child not found")
       case Some(m) => {
@@ -384,7 +416,7 @@ object EditableTable extends ChildRendererFactory {
               val colWidth = (width := _colWidth(additionalColumns))
 
                 div(tableStyle.tableContainer,
-                table(tableStyle.table,
+                table(onkeyup :+= handleEnter,tableStyle.table,
                   thead(
                     for (field <- f) yield {
                       val name = colHeader(field)
@@ -401,15 +433,15 @@ object EditableTable extends ChildRendererFactory {
                     nested(repeatWithNested(entity) { (row,nested) =>
                       val rowWidgets = ListBuffer[Widget]()
                       widgets.addOne(rowWidgets)
-                      val childWidget = getWidget(row.get)
+                      val (childWidget,rowIdx) = getWidget(row.get)
 
-                      tr(tableStyle.tr,
-                        for (field <- f) yield {
+                      tr(tableStyle.tr,data("row") := rowIdx,
+                        for ((field,columnIdx) <- f.zipWithIndex) yield {
                           val (params, widget) = colContentWidget(childWidget, field, m)
                           rowWidgets.addOne(widget)
 
                           showIfCondition(field,nested) {
-                            td(
+                            td(data("column") := columnIdx,
                             showIfConditionRow(field, childWidget.data,nested) {
                               div(if (
                                 field.readOnly ||

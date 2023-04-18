@@ -83,7 +83,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
-    def getWidget(id:String):ChildRow = childWidgets.find(_.id == id) match {
+    def getWidget(id:String):(ChildRow,Int) = childWidgets.zipWithIndex.find(_._1.id == id) match {
       case Some(value) => value
       case None => throw new Exception(s"Widget not found $id")
     }

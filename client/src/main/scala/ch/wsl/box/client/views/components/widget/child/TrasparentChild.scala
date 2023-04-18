@@ -40,7 +40,7 @@ object TrasparentChild extends ChildRendererFactory {
           case Some(f) => {
               div(if(distribute) { ClientConf.style.distributionContrainer } else frag(),
                 nested(repeat(entity) { e =>
-                  val widget = getWidget(e.get)
+                  val widget = getWidget(e.get)._1
                   div(
                     if(distribute) { ClientConf.style.distributionChild } else {},
                     if(childWidth.isDefined) { width := childWidth.get.px } else {},

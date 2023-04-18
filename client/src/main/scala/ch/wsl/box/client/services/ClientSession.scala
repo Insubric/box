@@ -81,7 +81,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         logger.info("No valid session found")
         if(isSet(ClientSession.USER)) {
           dom.window.sessionStorage.removeItem(USER)
-          dom.window.location.reload(true)
+          dom.window.location.reload()
         }
       }
     }
