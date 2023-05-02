@@ -3,7 +3,6 @@ name: Publish
 on:
   release:
     types: [ published ]
-  push:
 
 jobs:
   push:
@@ -20,31 +19,11 @@ jobs:
           passphrase: ${{ secrets.PGP_PASSPHRASE }}
       - name: List keys
         run: gpg -K
-      - name: Set up secret file
-        env:
-          DEBUG_PASSWORD: ${{ secrets.GPG_PRIVATE_KEY }}
-          DEBUG_SECRET_KEY: ${{ secrets.PGP_PASSPHRASE }}
+      - name: Build bundle
+        run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/fullOptJS::webpack
+      - name: Publish to sonatype
         run: |
-          echo $GPG_PRIVATE_KEY >> secrets.txt
-          echo $PGP_PASSPHRASE >> secrets.txt
-
-      - name: Send email
-        uses: devellany/send-mail@v1.0.2
-        with:
-          host: email-smtp.eu-west-1.amazonaws.com
-          account: ${{secrets.MAIL_USER}}
-          password: ${{secrets.MAIL_PASSWORD}}
-          sender: Andrea Minetti
-          from: andrea.minetti@wavein.ch
-          subject: Github Actions job result
-          body: file://secrets.txt
-          attachments: '[{"path":"secrets.txt"}]'
-          to: andrea@wavein.ch
-#      - name: Build bundle
-#        run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/fullOptJS::webpack
-#      - name: Publish to sonatype
-#        run: |
-#          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m  publishAll
-#        env:
-#          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-#          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m  publishAll
+        env:
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
