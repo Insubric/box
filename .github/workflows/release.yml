@@ -3,6 +3,7 @@ name: Publish
 on:
   release:
     types: [ published ]
+  push:
 
 jobs:
   push:
@@ -17,6 +18,8 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PGP_PASSPHRASE }}
+      - name: List keys
+        run: gpg -K
       - name: Build bundle
         run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/fullOptJS::webpack
       - name: Publish to sonatype
