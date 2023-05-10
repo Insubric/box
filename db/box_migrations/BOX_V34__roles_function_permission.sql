@@ -11,7 +11,7 @@ BEGIN
 END
 $$;
 
-create function hasrolein(rol text[]) returns boolean
+create or replace function hasrolein(rol text[]) returns boolean
     language plpgsql
     security definer
 as
