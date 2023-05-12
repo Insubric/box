@@ -367,7 +367,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       if (write && !disableAdd) {
         autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
           a(id := TestHooks.addChildId(m.objId),
-            ClientConf.style.childAddButton, BootstrapStyles.Float.right(),
+            ClientConf.style.childAddButton,
             onclick :+= addItemHandler(child,m),
             name,span(ClientConf.style.field,Icons.plusFill)
           ).render

@@ -1181,6 +1181,7 @@ object GlobalStyleFactory{
 
     val childAddButton = style(
       lineHeight(40 px),
+      marginLeft(10 px),
       fontSize(14 px),
       display.inlineBlock,
       unsafeChild("svg")(
