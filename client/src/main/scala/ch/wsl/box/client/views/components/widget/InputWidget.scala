@@ -229,7 +229,7 @@ object InputWidget extends Logging {
 
   class TwoLines(field:JSONField, prop: Property[Json], metadata:JSONMetadata) extends Textarea(field,prop,metadata) {
 
-    override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2)
+    override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2, width := 50.pct)
   }
 
 
