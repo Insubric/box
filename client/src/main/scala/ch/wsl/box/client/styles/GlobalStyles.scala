@@ -543,12 +543,23 @@ object GlobalStyleFactory{
     val field = style(
       paddingRight(10 px),
       paddingLeft(10 px),
-      minHeight.`0`
+      minHeight.`0`,
+      unsafeChild("div") (
+        unsafeChild("h3") (
+          marginLeft((-10-conf.paddingBlocks) px)
+        )
+      )
     )
 
     val removeFieldMargin = style(
       marginRight(-10 px),
       marginLeft(-10 px),
+      minHeight.`0`
+    )
+
+    val removeFieldAndBlockMargin = style(
+      marginRight((-10-conf.paddingBlocks) px),
+      marginLeft((-10-conf.paddingBlocks) px),
       minHeight.`0`
     )
 

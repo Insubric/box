@@ -14,13 +14,15 @@ import scalatags.JsDom.all.{div, h3, minHeight, s}
 
 import scala.concurrent.Future
 
-case class WidgetVisibility(widget:Widget,visibility: ReadableProperty[Boolean])
 
-object WidgetVisibility{
-  def apply(widget: Widget): WidgetVisibility = WidgetVisibility(widget, Property(true))
-}
 
-class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, SubLayoutBlock]], horizontal: Either[Stream[Int],Boolean], titleSub:Option[String] = None) extends Widget with HasData {
+class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, SubLayoutBlock]], horizontal: Either[Stream[Int],Boolean], titleSub:Option[String] = None, margin: Boolean = true) extends Widget with HasData {
+
+  private case class WidgetVisibility(widget: Widget, visibility: ReadableProperty[Boolean])
+
+  private object WidgetVisibility {
+    def apply(widget: Widget): WidgetVisibility = WidgetVisibility(widget, Property(true))
+  }
 
 
   import ch.wsl.box.client.Context._
@@ -101,14 +103,14 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   }}.getOrElse(WidgetVisibility(HiddenWidget.HiddenWidgetImpl(JSONField.empty)))
 
-  val widgets:Seq[WidgetVisibility] = fields.map{
+  private val widgets:Seq[WidgetVisibility] = fields.map{
     case Left(fieldName) => simpleField(fieldName)
     case Right(subForm) => subBlock(subForm)
   }
   import io.circe.syntax._
 
   private def subBlock(block: SubLayoutBlock):WidgetVisibility = WidgetVisibility(
-    new BlockRendererWidget(widgetParams,block.fields, Left(Stream.continually(block.fieldsWidth.toStream).flatten),block.title.orElse(Some("")))
+    new BlockRendererWidget(widgetParams,block.fields, Left(Stream.continually(block.fieldsWidth.toStream).flatten),block.title.orElse(Some("")),false)
   )
 
 
@@ -174,13 +176,20 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
 
-  def fixedWidth(widths:Stream[Int],write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,
-    widgets.zip(widths).map { case (widget, width) =>
-      div(BootstrapCol.md(width), ClientConf.style.field,
-        widget.widget.render(write,widget.visibility,nested)
-      )
-    }
-  )
+  def fixedWidth(widths:Stream[Int],write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = {
+
+    val setMargin:Modifier = if(!margin) ClientConf.style.removeFieldAndBlockMargin else Seq[Modifier]()
+
+    div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,setMargin,
+      widgets.zip(widths).map { case (widget, width) =>
+
+
+        div(BootstrapCol.md(width), ClientConf.style.field,
+          widget.widget.render(write,widget.visibility,nested)
+        )
+      }
+    )
+  }
 
   def distribute(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
     widgets.map { case widget =>
