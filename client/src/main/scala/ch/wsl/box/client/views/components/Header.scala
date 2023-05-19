@@ -75,11 +75,6 @@ object Header {
     } else frag()
   )
 
-  def menu(logged:Boolean):Seq[Modifier] =
-    links(logged).map(toHtml) ++
-    uiMenu ++
-    otherMenu
-
   val showMenu = Property(false)
 
   def user = Option(dom.window.sessionStorage.getItem(ClientSession.USER))
@@ -88,20 +83,26 @@ object Header {
     header(
       showIf(services.clientSession.logged) { div(id := TestHooks.logged ,visibility.hidden).render },
       div(BootstrapStyles.Float.left())(a(Navigate.click(IndexState),b(id := "headerTitle",ClientConf.style.headerTitle, title))),
-//      nav(BootstrapStyles.Float.right(),ClientConf.style.noMobile) (
-//        ul(
-//          menu(logged).map(m => li(m))
-//        )
-//      ),
+
       div(BootstrapStyles.Float.right())(
         a(ClientConf.style.linkHeaderFooter,
           produce(showMenu){ if(_) span(fontSize := 22.px, "🗙").render else span(fontSize := 22.px,"☰").render},
           onclick :+= {(e:Event) => showMenu.set(!showMenu.get); e.preventDefault() }
         )
       ),
+      if(!ClientConf.menuHamburger)
+      nav(BootstrapStyles.Float.right(), ClientConf.style.noMobile)(
+        ul(
+          uiMenu.map(m => li(m))
+        )
+      ) else Seq[Modifier](),
       Fade(showMenu,ClientConf.style.mobileMenu) {
+
+
         div(
-          (links(logged).map(toHtml) ++ uiMenu).map(div(_)),hr,
+          links(logged).map(toHtml).map(div(_)),
+          uiMenu.map(m => div(if(!ClientConf.menuHamburger) ClientConf.style.mobileOnly else Seq[Modifier](),m)),
+          hr,
           user.map(frag(_,br)),otherMenu.map(span(_,br)),hr,
           div(ClientConf.style.mobileOnly,Footer.copyright)
         ).render
