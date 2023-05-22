@@ -25,6 +25,7 @@ import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
+import ch.wsl.box.services.file.FileId
 import io.circe._
 import io.circe.syntax._
 import org.locationtech.jts.geom.Geometry
@@ -204,6 +205,17 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   }
 
 
+  private def resetFileCache(fields:Seq[(String,Json)],id:JSONID) = Future.sequence {
+    fields.map(_._1).filter { x =>
+      Registry().fields.field(entity.baseTableRow.tableName, x) match {
+        case Some(value) => value.jsonType == JSONFieldTypes.FILE
+        case None => false
+      }
+    }.map { fieldsField =>
+      services.imageCacher.clear(FileId(id, s"${entity.baseTableRow.tableName}.$fieldsField"))
+    }
+  }.recover{ case _ => Seq()}
+
   def update(id:JSONID, e:M):DBIO[M] = {
     logger.info(s"UPDATE BY ID $id")
     implicit def enc = encoder.full()
@@ -216,6 +228,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
         case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
         case None => Seq()
       }
+      _ <- DBIO.from(resetFileCache(fields, id))
       result <- entity.baseTableRow.updateReturning(fields.toMap,id.toFields)
     } yield result.orElse(current).getOrElse(e)
   }

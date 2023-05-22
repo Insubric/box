@@ -1239,9 +1239,14 @@ object GlobalStyleFactory{
     val dropFileZone = style(
       minHeight(50 px),
       width(100 %%),
-      borderStyle.dashed,
-      borderColor(Colors.Grey),
+      borderColor(Colors.Trasparent),
+      borderStyle.solid,
       borderWidth(1 px),
+      &.hover(
+        borderStyle.dashed,
+        borderColor(Colors.Grey),
+        borderWidth(1 px),
+      ),
       display.flex,
       flexDirection.column,
       justifyContent.center,
