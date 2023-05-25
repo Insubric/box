@@ -80,9 +80,9 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
     override protected def edit(nested:Binding.NestedInterceptor): Modifier = linkRenderer(label,field.params,goto(true))
 
-    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = a(onclick :+= goto(false),label)
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested) //a(onclick :+= goto(false),label)
 
-    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = a(onclick :+= goto(true),label)
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = edit(nested) //a(onclick :+= goto(true),label)
   }
 
 }

@@ -77,7 +77,7 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
     override protected def show(nested:Binding.NestedInterceptor) = button(buttonStyle, onclick :+= clickHandler, _text)
     override protected def edit(nested:Binding.NestedInterceptor) = show(nested)
 
-    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = a(onclick :+= clickHandler, _text)
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div(textAlign.center,show(nested))
     override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showOnTable(nested)
   }
 }
