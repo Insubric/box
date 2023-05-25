@@ -397,6 +397,16 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
 
+    def afterGoto(url:String) = {
+      action.target match {
+        case Self => Navigate.toUrl(url)
+        case NewWindow => {
+          println(url)
+          window.open(url)
+        }
+      }
+    }
+
     def executeFuntion():Future[Boolean] = action.executeFunction match {
       case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
         result.errorMessage match {
@@ -421,7 +431,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
             action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
               logger.warn(s"Navigating to $url")
               //reset()
-              Navigate.toUrl(url)
+              afterGoto(url)
 
             }
           }
@@ -431,7 +441,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         executeFuntion().map { functionOk =>
           if(functionOk) {
             reset()
-            Navigate.toUrl(url)
+            afterGoto(url)
           }
         }
       }

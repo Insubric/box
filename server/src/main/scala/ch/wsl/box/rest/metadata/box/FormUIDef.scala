@@ -589,6 +589,12 @@ object FormUIDef {
             |$writable -> if the current form is writable
             |""".stripMargin)
       ),
+      JSONField(JSONFieldTypes.STRING, "target", false,
+        widget = Some(WidgetsNames.select),
+        lookup = Some(JSONFieldLookup.prefilled(
+          Target.all.map(x => JSONLookup(x.toString.asJson, Seq(x.toString)))
+        )
+        )).copy(default = Some("Self")),
       JSONField(JSONFieldTypes.STRING,"label",false,label=Some("Label"),
         tooltip = Some("Use global translation table"),
         widget = Some(WidgetsNames.input)
@@ -624,6 +630,7 @@ object FormUIDef {
           "importance",
           "execute_function",
           "after_action_goto",
+          "target",
           "label",
           "update_only",
           "insert_only",
