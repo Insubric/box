@@ -79,6 +79,8 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
+  override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = jsonAction.distinctOn(field, query)
+
   override def findSimple(query:JSONQuery): DBIO[Seq[Json]] = {
 
     for{
@@ -159,7 +161,7 @@ case class FormActions(metadata:JSONMetadata,
 
   override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
     for{
-      result <- DBIO.sequence(request.fields.map(fkTransform.singleLookup(metadata)))
+      result <- DBIO.sequence(request.fields.map(r => fkTransform.singleLookup(metadata,r, request.query)))
     } yield result
   }
 

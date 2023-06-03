@@ -121,8 +121,8 @@ object JSONFieldLookup {
 }
 
 case class JSONLookups(fieldName:String,lookups:Seq[JSONLookup])
-case class JSONLookupsFieldRequest(fieldName:String,values:Seq[Json])
-case class JSONLookupsRequest(fields:Seq[JSONLookupsFieldRequest])
+//case class JSONLookupsFieldRequest(fieldName:String,values:Seq[Json])
+case class JSONLookupsRequest(fields:Seq[String], query:JSONQuery)
 
 case class JSONLookup(id:Json, values:Seq[String]) {
   def value = {

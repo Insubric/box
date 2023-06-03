@@ -91,10 +91,15 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   }
 
+
+  override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = {
+    entity.baseTableRow.distinctOn(field, query)
+  }
+
   override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
     for{
       m <- metadata
-      result <- DBIO.sequence(request.fields.map(fkFilters.singleLookup(m)))
+      result <- DBIO.sequence(request.fields.map(f => fkFilters.singleLookup(m,f,request.query)))
     } yield result
   }
 

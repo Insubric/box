@@ -24,20 +24,27 @@ import io.udash.properties.single.Property
 import io.udash.utils.Registration
 import org.scalajs.dom
 import scalacss.ScalatagsCss._
-import org.scalajs.dom.{Element, Event, KeyboardEvent, window}
+import org.scalajs.dom.{Element, Event, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
 import scalacss.internal.Pseudo.Lang
 import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
 import scribe.Logging
+import typings.choicesJs.anon.PartialOptions
+import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
 
 import scala.concurrent.Future
-import scala.scalajs.js.URIUtils
+import scala.scalajs.js
+import scala.scalajs.js.{URIUtils, |}
 import scala.util.Try
+
+import scala.scalajs.js
+import js.JSConverters._
 
 case class IDsVM(isLastPage:Boolean,
                     currentPage:Int,
                     ids:Seq[String],
                     count:Int    //stores the number of rows resulting from the query without paging
+
                    )
 
 object IDsVMFactory{
@@ -59,11 +66,11 @@ case class Row(data: Seq[String]) {
 case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
-                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess, lookups:Seq[JSONLookups])
+                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess, lookups:Seq[JSONLookups],query:Option[JSONQuery])
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq())
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None)
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -190,7 +197,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         ids = IDsVMFactory.empty,
         pages = Navigation.pageCount(0),
         access = access,
-        lookups = Seq()
+        lookups = Seq(),
+        query = Some(query)
       )
 
       saveIds(IDs(true,1,Seq(),0),query)
@@ -254,7 +262,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.setIDs(ids)
   }
 
-  private def query():JSONQuery = {
+  def query():JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
 
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
@@ -272,8 +280,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
-
-    val q = query().copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
+    val qOrig = query()
+    val newQuery = !model.subProp(_.query).get.contains(qOrig)
+    model.subProp(_.query).set(Some(qOrig))
+    val q = qOrig.copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
 
     //start request in parallel
     val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
@@ -281,12 +291,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
       case Some(m) => {
-        val request = m.tableLookupFields.flatMap{ field =>
-          val values = csv.flatMap(_.field(m)(field.name)).distinct
-          if(values.isEmpty) None else
-          Some(JSONLookupsFieldRequest(field.name,values))
-        }
-        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(request))
+        val fields = m.tableLookupFields.map(_.name)
+        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(fields,qOrig))
       }
       case None => Future.successful(Seq())
     }
@@ -294,7 +300,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val r = for {
       csv <- csvRequest.map(_.map(Row))
       ids <- idsRequest
-      lookups <- lookupReq(csv)
+      lookups <- if(newQuery) lookupReq(csv) else Future.successful( model.subProp(_.lookups).get)
     } yield {
 
       model.subProp(_.lookups).set(lookups)
@@ -310,6 +316,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     r
 
   }
+
+
 
 
   def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {
@@ -456,11 +464,15 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
+
+
   def filterField(filterValue: Property[String], field:Option[JSONField], filterOperator:String,nested:Binding.NestedInterceptor):Modifier = {
 
     filterValue.listen(v => logger.info(s"Filter for ${field.map(_.name)} changed in: $v"))
 
-    field.map(_.`type`) match {
+
+
+    def filterFieldStd = field.map(_.`type`) match {
       case Some(JSONFieldTypes.TIME) => DateTimeWidget.Time(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string)).edit(nested)
       case Some(JSONFieldTypes.DATE) => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit(nested)
       case Some(JSONFieldTypes.DATETIME) => ClientConf.filterPrecisionDatetime match{
@@ -478,6 +490,50 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         NumberInput(filterValue)(ClientConf.style.fullWidth)
       }
       case _ => TextInput(filterValue)(ClientConf.style.fullWidth)
+    }
+
+    def filterFieldLookup(lookup:JSONFieldLookup) = {
+      def choises(lookups:JSONLookups):Seq[Choice] = lookup match {
+        case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
+           lookups.lookups.map(l => Choice(l.value,l.value))
+        }
+        case JSONFieldLookupExtractor(extractor) => Seq()
+        case JSONFieldLookupData(data) => data.map(x => Choice(x.value,x.id))
+      }
+
+      val el = select().render
+
+
+      val observer = new MutationObserver({ (mutations, observer) =>
+        observer.disconnect()
+        val options = PartialOptions()
+          .setRemoveItemButton(true)
+          .setItemSelectText("")
+        val choicesJs = new typings.choicesJs.mod.default(el, options)
+        el.addEventListener("change", (e: Event) => {
+          (choicesJs.getValue(true): Any) match {
+            case list: js.Array[String] => println(list)
+            case a: String => filterValue.set(a)
+            case _ => filterValue.set("")
+          }
+        })
+
+        model.subProp(_.lookups).listen({l =>
+          l.find(_.fieldName == field.get.name).foreach{ fl =>
+            choicesJs.clearChoices()
+            choicesJs.setChoices(choises(fl).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+          }
+
+        },true)
+
+      })
+      observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+      el
+    }
+
+    field.flatMap(_.lookup) match {
+      case Some(value) => filterFieldLookup(value)
+      case None => filterFieldStd
     }
 
   }
