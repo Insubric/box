@@ -495,7 +495,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     def filterFieldLookup(lookup:JSONFieldLookup) = {
       def choises(lookups:JSONLookups):Seq[Choice] = lookup match {
         case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
-           lookups.lookups.map(l => Choice(l.value,l.value))
+           lookups.lookups.map(l => Choice(l.value,l.id.string))
         }
         case JSONFieldLookupExtractor(extractor) => Seq()
         case JSONFieldLookupData(data) => data.map(x => Choice(x.value,x.id))
@@ -522,6 +522,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           l.find(_.fieldName == field.get.name).foreach{ fl =>
             choicesJs.clearChoices()
             choicesJs.setChoices(choises(fl).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+            choicesJs.setChoiceByValue(filterValue.get)
           }
 
         },true)
