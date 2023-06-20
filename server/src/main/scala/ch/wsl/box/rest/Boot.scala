@@ -3,6 +3,7 @@ package ch.wsl.box.rest
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives.handleExceptions
 import akka.stream.ActorMaterializer
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.rest.routes.{BoxExceptionHandler, Preloading, Root}
@@ -46,7 +47,6 @@ class Box(name:String,version:String)(implicit services: Services) {
     val port = services.config.port
     val origins = services.config.origins
 
-    implicit def handler: ExceptionHandler = BoxExceptionHandler(origins).handler()
 
 
     //val preloading: Future[Http.ServerBinding] = Http().bindAndHandle(Preloading.route, host, port)
@@ -62,10 +62,14 @@ class Box(name:String,version:String)(implicit services: Services) {
     val scheduler = new CronScheduler(system)
     new BoxCronLoader(scheduler).load()
 
+    val routes = handleExceptions(BoxExceptionHandler(origins).handler()) {
+      Root(s"$name $version",akkaConf, origins).route
+    }
+
     for{
       //pl <- preloading
       //_ <- pl.terminate(1.seconds)
-      binding <- Http().bindAndHandle(Root(s"$name $version",akkaConf, origins).route, host, port) //attach the root route
+      binding <- Http().bindAndHandle(routes, host, port) //attach the root route
       res <- {
         println(
           s"""
