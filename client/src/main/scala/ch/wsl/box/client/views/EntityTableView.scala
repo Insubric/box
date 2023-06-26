@@ -498,7 +498,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
            lookups.lookups.map(l => Choice(l.value,l.id.string))
         }
         case JSONFieldLookupExtractor(extractor) => Seq()
-        case JSONFieldLookupData(data) => data.map(x => Choice(x.value,x.id))
+        case JSONFieldLookupData(data) => data.map(x => Choice(x.value,x.id.string))
       }
 
       val el = select().render
@@ -521,7 +521,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         model.subProp(_.lookups).listen({l =>
           l.find(_.fieldName == field.get.name).foreach{ fl =>
             choicesJs.clearChoices()
-            choicesJs.setChoices(choises(fl).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+            val c = choises(fl)
+            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
             choicesJs.setChoiceByValue(filterValue.get)
           }
 
