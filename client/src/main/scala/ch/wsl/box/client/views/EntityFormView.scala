@@ -90,13 +90,28 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
           }
           services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
         }
-        case None => Future.successful{
-          Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*)
-        }
+        case None => Future.successful(Json.Null)
       }
     } yield {
 
-      val dataWithQueryParams = data.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
+      BrowserConsole.log(data)
+      println(data == Json.Null)
+
+      var insert = false
+
+      //check if data is already present for the given id
+      val dataWithId = if(data == Json.Null) { // if not we are going to do an insert
+        insert = true
+        val d = Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*) // taking the defaults
+        state.id.flatMap(JSONID.fromString(_, metadata)) match {
+          case Some(id) => d.deepMerge(Json.fromFields(id.toFields))
+          case None => d
+        }
+      } else {
+        data
+      }
+
+      val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
 
       val stateModel = EntityFormModel(
         name = state.entity,
@@ -110,7 +125,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         false,
         state.writeable,
         state.public,
-        state.id.isEmpty,
+        insert,
         false
       )
 
