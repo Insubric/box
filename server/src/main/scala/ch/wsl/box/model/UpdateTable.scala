@@ -60,7 +60,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     registry.fields.field(t.tableName, field) match {
       case Some(value) => {
         val q = concat(
-          sql"""select distinct to_jsonb(#$field) from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
+          sql"""select distinct to_jsonb("#$field") from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
           whereBuilder(query)
         ).as[Json]
         q
