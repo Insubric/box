@@ -172,7 +172,7 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
 
 
   private val content = div(BootstrapStyles.Grid.row,ClientConf.style.centredContent)(
-    div(BootstrapCol.md(12),h2("Conf")),
+    div(BootstrapCol.md(12),h2("System configuration")),
     div(BootstrapCol.md(12),marginBottom := 30.px,
       h3("Server"),
       hr,
@@ -229,24 +229,24 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
       editConf("child.backgroundColor","Backgroud color","#fafafa","",String),
 
     ),
-    div(BootstrapCol.md(12),
-      marginBottom := 30.px,
-      h3("Redactor"),
-      hr,
-      p("Box has native support for ", a(href := "https://imperavi.com/redactor/","redactor"),", since redactor is a commercial product it canno't be embedded in the box package, in order to take advantage of the redactor widget you need to upload here the minified JS/CSS. A restart of the service is needed for the change to have effect"),
-      br,
-      button("redactor.min.js",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorJs.click(); e.preventDefault() }),
-      inputRedactorJs,
-      showIf(redactorJs.transform(_.nonEmpty))( span(" File loaded").render ),
-      br,
-      button("redactor.min.css",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorCss.click(); e.preventDefault()}),
-      inputRedactorCss,
-      showIf(redactorCss.transform(_.nonEmpty))( span(" File loaded").render ),
-      br,
-      showIf(viewModel.subProp(_.entries).transform(x => x.exists(_.key == "redactor.js") && x.exists(_.key == "redactor.css"))) {
-        p("redactor is enabled").render
-      }
-    ),
+//    div(BootstrapCol.md(12),
+//      marginBottom := 30.px,
+//      h3("Redactor"),
+//      hr,
+//      p("Box has native support for ", a(href := "https://imperavi.com/redactor/","redactor"),", since redactor is a commercial product it canno't be embedded in the box package, in order to take advantage of the redactor widget you need to upload here the minified JS/CSS. A restart of the service is needed for the change to have effect"),
+//      br,
+//      button("redactor.min.js",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorJs.click(); e.preventDefault() }),
+//      inputRedactorJs,
+//      showIf(redactorJs.transform(_.nonEmpty))( span(" File loaded").render ),
+//      br,
+//      button("redactor.min.css",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorCss.click(); e.preventDefault()}),
+//      inputRedactorCss,
+//      showIf(redactorCss.transform(_.nonEmpty))( span(" File loaded").render ),
+//      br,
+//      showIf(viewModel.subProp(_.entries).transform(x => x.exists(_.key == "redactor.js") && x.exists(_.key == "redactor.css"))) {
+//        p("redactor is enabled").render
+//      }
+//    ),
     div(BootstrapCol.md(12),
       marginBottom := 30.px,
       h3("Map"),
