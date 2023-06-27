@@ -2,13 +2,12 @@ package ch.wsl.box.client.views.components.widget.admin
 
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
-import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, Layout, LayoutBlock, WidgetsNames}
 import io.udash.bindings.modifiers.Binding
 import scalatags.JsDom
 import io.circe._
 import io.circe.syntax._
 import io.udash._
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import io.udash.css.CssView._
@@ -18,6 +17,11 @@ import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
 import org.scalajs.dom.{HTMLDivElement, MutationObserver, MutationObserverInit, document}
+import scribe.Logging
+import typings.gridstack.mod._
+import typings.gridstack.distTypesMod._
+import scala.scalajs.js
+import js.JSConverters._
 
 
 object LayoutWidget extends ComponentWidgetFactory {
@@ -27,42 +31,80 @@ object LayoutWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = LayoutWidgetImpl(params)
 
-  case class LayoutWidgetImpl(params:WidgetParams) extends Widget {
+  case class LayoutWidgetImpl(params:WidgetParams) extends Widget with Logging {
 
 
     override def field: JSONField = params.field
 
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div("BLA")
 
+
+    private def renderField(name:String) = {
+
+      val field = div(backgroundColor := Colors.Grey.value, padding := 5.px, lineHeight := 20.px,name).render
+
+      GridStackWidget()
+        .setNoResize(true)
+        .setContent(field.outerHTML)
+
+    }
+    private def renderBlock(block:LayoutBlock):GridStackWidget = {
+
+      val stdFields = block.fields.flatMap(_.left.toOption)
+
+      val gridInnerContainer = div(
+        div(backgroundColor := Colors.GreySemi.value, margin := 10.px, padding := 10.px, height.auto)
+      ).render
+      val innerOptions = GridStackOptions()
+        .setColumn(1)
+        .setCellHeight(50)
+        .setAcceptWidgets(".field")
+        .setMargin(10)
+        .setMinRow(2)
+        .setChildren(stdFields.map(renderField).toJSArray)
+        .setItemClass("field")
+        .setDisableOneColumnMode(true)
+
+
+
+
+      val result = GridStackWidget()
+        .setW(block.width)
+        .setH(stdFields.length + 1)
+        .setSubGridOpts(innerOptions)
+      result
+
+    }
+
     private def _afterRender(container:HTMLDivElement): Unit = {
 
-      import typings.gridstack.mod._
-      import typings.gridstack.distTypesMod._
 
-      val options = GridStackOptions()
-      options.setAcceptWidgets(false)
-      options.setMargin(5)
-      options.setMinRow(1)
-      val grid = GridStack.addGrid(container, options)
 
-      val gridInnerContainer = div(backgroundColor := Colors.GreySemi.value, padding := 10.px, "test1").render
-      val gridInnerContainer2 = div(backgroundColor := Colors.GreySemi.value, padding := 10.px, "test2").render
 
-      val innerOptions = GridStackOptions()
-      innerOptions.setColumn(1)
-      innerOptions.setCellHeight(50)
-      innerOptions.setAcceptWidgets(".field")
-      innerOptions.setMargin(5)
-      innerOptions.setMinRow(1)
-      val gridInner = GridStack.addGrid(gridInnerContainer, innerOptions)
-      val gridInner2 = GridStack.addGrid(gridInnerContainer2, innerOptions)
 
-      grid.addWidget(gridInnerContainer)
-      grid.addWidget(gridInnerContainer2)
 
-      gridInner.addWidget(div(backgroundColor := Colors.Grey.value, padding := 10.px, cls := "field", "testInner1").render)
-      gridInner.addWidget(div(backgroundColor := Colors.Grey.value, padding := 10.px, cls := "field", "testInner2").render)
-      gridInner2.addWidget(div(backgroundColor := Colors.Grey.value, padding := 10.px, cls := "field", "test2Inner2").render)
+      params.prop.listen({ layoutJs =>
+        //grid.removeAll()
+        Layout.fromString(layoutJs.asString) match {
+          case None => {
+
+            logger.warn(
+              s"""Error not valid json Layout
+                 |Data JS: ${layoutJs.noSpaces}
+                 |""".stripMargin)
+          }
+          case Some(layout) => {
+            val options = GridStackOptions()
+              .setAcceptWidgets(false)
+              .setMargin(5)
+              .setMinRow(2)
+              .setCellHeight(50)
+              .setDisableOneColumnMode(true)
+              .setChildren(layout.blocks.map(renderBlock).toJSArray)
+            val grid = GridStack.addGrid(container, options)
+          }
+        }
+      },true)
 
     }
 
@@ -78,6 +120,7 @@ object LayoutWidget extends ComponentWidgetFactory {
         }
       })
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+
       container
     }
   }

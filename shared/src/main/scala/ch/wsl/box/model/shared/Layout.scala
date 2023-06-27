@@ -3,7 +3,7 @@ package ch.wsl.box.model.shared
 import io.circe.Decoder.Result
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser.parse
-import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.syntax._
 import scribe.Logging
 
@@ -15,6 +15,10 @@ import scribe.Logging
 case class Layout(blocks: Seq[LayoutBlock])
 
 object Layout extends Logging {
+
+
+  implicit val subDecoder: Decoder[SubLayoutBlock] = deriveDecoder[SubLayoutBlock]
+  implicit val subEncoder: Encoder[SubLayoutBlock] = deriveEncoder[SubLayoutBlock]
 
   implicit val encodeEither: Encoder[Either[String,SubLayoutBlock]] = new Encoder[Either[String, SubLayoutBlock]] {
     override def apply(a: Either[String, SubLayoutBlock]): Json = a match {
@@ -28,6 +32,27 @@ object Layout extends Logging {
       case None => c.as[SubLayoutBlock].map(Right(_))
     }
   }
+
+  implicit val layoutBlockEncoder: Encoder[LayoutBlock] = deriveEncoder[LayoutBlock]
+  implicit val layoutBlockDecoder: Decoder[LayoutBlock] = deriveDecoder[LayoutBlock]
+
+  implicit val encodeFoo: Encoder[Layout] = new Encoder[Layout] {
+    final def apply(a: Layout): Json = Json.obj(
+      ("blocks", a.blocks.asJson),
+    )
+  }
+  // encodeFoo: Encoder[Thing] = repl.MdocSession$App$$anon$1@371195dd
+
+  implicit val decodeFoo: Decoder[Layout] = new Decoder[Layout] {
+    final def apply(c: HCursor): Decoder.Result[Layout] =
+      for {
+        blocks <- c.downField("blocks").as[Seq[LayoutBlock]]
+      } yield {
+        new Layout(blocks)
+      }
+  }
+
+  def fromJs(js:Json):Result[Layout] = js.as[Layout]
 
   def fromString(layout:Option[String]) = layout.flatMap { l =>
     parse(l).fold({ jsonFailure =>                 //json parsing failure
