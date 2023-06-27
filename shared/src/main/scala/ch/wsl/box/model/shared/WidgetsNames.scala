@@ -51,6 +51,7 @@ object WidgetsNames {
   val langWidget = "langWidget"
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
+  val adminLayoutWidget = "adminLayoutWidget"
 
   val mapping= Map(
     NUMBER -> Seq(

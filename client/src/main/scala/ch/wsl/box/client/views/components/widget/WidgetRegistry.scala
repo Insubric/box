@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
+import ch.wsl.box.client.views.components.widget.admin.LayoutWidget
 import ch.wsl.box.client.views.components.widget.array.{ChoicesWidget, MultiWidget}
 import ch.wsl.box.client.views.components.widget.boolean.SelectBooleanWidget
 import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory, TrasparentChild}
@@ -74,7 +75,9 @@ object WidgetRegistry extends Logging {
 
     MultiWidget,
 
-    PopupWidget
+    PopupWidget,
+
+    LayoutWidget
 
   )
 
