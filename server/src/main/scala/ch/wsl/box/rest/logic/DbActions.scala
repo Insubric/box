@@ -226,7 +226,11 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
     implicit def enc = encoder.full()
     for{
       current <- getById(id)
-      currentJs = current.map(_.asJson)
+      newRow <- current match {
+        case Some(value) => DBIO.successful(current)
+        case None => insert(e).map(Some(_))
+      }
+      currentJs = newRow.map(_.asJson)
       met <- metadata
       diff = currentJs.map(c => c.diff(met,Seq())(e.asJson))
       fields:Seq[(String,Json)] = diff.flatMap(_.models.find(_.model == entity.baseTableRow.tableName)) match {

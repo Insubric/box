@@ -290,6 +290,15 @@ object GlobalStyleFactory{
 
       unsafeRoot(".ql-editor p")(
         marginBottom.`0`
+      ),
+
+      unsafeRoot (".field")(
+        width(100 %%)
+      ),
+
+      unsafeRoot(".grid-stack > .grid-stack-item.grid-stack-sub-grid > .grid-stack-item-content") (
+        backgroundColor.rgba(0,0,0,0.1),
+        marginRight(2.px)
       )
 
 

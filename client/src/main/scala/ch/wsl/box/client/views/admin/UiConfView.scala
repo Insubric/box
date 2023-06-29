@@ -239,7 +239,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
 
 
   private val content = div(BootstrapStyles.Grid.row,ClientConf.style.centredContent)(
-    div(BootstrapCol.md(12),h2("UI Conf")),
+    div(BootstrapCol.md(12),h2("Access level UI Configuration")),
     div(BootstrapCol.md(12),marginBottom := 30.px,
       _editConf(
         "Access Level",
@@ -273,7 +273,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
           editBoolean("enableAllTables", "All tables", "Show all tables on the header"),
           editBoolean("showEntitiesSidebar", "Entities sidebar", "Show list of entities on the sidebar"),
           editConf("menu", "Menu", placeholder("menu"), "", Code("json",200)),br,
-          editConf("index.html", "Index HTML", placeholder("index.html"), "", Code("html",400)),
+//          editConf("index.html", "Index HTML", placeholder("index.html"), "", Code("html",400)),
           editConf("filters.enable", "Filters Enabled", placeholder("index.html"), "", FiltersConf),
         ).render
       }
