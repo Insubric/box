@@ -61,7 +61,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       case Some(value) => {
         val q = concat(
           sql"""select distinct to_jsonb("#$field") from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
-          whereBuilder(query)
+          whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
         ).as[Json]
         q
       }
