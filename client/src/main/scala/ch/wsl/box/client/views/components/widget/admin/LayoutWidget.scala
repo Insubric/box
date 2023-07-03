@@ -130,7 +130,7 @@ object LayoutWidget extends ComponentWidgetFactory {
         fy <- first.gridstackNode.flatMap(_.y)
         sx <- second.gridstackNode.flatMap(_.x)
         sy <- second.gridstackNode.flatMap(_.y)
-      } yield fy <= sy && fx <= sy}.getOrElse(false)
+      } yield fy <= sy && fx <= sx}.getOrElse(false)
     }
 
     private def gridToLayout(grid:GridStack):Layout = {
