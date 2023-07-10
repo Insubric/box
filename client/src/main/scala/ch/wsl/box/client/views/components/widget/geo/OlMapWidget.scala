@@ -924,7 +924,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     div(
       mapStyleElement,
-      WidgetUtils.toLabel(field),br,
+      WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       nested(produce(data) { geo =>
 

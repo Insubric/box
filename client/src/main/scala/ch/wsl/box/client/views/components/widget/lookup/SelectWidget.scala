@@ -51,7 +51,7 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
-      WidgetUtils.toLabel(field),
+      WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
       tooltip(nested(Select.optional[JSONLookup](model, lookup,StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*)).render)._1,
       div(BootstrapStyles.Visibility.clearfix)
     )

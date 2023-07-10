@@ -242,7 +242,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   override def edit(nested:Binding.NestedInterceptor) = {
     div(BootstrapCol.md(12),ClientConf.style.noPadding,
-      if(noLabel) frag() else WidgetUtils.toLabel(field),
+      if(noLabel) frag() else WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),
       dropZone(nested:Binding.NestedInterceptor),
       upload,
       //autoRelease(produce(id) { _ => div(FileInput(selectedFile, Property(false))("file")).render }),

@@ -159,7 +159,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     div(
       mapStyleElement,
-      WidgetUtils.toLabel(field),
+      WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),
       div(fontSize := 18.px, color := ClientConf.styleConf.colors.main.value,
         services.clientSession.lang() match {
           case "de" => a("Übersicht zum Gebrauch der Karte",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_de.pdf", target := "_blank")

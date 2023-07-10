@@ -68,6 +68,10 @@ object GlobalStyleFactory{
         marginTop(18 px)
       ),
 
+      unsafeRoot("*:focus")(
+        outline.none
+      ),
+
       unsafeRoot("select")(
         inputDefaultWidth,
         borderStyle.solid,
@@ -556,6 +560,11 @@ object GlobalStyleFactory{
       unsafeChild("div") (
         unsafeChild("h3") (
           marginLeft((-10-conf.paddingBlocks) px)
+        )
+      ),
+      unsafeExt(_ + ":focus-within")(
+        unsafeChild("label")(
+          color(conf.colors.main),
         )
       )
     )
@@ -1197,6 +1206,12 @@ object GlobalStyleFactory{
     val label50 = style(
       width(50 %%),
       display.inlineBlock
+    )
+
+    val inputRightLabel = style(
+      width(50 %%),
+      padding.horizontal(10 px),
+      textAlign.right
     )
 
     val childAddButton = style(

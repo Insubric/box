@@ -123,7 +123,7 @@ object RichTextPopup extends ComponentWidgetFactory  {
     private def _render(write:Boolean,nested:Binding.NestedInterceptor) = popup(nested,write,(modal,modalStatus) => {
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
-        WidgetUtils.toLabel(field),
+        WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         produceLabel(modalStatus),
         modal.render

@@ -87,7 +87,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
-        WidgetUtils.toLabel(field),
+        WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip(el)._1,
       )
 

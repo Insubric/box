@@ -95,7 +95,7 @@ object MultiWidget extends ComponentWidgetFactory {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
-        WidgetUtils.toLabel(field),
+        WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         div(BootstrapStyles.Float.right(),bind(params.prop.transform(_.toString()))),
         tooltip(div(
           nested(repeat(data){d =>

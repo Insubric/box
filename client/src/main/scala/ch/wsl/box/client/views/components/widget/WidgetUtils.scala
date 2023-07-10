@@ -16,6 +16,12 @@ import scala.concurrent.duration.DurationInt
 
 object WidgetUtils extends Logging{
 
+  sealed trait LabelAlign
+
+  case object LabelRight extends LabelAlign
+
+  case object LabelLeft extends LabelAlign
+
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
@@ -37,7 +43,9 @@ object WidgetUtils extends Logging{
     (el,tt)
   }
 
-  def toLabel(field:JSONField, skipRequiredInfo:Boolean=false) = {
+  def labelAlignment(labelAlign: LabelAlign):Modifier =  if(labelAlign == LabelRight && ClientConf.labelAlign == "right") ClientConf.style.inputRightLabel else frag()
+
+  def toLabel(field:JSONField,labelAlign: LabelAlign, skipRequiredInfo:Boolean=false) = {
 
     val labelStyle = field.nullable match {
       case true => ClientConf.style.labelNonRequred
@@ -46,6 +54,7 @@ object WidgetUtils extends Logging{
 
 
     val boxLabel = label(
+      labelAlignment(labelAlign),
       labelStyle,
       field.title,
       (skipRequiredInfo, field.nullable, field.title.length > 0, field.default) match{
