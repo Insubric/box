@@ -57,7 +57,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   data.listen({js =>
     def file = data.get.string
-    if(file.length > 0 && file != FileUtils.keep) {
+    if(file.length > 0 && !FileUtils.isKeep(file)) {
       val mime = file.take(1) match {
         case "/" => "image/jpeg"
         case "i" => "image/png"
@@ -67,9 +67,9 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
       }
       this.mime.set(Some(mime))
       this.source.set(Some(s"data:$mime;base64,$file"))
-    } else if(file == FileUtils.keep) {
-      source.set(Some(FileUtils.keep))
-      this.mime.set(None)
+    } else if(FileUtils.isKeep(file)) {
+      source.set(Some(file))
+      this.mime.set(Some(FileUtils.extractMime(file)))
     } else {
       source.set(None)
       this.mime.set(None)
@@ -102,18 +102,13 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
   private def showFile(nested:Binding.NestedInterceptor) = div(ClientConf.style.noPadding)(
     nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
-      case ((Some(mime),source),nested) => if(mime.startsWith("image")) {
-        div(
-          source match {
-            case None => frag()
-            case Some(image) => img(src := image, ClientConf.style.maxFullWidth).render
-          }
-        ).render
+      case ((Some(mime),Some(file)),nested) if !FileUtils.isKeep(file) => if(mime.startsWith("image")) {
+        div(img(src := file, ClientConf.style.maxFullWidth)).render
       } else div(textAlign.center,marginTop := 20.px,
-        div(Icons.fileOk(50)),
+        div(Icons.fileOk(50),file.take(30)),
         span("File loaded")
       ).render
-      case ((None,Some(source)),nested) => div(
+      case ((Some(mime),Some(file)),nested) if FileUtils.isKeep(file) => div(
         nested(produce(urls) {
           case Some((thumb,_download)) => {
 
@@ -130,9 +125,13 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
             div(
               img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {
-                e.preventDefault()
-                url.set(Routes.apiV1(_download))
-                modal.show()
+                if(mime.startsWith("image")) {
+                  e.preventDefault()
+                  url.set(Routes.apiV1(_download))
+                  modal.show()
+                } else {
+                  window.open(Routes.apiV1(_download))
+                }
               })),
               modal
               //            div(

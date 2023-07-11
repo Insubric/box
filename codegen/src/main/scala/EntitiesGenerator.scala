@@ -157,7 +157,7 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
         val tableName = model.name.schema.map(s => s+".").getOrElse("") + model.name.table
 
         val columnsLight = model.columns.map{c =>
-          if(c.tpe == "Array[Byte]") s""" ''::bytea as "${c.name}" """ else
+          if(c.tpe == "Array[Byte]") s"""  substring("${c.name}" from 1 for 4096) as "${c.name}" """ else
             "\"" + c.name + "\""
         }.mkString(",")
 

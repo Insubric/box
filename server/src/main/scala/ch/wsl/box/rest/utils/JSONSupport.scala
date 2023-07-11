@@ -2,7 +2,6 @@ package ch.wsl.box.rest.utils
 
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 import java.util.Base64
-
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
@@ -15,6 +14,7 @@ import ch.wsl.box.shared.utils.DateTimeFormatters
 import geotrellis.vector.io.json.GeoJsonSupport
 import io.circe.Decoder.Result
 import geotrellis.vector._
+import org.apache.tika.Tika
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -26,6 +26,8 @@ import scala.util.Try
   *
   */
 object JSONSupport {
+
+  private val tika = new Tika()
 
   type EncoderWithBytea[T] = Encoder[Array[Byte]] => Encoder[T]
   implicit class ExtEncoder[T](ewb:EncoderWithBytea[T]) {
@@ -121,7 +123,7 @@ object JSONSupport {
     implicit val fileFormat: Encoder[Array[Byte]] with Decoder[Array[Byte]] = new Encoder[Array[Byte]] with Decoder[Array[Byte]] {
 
       override def apply(a: Array[Byte]): Json = Try {
-        Json.fromString(FileUtils.keep)
+        Json.fromString(FileUtils.keep(tika.detect(a.take(4096))))
       }.getOrElse(Json.Null)
 
 

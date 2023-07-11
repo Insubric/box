@@ -224,7 +224,7 @@ object JSONUtils extends Logging {
                   value.asJson.diff(childMetadata.get,children)(obj.asJson).models
                 }
                 case Some(field) if field.`type` == JSONFieldTypes.FILE => {
-                  if(newValue.contains(Json.fromString(FileUtils.keep))) Seq() else
+                  if(newValue.exists(nv => FileUtils.isKeep(nv.string))) Seq() else
                   Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
                 }
                 case Some(field) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
@@ -261,7 +261,7 @@ object JSONUtils extends Logging {
             bool => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
             num => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
             str => metadata.fields.find(f => f.name == key && f.`type` == JSONFieldTypes.FILE) match {
-              case Some(_) if str == FileUtils.keep => Seq()
+              case Some(_) if FileUtils.isKeep(str) => Seq()
               case _ => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
             },
             handleArray,
