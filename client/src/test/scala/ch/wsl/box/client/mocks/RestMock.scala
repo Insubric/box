@@ -102,6 +102,11 @@ class RestMock(values:Values) extends REST with Logging {
     values.get(id)
   }
 
+
+  override def maybeGet(kind: String, lang: String, entity: String, id: JSONID, public: Boolean): Future[Option[Json]] = Future.successful {
+    Some(values.get(id))
+  }
+
   override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean): Future[Json] = {
     Future.successful(values.update(id,data))
   }

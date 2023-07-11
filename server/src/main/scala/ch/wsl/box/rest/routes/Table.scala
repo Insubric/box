@@ -233,7 +233,10 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
   def getById(id:JSONID):Route = get {
     onComplete(db.run(jsonActions.getById(id))) {
       case Success(data) => {
-        complete(data)
+        data match {
+          case Some(value) => complete(value)
+          case None => complete(StatusCodes.NotFound, s"Id ${id.asString} not found")
+        }
       }
       case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
     }

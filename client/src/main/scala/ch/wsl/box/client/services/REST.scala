@@ -38,6 +38,7 @@ trait REST{
 
   //for entities and forms
   def get(kind:String, lang:String, entity:String, id:JSONID,public:Boolean = false):Future[Json]
+  def maybeGet(kind:String, lang:String, entity:String, id:JSONID,public:Boolean = false):Future[Option[Json]]
   def update(kind:String, lang:String, entity:String, id:JSONID, data:Json,public:Boolean = false):Future[Json]
   def updateMany(kind:String, lang:String, entity:String, ids:Seq[JSONID], data:Seq[Json]):Future[Seq[Json]]
   def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean): Future[Json]

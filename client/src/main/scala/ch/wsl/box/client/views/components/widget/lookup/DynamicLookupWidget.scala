@@ -41,20 +41,26 @@ trait DynamicLookupWidget extends Widget {
 
   monitoredFields.listen({localFields =>
     if(localFields.exists( x => x._2 != Json.Null)) {
-      services.rest.get(
+      services.rest.maybeGet(
         EntityKind.ENTITY.kind,
         services.clientSession.lang(),
         lookupLabel.remoteEntity,
         JSONID.fromMap(localFields),
         params.public
-      ).map{ remote =>
-        val remoteValue = lookupLabel.remoteField.split(",").toList match {
-          case singleField :: Nil => remote.js(singleField)
-          case Nil => Json.Null
-          case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
-        }
+      ).map{
+        case Some(remote) => {
+          val remoteValue = lookupLabel.remoteField.split(",").toList match {
+            case singleField :: Nil => remote.js(singleField)
+            case Nil => Json.Null
+            case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
+          }
 
-        remoteField.set(remoteValue)
+          remoteField.set(remoteValue)
+        }
+        case None => remoteField.set(Json.Null)
+      }.recover{ case t:Exception =>
+        t.printStackTrace()
+        remoteField.set(Json.Null)
       }
     } else {
       remoteField.set(Json.Null)

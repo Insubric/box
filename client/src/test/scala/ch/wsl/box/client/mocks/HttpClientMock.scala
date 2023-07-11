@@ -15,6 +15,8 @@ class HttpClientMock extends HttpClient {
 
   override def get[T](url: String)(implicit decoder: Decoder[T]): Future[T] = throw new Exception("delete not implemented")
 
+  override def maybeGet[T](url: String)(implicit decoder: Decoder[T]): Future[Option[T]] = ???
+
   override def delete[T](url: String)(implicit decoder: Decoder[T]): Future[T] = throw new Exception("delete not implemented")
 
   override def sendFile[T](url: String, file: File)(implicit decoder: Decoder[T]): Future[T] = throw new Exception("sendFile not implemented")

@@ -60,17 +60,21 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest): Future[Seq[JSONLookups]] = httpClient.post[JSONLookupsRequest,Seq[JSONLookups]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/lookups"),fk)
 
-  //for entities and forms
-  def get(kind:String, lang:String, entity:String, id:JSONID, public:Boolean):Future[Json] = {
-
-    val prefix = (public,EntityKind(kind).isEntity) match {
-      case (true,true) => "/public"
-      case (true,false) => s"/public/${EntityKind(kind).entityOrForm}/$lang"
-      case (false,_) => s"/${EntityKind(kind).entityOrForm}/$lang"
-    }
-
-    httpClient.get[Json](Routes.apiV1(s"$prefix/$entity/id/${id.asString}"))
+  private def prefix(kind: String, lang: String, public: Boolean):String = (public, EntityKind(kind).isEntity) match {
+    case (true, true) => "/public"
+    case (true, false) => s"/public/${EntityKind(kind).entityOrForm}/$lang"
+    case (false, _) => s"/${EntityKind(kind).entityOrForm}/$lang"
   }
+
+  //for entities and forms
+  override def get(kind:String, lang:String, entity:String, id:JSONID, public:Boolean):Future[Json] = {
+    httpClient.get[Json](Routes.apiV1(s"${prefix(kind,lang,public)}/$entity/id/${id.asString}"))
+  }
+
+  override def maybeGet(kind: String, lang: String, entity: String, id: JSONID, public: Boolean): Future[Option[Json]] = {
+    httpClient.maybeGet[Json](Routes.apiV1(s"${prefix(kind, lang, public)}/$entity/id/${id.asString}"))
+  }
+
   def update(kind:String, lang:String, entity:String, id:JSONID, data:Json, public:Boolean):Future[Json] = {
     val prefix = if(public) "/public" else ""
     httpClient.put[Json,Json](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/id/${id.asString}"),data)
