@@ -202,6 +202,7 @@ object FormUIDef {
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
+      CommonField.roles,
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
@@ -232,7 +233,8 @@ object FormUIDef {
           "max",
           "conditionFieldId",
           "conditionValues",
-          "params"
+          "params",
+          "roles"
         ).map(Left(_))),
         LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
       )

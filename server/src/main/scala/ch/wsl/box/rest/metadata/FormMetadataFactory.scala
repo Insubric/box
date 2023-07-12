@@ -64,7 +64,14 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     BoxForm.BoxFormTable.result
   }.map{_.map(_.name)}
 
-  def of(id:UUID, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
+  def filterRoles(user:CurrentUser)(metadata:DBIO[JSONMetadata])(implicit ec:ExecutionContext):DBIO[JSONMetadata] = metadata.map{ m =>
+
+    def filterRole(field:JSONField):Boolean = field.roles.isEmpty || field.roles.intersect(user.roles ++ Seq(user.username)).nonEmpty
+
+    m.copy(fields = m.fields.filter(filterRole))
+  }
+
+  def of(id:UUID, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = filterRoles(user){
     val cacheKey = (id,lang)
     FormMetadataFactory.cacheFormId.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
@@ -88,7 +95,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     }
   }
 
-  def of(name:String, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
+  def of(name:String, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = filterRoles(user){
     val cacheKey = (name,lang)
     FormMetadataFactory.cacheFormName.lift(cacheKey) match {
       case Some(r) => DBIO.successful(r)

@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object FormFixtures{
 
-  private val simpleName = "simple"
+  val simpleName = "simple"
 
   private val simpleForm = BoxForm_row(
     name = simpleName,

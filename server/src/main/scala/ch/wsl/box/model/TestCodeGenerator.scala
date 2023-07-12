@@ -29,7 +29,6 @@ object TestDatabase{
   def setUp(connection:Connection) = {
 
     val base = Source.fromResource("test_base.sql").getLines().mkString("\n")
-    //val boxBase = Source.fromResource("test_box_base.sql").getLines().mkString("\n")
 
     Try(Await.result(connection.dbConnection.run(sqlu"""CREATE ROLE postgres;""".transactionally),120.seconds))
     Await.result(connection.dbConnection.run(

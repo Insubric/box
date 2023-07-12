@@ -61,6 +61,10 @@ object CommonField {
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 50.asJson, "fullWidth" -> false.asJson))
   )
 
+  val roles = JSONField(JSONFieldTypes.ARRAY_STRING,"roles",true,
+    widget = Some(WidgetsNames.inputMultipleText)
+  )
+
   def lang(langs:Seq[String]) = JSONField(JSONFieldTypes.STRING,"lang",false,
 
     widget = Some(WidgetsNames.select),

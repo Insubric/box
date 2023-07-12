@@ -155,7 +155,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "child_form_uuid" -> ColType("java.util.UUID","string",false,true),
               "function" -> ColType("String","string",false,true),
               "min" -> ColType("Double","number",false,true),
-              "max" -> ColType("Double","number",false,true)
+              "max" -> ColType("Double","number",false,true),
+              "roles" -> ColType("List[String]","array_string",false,true)
 )
   private def field_file_map =  Map(
               "file_field" -> ColType("String","string",false,false),
@@ -214,7 +215,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "execute_function" -> ColType("String","string",false,true),
               "action_order" -> ColType("Double","number",false,false),
               "condition" -> ColType("io.circe.Json","json",false,true),
-              "html_check" -> ColType("Boolean","boolean",true,false)
+              "html_check" -> ColType("Boolean","boolean",true,false),
+              "target" -> ColType("String","string",false,true)
 )
   private def form_actions_table_map =  Map(
               "action" -> ColType("String","string",false,false),
@@ -340,7 +342,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "created" -> ColType("java.time.LocalDateTime","datetime",false,false),
               "wished_send_at" -> ColType("java.time.LocalDateTime","datetime",false,false),
               "mail_cc" -> ColType("List[String]","array_string",true,false),
-              "mail_bcc" -> ColType("List[String]","array_string",true,false)
+              "mail_bcc" -> ColType("List[String]","array_string",true,false),
+              "reply_to" -> ColType("String","string",false,true)
 )
   private def news_map =  Map(
               "datetime" -> ColType("java.time.LocalDateTime","datetime",true,false),
@@ -396,6 +399,7 @@ object FieldAccessRegistry extends FieldRegistry {
               "function" -> ColType("String","string",false,true),
               "min" -> ColType("Double","number",false,true),
               "max" -> ColType("Double","number",false,true),
+              "roles" -> ColType("List[String]","array_string",false,true),
               "entity_field" -> ColType("Boolean","boolean",false,true)
 )
   private def v_labels_map =  Map(

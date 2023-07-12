@@ -74,7 +74,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           })
 
           lookup.listen(values => {
-            val choices = values.toSeq.map(x => Choice(x.value,x.id)).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]]
+            val choices = values.toSeq.map(x => Choice(x.value,x.id.string)).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]]
             choicesJs.setChoices(choices)
           },true)
         }

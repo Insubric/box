@@ -28,6 +28,8 @@ object Entities {
       val profile = ch.wsl.box.jdbc.PostgresProfile
 
           import slick.model.ForeignKeyAction
+  import slick.collection.heterogeneous._
+  import slick.collection.heterogeneous.syntax._
   // NOTE: GetResult mappers for plain SQL are only generated for tables where Slick knows how to map the types of all columns.
   import slick.jdbc.{GetResult => GR}
 
@@ -78,7 +80,7 @@ object Entities {
         sqlActionBuilder.as[Access_level_row](boxGetResult)
       }
 
-    def * = (Rep.Some(access_level_id), access_level) <> (Access_level_row.tupled, Access_level_row.unapply)
+    def * = (Rep.Some(access_level_id), access_level).<>(Access_level_row.tupled, Access_level_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(access_level_id), Rep.Some(access_level))).shaped.<>({r=>import r._; _1.map(_=> Access_level_row.tupled((_1, _2.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -132,7 +134,7 @@ object Entities {
         sqlActionBuilder.as[Conf_row](boxGetResult)
       }
 
-    def * = (key, value) <> (Conf_row.tupled, Conf_row.unapply)
+    def * = (key, value).<>(Conf_row.tupled, Conf_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(key), value)).shaped.<>({r=>import r._; _1.map(_=> Conf_row.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -187,7 +189,7 @@ object Entities {
         sqlActionBuilder.as[Cron_row](boxGetResult)
       }
 
-    def * = (name, cron, sql) <> (Cron_row.tupled, Cron_row.unapply)
+    def * = (name, cron, sql).<>(Cron_row.tupled, Cron_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(name), Rep.Some(cron), Rep.Some(sql))).shaped.<>({r=>import r._; _1.map(_=> Cron_row.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -249,7 +251,7 @@ object Entities {
         sqlActionBuilder.as[Export_row](boxGetResult)
       }
 
-    def * = (name, function, description, layout, parameters, order, access_role, Rep.Some(export_uuid)) <> (Export_row.tupled, Export_row.unapply)
+    def * = (name, function, description, layout, parameters, order, access_role, Rep.Some(export_uuid)).<>(Export_row.tupled, Export_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(name), Rep.Some(function), description, layout, parameters, order, access_role, Rep.Some(export_uuid))).shaped.<>({r=>import r._; _1.map(_=> Export_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -325,7 +327,7 @@ object Entities {
         sqlActionBuilder.as[Export_field_row](boxGetResult)
       }
 
-    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), export_uuid) <> (Export_field_row.tupled, Export_field_row.unapply)
+    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), export_uuid).<>(Export_field_row.tupled, Export_field_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), Rep.Some(export_uuid))).shaped.<>({r=>import r._; _1.map(_=> Export_field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -407,7 +409,7 @@ object Entities {
         sqlActionBuilder.as[Export_field_i18n_row](boxGetResult)
       }
 
-    def * = (lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), field_uuid) <> (Export_field_i18n_row.tupled, Export_field_i18n_row.unapply)
+    def * = (lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), field_uuid).<>(Export_field_i18n_row.tupled, Export_field_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), Rep.Some(field_uuid))).shaped.<>({r=>import r._; _7.map(_=> Export_field_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -484,7 +486,7 @@ object Entities {
         sqlActionBuilder.as[Export_i18n_row](boxGetResult)
       }
 
-    def * = (lang, label, tooltip, hint, function, Rep.Some(uuid), export_uuid) <> (Export_i18n_row.tupled, Export_i18n_row.unapply)
+    def * = (lang, label, tooltip, hint, function, Rep.Some(uuid), export_uuid).<>(Export_i18n_row.tupled, Export_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((lang, label, tooltip, hint, function, Rep.Some(uuid), Rep.Some(export_uuid))).shaped.<>({r=>import r._; _6.map(_=> Export_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -533,15 +535,16 @@ object Entities {
    *  @param child_form_uuid Database column child_form_uuid SqlType(uuid), Default(None)
    *  @param function Database column function SqlType(text), Default(None)
    *  @param min Database column min SqlType(float8), Default(None)
-   *  @param max Database column max SqlType(float8), Default(None) */
-  case class Field_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[String] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None)
+   *  @param max Database column max SqlType(float8), Default(None)
+   *  @param roles Database column roles SqlType(_text), Default(None) */
+  case class Field_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[String] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, roles: Option[List[String]] = None)
 
 
-  val decodeField_row:Decoder[Field_row] = Decoder.forProduct21("type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max")(Field_row.apply)
+  val decodeField_row:Decoder[Field_row] = Decoder.forProduct22("type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles")(Field_row.apply)
   val encodeField_row:EncoderWithBytea[Field_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct21("type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max")(x =>
-      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.masterFields, x.childFields, x.childQuery, x.default, x.conditionFieldId, x.conditionValues, x.params, x.read_only, x.required, x.field_uuid, x.form_uuid, x.child_form_uuid, x.function, x.min, x.max)
+    Encoder.forProduct22("type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles")(x =>
+      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.masterFields, x.childFields, x.childQuery, x.default, x.conditionFieldId, x.conditionValues, x.params, x.read_only, x.required, x.field_uuid, x.form_uuid, x.child_form_uuid, x.function, x.min, x.max, x.roles)
     )
   }
 
@@ -553,7 +556,7 @@ object Entities {
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class Field(_tableTag: Tag) extends Table[Field_row](_tableTag, Some("test_box"), "field") with UpdateTable[Field_row] {
 
-    def boxGetResult = GR(r => Field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.nextUUIDOption,r.<<,r.<<,r.<<))
+    def boxGetResult = GR(r => Field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList)))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Field_row]] = {
         val kv = keyValueComposer(this)
@@ -562,7 +565,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max" """
+          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Field_row](boxGetResult).head.map(x => Some(x))
@@ -570,13 +573,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max" from "test_box"."field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles" from "test_box"."field" """,where)
         sqlActionBuilder.as[Field_row](boxGetResult)
       }
 
-    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, masterFields, childFields, childQuery, default, conditionFieldId, conditionValues, params, read_only, required, Rep.Some(field_uuid), form_uuid, child_form_uuid, function, min, max) <> (Field_row.tupled, Field_row.unapply)
+    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, masterFields, childFields, childQuery, default, conditionFieldId, conditionValues, params, read_only, required, Rep.Some(field_uuid), form_uuid, child_form_uuid, function, min, max, roles).<>(Field_row.tupled, Field_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, masterFields, childFields, childQuery, default, conditionFieldId, conditionValues, params, Rep.Some(read_only), required, Rep.Some(field_uuid), Rep.Some(form_uuid), child_form_uuid, function, min, max)).shaped.<>({r=>import r._; _1.map(_=> Field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14.get, _15, _16, _17.get, _18, _19, _20, _21)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, masterFields, childFields, childQuery, default, conditionFieldId, conditionValues, params, Rep.Some(read_only), required, Rep.Some(field_uuid), Rep.Some(form_uuid), child_form_uuid, function, min, max, roles)).shaped.<>({r=>import r._; _1.map(_=> Field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14.get, _15, _16, _17.get, _18, _19, _20, _21, _22)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column type SqlType(varchar)
      *  NOTE: The name was escaped because it collided with a Scala keyword. */
@@ -621,6 +624,8 @@ object Entities {
     val min: Rep[Option[Double]] = column[Option[Double]]("min", O.Default(None))
     /** Database column max SqlType(float8), Default(None) */
     val max: Rep[Option[Double]] = column[Option[Double]]("max", O.Default(None))
+    /** Database column roles SqlType(_text), Default(None) */
+    val roles: Rep[Option[List[String]]] = column[Option[List[String]]]("roles", O.Default(None))
 
     /** Foreign key referencing Form (database name fkey_form) */
     lazy val formFk1 = foreignKey("fkey_form", form_uuid, Form)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
@@ -674,7 +679,7 @@ object Entities {
         sqlActionBuilder.as[Field_file_row](boxGetResult)
       }
 
-    def * = (file_field, thumbnail_field, name_field, field_uuid) <> (Field_file_row.tupled, Field_file_row.unapply)
+    def * = (file_field, thumbnail_field, name_field, field_uuid).<>(Field_file_row.tupled, Field_file_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(file_field), thumbnail_field, Rep.Some(name_field), Rep.Some(field_uuid))).shaped.<>({r=>import r._; _1.map(_=> Field_file_row.tupled((_1.get, _2, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -741,7 +746,7 @@ object Entities {
         sqlActionBuilder.as[Field_i18n_row](boxGetResult)
       }
 
-    def * = (lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), field_uuid) <> (Field_i18n_row.tupled, Field_i18n_row.unapply)
+    def * = (lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), field_uuid).<>(Field_i18n_row.tupled, Field_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), Rep.Some(field_uuid))).shaped.<>({r=>import r._; _7.map(_=> Field_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -822,7 +827,7 @@ object Entities {
         sqlActionBuilder.as[Flyway_schema_history_box_row](boxGetResult)
       }
 
-    def * = (installed_rank, version, description, `type`, script, checksum, installed_by, installed_on, execution_time, success) <> (Flyway_schema_history_box_row.tupled, Flyway_schema_history_box_row.unapply)
+    def * = (installed_rank, version, description, `type`, script, checksum, installed_by, installed_on, execution_time, success).<>(Flyway_schema_history_box_row.tupled, Flyway_schema_history_box_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(installed_rank), version, Rep.Some(description), Rep.Some(`type`), Rep.Some(script), checksum, Rep.Some(installed_by), Rep.Some(installed_on), Rep.Some(execution_time), Rep.Some(success))).shaped.<>({r=>import r._; _1.map(_=> Flyway_schema_history_box_row.tupled((_1.get, _2, _3.get, _4.get, _5.get, _6, _7.get, _8.get, _9.get, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -907,7 +912,7 @@ object Entities {
         sqlActionBuilder.as[Form_row](boxGetResult)
       }
 
-    def * = (name, entity, description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, show_navigation, props, Rep.Some(form_uuid), params) <> (Form_row.tupled, Form_row.unapply)
+    def * = (name, entity, description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, show_navigation, props, Rep.Some(form_uuid), params).<>(Form_row.tupled, Form_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(name), Rep.Some(entity), description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, Rep.Some(show_navigation), props, Rep.Some(form_uuid), params)).shaped.<>({r=>import r._; _1.map(_=> Form_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10.get, _11, _12, _13)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -955,15 +960,16 @@ object Entities {
    *  @param execute_function Database column execute_function SqlType(text), Default(None)
    *  @param action_order Database column action_order SqlType(float8)
    *  @param condition Database column condition SqlType(jsonb), Default(None)
-   *  @param html_check Database column html_check SqlType(bool), Default(true) */
-  case class Form_actions_row(action: String, importance: String, after_action_goto: Option[String] = None, label: String, update_only: Boolean = false, insert_only: Boolean = false, reload: Boolean = false, confirm_text: Option[String] = None, uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, execute_function: Option[String] = None, action_order: Double, condition: Option[io.circe.Json] = None, html_check: Boolean = true)
+   *  @param html_check Database column html_check SqlType(bool), Default(true)
+   *  @param target Database column target SqlType(text), Default(None) */
+  case class Form_actions_row(action: String, importance: String, after_action_goto: Option[String] = None, label: String, update_only: Boolean = false, insert_only: Boolean = false, reload: Boolean = false, confirm_text: Option[String] = None, uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, execute_function: Option[String] = None, action_order: Double, condition: Option[io.circe.Json] = None, html_check: Boolean = true, target: Option[String] = None)
 
 
-  val decodeForm_actions_row:Decoder[Form_actions_row] = Decoder.forProduct14("action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check")(Form_actions_row.apply)
+  val decodeForm_actions_row:Decoder[Form_actions_row] = Decoder.forProduct15("action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","target")(Form_actions_row.apply)
   val encodeForm_actions_row:EncoderWithBytea[Form_actions_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct14("action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check")(x =>
-      (x.action, x.importance, x.after_action_goto, x.label, x.update_only, x.insert_only, x.reload, x.confirm_text, x.uuid, x.form_uuid, x.execute_function, x.action_order, x.condition, x.html_check)
+    Encoder.forProduct15("action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","target")(x =>
+      (x.action, x.importance, x.after_action_goto, x.label, x.update_only, x.insert_only, x.reload, x.confirm_text, x.uuid, x.form_uuid, x.execute_function, x.action_order, x.condition, x.html_check, x.target)
     )
   }
 
@@ -974,7 +980,7 @@ object Entities {
   /** Table description of table form_actions. Objects of this class serve as prototypes for rows in queries. */
   class Form_actions(_tableTag: Tag) extends Table[Form_actions_row](_tableTag, Some("test_box"), "form_actions") with UpdateTable[Form_actions_row] {
 
-    def boxGetResult = GR(r => Form_actions_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<,r.<<,r.<<,r.<<))
+    def boxGetResult = GR(r => Form_actions_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<,r.<<,r.<<,r.<<,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Form_actions_row]] = {
         val kv = keyValueComposer(this)
@@ -983,7 +989,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."form_actions" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check" """
+          val returning = sql""" returning "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","target" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Form_actions_row](boxGetResult).head.map(x => Some(x))
@@ -991,13 +997,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_actions_row]] = {
-        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check" from "test_box"."form_actions" """,where)
+        val sqlActionBuilder = concat(sql"""select "action","importance","after_action_goto","label","update_only","insert_only","reload","confirm_text","uuid","form_uuid","execute_function","action_order","condition","html_check","target" from "test_box"."form_actions" """,where)
         sqlActionBuilder.as[Form_actions_row](boxGetResult)
       }
 
-    def * = (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, Rep.Some(uuid), form_uuid, execute_function, action_order, condition, html_check) <> (Form_actions_row.tupled, Form_actions_row.unapply)
+    def * = (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, Rep.Some(uuid), form_uuid, execute_function, action_order, condition, html_check, target).<>(Form_actions_row.tupled, Form_actions_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(action), Rep.Some(importance), after_action_goto, Rep.Some(label), Rep.Some(update_only), Rep.Some(insert_only), Rep.Some(reload), confirm_text, Rep.Some(uuid), Rep.Some(form_uuid), execute_function, Rep.Some(action_order), condition, Rep.Some(html_check))).shaped.<>({r=>import r._; _1.map(_=> Form_actions_row.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7.get, _8, _9, _10.get, _11, _12.get, _13, _14.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(action), Rep.Some(importance), after_action_goto, Rep.Some(label), Rep.Some(update_only), Rep.Some(insert_only), Rep.Some(reload), confirm_text, Rep.Some(uuid), Rep.Some(form_uuid), execute_function, Rep.Some(action_order), condition, Rep.Some(html_check), target)).shaped.<>({r=>import r._; _1.map(_=> Form_actions_row.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7.get, _8, _9, _10.get, _11, _12.get, _13, _14.get, _15)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column action SqlType(text) */
     val action: Rep[String] = column[String]("action")
@@ -1027,6 +1033,8 @@ object Entities {
     val condition: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("condition", O.Default(None))
     /** Database column html_check SqlType(bool), Default(true) */
     val html_check: Rep[Boolean] = column[Boolean]("html_check", O.Default(true))
+    /** Database column target SqlType(text), Default(None) */
+    val target: Rep[Option[String]] = column[Option[String]]("target", O.Default(None))
 
     /** Foreign key referencing Form (database name form_actions_form_form_id_fk) */
     lazy val formFk = foreignKey("form_actions_form_form_id_fk", form_uuid, Form)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
@@ -1092,7 +1100,7 @@ object Entities {
         sqlActionBuilder.as[Form_actions_table_row](boxGetResult)
       }
 
-    def * = (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, Rep.Some(uuid), form_uuid, execute_function, action_order, condition, html_check, need_update_right, need_delete_right, when_no_update_right, target) <> (Form_actions_table_row.tupled, Form_actions_table_row.unapply)
+    def * = (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, Rep.Some(uuid), form_uuid, execute_function, action_order, condition, html_check, need_update_right, need_delete_right, when_no_update_right, target).<>(Form_actions_table_row.tupled, Form_actions_table_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(action), Rep.Some(importance), after_action_goto, Rep.Some(label), Rep.Some(update_only), Rep.Some(insert_only), Rep.Some(reload), confirm_text, Rep.Some(uuid), Rep.Some(form_uuid), execute_function, Rep.Some(action_order), condition, Rep.Some(html_check), Rep.Some(need_update_right), Rep.Some(need_delete_right), Rep.Some(when_no_update_right), target)).shaped.<>({r=>import r._; _1.map(_=> Form_actions_table_row.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7.get, _8, _9, _10.get, _11, _12.get, _13, _14.get, _15.get, _16.get, _17.get, _18)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1194,7 +1202,7 @@ object Entities {
         sqlActionBuilder.as[Form_actions_top_table_row](boxGetResult)
       }
 
-    def * = (action, importance, after_action_goto, label, confirm_text, Rep.Some(uuid), form_uuid, execute_function, action_order, condition, need_update_right, need_delete_right, need_insert_right, when_no_update_right, target) <> (Form_actions_top_table_row.tupled, Form_actions_top_table_row.unapply)
+    def * = (action, importance, after_action_goto, label, confirm_text, Rep.Some(uuid), form_uuid, execute_function, action_order, condition, need_update_right, need_delete_right, need_insert_right, when_no_update_right, target).<>(Form_actions_top_table_row.tupled, Form_actions_top_table_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(action), Rep.Some(importance), after_action_goto, Rep.Some(label), confirm_text, Rep.Some(uuid), Rep.Some(form_uuid), execute_function, Rep.Some(action_order), condition, Rep.Some(need_update_right), Rep.Some(need_delete_right), Rep.Some(need_insert_right), Rep.Some(when_no_update_right), target)).shaped.<>({r=>import r._; _1.map(_=> Form_actions_top_table_row.tupled((_1.get, _2.get, _3, _4.get, _5, _6, _7.get, _8, _9.get, _10, _11.get, _12.get, _13.get, _14.get, _15)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1281,7 +1289,7 @@ object Entities {
         sqlActionBuilder.as[Form_i18n_row](boxGetResult)
       }
 
-    def * = (lang, label, view_table, dynamic_label, Rep.Some(uuid), form_uuid) <> (Form_i18n_row.tupled, Form_i18n_row.unapply)
+    def * = (lang, label, view_table, dynamic_label, Rep.Some(uuid), form_uuid).<>(Form_i18n_row.tupled, Form_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((lang, label, view_table, dynamic_label, Rep.Some(uuid), Rep.Some(form_uuid))).shaped.<>({r=>import r._; _5.map(_=> Form_i18n_row.tupled((_1, _2, _3, _4, _5, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1359,7 +1367,7 @@ object Entities {
         sqlActionBuilder.as[Form_navigation_actions_row](boxGetResult)
       }
 
-    def * = (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, execute_function, action_order, Rep.Some(uuid), form_uuid) <> (Form_navigation_actions_row.tupled, Form_navigation_actions_row.unapply)
+    def * = (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, execute_function, action_order, Rep.Some(uuid), form_uuid).<>(Form_navigation_actions_row.tupled, Form_navigation_actions_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(action), Rep.Some(importance), after_action_goto, Rep.Some(label), Rep.Some(update_only), Rep.Some(insert_only), Rep.Some(reload), confirm_text, execute_function, Rep.Some(action_order), Rep.Some(uuid), Rep.Some(form_uuid))).shaped.<>({r=>import r._; _1.map(_=> Form_navigation_actions_row.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7.get, _8, _9, _10.get, _11, _12.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1443,7 +1451,7 @@ object Entities {
         sqlActionBuilder.as[Function_row](boxGetResult)
       }
 
-    def * = (name, function, description, layout, order, access_role, presenter, mode, Rep.Some(function_uuid)) <> (Function_row.tupled, Function_row.unapply)
+    def * = (name, function, description, layout, order, access_role, presenter, mode, Rep.Some(function_uuid)).<>(Function_row.tupled, Function_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(name), Rep.Some(function), description, layout, order, access_role, presenter, Rep.Some(mode), Rep.Some(function_uuid))).shaped.<>({r=>import r._; _1.map(_=> Function_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8.get, _9)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1521,7 +1529,7 @@ object Entities {
         sqlActionBuilder.as[Function_field_row](boxGetResult)
       }
 
-    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), function_uuid) <> (Function_field_row.tupled, Function_field_row.unapply)
+    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), function_uuid).<>(Function_field_row.tupled, Function_field_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), Rep.Some(function_uuid))).shaped.<>({r=>import r._; _1.map(_=> Function_field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1603,7 +1611,7 @@ object Entities {
         sqlActionBuilder.as[Function_field_i18n_row](boxGetResult)
       }
 
-    def * = (lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), field_uuid) <> (Function_field_i18n_row.tupled, Function_field_i18n_row.unapply)
+    def * = (lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), field_uuid).<>(Function_field_i18n_row.tupled, Function_field_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((lang, label, placeholder, tooltip, hint, lookupTextField, Rep.Some(uuid), Rep.Some(field_uuid))).shaped.<>({r=>import r._; _7.map(_=> Function_field_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1680,7 +1688,7 @@ object Entities {
         sqlActionBuilder.as[Function_i18n_row](boxGetResult)
       }
 
-    def * = (lang, label, tooltip, hint, function, Rep.Some(uuid), function_uuid) <> (Function_i18n_row.tupled, Function_i18n_row.unapply)
+    def * = (lang, label, tooltip, hint, function, Rep.Some(uuid), function_uuid).<>(Function_i18n_row.tupled, Function_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((lang, label, tooltip, hint, function, Rep.Some(uuid), Rep.Some(function_uuid))).shaped.<>({r=>import r._; _6.map(_=> Function_i18n_row.tupled((_1, _2, _3, _4, _5, _6, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1738,7 +1746,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."image_cache" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "key", ''::bytea as "data"  """
+          val returning = sql""" returning "key",  substring("data" from 1 for 4096) as "data"  """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Image_cache_row](boxGetResult).head.map(x => Some(x))
@@ -1746,11 +1754,11 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Image_cache_row]] = {
-        val sqlActionBuilder = concat(sql"""select "key", ''::bytea as "data"  from "test_box"."image_cache" """,where)
+        val sqlActionBuilder = concat(sql"""select "key",  substring("data" from 1 for 4096) as "data"  from "test_box"."image_cache" """,where)
         sqlActionBuilder.as[Image_cache_row](boxGetResult)
       }
 
-    def * = (key, data) <> (Image_cache_row.tupled, Image_cache_row.unapply)
+    def * = (key, data).<>(Image_cache_row.tupled, Image_cache_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(key), Rep.Some(data))).shaped.<>({r=>import r._; _1.map(_=> Image_cache_row.tupled((_1.get, _2.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1805,7 +1813,7 @@ object Entities {
         sqlActionBuilder.as[Labels_row](boxGetResult)
       }
 
-    def * = (lang, key, label) <> (Labels_row.tupled, Labels_row.unapply)
+    def * = (lang, key, label).<>(Labels_row.tupled, Labels_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(lang), Rep.Some(key), label)).shaped.<>({r=>import r._; _1.map(_=> Labels_row.tupled((_1.get, _2.get, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -1835,15 +1843,16 @@ object Entities {
    *  @param created Database column created SqlType(timestamp)
    *  @param wished_send_at Database column wished_send_at SqlType(timestamp)
    *  @param mail_cc Database column mail_cc SqlType(_text)
-   *  @param mail_bcc Database column mail_bcc SqlType(_text) */
-  case class Mails_row(id: Option[java.util.UUID] = None, send_at: java.time.LocalDateTime, sent_at: Option[java.time.LocalDateTime] = None, mail_from: String, mail_to: List[String], subject: String, html: String, text: Option[String] = None, params: Option[io.circe.Json] = None, created: java.time.LocalDateTime, wished_send_at: java.time.LocalDateTime, mail_cc: List[String], mail_bcc: List[String])
+   *  @param mail_bcc Database column mail_bcc SqlType(_text)
+   *  @param reply_to Database column reply_to SqlType("test_box"."email"), Default(None) */
+  case class Mails_row(id: Option[java.util.UUID] = None, send_at: java.time.LocalDateTime, sent_at: Option[java.time.LocalDateTime] = None, mail_from: String, mail_to: List[String], subject: String, html: String, text: Option[String] = None, params: Option[io.circe.Json] = None, created: java.time.LocalDateTime, wished_send_at: java.time.LocalDateTime, mail_cc: List[String], mail_bcc: List[String], reply_to: Option[String] = None)
 
 
-  val decodeMails_row:Decoder[Mails_row] = Decoder.forProduct13("id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc")(Mails_row.apply)
+  val decodeMails_row:Decoder[Mails_row] = Decoder.forProduct14("id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc","reply_to")(Mails_row.apply)
   val encodeMails_row:EncoderWithBytea[Mails_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct13("id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc")(x =>
-      (x.id, x.send_at, x.sent_at, x.mail_from, x.mail_to, x.subject, x.html, x.text, x.params, x.created, x.wished_send_at, x.mail_cc, x.mail_bcc)
+    Encoder.forProduct14("id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc","reply_to")(x =>
+      (x.id, x.send_at, x.sent_at, x.mail_from, x.mail_to, x.subject, x.html, x.text, x.params, x.created, x.wished_send_at, x.mail_cc, x.mail_bcc, x.reply_to)
     )
   }
 
@@ -1854,7 +1863,7 @@ object Entities {
   /** Table description of table mails. Objects of this class serve as prototypes for rows in queries. */
   class Mails(_tableTag: Tag) extends Table[Mails_row](_tableTag, Some("test_box"), "mails") with UpdateTable[Mails_row] {
 
-    def boxGetResult = GR(r => Mails_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArray[String].toList,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArray[String].toList,r.nextArray[String].toList))
+    def boxGetResult = GR(r => Mails_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArray[String].toList,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArray[String].toList,r.nextArray[String].toList,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Mails_row]] = {
         val kv = keyValueComposer(this)
@@ -1863,7 +1872,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."mails" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc" """
+          val returning = sql""" returning "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc","reply_to" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Mails_row](boxGetResult).head.map(x => Some(x))
@@ -1871,13 +1880,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Mails_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc" from "test_box"."mails" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","send_at","sent_at","mail_from","mail_to","subject","html","text","params","created","wished_send_at","mail_cc","mail_bcc","reply_to" from "test_box"."mails" """,where)
         sqlActionBuilder.as[Mails_row](boxGetResult)
       }
 
-    def * = (Rep.Some(id), send_at, sent_at, mail_from, mail_to, subject, html, text, params, created, wished_send_at, mail_cc, mail_bcc) <> (Mails_row.tupled, Mails_row.unapply)
+    def * = (Rep.Some(id), send_at, sent_at, mail_from, mail_to, subject, html, text, params, created, wished_send_at, mail_cc, mail_bcc, reply_to).<>(Mails_row.tupled, Mails_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(id), Rep.Some(send_at), sent_at, Rep.Some(mail_from), Rep.Some(mail_to), Rep.Some(subject), Rep.Some(html), text, params, Rep.Some(created), Rep.Some(wished_send_at), Rep.Some(mail_cc), Rep.Some(mail_bcc))).shaped.<>({r=>import r._; _1.map(_=> Mails_row.tupled((_1, _2.get, _3, _4.get, _5.get, _6.get, _7.get, _8, _9, _10.get, _11.get, _12.get, _13.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(id), Rep.Some(send_at), sent_at, Rep.Some(mail_from), Rep.Some(mail_to), Rep.Some(subject), Rep.Some(html), text, params, Rep.Some(created), Rep.Some(wished_send_at), Rep.Some(mail_cc), Rep.Some(mail_bcc), reply_to)).shaped.<>({r=>import r._; _1.map(_=> Mails_row.tupled((_1, _2.get, _3, _4.get, _5.get, _6.get, _7.get, _8, _9, _10.get, _11.get, _12.get, _13.get, _14)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(uuid), PrimaryKey */
     val id: Rep[java.util.UUID] = column[java.util.UUID]("id", O.PrimaryKey, O.AutoInc)
@@ -1905,6 +1914,8 @@ object Entities {
     val mail_cc: Rep[List[String]] = column[List[String]]("mail_cc")
     /** Database column mail_bcc SqlType(_text) */
     val mail_bcc: Rep[List[String]] = column[List[String]]("mail_bcc")
+    /** Database column reply_to SqlType("test_box"."email"), Default(None) */
+    val reply_to: Rep[Option[String]] = column[Option[String]]("reply_to", O.Default(None))
   }
   /** Collection-like TableQuery object for table Mails */
   lazy val Mails = new TableQuery(tag => new Mails(tag))
@@ -1952,7 +1963,7 @@ object Entities {
         sqlActionBuilder.as[News_row](boxGetResult)
       }
 
-    def * = (datetime, author, Rep.Some(news_uuid)) <> (News_row.tupled, News_row.unapply)
+    def * = (datetime, author, Rep.Some(news_uuid)).<>(News_row.tupled, News_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(datetime), author, Rep.Some(news_uuid))).shaped.<>({r=>import r._; _1.map(_=> News_row.tupled((_1.get, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -2010,7 +2021,7 @@ object Entities {
         sqlActionBuilder.as[News_i18n_row](boxGetResult)
       }
 
-    def * = (lang, text, title, news_uuid) <> (News_i18n_row.tupled, News_i18n_row.unapply)
+    def * = (lang, text, title, news_uuid).<>(News_i18n_row.tupled, News_i18n_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(lang), Rep.Some(text), title, Rep.Some(news_uuid))).shaped.<>({r=>import r._; _1.map(_=> News_i18n_row.tupled((_1.get, _2.get, _3, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -2075,7 +2086,7 @@ object Entities {
         sqlActionBuilder.as[Public_entities_row](boxGetResult)
       }
 
-    def * = (entity, insert, update) <> (Public_entities_row.tupled, Public_entities_row.unapply)
+    def * = (entity, insert, update).<>(Public_entities_row.tupled, Public_entities_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(entity), insert, update)).shaped.<>({r=>import r._; _1.map(_=> Public_entities_row.tupled((_1.get, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -2132,7 +2143,7 @@ object Entities {
         sqlActionBuilder.as[Ui_row](boxGetResult)
       }
 
-    def * = (key, value, access_level_id) <> (Ui_row.tupled, Ui_row.unapply)
+    def * = (key, value, access_level_id).<>(Ui_row.tupled, Ui_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(key), Rep.Some(value), Rep.Some(access_level_id))).shaped.<>({r=>import r._; _1.map(_=> Ui_row.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -2182,7 +2193,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."ui_src" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning  ''::bytea as "file" ,"mime","name","access_level_id","uuid" """
+          val returning = sql""" returning   substring("file" from 1 for 4096) as "file" ,"mime","name","access_level_id","uuid" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Ui_src_row](boxGetResult).head.map(x => Some(x))
@@ -2190,11 +2201,11 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Ui_src_row]] = {
-        val sqlActionBuilder = concat(sql"""select  ''::bytea as "file" ,"mime","name","access_level_id","uuid" from "test_box"."ui_src" """,where)
+        val sqlActionBuilder = concat(sql"""select   substring("file" from 1 for 4096) as "file" ,"mime","name","access_level_id","uuid" from "test_box"."ui_src" """,where)
         sqlActionBuilder.as[Ui_src_row](boxGetResult)
       }
 
-    def * = (file, mime, name, access_level_id, Rep.Some(uuid)) <> (Ui_src_row.tupled, Ui_src_row.unapply)
+    def * = (file, mime, name, access_level_id, Rep.Some(uuid)).<>(Ui_src_row.tupled, Ui_src_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((file, mime, name, Rep.Some(access_level_id), Rep.Some(uuid))).shaped.<>({r=>import r._; _4.map(_=> Ui_src_row.tupled((_1, _2, _3, _4.get, _5)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -2254,7 +2265,7 @@ object Entities {
         sqlActionBuilder.as[Users_row](boxGetResult)
       }
 
-    def * = (username, access_level_id) <> (Users_row.tupled, Users_row.unapply)
+    def * = (username, access_level_id).<>(Users_row.tupled, Users_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(username), Rep.Some(access_level_id))).shaped.<>({r=>import r._; _1.map(_=> Users_row.tupled((_1.get, _2.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -2288,27 +2299,37 @@ object Entities {
    *  @param function Database column function SqlType(text), Default(None)
    *  @param min Database column min SqlType(float8), Default(None)
    *  @param max Database column max SqlType(float8), Default(None)
+   *  @param roles Database column roles SqlType(_text), Default(None)
    *  @param entity_field Database column entity_field SqlType(bool), Default(None) */
-  case class V_field_row(`type`: Option[String] = None, name: Option[String] = None, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[String] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Option[Boolean] = None, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: Option[java.util.UUID] = None, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, entity_field: Option[Boolean] = None)
+  case class V_field_row(`type`: Option[String] = None, name: Option[String] = None, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[String] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Option[Boolean] = None, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: Option[java.util.UUID] = None, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, roles: Option[List[String]] = None, entity_field: Option[Boolean] = None)
 
+      val decodeV_field_row:Decoder[V_field_row] = deriveConfiguredDecoder[V_field_row]
+      val encodeV_field_row:EncoderWithBytea[V_field_row] = { e =>
+        implicit def byteE = e
+        deriveConfiguredEncoder[V_field_row]
+      }
 
-  val decodeV_field_row:Decoder[V_field_row] = Decoder.forProduct22("type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field")(V_field_row.apply)
-  val encodeV_field_row:EncoderWithBytea[V_field_row] = { e =>
-    implicit def byteE = e
-    Encoder.forProduct22("type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field")(x =>
-      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.masterFields, x.childFields, x.childQuery, x.default, x.conditionFieldId, x.conditionValues, x.params, x.read_only, x.required, x.field_uuid, x.form_uuid, x.child_form_uuid, x.function, x.min, x.max, x.entity_field)
-    )
-  }
+      object V_field_row{
 
+        type V_field_rowHList = Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[String] :: Option[io.circe.Json] :: Option[Boolean] :: Option[Boolean] :: Option[java.util.UUID] :: Option[java.util.UUID] :: Option[java.util.UUID] :: Option[String] :: Option[Double] :: Option[Double] :: Option[List[String]] :: Option[Boolean] :: HNil
 
+        def factoryHList(hlist:V_field_rowHList):V_field_row = {
+          val x = hlist.toList
+          V_field_row(x(0).asInstanceOf[Option[String]],x(1).asInstanceOf[Option[String]],x(2).asInstanceOf[Option[String]],x(3).asInstanceOf[Option[String]],x(4).asInstanceOf[Option[String]],x(5).asInstanceOf[Option[String]],x(6).asInstanceOf[Option[String]],x(7).asInstanceOf[Option[String]],x(8).asInstanceOf[Option[String]],x(9).asInstanceOf[Option[String]],x(10).asInstanceOf[Option[String]],x(11).asInstanceOf[Option[String]],x(12).asInstanceOf[Option[io.circe.Json]],x(13).asInstanceOf[Option[Boolean]],x(14).asInstanceOf[Option[Boolean]],x(15).asInstanceOf[Option[java.util.UUID]],x(16).asInstanceOf[Option[java.util.UUID]],x(17).asInstanceOf[Option[java.util.UUID]],x(18).asInstanceOf[Option[String]],x(19).asInstanceOf[Option[Double]],x(20).asInstanceOf[Option[Double]],x(21).asInstanceOf[Option[List[String]]],x(22).asInstanceOf[Option[Boolean]]);
+        }
 
+        def toHList(e:V_field_row):Option[V_field_rowHList] = {
+          Option(( e.`type` :: e.name :: e.widget :: e.lookupEntity :: e.lookupValueField :: e.lookupQuery :: e.masterFields :: e.childFields :: e.childQuery :: e.default :: e.conditionFieldId :: e.conditionValues :: e.params :: e.read_only :: e.required :: e.field_uuid :: e.form_uuid :: e.child_form_uuid :: e.function :: e.min :: e.max :: e.roles :: e.entity_field ::  HNil))
+        }
+      }
+                   
   /** GetResult implicit for fetching V_field_row objects using plain SQL queries */
 
   /** Table description of table v_field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class V_field(_tableTag: Tag) extends Table[V_field_row](_tableTag, Some("test_box"), "v_field") with UpdateTable[V_field_row] {
 
-    def boxGetResult = GR(r => V_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUIDOption,r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))
+    def boxGetResult = GR(r => V_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUIDOption,r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[V_field_row]] = {
         val kv = keyValueComposer(this)
@@ -2317,7 +2338,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."v_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field" """
+          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[V_field_row](boxGetResult).head.map(x => Some(x))
@@ -2325,11 +2346,11 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","entity_field" from "test_box"."v_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","masterFields","childFields","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field" from "test_box"."v_field" """,where)
         sqlActionBuilder.as[V_field_row](boxGetResult)
       }
 
-    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, masterFields, childFields, childQuery, default, conditionFieldId, conditionValues, params, read_only, required, field_uuid, form_uuid, child_form_uuid, function, min, max, entity_field) <> (V_field_row.tupled, V_field_row.unapply)
+    def * = (`type` :: name :: widget :: lookupEntity :: lookupValueField :: lookupQuery :: masterFields :: childFields :: childQuery :: default :: conditionFieldId :: conditionValues :: params :: read_only :: required :: field_uuid :: form_uuid :: child_form_uuid :: function :: min :: max :: roles :: entity_field :: HNil).mapTo[V_field_row]
 
     /** Database column type SqlType(varchar), Default(None)
      *  NOTE: The name was escaped because it collided with a Scala keyword. */
@@ -2374,6 +2395,8 @@ object Entities {
     val min: Rep[Option[Double]] = column[Option[Double]]("min", O.Default(None))
     /** Database column max SqlType(float8), Default(None) */
     val max: Rep[Option[Double]] = column[Option[Double]]("max", O.Default(None))
+    /** Database column roles SqlType(_text), Default(None) */
+    val roles: Rep[Option[List[String]]] = column[Option[List[String]]]("roles", O.Default(None))
     /** Database column entity_field SqlType(bool), Default(None) */
     val entity_field: Rep[Option[Boolean]] = column[Option[Boolean]]("entity_field", O.Default(None))
   }
@@ -2422,7 +2445,7 @@ object Entities {
         sqlActionBuilder.as[V_labels_row](boxGetResult)
       }
 
-    def * = (key, en) <> (V_labels_row.tupled, V_labels_row.unapply)
+    def * = (key, en).<>(V_labels_row.tupled, V_labels_row.unapply)
 
     /** Database column key SqlType(varchar), Default(None) */
     val key: Rep[Option[String]] = column[Option[String]]("key", O.Default(None))
@@ -2483,7 +2506,7 @@ object Entities {
         sqlActionBuilder.as[V_roles_row](boxGetResult)
       }
 
-    def * = (rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolconnlimit, rolvaliduntil, memberof, rolreplication, rolbypassrls) <> (V_roles_row.tupled, V_roles_row.unapply)
+    def * = (rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolconnlimit, rolvaliduntil, memberof, rolreplication, rolbypassrls).<>(V_roles_row.tupled, V_roles_row.unapply)
 
     /** Database column rolname SqlType(name), Default(None) */
     val rolname: Rep[Option[String]] = column[Option[String]]("rolname", O.Default(None))

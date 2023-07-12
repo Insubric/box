@@ -79,7 +79,7 @@ object Entities {
         sqlActionBuilder.as[App_child_row](boxGetResult)
       }
 
-    def * = (id, name, parent_id) <> (App_child_row.tupled, App_child_row.unapply)
+    def * = (id, name, parent_id).<>(App_child_row.tupled, App_child_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), name, parent_id)).shaped.<>({r=>import r._; _1.map(_=> App_child_row.tupled((_1.get, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -138,7 +138,7 @@ object Entities {
         sqlActionBuilder.as[App_parent_row](boxGetResult)
       }
 
-    def * = (id, name) <> (App_parent_row.tupled, App_parent_row.unapply)
+    def * = (id, name).<>(App_parent_row.tupled, App_parent_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), name)).shaped.<>({r=>import r._; _1.map(_=> App_parent_row.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -193,7 +193,7 @@ object Entities {
         sqlActionBuilder.as[App_subchild_row](boxGetResult)
       }
 
-    def * = (id, child_id, name) <> (App_subchild_row.tupled, App_subchild_row.unapply)
+    def * = (id, child_id, name).<>(App_subchild_row.tupled, App_subchild_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), child_id, name)).shaped.<>({r=>import r._; _1.map(_=> App_subchild_row.tupled((_1.get, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -253,7 +253,7 @@ object Entities {
         sqlActionBuilder.as[Db_child_row](boxGetResult)
       }
 
-    def * = (Rep.Some(id), name, parent_id) <> (Db_child_row.tupled, Db_child_row.unapply)
+    def * = (Rep.Some(id), name, parent_id).<>(Db_child_row.tupled, Db_child_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), name, parent_id)).shaped.<>({r=>import r._; _1.map(_=> Db_child_row.tupled((_1, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -312,7 +312,7 @@ object Entities {
         sqlActionBuilder.as[Db_parent_row](boxGetResult)
       }
 
-    def * = (Rep.Some(id), name) <> (Db_parent_row.tupled, Db_parent_row.unapply)
+    def * = (Rep.Some(id), name).<>(Db_parent_row.tupled, Db_parent_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), name)).shaped.<>({r=>import r._; _1.map(_=> Db_parent_row.tupled((_1, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -367,7 +367,7 @@ object Entities {
         sqlActionBuilder.as[Db_subchild_row](boxGetResult)
       }
 
-    def * = (Rep.Some(id), child_id, name) <> (Db_subchild_row.tupled, Db_subchild_row.unapply)
+    def * = (Rep.Some(id), child_id, name).<>(Db_subchild_row.tupled, Db_subchild_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), child_id, name)).shaped.<>({r=>import r._; _1.map(_=> Db_subchild_row.tupled((_1, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -426,7 +426,7 @@ object Entities {
         sqlActionBuilder.as[Json_test_row](boxGetResult)
       }
 
-    def * = (id, obj) <> (Json_test_row.tupled, Json_test_row.unapply)
+    def * = (id, obj).<>(Json_test_row.tupled, Json_test_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), obj)).shaped.<>({r=>import r._; _1.map(_=> Json_test_row.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -480,7 +480,7 @@ object Entities {
         sqlActionBuilder.as[Simple_row](boxGetResult)
       }
 
-    def * = (Rep.Some(id), name) <> (Simple_row.tupled, Simple_row.unapply)
+    def * = (Rep.Some(id), name).<>(Simple_row.tupled, Simple_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), name)).shaped.<>({r=>import r._; _1.map(_=> Simple_row.tupled((_1, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
@@ -536,7 +536,7 @@ object Entities {
         sqlActionBuilder.as[Test_list_types_row](boxGetResult)
       }
 
-    def * = (id, texts, ints, numbers) <> (Test_list_types_row.tupled, Test_list_types_row.unapply)
+    def * = (id, texts, ints, numbers).<>(Test_list_types_row.tupled, Test_list_types_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = ((Rep.Some(id), texts, ints, numbers)).shaped.<>({r=>import r._; _1.map(_=> Test_list_types_row.tupled((_1.get, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
