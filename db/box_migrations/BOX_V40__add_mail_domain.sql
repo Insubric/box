@@ -34,7 +34,6 @@ begin
 end;
 $$;
 
-alter function mail_notification(email, email[], text, text) owner to postgres;
 
 
 create or replace function mail_notification(_mail_from email, _mail_to email[], _subject text, _text text, _html text, _params jsonb) returns uuid
@@ -55,7 +54,6 @@ begin
 end;
 $$;
 
-alter function mail_notification(email, email[], text, text, text, jsonb) owner to postgres;
 
 
 create or replace function mail_notification(_mail_from email, _mail_to email[], _subject text, _text text, _html text) returns uuid
@@ -65,7 +63,6 @@ $$
 select mail_notification(_mail_from,_mail_to,_subject,_text,_html,'{}'::jsonb);
 $$;
 
-alter function mail_notification(email, email[], text, text, text) owner to postgres;
 
 
 
@@ -76,5 +73,4 @@ $$
 select mail_notification(_mail_from,_mail_to,_subject,_text,_html,'{}'::jsonb);
 $$;
 
-alter function mail_notification(email, email[], text, text, text) owner to postgres;
 

@@ -1,10 +1,10 @@
 package ch.wsl.box.rest
 
 import ch.wsl.box.jdbc.FullDatabase
-import ch.wsl.box.model.shared.JSONID
+import ch.wsl.box.model.shared.{CurrentUser, JSONID}
 import ch.wsl.box.rest.logic.FormActions
 import ch.wsl.box.rest.metadata.FormMetadataFactory
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.testmodel.EntityActionsRegistry
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -24,11 +24,12 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
   def insert(formName:String,json:Json)(implicit services:Services):Future[(JSONID,Json)] = {
 
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
     implicit val up = UserProfile(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      form <- up.db.run(FormMetadataFactory.of(formName,"it",session.user))
       actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
@@ -40,11 +41,12 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
   def update(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
 
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
     implicit val up = UserProfile(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      form <- up.db.run(FormMetadataFactory.of(formName,"it",session.user))
       actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.update(id,json).transactionally)
       result <- up.db.run(actions.getById(id))
@@ -53,11 +55,12 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
   def upsert(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
 
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
     implicit val up = UserProfile(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      form <- up.db.run(FormMetadataFactory.of(formName,"it",session.user))
       actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.upsertIfNeeded(Some(id),json).transactionally)
       result <- up.db.run(actions.getById(id))

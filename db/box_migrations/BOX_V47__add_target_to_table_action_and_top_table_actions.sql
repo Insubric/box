@@ -24,6 +24,3 @@ create table form_actions_top_table
     when_no_update_right boolean default false  not null,
     target text
 );
-
-alter table form_actions_top_table
-    owner to postgres;

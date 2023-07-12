@@ -3,7 +3,7 @@ package ch.wsl.box.rest.logic
 import akka.stream.Materializer
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, JSONSchema}
 import ch.wsl.box.rest.metadata.FormMetadataFactory
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -13,7 +13,7 @@ import ch.wsl.box.services.Services
  * Created by andreaminetti on 10/03/16.
  *
  */
-class JSONSchemas()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) {
+class JSONSchemas()(implicit session:BoxSession, mat:Materializer, ec:ExecutionContext, services:Services) {
 
 
 
@@ -24,7 +24,7 @@ class JSONSchemas()(implicit up:UserProfile, mat:Materializer, ec:ExecutionConte
         title = Some(field.name)
       ))
       case Some(child) => for{
-        m <- FormMetadataFactory.of(child.objId,lang)
+        m <- FormMetadataFactory.of(child.objId,lang,session.user)
         schema <- of(m)
       } yield field.name -> schema
 

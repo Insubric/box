@@ -60,9 +60,9 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   def login = path("login") {
     post {
       entity(as[LoginRequest]) { request =>
-        val usernamePassword = BoxSession.fromLogin(request)
-        usernamePassword.userProfile match {
-          case Some(up) => boxSetSessionCookie(usernamePassword) {
+        val session = BoxSession.fromLogin(request)
+        onComplete(session){
+          case Success(Some(s)) => boxSetSessionCookie(s) {
             complete("ok")
           }
           case _ => complete(StatusCodes.Unauthorized, "nok")
@@ -74,9 +74,9 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   def loginHeader = path("authorize") {
     post {
       entity(as[LoginRequest]) { request =>
-        val usernamePassword = BoxSession.fromLogin(request)
-        usernamePassword.userProfile match {
-          case Some(up) => boxSetSessionHeader(usernamePassword) {
+        val session = BoxSession.fromLogin(request)
+        onComplete(session) {
+          case Success(Some(s)) => boxSetSessionHeader(s) {
             complete("ok")
           }
           case _ => complete(StatusCodes.Unauthorized, "nok")
@@ -93,10 +93,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
         case Some(session) => complete(
           {
             for {
-              accessLevel <- session.userProfile match {
-                case Some(value) => value.accessLevel
-                case None => Future.successful(UIProvider.NOT_LOGGED_IN)
-              }
+              accessLevel <- session.userProfile.accessLevel
               ui <- UIProvider.forAccessLevel(accessLevel)
             } yield ui
           }
@@ -112,7 +109,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
           val boxFile = session match {
             case None => UIProvider.fileForAccessLevel(fileName,UIProvider.NOT_LOGGED_IN)
             case Some(session) => for {
-              accessLevel <- session.userProfile.get.accessLevel
+              accessLevel <- session.userProfile.accessLevel
               ui <- UIProvider.fileForAccessLevel(fileName,accessLevel)
             } yield ui
           }

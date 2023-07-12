@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
-import ch.wsl.box.model.shared.{EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
+import ch.wsl.box.model.shared.{CurrentUser, EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
 import org.scalajs.dom
@@ -53,6 +53,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   val loading = Property(false)
+  private var roles:Seq[String] = Seq()
 
   logger.info("Loading session")
 
@@ -145,10 +146,11 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     dom.window.sessionStorage.setItem(USER,username)
     val fut = for{
       _ <- rest.login(LoginRequest(username,password))
+      me <- rest.me()
       ui <- rest.ui()
     } yield {
       UI.load(ui)
-      _createSession(username)
+      _createSession(me)
     }
 
     fut.recover{ case t =>
@@ -160,8 +162,9 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  private def _createSession(username:String) = {
-    dom.window.sessionStorage.setItem(USER,username)
+  private def _createSession(user:CurrentUser) = {
+    dom.window.sessionStorage.setItem(USER,user.username)
+    roles = user.roles
 
     Notification.setUpWebsocket()
     logged.set(true)
@@ -276,6 +279,8 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     dom.window.sessionStorage.setItem(LANG,lang)
     Context.applicationInstance.reload()
   }
+
+  def getRoles():Seq[String] = roles
 
 
 

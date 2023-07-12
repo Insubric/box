@@ -31,6 +31,7 @@ case class JSONField(
                       query: Option[JSONQuery] = None,
                       function:Option[String] = None,
                       minMax:Option[MinMax] = None,
+                      roles:Seq[String] = Seq()
                     ) {
   def title = label.getOrElse(name)
 

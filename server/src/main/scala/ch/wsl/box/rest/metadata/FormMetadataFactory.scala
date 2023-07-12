@@ -11,7 +11,7 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.{ColType, Registry}
-import ch.wsl.box.rest.utils.{Auth, UserProfile}
+import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -47,18 +47,24 @@ object FormMetadataFactory extends Logging with MetadataFactory{
   }
 
 
-  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):DBIO[Option[UserProfile]] = {
-    BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption
-  }.map{_.map{ form =>
-    new Auth().userProfileForUser(form.guest_user.get)
-  }}
+  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):Future[Option[BoxSession]] = {
+
+    for{
+      form <- services.connection.adminDB.run(BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption)
+      user = form.flatMap(_.guest_user)
+      roles <-  user match {
+        case Some(u) => Auth.rolesOf(u)
+        case None => Future.successful(Seq())
+      }
+    } yield user.map(u => BoxSession(CurrentUser(u,roles)))
+  }
 
 
   def list(implicit ec:ExecutionContext,services:Services): DBIO[Seq[String]] = {
     BoxForm.BoxFormTable.result
   }.map{_.map(_.name)}
 
-  def of(id:UUID, lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
+  def of(id:UUID, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
     val cacheKey = (id,lang)
     FormMetadataFactory.cacheFormId.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
@@ -82,7 +88,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     }
   }
 
-  def of(name:String, lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
+  def of(name:String, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = {
     val cacheKey = (name,lang)
     FormMetadataFactory.cacheFormName.lift(cacheKey) match {
       case Some(r) => DBIO.successful(r)
@@ -108,19 +114,14 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
   }
 
-  def children(form:JSONMetadata)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[JSONMetadata]] = {
-    val result = DBIO.sequence{
-      form.fields.flatMap(_.child).map{ child =>
-        of(child.objId,form.lang)
-      }
-    }
-    val subresults = result.map(x => DBIO.sequence(x.map(children)))
+  def children(form:JSONMetadata,currentUser: CurrentUser,ignoreChilds:Seq[UUID] = Seq())(implicit ec:ExecutionContext,services:Services):DBIO[Seq[JSONMetadata]] = {
+    val childIds: Seq[UUID] = form.fields.flatMap(_.child).map(_.objId)
+
     for{
-      firstLevel <- result
-      secondLevel <- subresults
-      thirdLevel <- secondLevel.map(_.flatten)
+      firstLevel <- DBIO.sequence{childIds.map{ objId => of(objId,form.lang,currentUser)}}
+      secondLevel <- DBIO.sequence(firstLevel.map(y => children(y,currentUser,ignoreChilds ++ childIds)))
     } yield {
-      firstLevel ++ thirdLevel
+      firstLevel ++ secondLevel.flatten
     }
 
   }
@@ -461,7 +462,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
             query <- js.as[JSONQuery].toOption
           } yield query,
           function = field.function,
-          minMax = Some(MinMax(min = field.min, max = field.max))
+          minMax = Some(MinMax(min = field.min, max = field.max)),
+          roles = field.roles.getOrElse(Seq())
         )
       }
 

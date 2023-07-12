@@ -71,11 +71,11 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
 
   override def list(implicit ec:ExecutionContext,services:Services): DBIO[Seq[String]] = registry.map(_.filter(f => visibleAdmin.contains(f.objId)).map(_.name))
 
-  override def of(name: String, lang: String)(implicit ec:ExecutionContext,services:Services): DBIO[JSONMetadata] = registry.map(_.find(_.name == name).get)
+  override def of(name: String, lang: String,user:CurrentUser)(implicit ec:ExecutionContext,services:Services): DBIO[JSONMetadata] = registry.map(_.find(_.name == name).get)
 
-  override def of(id: UUID, lang: String)(implicit ec:ExecutionContext,services:Services): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
+  override def of(id: UUID, lang: String,user:CurrentUser)(implicit ec:ExecutionContext,services:Services): DBIO[JSONMetadata] = registry.map(_.find(_.objId == id).get)
 
-  override def children(form: JSONMetadata)(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONMetadata]] = for{
+  override def children(form: JSONMetadata,user:CurrentUser,ignoreChilds:Seq[UUID] = Seq())(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONMetadata]] = for{
     forms <- getForms()
     functions <- getFunctions()
   } yield {

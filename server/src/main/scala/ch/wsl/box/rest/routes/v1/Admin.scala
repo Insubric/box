@@ -25,10 +25,10 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   import ch.wsl.box.jdbc.Connection
   import ch.wsl.box.rest.utils.JSONSupport._
 
-  def form = pathPrefix(EntityKind.BOX_FORM.kind) {
+  def form(implicit session:BoxSession) = pathPrefix(EntityKind.BOX_FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,Registry.box(),BoxFormMetadataFactory,userProfile.db,EntityKind.BOX_FORM.kind).route
+        Form(name, lang,Registry.box(),BoxFormMetadataFactory,EntityKind.BOX_FORM.kind).route
       }
     }
   }
@@ -88,9 +88,9 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   }
 
 
-  val route = new Auth().onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
+  val route = Auth.onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
     //access to box tables for administrator
-    form ~
+    form(session) ~
     forms ~
     createStub  ~
     file  ~

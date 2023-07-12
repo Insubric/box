@@ -3,12 +3,12 @@ package ch.wsl.box.rest
 
 import ch.wsl.box.jdbc.FullDatabase
 import ch.wsl.box.rest.logic.FormActions
-import ch.wsl.box.model.shared.{JSONID, JSONKeyValue}
+import ch.wsl.box.model.shared.{CurrentUser, JSONID, JSONKeyValue}
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.testmodel.EntityActionsRegistry
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.fixtures.{AppManagedIdFixtures, DbManagedIdFixtures, FormFixtures}
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import _root_.io.circe.Json
 import ch.wsl.box.BaseSpec
 import ch.wsl.box.rest.runtime.Registry
@@ -34,11 +34,12 @@ class UpdateFormSpec extends BaseSpec {
 
   def upsert(formName:String,id:Option[JSONID],json:Json)(implicit services:Services) = {
 
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
     implicit val up = UserProfile(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory.of(formName,"it"))
+      form <- up.db.run(FormMetadataFactory.of(formName,"it",session.user))
       actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.upsertIfNeeded(id,json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
@@ -49,6 +50,7 @@ class UpdateFormSpec extends BaseSpec {
 
   def appManagedUpsert(id:JSONID, json:Json)(implicit services:Services): Future[Assertion] = {
 
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
     implicit val up = UserProfile(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 

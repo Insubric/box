@@ -67,6 +67,7 @@ lazy val server: Project  = project
     libraryDependencies ++= Settings.jvmDependencies.value,
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
 //    resolvers += "Eclipse" at "https://repo.eclipse.org/content/groups/snapshots",
+    migrate := (Compile / runMain).toTask(" ch.wsl.box.model.Migrate").value, // register manual sbt command
     slick := slickCodeGenTask.value , // register manual sbt command
     slickTest := slickTestCodeGenTask.value , // register manual sbt command
     deleteSlick := deleteSlickTask.value,
@@ -258,6 +259,9 @@ lazy val sharedJS: Project = shared.js.settings(
   name := "box-shared-js",
   scalaVersion := Settings.versions.scala213,
 )
+
+
+lazy val migrate = taskKey[Unit]("migrate")
 
 
 // code generation task that calls the customized code generator

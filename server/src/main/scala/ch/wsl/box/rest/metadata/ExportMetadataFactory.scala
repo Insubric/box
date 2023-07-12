@@ -5,7 +5,7 @@ import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.boxentities.BoxExportField.{BoxExportField_i18n_row, BoxExportField_row}
 import ch.wsl.box.model.boxentities.{BoxExport, BoxExportField}
 import ch.wsl.box.model.shared._
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import io.circe.Json
 import io.circe.parser.parse
 import scribe.Logging
@@ -34,7 +34,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
 //      ex <- Export.Export.filter(ex => ex.access_role.isEmpty || ex.access_role inSet roles || roles.contains(up.name))
 //    } yield ex
 
-    def checkRole(roles:List[String], access_roles:List[String], accessLevel:Int) =  roles.intersect(access_roles).size>0 || access_roles.isEmpty || access_roles.contains(up.name) || accessLevel == 1000
+    def checkRole(roles:Seq[String], access_roles:Seq[String], accessLevel:Int) =  roles.intersect(access_roles).size>0 || access_roles.isEmpty || access_roles.contains(up.name) || accessLevel == 1000
 
     def query    = for {
        (e, ei18) <- BoxExport.BoxExportTable joinLeft(BoxExport.BoxExport_i18nTable.filter(_.lang === lang)) on(_.export_uuid === _.export_uuid)
@@ -45,7 +45,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
 
 
     for{
-      roles <- up.memberOf
+      roles <- Auth.rolesOf(up.name)
       al <- up.accessLevel
       qr <-  services.connection.adminDB.run(query.result)
     } yield {

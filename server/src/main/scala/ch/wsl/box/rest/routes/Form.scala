@@ -9,7 +9,7 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.utils.{Cache, JSONSupport, UserProfile}
+import ch.wsl.box.rest.utils.{BoxSession, Cache, JSONSupport, UserProfile}
 import io.circe.Json
 import io.circe.parser.parse
 import scribe.Logging
@@ -34,10 +34,9 @@ case class Form(
                  lang:String,
                  registry: RegistryInstance,
                  metadataFactory: MetadataFactory,
-                 db:UserDatabase,
                  kind:String,
                  public: Boolean = false
-               )(implicit up:UserProfile, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] {
+               )(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] {
 
     import JSONSupport._
     import Light._
@@ -55,10 +54,12 @@ case class Form(
     import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 
 
+    implicit val up = session.userProfile
+    val db = up.db
     implicit val implicitDB = db
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
-    def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang)),10.seconds)
+    def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang,session.user)),10.seconds)
    private def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
   private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
@@ -286,7 +287,7 @@ case class Form(
     path("children") {
       get {
         complete {
-          boxDb.adminDb.run(metadataFactory.children(metadata))
+          boxDb.adminDb.run(metadataFactory.children(metadata,session.user))
         }
       }
     } ~

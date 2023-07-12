@@ -68,15 +68,16 @@ object MigrateDB {
           update #$schema.flyway_schema_history_box set checksum=-1468940163 where version='37';
           update #$schema.flyway_schema_history_box set checksum=-1162390581 where version='38';
           update #$schema.flyway_schema_history_box set checksum=760066478 where version='39';
-          update #$schema.flyway_schema_history_box set checksum=983467388 where version='40';
+          update #$schema.flyway_schema_history_box set checksum=-1081640321 where version='40';
           update #$schema.flyway_schema_history_box set checksum=597865581 where version='41';
           update #$schema.flyway_schema_history_box set checksum=-1556843576 where version='42';
           update #$schema.flyway_schema_history_box set checksum=-831843199 where version='43';
           update #$schema.flyway_schema_history_box set checksum=-901179392 where version='44';
-          update #$schema.flyway_schema_history_box set checksum=2081100837 where version='45';
-          update #$schema.flyway_schema_history_box set checksum=-1500107500 where version='46';
-          update #$schema.flyway_schema_history_box set checksum=1914843823 where version='47';
+          update #$schema.flyway_schema_history_box set checksum=-1116796032 where version='45';
+          update #$schema.flyway_schema_history_box set checksum=-1585503788 where version='46';
+          update #$schema.flyway_schema_history_box set checksum=-599563475 where version='47';
           update #$schema.flyway_schema_history_box set checksum=960086764 where version='48';
+          update #$schema.flyway_schema_history_box set checksum=-765022474 where version='51';
 
           INSERT INTO #$schema.flyway_schema_history_box (installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success)
           select (select count(*)+1 from #$schema.flyway_schema_history_box), '34', 'roles function permission', 'SQL', 'BOX_V34__roles_function_permission.sql', 938281884, 'postgres', now(), 4, true from (

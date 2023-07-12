@@ -20,7 +20,6 @@ begin
 end;
 $$;
 
-alter function mail_notification(email, email, email[], email[], email[], text, text, text, jsonb) owner to postgres;
 
 create or replace function mail_notification(_mail_from email, _mail_to email[], _mail_cc email[], _mail_bcc email[], _subject text, _text text, _html text, _params jsonb) returns uuid
     SET search_path from current
@@ -32,7 +31,6 @@ $$
 
 $$;
 
-alter function mail_notification(email, email[], email[], email[], text, text, text, jsonb) owner to postgres;
 
 
 

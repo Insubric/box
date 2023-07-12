@@ -35,11 +35,12 @@ object BoxField {
                            required:Option[Boolean] = Some(false),
                            function:Option[String] = None,
                            min: Option[Double] = None,
-                           max: Option[Double] = None
+                           max: Option[Double] = None,
+                           roles: Option[List[String]] = None
                          )
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,schema, "field") {
-    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function,min,max) <> (BoxField_row.tupled, BoxField_row.unapply)
+    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function,min,max,roles) <> (BoxField_row.tupled, BoxField_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
@@ -71,6 +72,7 @@ object BoxField {
     val required: Rep[Option[Boolean]] = column[Option[Boolean]]("required")
     val min: Rep[Option[Double]] = column[Option[Double]]("min")
     val max: Rep[Option[Double]] = column[Option[Double]]("max")
+    val roles: Rep[Option[List[String]]] = column[Option[List[String]]]("roles")
 
     /** Foreign key referencing Form (database name fkey_form) */
     lazy val formFk = foreignKey("fkey_form", form_uuid, BoxForm.BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)

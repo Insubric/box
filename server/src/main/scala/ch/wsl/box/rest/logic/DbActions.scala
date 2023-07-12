@@ -71,9 +71,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   }
 
   lazy val metadata = DBIO.from({
-    val auth = new Auth()
     val fullDb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
-    EntityMetadataFactory.of(entity.baseTableRow.tableName,registry)(auth.adminUserProfile,ec,fullDb,services)
+    EntityMetadataFactory.of(entity.baseTableRow.tableName,registry)(Auth.adminUserProfile,ec,fullDb,services)
   })
 
 

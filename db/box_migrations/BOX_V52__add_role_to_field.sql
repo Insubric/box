@@ -1,8 +1,11 @@
+
+alter table field add column roles text[];
+
 drop view v_field;
 create view v_field
             (type, name, widget, "lookupEntity", "lookupValueField", "lookupQuery", "masterFields", "childFields",
              "childQuery", "default", "conditionFieldId", "conditionValues", params, read_only, required, field_uuid,
-             form_uuid, child_form_uuid, function, min, max, entity_field)
+             form_uuid, child_form_uuid, function, min, max, roles, entity_field)
 as
 SELECT fi.type,
        fi.name,
@@ -25,6 +28,7 @@ SELECT fi.type,
        fi.function,
        fi.min,
        fi.max,
+       fi.roles,
        (SELECT count(*) > 0
         FROM information_schema.columns
         WHERE columns.table_name::name = f.entity::text
@@ -41,12 +45,13 @@ execute procedure v_field_del();
 
 
 create or replace function v_field_ins() returns trigger
+    SET search_path from current
     language plpgsql
 as
 $$
 begin
-    insert into field (type, name, widget, "lookupEntity", "lookupValueField", "lookupQuery", "masterFields", "childFields", "childQuery", "default", "conditionFieldId", "conditionValues", params, read_only, required, form_uuid, child_form_uuid, function,min,max) values
-        (new.type, new.name, new.widget, new."lookupEntity", new."lookupValueField", new."lookupQuery", new."masterFields", new."childFields", new."childQuery", new."default", new."conditionFieldId", new."conditionValues", new.params, new.read_only, new.required, new.form_uuid, new.child_form_uuid, new.function,new.min,new.max)
+    insert into field (type, name, widget, "lookupEntity", "lookupValueField", "lookupQuery", "masterFields", "childFields", "childQuery", "default", "conditionFieldId", "conditionValues", params, read_only, required, form_uuid, child_form_uuid, function,min,max,roles) values
+        (new.type, new.name, new.widget, new."lookupEntity", new."lookupValueField", new."lookupQuery", new."masterFields", new."childFields", new."childQuery", new."default", new."conditionFieldId", new."conditionValues", new.params, new.read_only, new.required, new.form_uuid, new.child_form_uuid, new.function,new.min,new.max, new.roles)
     returning field_uuid into new.field_uuid;
 
     select count(*)>0 into new.entity_field from information_schema.columns where table_name=(select entity from form where form_uuid=new.form_uuid) and column_name=new.name;
@@ -67,6 +72,7 @@ execute procedure v_field_ins();
 
 
 create or replace function v_field_upd() returns trigger
+    SET search_path from current
     language plpgsql
 as
 $$
@@ -91,7 +97,8 @@ begin
         child_form_uuid = new.child_form_uuid,
         function = new.function,
         min = new.min,
-        max = new.max
+        max = new.max,
+        roles = new.roles
     where field_uuid = new.field_uuid;
 
     select count(*)>0 into new.entity_field from information_schema.columns where table_name=(select entity from form where form_uuid=new.form_uuid) and column_name=new.name;
@@ -107,5 +114,4 @@ create trigger v_field_upd
     on v_field
     for each row
 execute procedure v_field_upd();
-
 
