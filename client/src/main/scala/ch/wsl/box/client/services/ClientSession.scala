@@ -136,6 +136,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     createSession(username,password).map{ valid =>
       logger.info(s"New session, valid: $valid")
       if(valid) {
+        resetAllQueries()
         Context.applicationInstance.reload()
       }
       valid
@@ -229,6 +230,10 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
       case None => Map()
     }
     set(QUERY, queries)
+  }
+
+  def resetAllQueries() = {
+    dom.window.sessionStorage.removeItem(QUERY)
   }
 
   def getURLQuery():Option[JSONQuery] = get[JSONQuery](URL_QUERY)
