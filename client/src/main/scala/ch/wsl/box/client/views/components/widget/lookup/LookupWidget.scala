@@ -58,7 +58,7 @@ trait LookupWidget extends Widget with HasData {
 
   private def setNewLookup(_newLookup:Seq[JSONLookup]) = {
 
-    val newLookup = if(data.get != Json.Null && !_newLookup.exists(_.id == data.get)) {
+    val newLookup = if(data.get != Json.Null && !_newLookup.exists(_.id == data.get) && data.get.string != JSONUtils.FIRST ) {
       _newLookup ++ Seq(JSONLookup(data.get,Seq(data.get.string)))
     } else _newLookup
 
