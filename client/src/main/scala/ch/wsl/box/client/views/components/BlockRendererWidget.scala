@@ -184,7 +184,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
       widgets.zip(widths).map { case (widget, width) =>
 
 
-        div(BootstrapCol.md(width), ClientConf.style.field,
+        div(BootstrapCol.md(width), ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
           widget.widget.render(write,widget.visibility,nested)
         )
       }
@@ -193,7 +193,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   def distribute(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
     widgets.map { case widget =>
-      div(ClientConf.style.field,
+      div(ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
         widget.widget.render(write,widget.visibility,nested)
       )
     }

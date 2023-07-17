@@ -561,7 +561,10 @@ object GlobalStyleFactory{
         unsafeChild("h3") (
           marginLeft((-10-conf.paddingBlocks) px)
         )
-      ),
+      )
+    )
+
+    val fieldHighlight = style(
       unsafeExt(_ + ":focus-within")(
         unsafeChild("label")(
           color(conf.colors.main),

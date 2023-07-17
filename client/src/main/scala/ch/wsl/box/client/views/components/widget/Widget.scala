@@ -87,6 +87,8 @@ trait Widget extends Logging {
     r
   }
 
+  def subForm = false
+
 
 }
 

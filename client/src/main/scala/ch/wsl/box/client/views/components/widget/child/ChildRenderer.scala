@@ -41,6 +41,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
   trait ChildRenderer extends Widget with Logging {
 
+    override def subForm: Boolean = true
+
+
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
     import scalacss.ScalatagsCss._
