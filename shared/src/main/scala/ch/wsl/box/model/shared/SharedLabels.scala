@@ -57,6 +57,7 @@ object SharedLabels extends LabelsCollection {
 
   object navigation extends LabelsCollection{
     def recordFound = "navigation.recordFound"
+    def recordsFiltered = "navigation.recordsFiltered"
     def goAway = "navigation.goAway"
     def first = "navigation.first"
     def last = "navigation.last"

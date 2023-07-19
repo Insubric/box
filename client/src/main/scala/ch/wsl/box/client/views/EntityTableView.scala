@@ -560,13 +560,17 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       )
     }
 
-    produce(model.subProp(_.metadata)) { metadata =>
+    produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
       div(
         div(ClientConf.style.spaceBetween,
           div(
             h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
           ),
-          div(Labels.navigation.recordFound," ",bind(model.subProp(_.ids.count))),
+          div(Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count))),
+            nested(showIf(model.subProp(_.fieldQueries).transform(_.exists(_.filterValue.nonEmpty))){
+              small(" - " , Labels.navigation.recordsFiltered).render
+            })
+          ),
           pagination.render
         ),
         div(BootstrapStyles.Visibility.clearfix),

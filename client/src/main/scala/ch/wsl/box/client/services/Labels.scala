@@ -46,6 +46,7 @@ object Labels {
 
   object navigation{
     def recordFound = get(SharedLabels.navigation.recordFound)
+    def recordsFiltered = get(SharedLabels.navigation.recordsFiltered)
     def goAway = get(SharedLabels.navigation.goAway)
     def first = get(SharedLabels.navigation.first)
     def last = get(SharedLabels.navigation.last)
