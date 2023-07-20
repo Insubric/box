@@ -6,7 +6,7 @@ import geotrellis.vector.io.json.Implicits._
 import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.{Filter, JSONQuery, JSONQueryFilter, JSONSort}
+import ch.wsl.box.model.shared.{Filter, JSONID, JSONMetadata, JSONQuery, JSONQueryFilter, JSONSort}
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
@@ -19,6 +19,24 @@ import scala.util.Try
 trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
+  //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
+
+  private def doFetch(fields: Seq[String], where: SQLActionBuilder) = {
+    if(fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
+    val head = sql"""select jsonb_build_object( """
+    val body = fields.zipWithIndex.foldLeft(head){ case (q,(field,i)) =>
+      val q2 = if(i > 0) concat(q,sql""" , """) else q
+      concat(q2, sql""" '#$field', "#$field" """)
+    }
+    val complete = concat(body, concat(sql""" ) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
+    complete.as[Json]
+  }
+
+  def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
+
+  def ids(metadata:JSONMetadata,query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[JSONID]] = doFetch(metadata.keys,whereBuilder(query)).map{ rows =>
+    rows.map(row => JSONID.fromData(row,metadata.keys))
+  }
 
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
@@ -59,10 +77,10 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   def distinctOn(field:String,query:JSONQuery):DBIO[Seq[Json]] = {
     registry.fields.field(t.tableName, field) match {
       case Some(value) => {
-        val q = concat(
-          sql"""select distinct to_jsonb("#$field") from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
+        val q =concat(concat(
+          sql"""select to_jsonb(f) from (select distinct "#$field" from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
           whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
-        ).as[Json]
+        ),sql""" )  as t(f)  """).as[Json]
         q
       }
       case None => DBIO.failed(new Exception(s"Field $field not exists in table ${t.tableName}"))

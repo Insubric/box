@@ -122,6 +122,9 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   def findSimple(query:JSONQuery) = entity.baseTableRow.selectLight(query)
 
+
+  override def fetchFields(fields: Seq[String], query: JSONQuery) = entity.baseTableRow.fetch(fields,query)
+
   def find(query:JSONQuery) = findQuery(query).map(_.result)
 
 
@@ -129,14 +132,11 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 
 
-  // TODO fetch only keys
   override def ids(query: JSONQuery): DBIO[IDs] = {
     for{
-      q <- find(query)
-      data <- q
-      keys <- keys()
-      n <- count(query)
       m <- metadata
+      keys <- entity.baseTableRow.ids(m,query)
+      n <- count(query)
     } yield {
 
       val last = query.paging match {
@@ -148,7 +148,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
       IDs(
         last,
         query.paging.map(_.currentPage).getOrElse(1),
-        data.flatMap{x => JSONID.fromData(x.asJson,m).map(_.asString)},
+        keys.map(_.asString),
         n
       )
     }

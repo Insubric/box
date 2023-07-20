@@ -304,9 +304,7 @@ case class Form(
           entity(as[JSONQuery]) { query =>
             complete {
               for {
-                metadata <- boxDb.adminDb.run(tabularMetadata())
-                formActions = FormActions(metadata, registry, metadataFactory)
-                data <- db.run(formActions.ids(query))
+                data <- db.run(actions.ids(query))
               } yield data
             }
           }

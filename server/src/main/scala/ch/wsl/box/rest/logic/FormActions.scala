@@ -22,7 +22,7 @@ import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.DateTimeFormatters
-import io.circe.Json.JNumber
+import io.circe.Json.{JNumber, Null}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -87,6 +87,12 @@ case class FormActions(metadata:JSONMetadata,
     } yield result
 
   }
+
+
+  override def fetchFields(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = for{
+    q <- queryForm(query)
+    result <- jsonAction.fetchFields(fields,query)
+  } yield result
 
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
     queryForm(query).flatMap { q =>
@@ -400,33 +406,8 @@ case class FormActions(metadata:JSONMetadata,
   }
   override def count(query: JSONQuery) = jsonAction.count(query)
 
-  override def ids(query: JSONQuery): DBIO[IDs] = {
-    queryForm(query).flatMap { q =>
-      val fut: DBIO[(Seq[Json], Int)] = metadata.view.map(v => Registry().actions(v)) match {
-        case None => for {
-          qu <- jsonAction.find(q)
-          data <- qu
-          n <- jsonAction.count(q)
-        } yield (data, n)
-        case Some(v) => for {
-          qu <- v.find(q)
-          data <- qu
-          n <- v.count(q)
-        } yield (data, n)
-      }
-
-      fut.map { case (data: Seq[Json], n: Int) =>
-        val last = q.paging match {
-          case None => true
-          case Some(paging) => (paging.currentPage * paging.pageLength) >= n
-        }
-        IDs(
-          last,
-          q.paging.map(_.currentPage).getOrElse(1),
-          data.flatMap { x => JSONID.fromData(x, metadata).map(_.asString) },
-          n
-        )
-      }
-    }
-  }
+  override def ids(query: JSONQuery): DBIO[IDs] = for{
+    q <- queryForm(query)
+    result <- jsonAction.ids(q)
+  } yield result
 }
