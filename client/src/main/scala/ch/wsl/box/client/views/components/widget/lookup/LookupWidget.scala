@@ -139,11 +139,17 @@ trait LookupWidget extends Widget with HasData {
           val q = variables.foldRight(query) { (variable, finalQuery) =>
             finalQuery.replaceAll("#" + variable, "\"" + allJs.get(variable) + "\"")
           }
-          fetchRemoteLookup(JSONQuery.fromString(q).getOrElse(JSONQuery.empty.limit(1000)))
+          val jsonQuery = JSONQuery.fromString(q) match {
+            case Some(value) => value
+            case None => {
+              logger.warn(s""" Query not parsed correctly: $q """)
+              JSONQuery.empty.limit(2000)
+            }
+          }
+          fetchRemoteLookup(jsonQuery)
 
         }, true))
       }
-      case Some(query) => fetchRemoteLookup(JSONQuery.fromString(query).getOrElse(JSONQuery.empty.limit(1000)))
       case None => fetchRemoteLookup(JSONQuery.empty.limit(1000))
     }
 
