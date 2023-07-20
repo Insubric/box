@@ -19,8 +19,6 @@ object JSONPageActions extends TableActions[Json] {
 
   override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = DBIO.successful(Seq(responseId))
 
-  override def find(query: JSONQuery) = DBIO.successful(DBIO.successful(Seq()))
-
   override def findSimple(q:JSONQuery): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 
 

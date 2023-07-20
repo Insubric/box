@@ -508,6 +508,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         observer.disconnect()
         val options = PartialOptions()
           .setRemoveItemButton(true)
+          .setShouldSort(false)
           .setItemSelectText("")
         val choicesJs = new typings.choicesJs.mod.default(el, options)
         el.addEventListener("change", (e: Event) => {

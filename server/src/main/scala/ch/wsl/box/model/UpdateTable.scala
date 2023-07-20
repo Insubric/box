@@ -59,7 +59,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     else sql""
 
     val limit = query.paging match {
-      case Some(p) => sql" limit #${p.pageLength}"
+      case Some(p) => sql" limit #${p.pageLength} offset #${(p.currentPage-1) * p.pageLength}"
       case None => sql""
     }
 
@@ -85,6 +85,22 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
       case None => DBIO.failed(new Exception(s"Field $field not exists in table ${t.tableName}"))
     }
+
+  }
+
+  def count(query: Option[JSONQuery]): DBIO[Int] = {
+
+        val where = query match {
+          case Some(q) => whereBuilder(q.copy(sort = List(), paging = None))
+          case None => sql""
+        }
+
+
+        val q = concat(
+          sql"""select count(*) from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
+          where
+        ).as[Int].head
+        q
 
   }
 
@@ -182,20 +198,23 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
     }
 
-    def filter[T](nullable:Boolean, value:Option[T])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+    def filter[T](nullable:Boolean, value:Option[T],cast:Option[String] = None)(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+
+      val base = sql""" "#$key"#${cast.getOrElse("")} """
+
       val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
-        case (Filter.EQUALS,true,None) => sql""" "#$key" is null """
-        case (Filter.LIKE,true,None) => sql""" "#$key" is null """
-        case (Filter.EQUALS,_,Some(v)) => sql""" "#$key" = $v """
-        case (Filter.LIKE,_,Some(v)) => sql""" "#$key" like '%#$v%' """
-        case (Filter.<,_,Some(v)) => sql""" "#$key" < $v """
-        case (Filter.NOT,_,Some(v)) => sql""" "#$key" <> $v """
-        case (Filter.>,_,Some(v)) => sql""" "#$key" > $v """
-        case (Filter.<=,_,Some(v)) => sql""" "#$key" <= $v """
-        case (Filter.>=,_,Some(v)) => sql""" "#$key" >= $v """
-        case (Filter.DISLIKE,_,Some(v)) => sql""" "#$key" not like '%#$v%' """
-        case (Filter.IS_NOT_NULL,_,Some(v)) => sql""" "#$key" is not null """
-        case (Filter.IS_NULL,_,Some(v)) => sql""" "#$key" is null """
+        case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
+        case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
+        case (Filter.EQUALS,_,Some(v)) => concat(base,sql"""= $v """)
+        case (Filter.LIKE,_,Some(v)) => concat(base,sql"""  like '%#$v%' """)
+        case (Filter.<,_,Some(v)) => concat(base,sql""" < $v """)
+        case (Filter.NOT,_,Some(v)) => concat(base,sql""" <> $v """)
+        case (Filter.>,_,Some(v)) => concat(base,sql""" > $v """)
+        case (Filter.<=,_,Some(v)) => concat(base,sql""" <= $v """)
+        case (Filter.>=,_,Some(v)) => concat(base,sql""" >= $v """)
+        case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not like '%#$v%' """)
+        case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
+        case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
       }
       Some(result)
 
@@ -221,34 +240,40 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case t => throw new Exception(s"$t is not supported for simple multi query")
       }
     } else {
-      col.name match {
-        case "String"  => filter(col.nullable,Some(v))
-        case "Int" => filter[Int](col.nullable,v.toIntOption)
-        case "Long" => filter[Long](col.nullable,v.toLongOption)
-        case "Short" => filter[Short](col.nullable,v.toShortOption)
-        case "Float" => filter[Float](col.nullable,v.toFloatOption)
-        case "Double" => filter[Double](col.nullable,v.toDoubleOption)
-        case "BigDecimal" | "scala.math.BigDecimal" => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
-        case "java.time.LocalDate" => {
+      (col.name,jsonQuery.operator) match {
+        case ("String",_)  => filter(col.nullable,Some(v))
+        case ("Int",Some(Filter.LIKE)) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
+        case ("Int",_) => filter[Int](col.nullable,v.toIntOption)
+        case ("Long",Some(Filter.LIKE)) => filter[Long](col.nullable,v.toLongOption,Some("::text"))
+        case ("Long",_) => filter[Long](col.nullable,v.toLongOption)
+        case ("Short",Some(Filter.LIKE)) => filter[Short](col.nullable,v.toShortOption,Some("::text"))
+        case ("Short",_) => filter[Short](col.nullable,v.toShortOption)
+        case ("Float",Some(Filter.LIKE)) => filter[Float](col.nullable,v.toFloatOption,Some("::text"))
+        case ("Float",_) => filter[Float](col.nullable,v.toFloatOption)
+        case ("Double",Some(Filter.LIKE)) => filter[Double](col.nullable,v.toDoubleOption,Some("::text"))
+        case ("Double",_) => filter[Double](col.nullable,v.toDoubleOption)
+        case ("BigDecimal" | "scala.math.BigDecimal",Some(Filter.LIKE)) => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption,Some("::text"))
+        case ("BigDecimal" | "scala.math.BigDecimal",_) => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
+        case ("java.time.LocalDate",_) => {
           DateTimeFormatters.toDate(v) match {
             case head :: Nil => filter[java.time.LocalDate](col.nullable,Some(head))
             case from :: (to :: Nil) =>  Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }
         }
-        case "java.time.LocalTime" => filter[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
-        case "java.time.LocalDateTime" => {
+        case ("java.time.LocalTime",_) => filter[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
+        case ("java.time.LocalDateTime",_) => {
           DateTimeFormatters.toTimestamp(v) match {
             case head :: Nil => filter[java.time.LocalDateTime](col.nullable, Some(head))
             case from :: (to :: Nil) => Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }
         }
-        case "io.circe.Json" => filter[Json](col.nullable,parser.parse(v).toOption)
-        case "Array[Byte]" => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
-        case "org.locationtech.jts.geom.Geometry" => filter[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
-        case "java.util.UUID" => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
-        case "Boolean" => filter[Boolean](col.nullable,Some(v == "true"))
+        case ("io.circe.Json",_) => filter[Json](col.nullable,parser.parse(v).toOption)
+        case ("Array[Byte]",_) => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
+        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
+        case ("java.util.UUID",_) => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
+        case ("Boolean",_) => filter[Boolean](col.nullable,Some(v == "true"))
         case t => throw new Exception(s"$t is not supported for simple query")
       }
     }

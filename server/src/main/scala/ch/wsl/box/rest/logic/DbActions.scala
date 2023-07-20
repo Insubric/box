@@ -76,19 +76,9 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   })
 
 
-  def count():DBIO[JSONCount] = {
-    entity.length.result
-  }.transactionally.map(JSONCount)
+  def count():DBIO[JSONCount] = entity.baseTableRow.count(None).map(JSONCount)
 
-  def count(query:JSONQuery):DBIO[Int] = {
-
-    for{
-      m <- metadata
-      filter <- fkFilters.preFilter(m,query.filter)
-      result <- entity.where(filter).length.result.transactionally
-    } yield result
-
-  }
+  def count(query:JSONQuery):DBIO[Int] = entity.baseTableRow.count(Some(query))
 
 
   override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = {
@@ -124,8 +114,6 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
 
   override def fetchFields(fields: Seq[String], query: JSONQuery) = entity.baseTableRow.fetch(fields,query)
-
-  def find(query:JSONQuery) = findQuery(query).map(_.result)
 
 
 

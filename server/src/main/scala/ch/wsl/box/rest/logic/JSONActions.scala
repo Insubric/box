@@ -34,13 +34,6 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
   def findQuery(query: JSONQuery,keys:Seq[String]): DBIO[Query[MappedProjection[Json, M], Json, Seq]] = dbActions.findQuery(query).map(_.map(_ <> (x => JSONID.attachBoxObjectId(x.asJson,keys), (_:Json) => None)))
 
-  override def find(query: JSONQuery) = {
-    for {
-      keys <- dbActions.keys()
-      q <- findQuery(query,keys)
-    } yield q.result
-  }
-
 
   override def findSimple(query:JSONQuery ): DBIO[Seq[Json]] = for {
     keys <- dbActions.keys()

@@ -69,7 +69,7 @@ case class FormActions(metadata:JSONMetadata,
 
     for{
       q <- queryForm(query)
-      rows <- jsonAction.find(q).flatten
+      rows <- jsonAction.findSimple(q)
       result <- DBIO.sequence(rows.map(expandJson))
     } yield result
 
@@ -98,7 +98,7 @@ case class FormActions(metadata:JSONMetadata,
     queryForm(query).flatMap { q =>
       metadata.view.map(v => Registry().actions(v)) match {
         case None => streamSeq(q)
-        case Some(v) => v.find(q).flatten
+        case Some(v) => v.findSimple(q)
       }
     }
   }
@@ -395,10 +395,7 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  override def find(query: JSONQuery) = for{
-    q <- queryForm(query)
-    result <- jsonAction.find(q)
-  } yield result
+
 
   override def count() = metadata.query match {
     case Some(value) => jsonAction.count(value).map(JSONCount)

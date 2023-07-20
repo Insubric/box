@@ -184,8 +184,8 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
         logger.info("csv")
         import kantan.csv._
         import kantan.csv.ops._
-        onComplete(db.run(dbActions.find(query))) {
-          case Success(q) => complete(Source.fromPublisher(db.stream(q).mapResult(x => Seq(x.values()).asCsv(rfc))).log("csv"))
+        onComplete(db.run(dbActions.findSimple(query))) {
+          case Success(q) => complete(q.map(x => x.values()).asCsv(rfc))
           case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
         }
 
@@ -198,13 +198,13 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
             import kantan.csv.ops._
             val query = parse(q).right.get.as[JSONQuery].right.get
 
-            onComplete(db.run(dbActions.find(query))) {
-              case Success(q) => {
-                val csv = Source.fromFuture(EntityMetadataFactory.of(name, registry).map{ metadata =>
-                  Seq(metadata.fields.map(_.name)).asCsv(rfc)
-                }).concat(Source.fromPublisher(db.stream(q)).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
-                complete(csv)
-              }
+            val csvString = for{
+              metadata <- EntityMetadataFactory.of(name, registry)
+              data <- db.run(dbActions.findSimple(query))
+            } yield (Seq(metadata.fields.map(_.name)) ++ data.map(_.values())).asCsv(rfc)
+
+            onComplete(csvString) {
+              case Success(csv) => complete(csv)
               case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
             }
 
