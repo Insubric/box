@@ -65,7 +65,7 @@ case class Form(
   private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {
           case Some(fields) => m.fields.filter(field => fields.contains(field.name))
-          case None => m.fields.filter(field => m.tabularFields.contains(field.name))
+          case None => m.fields.filter(field => m.tabularFields.contains(field.name) || m.exportFields.contains(field.name))
         }
     }
 
@@ -107,7 +107,7 @@ case class Form(
           val io = for {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, registry, metadataFactory)
-            data <- formActions.list(query, true, true)
+            data <- formActions.list(query, true, true,_.exportFields)
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
@@ -130,11 +130,13 @@ case class Form(
     } yield csv
   }
 
-  def csvTable(q:String,fk:Option[String],fields:Option[String]):DBIO[CSVTable] = {
+  def csvTable(q:String,fk:Option[String],fields:Option[String]):Future[CSVTable] = {
     val query = parse(q).right.get.as[JSONQuery].right.get
-    val formActions = FormActions(metadata, registry, metadataFactory)
+    //val formActions = FormActions(metadata, registry, metadataFactory)
     for {
-      csv <- formActions.csv(query, true, _.exportFields)
+      metadata <- boxDb.adminDb.run(tabularMetadata())
+      formActions = FormActions(metadata, registry, metadataFactory)
+      csv <- db.run(formActions.csv(query, true, _.exportFields))
     } yield csv.copy(
       showHeader = true,
       header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
@@ -151,7 +153,7 @@ case class Form(
     } ~ get {
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-          onSuccess(db.run(csvTable(q,fk,fields)))(csv => CSV.download(csv))
+          onSuccess(csvTable(q,fk,fields))(csv => CSV.download(csv))
         }
       }
     }

@@ -169,39 +169,32 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false):DBIO[Seq[Json]] = {
+  private def __list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Seq[(String,Json)]]] = {
 
     _list(query).flatMap{ rows =>
-      val fkData = if(resolveLookup) fkDataComplete(metadata.tabularFields,rows) else noFkData
+      val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
 
       fkData.map { lookupElements =>
         rows.map { row =>
-          val columns = metadata.tabularFields.map { f =>
+          val columns = fields(metadata).map { f =>
             (f, listRenderer(row, lookupElements.map(_.toMap), dropHtml)(f))
           }
 
-          Json.fromFields(columns)
+          columns
         }
       }
     }
   }
 
+  def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Json]] = __list(query,resolveLookup, dropHtml).map{ rows =>
+    rows.map(Json.fromFields)
+  }
+
 
   def csv(query:JSONQuery,resolveLookup:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
 
-    import kantan.csv._
-    import kantan.csv.ops._
-
-    _list(query).flatMap { rows =>
-
-      val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
-
-      fkData.map{lookupElements =>
-        val csvRows = rows.map { json =>
-          fields(metadata).map(listRenderer(json, lookupElements.map(_.toMap))).map(_.string)
-        }
-        CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
-      }
+    __list(query,resolveLookup,false,fields).map{ rows =>
+        CSVTable(title = metadata.label, header = Seq(), rows = rows.map(_.map(_._2.string)), showHeader = false)
     }
   }
 
