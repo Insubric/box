@@ -22,7 +22,7 @@ class InsertTest extends TestBase {
 
   val updatedField = Promise[Assertion]()
 
-  class SBLValues extends Values {
+  class SBLValues extends Values(loggerLevel) {
 
 
     override def get(_id: JSONID): Json = {

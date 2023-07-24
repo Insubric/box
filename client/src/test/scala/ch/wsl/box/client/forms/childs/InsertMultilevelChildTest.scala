@@ -9,6 +9,7 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
+import scribe.Level
 
 import scala.concurrent.Future
 
@@ -16,6 +17,8 @@ class InsertMultilevelChildTest extends TestBase {
 
   val childText = "Test"
   val subchildText = "Test Sub"
+
+  //override def loggerLevel: Level = Level.Debug
 
   class ExpectingMock extends RestMock(values) {
     override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[Json] = {

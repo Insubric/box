@@ -21,7 +21,7 @@ class DeleteTest extends TestBase {
 
   val deletedField = Promise[Assertion]()
 
-  class DTValues extends Values {
+  class DTValues extends Values(loggerLevel) {
     override def get(_id: JSONID): Json = {
       Json.obj(
         "id" -> Json.fromInt(id),

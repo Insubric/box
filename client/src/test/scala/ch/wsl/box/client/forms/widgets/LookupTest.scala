@@ -15,7 +15,7 @@ class LookupTest extends TestBase {
 
   val field = JSONField.lookup("test_lookup",Seq(Json.fromString("a"),Json.fromString("b")))
 
-  class RTValues extends Values{
+  class RTValues extends Values(loggerLevel){
 
     override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,testFormName,"it",Seq(
       JSONField.number("id",nullable = false),

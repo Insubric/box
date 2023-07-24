@@ -11,7 +11,7 @@ class LoginTest extends TestBase {
 
   var logged:Option[String] = None
 
-  class LoginValues extends Values {
+  class LoginValues extends Values(loggerLevel) {
     override def loggedUser: Option[String] = logged
   }
 

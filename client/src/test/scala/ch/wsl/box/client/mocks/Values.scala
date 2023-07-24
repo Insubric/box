@@ -7,9 +7,7 @@ import scribe.Level
 
 import java.util.UUID
 
-class Values {
-
-  def loggerLevel:Level = Level.Error
+class Values(val loggerLevel:Level) {
 
   def loggedUser: Option[String] = Some("postgres")
 

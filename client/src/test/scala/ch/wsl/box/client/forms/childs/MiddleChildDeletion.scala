@@ -58,7 +58,7 @@ class MiddleChildDeletion extends TestBase {
     )
   )
 
-  class MCDValues extends Values{
+  class MCDValues extends Values(loggerLevel){
 
     var firstGet = true
 

@@ -23,7 +23,9 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Warn)).replace()
 
-  def values = new Values()
+
+  def loggerLevel:Level = Level.Error
+  def values = new Values(loggerLevel)
 
   def rest:REST = new RestMock(values)
 
@@ -58,13 +60,19 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
       if(w()) {
         window.clearTimeout(timeout)
         observer.disconnect()
-        Try(promise.success(assert(true)))
+        window.setTimeout(() =>
+          Try(promise.success(assert(true))),
+          0
+        )
       }
     })
     if(w()) {
       window.clearTimeout(timeout)
       observer.disconnect()
-      Try(promise.success(assert(true)))
+      window.setTimeout(() =>
+        Try(promise.success(assert(true))),
+        0
+      )
     }
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
     promise.future

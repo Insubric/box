@@ -22,7 +22,7 @@ class SubBlockLayoutTest extends TestBase {
 
   val updatedField = Promise[Assertion]()
 
-  class SBLValues extends Values {
+  class SBLValues extends Values(loggerLevel) {
 
     override def metadata: JSONMetadata = {
       val originalMetadata = super.metadata
