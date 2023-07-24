@@ -95,7 +95,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     } yield {
 
       BrowserConsole.log(data)
-      println(data == Json.Null)
 
       var insert = false
 
@@ -134,16 +133,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       resetChanges()
 
 
-      //need to be called after setting data because we are listening for data changes
-      enableGoAway
-
       setNavigation()
 
-      widget.afterRender()
+      widget.afterRender().map{ _ =>
+        enableGoAway("handleState")
+        services.clientSession.loading.set(false)
+        loaded.success(true)
+      }
 
-      services.clientSession.loading.set(false)
 
-      loaded.success(true)
 
     }}.onComplete {
       case Failure(exception) => {
@@ -166,14 +164,18 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   typings.hotkeysJs.mod.default("ctrl+s",saveKey)
 
   override def onClose(): Unit = {
-    Try {
-      if (widget != null) {
-        widget.killWidget()
+    if(Navigate.canGoAway) {
+      logger.debug("onClose")
+      changesListener.cancel()
+      Try {
+        if (widget != null) {
+          widget.killWidget()
+        }
       }
+      model.set(EntityFormModel.empty, true)
+      enableGoAway("onClose")
+      typings.hotkeysJs.mod.default.unbind()
     }
-    model.set(EntityFormModel.empty,true)
-    enableGoAway
-    typings.hotkeysJs.mod.default.unbind()
 
   }
 
@@ -240,7 +242,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
                  """)
 
-      enableGoAway
+      enableGoAway("save")
       model.subProp(_.insert).set(false)
       services.clientSession.loading.set(false)
 
@@ -266,7 +268,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         model.subProp(_.data).set(resultSaved)
         resetChanges()
         model.subProp(_.id).set(Some(id.asString), true)
-        enableGoAway
+        enableGoAway("reload")
         widget.afterRender().foreach{ _ =>
           services.clientSession.loading.set(false)
           promise.success(model.subProp(_.data).get)
@@ -300,7 +302,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def reset(): Unit = {
     model.subProp(_.data).set(Json.Null)
     model.subProp(_.id).set(None)
-    enableGoAway
+    enableGoAway("reset")
   }
 
   def duplicate():Unit = {
@@ -336,11 +338,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   private val changed:Property[Boolean] = Property(false)
 
-  changed.listen { hasChanges =>
+  val changesListener = changed.listen { hasChanges =>
     if(hasChanges) {
       avoidGoAway
     } else {
-      enableGoAway
+      enableGoAway("changeListener")
     }
   }
 
@@ -395,7 +397,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
     }
   }
-  def enableGoAway = {
+  def enableGoAway(where:String) = {
+    logger.debug(s"enableGoAway from $where")
     Navigate.enable()
     model.subProp(_.changed).set(false)
     window.onbeforeunload = { (e:BeforeUnloadEvent) => }
@@ -455,7 +458,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       case NoAction => action.getUrl(model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
         executeFuntion().map { functionOk =>
           if(functionOk) {
-            reset()
+            if(Navigate.canGoAway)
+              reset()
             afterGoto(url)
           }
         }

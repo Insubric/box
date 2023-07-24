@@ -10,6 +10,8 @@ object Navigate extends Logging {
   private var enabled:Boolean = true
   private var enabler:() => Boolean = () => false
 
+  def canGoAway = enabled
+
   def disable(enabler: () => Boolean = () => false) = {
     this.enabler = enabler
     enabled = false
