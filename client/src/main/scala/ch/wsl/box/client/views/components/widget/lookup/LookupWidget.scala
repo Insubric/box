@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
+import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONFieldTypes, JSONLookup, JSONMetadata, JSONQuery}
 import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -105,15 +106,24 @@ trait LookupWidget extends Widget with HasData {
         case Some(value) => value.map(setNewLookup)
         case _ => {
           _lookup.set(Seq(), true) //reset lookup state
-          val request = services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public).map { lookups =>
+
+          val request = for{
+            lookups <- services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public)
+            singleLookup <- if(data.get != Json.Null && !lookups.exists(_.id == data.get)) {
+              services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, JSONQuery.filterWith(WHERE.in(fieldLookup.map.valueProperty,Seq(data.get.string))), public)
+            } else Future.successful(Seq[JSONLookup]())
+          } yield {
             logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
             if (lookups.isEmpty) {
               LookupWidget.remoteLookup.remove(cacheKey)
             }
 
-            setNewLookup(lookups)
-            lookups
+            val allLookups = singleLookup ++ lookups
+            setNewLookup(allLookups)
+            allLookups
           }
+
+
 
           logger.debug(s"Calling lookup with $q")
           LookupWidget.remoteLookup.put(cacheKey, request)
