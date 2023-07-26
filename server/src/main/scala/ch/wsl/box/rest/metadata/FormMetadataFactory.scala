@@ -290,7 +290,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         form.entity,
         lang,
         tableFields,
-        form.tabularFields.toSeq.flatMap(_.split(",").map(_.trim)),
+        definedTableFields,
         keys,
         keyStrategy,
         defaultQuery,

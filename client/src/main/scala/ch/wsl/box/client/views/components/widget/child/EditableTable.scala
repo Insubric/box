@@ -172,7 +172,7 @@ object EditableTable extends ChildRendererFactory {
         fields <- fieldsJs.as[Seq[String]].toOption
       } yield fields
 
-      tableFields.getOrElse(f.tabularFields).flatMap(field => f.fields.find(_.name == field))
+      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field))
     }
 
     def colHeader(field:JSONField):ReadableProperty[String] = {
