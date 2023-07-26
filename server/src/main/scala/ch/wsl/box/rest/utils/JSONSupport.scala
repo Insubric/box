@@ -128,7 +128,11 @@ object JSONSupport {
 
 
       override def apply(c: HCursor): Result[Array[Byte]] = Decoder.decodeString.map { s =>
-        Base64.getDecoder.decode(s)
+        if(FileUtils.isKeep(s)) {
+          FileUtils.base.getBytes("UTF-8")
+        } else {
+          Base64.getDecoder.decode(s)
+        }
       }.apply(c)
     }
   }
