@@ -1,11 +1,13 @@
 package ch.wsl.box.client.routes
 
 import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.utils.MustacheUtils
 import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
-import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.model.shared.{FormAction, JSONQuery}
 import org.scalajs.dom
 import org.scalajs.dom.URLSearchParams
 import scribe.Logging
+import yamusca.imports.mustache
 
 import scala.scalajs.js
 import scala.scalajs.js.URIUtils
@@ -68,6 +70,26 @@ object Routes extends Logging {
     def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),false)
     def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => URIUtils.encodeURIComponent(js.asJson.noSpaces)))
     def entity(name:String) = EntityTableState(kind,name,None)
+  }
+
+  def getUrl(fa:FormAction, data: Json, kind: String, name: String, id: Option[String], writable: Boolean): Option[String] = fa.afterActionGoTo.map { x =>
+    val urlInternalSubstitutions = x.replace("$kind", kind)
+      .replace("$name", name)
+      .replace("$id", id.getOrElse(""))
+      .replace("$writable", writable.toString)
+
+    mustache.parse(urlInternalSubstitutions) match {
+      case Left(err) => {
+        println(err._2)
+        urlInternalSubstitutions
+      }
+      case Right(tmpl) => {
+
+        mustache.render(tmpl)(MustacheUtils.context(tmpl, data))
+      }
+    }
+
+
   }
 
 }

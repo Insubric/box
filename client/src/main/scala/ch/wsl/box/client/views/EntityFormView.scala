@@ -446,7 +446,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
             if (action.reload) {
               reload(_id)
             }
-            action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
+            Routes.getUrl(action,model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
               logger.warn(s"Navigating to $url")
               //reset()
               afterGoto(url)
@@ -455,7 +455,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
           }
         }
       }
-      case NoAction => action.getUrl(model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
+      case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
         executeFuntion().map { functionOk =>
           if(functionOk) {
             if(Navigate.canGoAway)

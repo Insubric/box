@@ -619,7 +619,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                                   case None => Future.successful(())
                                 }
                                 function.foreach { _ =>
-                                  ta.getUrl(Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
+                                  Routes.getUrl(ta,Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
                                     case Some(url) => Navigate.toUrl(url)
                                     case None => {
                                       Context.applicationInstance.reload()
@@ -741,7 +741,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                               case NewWindow => Some(window.open("about:blank",id.asString))
                             }
                             presenter.getObj(id).foreach{ data =>
-                              val url = ta.getUrl(data, metadata.get.kind, metadata.get.name, Some(id.asString), model.get.access.update).getOrElse("")
+                              val url = Routes.getUrl(ta,data, metadata.get.kind, metadata.get.name, Some(id.asString), model.get.access.update).getOrElse("")
                               ta.target match {
                                 case Self => Navigate.toUrl(url)
                                 case NewWindow => tab.foreach(_.location.href = url)

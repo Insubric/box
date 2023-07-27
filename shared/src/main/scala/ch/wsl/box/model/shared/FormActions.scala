@@ -83,37 +83,7 @@ case class FormAction(
                       needInsertRight:Boolean = false,
                       whenNoUpdateRight:Boolean = false,
                       target:Target = Self
-                      ) {
-  def getUrl(data:Json,kind:String,name:String,id:Option[String],writable:Boolean):Option[String] = afterActionGoTo.map{ x =>
-    val urlInternalSubstitutions = x.replace("$kind",kind)
-      .replace("$name",name)
-      .replace("$id",id.getOrElse(""))
-      .replace("$writable", writable.toString)
-
-    mustache.parse(urlInternalSubstitutions) match {
-      case Left(err) => {
-        println(err._2)
-        urlInternalSubstitutions
-      }
-      case Right(tmpl) => {
-
-        val variables = tmpl.els.flatMap{
-          case Variable(key, _) => Some(key)
-          case Section(key, _, _) => Some(key)
-          case _ => None
-        }
-
-        val values = variables.map{v =>
-          v -> data.js(v).toMustacheValue
-        }
-
-        mustache.render(tmpl)(Context(values:_*))
-      }
-    }
-
-
-  }
-}
+                      )
 
 case class FormActionsMetadata(
                       actions:Seq[FormAction],

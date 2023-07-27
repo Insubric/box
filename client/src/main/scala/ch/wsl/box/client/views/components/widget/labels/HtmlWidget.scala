@@ -1,6 +1,7 @@
 package ch.wsl.box.client.views.components.widget.labels
 
 import ch.wsl.box.client.routes.Routes
+import ch.wsl.box.client.utils.MustacheUtils
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -32,21 +33,9 @@ object HtmlWidget extends ComponentWidgetFactory {
 
         val renderer = mustache.render(tmpl)
 
-        val variables = tmpl.els.flatMap{
-          case Variable(key, _) => Some(key)
-          case Section(key, _, _) => Some(key)
-          case _ => None
-        }
 
         val watchedVariables:ReadableProperty[Context] = data.transform{ js =>
-          val values = variables.map{v =>
-            v -> js.js(v).toMustacheValue
-          } ++ Seq(
-            "BASE_URI" -> Value.of(Routes.baseUri),
-            "FULL_URL" -> Value.of(Routes.fullUrl),
-            "ORIGIN_URL" -> Value.of(Routes.originUrl)
-          )
-          Context(values:_*)
+          MustacheUtils.context(tmpl,js)
         }
 
 
