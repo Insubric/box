@@ -416,6 +416,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name,id)
   }
 
+  def resetFilters() = {
+    model.subProp(_.fieldQueries).set(model.subProp(_.fieldQueries).get.map(_.copy(filterValue = "")))
+  }
+
 
 }
 
@@ -524,10 +528,18 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             choicesJs.clearChoices()
             val c = choises(fl)
             choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
-            choicesJs.setChoiceByValue(filterValue.get)
+            if(filterValue.get.nonEmpty) {
+              choicesJs.setChoiceByValue(filterValue.get)
+            }
           }
 
         },true)
+
+        filterValue.listen{ fv =>
+          if(fv.isEmpty && choicesJs.getValue(true).toString.nonEmpty) {
+            choicesJs.clearStore()
+          }
+        }
 
       })
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
@@ -569,7 +581,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           ),
           div(Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count))),
             nested(showIf(model.subProp(_.fieldQueries).transform(_.exists(_.filterValue.nonEmpty))){
-              small(" - " , Labels.navigation.recordsFiltered).render
+              small(" - " , Labels.navigation.recordsFiltered," ",button("\uD83D\uDDD9",ClientConf.style.boxButton, onclick :+= ((e:Event) => {
+                presenter.resetFilters()
+                e.preventDefault()
+              }))).render
             })
           ),
           pagination.render
