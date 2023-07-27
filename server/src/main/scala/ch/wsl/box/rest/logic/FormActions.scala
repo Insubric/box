@@ -396,8 +396,8 @@ case class FormActions(metadata:JSONMetadata,
   }
   override def count(query: JSONQuery) = jsonAction.count(query)
 
-  override def ids(query: JSONQuery): DBIO[IDs] = for{
+  override def ids(query: JSONQuery,keys:Seq[String]): DBIO[IDs] = for{
     q <- queryForm(query)
-    result <- jsonAction.ids(q)
+    result <- registry.actions(metadata.view.getOrElse(metadata.entity)).ids(q,keys)
   } yield result
 }

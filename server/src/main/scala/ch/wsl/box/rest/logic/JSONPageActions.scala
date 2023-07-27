@@ -32,7 +32,7 @@ object JSONPageActions extends TableActions[Json] {
 
   override def count(query: JSONQuery): PostgresProfile.api.DBIO[Int] = DBIO.successful(0)
 
-  override def ids(query: JSONQuery): PostgresProfile.api.DBIO[IDs] = DBIO.successful(IDs(true,0,Seq(),0))
+  override def ids(query: JSONQuery,keys:Seq[String]): PostgresProfile.api.DBIO[IDs] = DBIO.successful(IDs(true,0,Seq(),0))
 
   override def updateField(id: JSONID, fieldName: String, value: Json):DBIO[Json] = DBIO.successful(Json.obj())
 

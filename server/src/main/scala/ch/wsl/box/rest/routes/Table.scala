@@ -152,7 +152,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     post {
       entity(as[JSONQuery]) { query =>
         complete {
-          db.run(dbActions.ids(query))
+          db.run(dbActions.ids(query,jsonMetadata.keys))
           //                EntityActionsRegistry().viewActions(name).map(_.ids(query))
         }
       }

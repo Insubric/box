@@ -306,7 +306,7 @@ case class Form(
           entity(as[JSONQuery]) { query =>
             complete {
               for {
-                data <- db.run(actions.ids(query))
+                data <- db.run(actions.ids(query,metadata.keys))
               } yield data
             }
           }

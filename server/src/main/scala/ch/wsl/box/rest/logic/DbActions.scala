@@ -120,10 +120,9 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 
 
-  override def ids(query: JSONQuery): DBIO[IDs] = {
+  override def ids(query: JSONQuery,keys:Seq[String]): DBIO[IDs] = {
     for{
-      m <- metadata
-      keys <- entity.baseTableRow.ids(m,query)
+      keys <- entity.baseTableRow.ids(keys,query)
       n <- count(query)
     } yield {
 

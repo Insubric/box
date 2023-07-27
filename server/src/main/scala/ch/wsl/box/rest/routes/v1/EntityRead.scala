@@ -118,7 +118,7 @@ object EntityRead extends Logging  {
           post {
             entity(as[JSONQuery]) { query =>
               complete {
-                db.run(actions.ids(query))
+                db.run(actions.ids(query,jsonMetadata.keys))
                 //                EntityActionsRegistry().viewActions(name).map(_.ids(query))
               }
             }

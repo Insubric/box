@@ -27,7 +27,7 @@ trait ViewActions[T] {
   def count(): DBIO[JSONCount]
   def count(query: JSONQuery): DBIO[Int]
 
-  def ids(query: JSONQuery): DBIO[IDs]
+  def ids(query: JSONQuery,keys:Seq[String]): DBIO[IDs]
 
   def lookups(request:JSONLookupsRequest):DBIO[Seq[JSONLookups]]
 }

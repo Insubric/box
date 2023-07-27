@@ -34,8 +34,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
   def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
 
-  def ids(metadata:JSONMetadata,query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[JSONID]] = doFetch(metadata.keys,whereBuilder(query)).map{ rows =>
-    rows.map(row => JSONID.fromData(row,metadata.keys))
+  def ids(keys:Seq[String],query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[JSONID]] = doFetch(keys,whereBuilder(query)).map{ rows =>
+    rows.map(row => JSONID.fromData(row,keys))
   }
 
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
@@ -206,13 +206,13 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
         case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
         case (Filter.EQUALS,_,Some(v)) => concat(base,sql"""= $v """)
-        case (Filter.LIKE,_,Some(v)) => concat(base,sql"""  like '%#$v%' """)
+        case (Filter.LIKE,_,Some(v)) => concat(base,sql"""  ilike '%#$v%' """)
         case (Filter.<,_,Some(v)) => concat(base,sql""" < $v """)
         case (Filter.NOT,_,Some(v)) => concat(base,sql""" <> $v """)
         case (Filter.>,_,Some(v)) => concat(base,sql""" > $v """)
         case (Filter.<=,_,Some(v)) => concat(base,sql""" <= $v """)
         case (Filter.>=,_,Some(v)) => concat(base,sql""" >= $v """)
-        case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not like '%#$v%' """)
+        case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
         case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
         case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
       }
