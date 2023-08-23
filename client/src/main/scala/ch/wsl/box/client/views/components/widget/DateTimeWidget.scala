@@ -1,5 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
+import ch.wsl.box.client.Context
+
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
@@ -20,6 +22,8 @@ import org.scalajs.dom.{Event, KeyboardEvent}
 import scalacss.internal.StyleA
 import scalatags.JsDom
 import scribe.Logging
+import typings.flatpickr.anon.kinkeyCustomLocaledefault
+import typings.flatpickr.distTypesLocaleMod.{CustomLocale, Locale}
 import typings.flatpickr.distTypesOptionsMod.Hook
 import typings.flatpickr.mod.flatpickr.Options.DateOption
 
@@ -179,20 +183,14 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
         }
       },
       onclick := { (e:Event) =>
-        BrowserConsole.log(data.get)
-        println(defaultFrom)
         if(data.get == Json.Null) {
           val defaultDate = for{
             field <- defaultFrom
             jsDate <- allData.get.jsOpt(field)
           } yield jsDate
 
-          val newDate = defaultDate match {
-            case Some(date) => {
-              println(s"Setting date $date")
-              handleDate(date,true)
-
-            }
+          defaultDate match {
+            case Some(date) => handleDate(date,true)
             case None => data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
           }
         }
@@ -232,6 +230,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     }
 
 
+    val locale:CustomLocale = Context.services.clientSession.lang() match {
+      case "it" => typings.flatpickr.distL10nItMod.default.it.get.setFirstDayOfWeek(1)
+      case "fr" => typings.flatpickr.distL10nFrMod.default.fr.get.setFirstDayOfWeek(1)
+      case "de" => typings.flatpickr.distL10nDeMod.default.de.get.setFirstDayOfWeek(1)
+      case _ => typings.flatpickr.distL10nMod.default.default.setFirstDayOfWeek(1)
+    }
 
 
 
@@ -239,6 +243,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     val options = typings.flatpickr.distTypesOptionsMod.Options()
       .setAllowInput(true)
       .setDisableMobile(true)
+      .setLocale(locale)
       .setOnChange(onChange)
 
     if(range) {
