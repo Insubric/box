@@ -47,8 +47,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   val data:Property[Json]
   val id:ReadableProperty[Option[String]]
   val range:Boolean
+  val allData:ReadableProperty[Json]
 
   val format = field.params.flatMap(_.getOpt("format"))
+
+  val defaultFrom = field.params.flatMap(_.getOpt("defaultFrom"))
 
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
 
@@ -176,8 +179,22 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
         }
       },
       onclick := { (e:Event) =>
+        BrowserConsole.log(data.get)
+        println(defaultFrom)
         if(data.get == Json.Null) {
-          data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
+          val defaultDate = for{
+            field <- defaultFrom
+            jsDate <- allData.get.jsOpt(field)
+          } yield jsDate
+
+          val newDate = defaultDate match {
+            case Some(date) => {
+              println(s"Setting date $date")
+              handleDate(date,true)
+
+            }
+            case None => data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
+          }
         }
       },
       onblur := { (e: Event) =>
@@ -248,35 +265,35 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 object DateTimeWidget {
 
 
-  case class Date(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], range:Boolean = false) extends DateTimeWidget[LocalDate] {
+  case class Date(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDate] {
     override val fieldType = FieldTypes.Date
     override val dateTimeFormatters: DateTimeFormatters[LocalDate] = DateTimeFormatters.date
   }
 
   object Date extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.datepicker
-    override def create(params: WidgetParams): Widget = Date(params.id,params.field,params.prop)
+    override def create(params: WidgetParams): Widget = Date(params.id,params.field,params.prop,params.allData)
   }
 
 
 
-  case class DateTime(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], range:Boolean = false) extends DateTimeWidget[LocalDateTime] {
+  case class DateTime(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDateTime] {
     override val fieldType = FieldTypes.DateTime
     override val dateTimeFormatters: DateTimeFormatters[LocalDateTime] = DateTimeFormatters.timestamp
   }
 
   object DateTime extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.datetimePicker
-    override def create(params: WidgetParams): Widget = DateTime(params.id,params.field,params.prop)
+    override def create(params: WidgetParams): Widget = DateTime(params.id,params.field,params.prop,params.allData)
   }
 
 
   object Time extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.timepicker
-    override def create(params: WidgetParams): Widget = Time(params.id,params.field,params.prop)
+    override def create(params: WidgetParams): Widget = Time(params.id,params.field,params.prop,params.allData)
   }
 
-  case class Time(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], range:Boolean = false) extends DateTimeWidget[LocalTime] {
+  case class Time(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalTime] {
     override val fieldType = FieldTypes.Time
     override val dateTimeFormatters: DateTimeFormatters[LocalTime] = DateTimeFormatters.time
   }
