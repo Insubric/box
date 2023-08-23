@@ -22,7 +22,7 @@ object JSONUtils extends Logging {
     Try {
       val json:Json = typ match {
         case JSONFieldTypes.NUMBER => value.toDouble.asJson
-        case JSONFieldTypes.INTEGER => value.toInt.asJson
+        case JSONFieldTypes.INTEGER => value.toLong.asJson
         case JSONFieldTypes.BOOLEAN => Json.fromBoolean(value.toBoolean)
         case JSONFieldTypes.JSON => parser.parse(value) match {
           case Left(value) => throw new Exception(value.message)
@@ -38,6 +38,7 @@ object JSONUtils extends Logging {
     } match {
       case Failure(exception) => {
         logger.warn(exception.getMessage)
+        exception.getStackTrace.foreach(x => logger.warn(x.toString))
         None
       }
       case Success(value) => Some(value)
