@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
+import ch.wsl.box.client.geo.{BoxMapProjections, MapParams, MapParamsFeatures}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
@@ -32,11 +33,15 @@ import typings.ol.projMod
 import scala.scalajs.js
 
 
-case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget with HasData with Logging {
+case class MapPointWidget(params: WidgetParams) extends Widget with HasData with Logging {
+
 
 
   import ch.wsl.box.model.shared.GeoJson.Geometry._
   import ch.wsl.box.client.Context._
+
+  val options: MapParams = MapWidgetUtils.options(field)
+  val proj = new BoxMapProjections(options)
 
   override def field: JSONField = params.field
 
@@ -170,7 +175,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     onclick :+= { (e: Event) =>
       GPS.coordinates().map { coords =>
         val point = coords.map { c =>
-          val localCoords = projMod.transform(js.Array(c.x, c.y), wgs84Proj, defaultProjection)
+          val localCoords = projMod.transform(js.Array(c.x, c.y), proj.wgs84Proj, proj.defaultProjection)
           Point(Coordinates(localCoords(0), localCoords(1)))
         }
         geometry.set(point)

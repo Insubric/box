@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
+import ch.wsl.box.client.geo.MapParamsLayers
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
@@ -19,7 +20,7 @@ import scalacss.ProdDefaults.{cssEnv, cssStringRenderer}
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logger
-import typings.ol.{interactionDrawMod, formatGeoJSONMod, geomMod, geomGeometryMod, geomMultiPointMod, featureMod, projMod}
+import typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, geomMultiPointMod, interactionDrawMod, projMod}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -94,7 +95,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
   override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
-    val mapStyle = MapStyle(field.params)
+    val mapStyle = WidgetMapStyle(field.params)
     val mapStyleElement = document.createElement("style")
     mapStyleElement.innerText = mapStyle.render(cssStringRenderer, cssEnv)
 
@@ -126,7 +127,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         button(ClientConf.style.mapButton)(
           onclick :+= ((e: Event) => {
             ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
-              val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
+              val localCoords = projMod.transform(js.Array(coords.x, coords.y), proj.wgs84Proj, defaultProjection)
               goToField.set(Some(coordsToGeoJson(localCoords)))
             }}
             e.preventDefault()
@@ -142,7 +143,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       ClientConf.style.childAddButton,
       onclick :+= ((e: Event) => {
         ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
-          val localCoords = projMod.transform(js.Array(coords.x, coords.y), wgs84Proj, defaultProjection)
+          val localCoords = projMod.transform(js.Array(coords.x, coords.y), proj.wgs84Proj, defaultProjection)
           insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
           insertCoordinateHandler(e)
         }}

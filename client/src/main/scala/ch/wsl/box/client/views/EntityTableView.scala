@@ -7,7 +7,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate,
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{TestHooks, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
-import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
+import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.{JSONQuery, _}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -23,6 +23,7 @@ import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
 import io.udash.utils.Registration
 import org.scalajs.dom
+import org.scalajs.dom.html.Div
 import scalacss.ScalatagsCss._
 import org.scalajs.dom.{Element, Event, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
 import scalacss.internal.Pseudo.Lang
@@ -36,7 +37,6 @@ import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.{URIUtils, |}
 import scala.util.Try
-
 import scala.scalajs.js
 import js.JSConverters._
 
@@ -257,6 +257,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
+  def hasGeometry():Boolean = {
+    val metadata = model.get.metadata
+    metadata.toSeq.flatMap(_.fields).filter(metadata.toSeq.flatMap(_.exportFields) contains _.name).exists(_.`type`==JSONFieldTypes.GEOMETRY)
+  }
+
   def saveIds(ids: IDs, query:JSONQuery) = {
     services.clientSession.setQueryFor(model.get.kind,model.get.name,model.get.urlQuery,query)
     services.clientSession.setIDs(ids)
@@ -288,6 +293,9 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     //start request in parallel
     val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
+    if(hasGeometry()) {
+      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, q)
+    }
 
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
       case Some(m) => {
@@ -553,6 +561,29 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
+  var map:Option[Div] = None
+
+  def showMap() = {
+    if(presenter.hasGeometry()) {
+      map = Some(div(height := 400.px).render)
+      val observer = new MutationObserver({ (mutations, observer) =>
+        map match {
+          case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
+            observer.disconnect()
+            new MapList(m)
+          }
+          case None => observer.disconnect()
+        }
+      })
+      observer.observe(document, MutationObserverInit(childList = true, subtree = true))
+      map.get
+    } else {
+      map = None
+      div().render
+    }
+  }
+
+
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
     val pagination = {
@@ -662,6 +693,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               ),
             ).render
         },
+        div(BootstrapStyles.Visibility.clearfix),
+        showMap(),
         div(BootstrapStyles.Visibility.clearfix),
         div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
           UdashTable(model.subSeq(_.rows))(
@@ -793,7 +826,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
-          if (metadata.toSeq.flatMap(_.fields).filter(metadata.toSeq.flatMap(_.exportFields) contains _.name).exists(_.`type`==JSONFieldTypes.GEOMETRY)) {
+          if (presenter.hasGeometry()) {
             button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp)
           } else frag(),
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {

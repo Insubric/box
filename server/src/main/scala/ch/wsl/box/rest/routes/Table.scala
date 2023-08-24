@@ -124,6 +124,20 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     }
   }
 
+  def geoData:Route = path("geo-data") {
+    post {
+        entity(as[JSONQuery]) { query =>
+        complete {
+          for {
+            data <- PSQLImpl.table(name, query)
+          } yield {
+            data.get.geometry
+          }
+        }
+      }
+    }
+  }
+
   def kind:Route = path("kind") {
     get {
       complete{EntityKind.VIEW.kind}
@@ -299,6 +313,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       xls ~
       csv ~
       shp ~
+      geoData ~
       lookups(dbActions) ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~
