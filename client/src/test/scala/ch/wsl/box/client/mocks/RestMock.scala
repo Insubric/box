@@ -3,7 +3,7 @@ package ch.wsl.box.client.mocks
 import ch.wsl.box.client.services.REST
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, Child, CurrentUser, ExportDef, Field, FormActionsMetadata, IDs, JSONCount, JSONField, JSONFieldMap, JSONFieldTypes, JSONID, JSONKeyValue, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, Layout, LayoutBlock, LoginRequest, NewsEntry, PDFTable, SharedLabels, TableAccess, WidgetsNames, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, Child, CurrentUser, ExportDef, Field, FormActionsMetadata, GeoJson, IDs, JSONCount, JSONField, JSONFieldMap, JSONFieldTypes, JSONID, JSONKeyValue, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, Layout, LayoutBlock, LoginRequest, NewsEntry, PDFTable, SharedLabels, TableAccess, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.syntax._
@@ -56,6 +56,9 @@ class RestMock(values:Values) extends REST with Logging {
     println("list2 not implemented")
     ???
   }
+
+
+  override def geoData(kind:String, lang:String, entity:String, query:JSONQuery): Future[Map[String, Seq[GeoJson.Geometry]]] = ???
 
   override def csv(kind: String, lang: String, entity: String, q: JSONQuery): Future[Seq[Seq[String]]] = {
     println("csv not implemented")

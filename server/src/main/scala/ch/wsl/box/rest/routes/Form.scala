@@ -9,7 +9,7 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.utils.{BoxSession, Cache, JSONSupport, UserProfile}
+import ch.wsl.box.rest.utils.{BoxSession, Cache, JSONSupport, Lang, UserProfile}
 import io.circe.Json
 import io.circe.parser.parse
 import scribe.Logging
@@ -53,7 +53,7 @@ case class Form(
     import ch.wsl.box.model.shared.EntityKind
     import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 
-
+    implicit val l = Lang(lang)
     implicit val up = session.userProfile
     val db = up.db
     implicit val implicitDB = db
@@ -249,7 +249,23 @@ case class Form(
     }
   }
 
-    def route = pathPrefix("id") {
+  def geoData: Route = path("geo-data") {
+    post {
+      entity(as[JSONQuery]) { query =>
+
+        complete {
+          for {
+            data <- PSQLImpl.table(metadata.view.getOrElse(metadata.entity), query)
+          } yield {
+            data.get.geometry
+          }
+        }
+      }
+    }
+  }
+
+
+  def route = pathPrefix("id") {
       path(Segment) { strId =>
         JSONID.fromMultiString(strId,metadata) match {
           case ids if ids.nonEmpty =>
@@ -345,6 +361,7 @@ case class Form(
     xls ~
     csv ~
     shp ~
+    geoData ~
     lookups(actions) ~
     pathEnd {
         post {

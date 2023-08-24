@@ -70,6 +70,7 @@ object TableFieldsRenderer extends Logging{
 
     def align = field.`type` match{
       case JSONFieldTypes.NUMBER => if (field.lookup.isEmpty) ClientConf.style.numberCells else ClientConf.style.lookupCells
+      case JSONFieldTypes.BOOLEAN => if (field.lookup.isEmpty) ClientConf.style.numberCells else ClientConf.style.lookupCells
       case JSONFieldTypes.DATE | JSONFieldTypes.DATETIME | JSONFieldTypes.TIME => ClientConf.style.dateCells
       case _ => ClientConf.style.textCells
     }
