@@ -3,9 +3,8 @@ package ch.wsl.box.rest.logic.functions
 import akka.stream.Materializer
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.shared.GeoJson.Geometry
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONQuery}
+import ch.wsl.box.model.shared.{DataResult, DataResultTable, JSONField, JSONFieldTypes, JSONID, JSONQuery}
 import ch.wsl.box.rest.jdbc.JdbcConnect
-import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import ch.wsl.box.services.Services
@@ -45,8 +44,9 @@ object PSQLImpl extends RuntimePSQL {
           rows = rows.map{ row =>
             keys.flatMap(k => row.asObject.get(k))
           },
+          idString = rows.map(x => x.getOpt(JSONID.BOX_OBJECT_ID)),
           geometry = geomColumn.map{ case (n,_) =>
-            n -> rows.flatMap{ row => row.js(n).as[Geometry].toOption }
+            n -> rows.map{ row => row.js(n).as[Geometry].toOption }
           }
         )
       }

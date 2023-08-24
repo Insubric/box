@@ -206,8 +206,8 @@ object ShapeFileWriter extends Logging {
         row.zip(myData.headerType).map{ case (value,typ) => ShapeFileAttributes(typ, value)}
       }.zip(myData.geometry(geomCol)).flatMap{ case (attributes,geom) =>
         geom match {
-          case GeoJson.GeometryCollection(geometries) => geometries.map(g => ShapeFileRow(g,attributes))
-          case _ => Seq(ShapeFileRow(geom,attributes))
+          case Some(GeoJson.GeometryCollection(geometries)) => geometries.map(g => ShapeFileRow(g,attributes))
+          case _ => geom.toSeq.map(g => ShapeFileRow(g,attributes))
         }
 
       }

@@ -13,7 +13,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONDiff, JSONID, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONCount, JSONData, JSONDiff, JSONID, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, Lang, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -30,7 +30,7 @@ import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 import io.circe.parser.decode
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Decoder, Encoder, Json, JsonObject}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -127,13 +127,16 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
   def geoData:Route = path("geo-data") {
     post {
         entity(as[JSONQuery]) { query =>
-        complete {
-          for {
-            data <- PSQLImpl.table(name, query)
-          } yield {
-            data.get.geometry
+          complete {
+            for {
+              data <- PSQLImpl.table(name, query)
+            } yield {
+              val result: GeoTypes.GeoData = data.get.geometry.map { geom =>
+                geom._1 -> data.get.idString.zip(geom._2).flatMap{ case (id,geo) => geo.map(g => GeoJson.Feature(g,Some(JsonObject("jsonid" -> id.asJson))))}
+              }
+              result
+            }
           }
-        }
       }
     }
   }

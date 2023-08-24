@@ -136,10 +136,11 @@ case class FormActions(metadata:JSONMetadata,
         listRenderer(row, lookupElements, dropHtml)(f)
       }
     }
+    val keys = rows.map(row => JSONID.fromBoxObjectId(row,metadata).map(_.asString))
     val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
     val geomColumn = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
-    DataResultTable(fields.map(_.title),fields.map(_.`type`),data,geomColumn.map{ case f =>
-      f.name -> rows.flatMap{ row => row.js(f.name).as[Geometry].toOption }
+    DataResultTable(fields.map(_.title),fields.map(_.`type`),data,keys,geomColumn.map{ case f =>
+      f.name -> rows.map{ row => row.js(f.name).as[Geometry].toOption }
     }.toMap)
   }
 

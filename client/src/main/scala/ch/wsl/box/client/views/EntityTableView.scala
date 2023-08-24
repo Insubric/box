@@ -66,11 +66,12 @@ case class Row(data: Seq[String]) {
 case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
-                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess, lookups:Seq[JSONLookups],query:Option[JSONQuery])
+                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess,
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData)
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None)
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Map())
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -198,7 +199,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         pages = Navigation.pageCount(0),
         access = access,
         lookups = Seq(),
-        query = Some(query)
+        query = Some(query),
+        geoms = Map()
       )
 
       saveIds(IDs(true,1,Seq(),0),query)
@@ -231,9 +233,15 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   def edit(el: => Row) = (e:Event) => {
     val k = ids(el)
-    val newState = routes.edit(k.asString)
-    Navigate.to(newState)
+    Navigate.to(routes.edit(k.asString))
     e.preventDefault()
+  }
+
+  def clickOnMap(idString:String) = {
+    if(model.get.access.update)
+      Navigate.to(routes.edit(idString))
+    else
+      Navigate.to(routes.show(idString))
   }
 
   def show(el: => Row) = (e:Event) => {
@@ -294,7 +302,9 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
     if(hasGeometry()) {
-      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, q)
+      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, q.limit(10000000)).foreach{ geoms =>
+        model.subProp(_.geoms).set(geoms)
+      }
     }
 
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
@@ -570,7 +580,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m)
+            new MapList(m,presenter.model.subProp(_.geoms),presenter.clickOnMap)
           }
           case None => observer.disconnect()
         }

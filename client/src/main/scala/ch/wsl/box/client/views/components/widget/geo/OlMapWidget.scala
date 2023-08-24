@@ -337,10 +337,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {
 
-      val features:js.Array[typings.ol.featureMod.default[typings.ol.geomGeometryMod.default]] = map.getFeaturesAtPixel(e.pixel).flatMap{
-        case x:typings.ol.featureMod.default[typings.ol.geomGeometryMod.default] => Some(x)
-        case _ => None
-      }
+      val features = mapActions.getFeatures(e)
 
       features.nonEmpty && activeControl.get == Control.VIEW match {
         case true => {
