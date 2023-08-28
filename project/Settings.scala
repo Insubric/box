@@ -147,7 +147,6 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.7.0" exclude("org.scala-lang.modules", "scala-parser-combinators") exclude("org.scala-lang.modules","scala-xml"),
     "com.norbitltd" %% "spoiwo" % "2.2.1",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,

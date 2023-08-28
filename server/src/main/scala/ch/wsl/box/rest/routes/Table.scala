@@ -131,9 +131,12 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
             for {
               data <- PSQLImpl.table(name, query)
             } yield {
-              val result: GeoTypes.GeoData = data.get.geometry.map { geom =>
-                geom._1 -> data.get.idString.zip(geom._2).flatMap{ case (id,geo) => geo.map(g => GeoJson.Feature(g,Some(JsonObject("jsonid" -> id.asJson))))}
-              }
+              val result: GeoTypes.GeoData = data.map{d=>
+                val innerResult = d.geometry.map { geom =>
+                  geom._1 -> d.idString.zip(geom._2).flatMap{ case (id,geo) => geo.map(g => GeoJson.Feature(g,Some(JsonObject("jsonid" -> id.asJson))))}
+                }
+                innerResult
+              }.getOrElse(Map())
               result
             }
           }

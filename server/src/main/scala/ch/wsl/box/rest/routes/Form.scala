@@ -258,10 +258,11 @@ case class Form(
           for {
             data <- PSQLImpl.table(metadata.view.getOrElse(metadata.entity), query)
           } yield {
-            val result: GeoTypes.GeoData = data.get.geometry.map{ geom =>
-              geom._1 -> data.get.idString.zip(geom._2).flatMap{ case (id,geo) => geo.map(g => GeoJson.Feature(g,Some(JsonObject("jsonid" -> id.asJson))))}
-            }
-            result
+            val result: GeoTypes.GeoData = data.map { d =>
+              d.geometry.map { geom =>
+                geom._1 -> d.idString.zip(geom._2).flatMap { case (id, geo) => geo.map(g => GeoJson.Feature(g, Some(JsonObject("jsonid" -> id.asJson)))) }
+              }
+            }.getOrElse(Map())
           }
         }
       }

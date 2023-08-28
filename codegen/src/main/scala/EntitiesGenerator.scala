@@ -24,7 +24,7 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import io.circe.generic.extras.semiauto._
        |  import io.circe.generic.extras.Configuration
        |  import ch.wsl.box.rest.utils.JSONSupport._
-       |  import geotrellis.vector.io.json.Implicits._
+       |  import ch.wsl.box.rest.utils.GeoJsonSupport._
        |
        |  import slick.model.ForeignKeyAction
        |  import slick.collection.heterogeneous._

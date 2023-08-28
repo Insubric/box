@@ -70,28 +70,28 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
   autoRelease(geometry.sync(x)(
     {
-      case Some(Point(coordinates)) => coordinates.x.toString
+      case Some(Point(coordinates,crs)) => coordinates.x.toString
       case _ => ""
     },
     { txt =>
       txt.toDoubleOption.map{ x =>
         geometry.get match {
-          case Some(Point(coordinates)) => Point(Coordinates(x,coordinates.y))
-          case _ => Point(Coordinates(x,0))
+          case Some(Point(coordinates,crs)) => Point(Coordinates(x,coordinates.y),options.crs)
+          case _ => Point(Coordinates(x,0),options.crs)
         }
       }
     }
   ))
   autoRelease(geometry.sync(y)(
     {
-      case Some(Point(coordinates)) => coordinates.y.toString
+      case Some(Point(coordinates,crs)) => coordinates.y.toString
       case _ => ""
     },
     { txt =>
       txt.toDoubleOption.map{ y =>
         geometry.get match {
-          case Some(Point(coordinates)) => Point(Coordinates(coordinates.x,y))
-          case _ => Point(Coordinates(0,y))
+          case Some(Point(coordinates,crs)) => Point(Coordinates(coordinates.x,y),options.crs)
+          case _ => Point(Coordinates(0,y),options.crs)
         }
       }
     }
@@ -176,7 +176,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
       GPS.coordinates().map { coords =>
         val point = coords.map { c =>
           val localCoords = projMod.transform(js.Array(c.x, c.y), proj.wgs84Proj, proj.defaultProjection)
-          Point(Coordinates(localCoords(0), localCoords(1)))
+          Point(Coordinates(localCoords(0), localCoords(1)),options.crs)
         }
         geometry.set(point)
       }

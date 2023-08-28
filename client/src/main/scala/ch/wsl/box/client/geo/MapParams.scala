@@ -2,7 +2,7 @@ package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.viewmodel.I18n
 import ch.wsl.box.model.shared.GeoJson
-import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
 
 /*
 {
@@ -62,13 +62,13 @@ case class MapFormatters(
     }
 
     g match {
-      case GeoJson.Point(coordinates) => asString(point)
-      case GeoJson.LineString(coordinates) => asString(line)
-      case GeoJson.Polygon(coordinates) => asString(polygon)
-      case GeoJson.MultiPoint(coordinates) => asString(multiPoint)
-      case GeoJson.MultiLineString(coordinates) => asString(multiLine)
-      case GeoJson.MultiPolygon(coordinates) => asString(multiPolygon)
-      case GeoJson.GeometryCollection(geometries) => g.toString(precision)
+      case GeoJson.Point(coordinates,crs) => asString(point)
+      case GeoJson.LineString(coordinates,crs) => asString(line)
+      case GeoJson.Polygon(coordinates,crs) => asString(polygon)
+      case GeoJson.MultiPoint(coordinates,crs) => asString(multiPoint)
+      case GeoJson.MultiLineString(coordinates,crs) => asString(multiLine)
+      case GeoJson.MultiPolygon(coordinates,crs) => asString(multiPolygon)
+      case GeoJson.GeometryCollection(geometries,crs) => g.toString(precision)
     }
   }
 }
@@ -81,5 +81,7 @@ case class MapParams(
                       precision: Option[Double],
                       formatters: Option[MapFormatters],
                       enableSwisstopo: Option[Boolean]
-                    )
+                    ) {
+  def crs = CRS(defaultProjection)
+}
 

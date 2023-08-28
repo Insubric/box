@@ -180,13 +180,13 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
           }
 
           val collection: Option[GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && options.features.multiPoint) {
-            Some(MultiPoint(multiPoint.flatMap(_.get)))
+            Some(MultiPoint(multiPoint.flatMap(_.get),options.crs))
           } else if (multiLine.forall(_.isDefined) && options.features.multiLine) {
-            Some(MultiLineString(multiLine.flatMap(_.get)))
+            Some(MultiLineString(multiLine.flatMap(_.get),options.crs))
           } else if (multiPolygon.forall(_.isDefined) && options.features.multiPolygon) {
-            Some(MultiPolygon(multiPolygon.flatMap(_.get)))
+            Some(MultiPolygon(multiPolygon.flatMap(_.get),options.crs))
           } else if (options.features.geometryCollection) {
-            Some(GeometryCollection(geometries))
+            Some(GeometryCollection(geometries,options.crs))
           } else {
             None
           }
@@ -349,7 +349,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
             feature <- collection.features.headOption
           } yield {
             feature.geometry match {
-              case GeoJson.Point(coordinates) => {
+              case GeoJson.Point(coordinates,crs) => {
                 infoOverlay.element.appendChild(div(ClientConf.style.mapPopup,coordinates.y,br,coordinates.x).render)
                 infoOverlay.setPosition(js.Array(coordinates.x,coordinates.y))
               }
@@ -543,7 +543,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   }
 
   def coordsToGeoJson(c:Coordinate):GeoJson.Feature = {
-    GeoJson.Feature(GeoJson.Point(Coordinates(c(0),c(1))))
+    GeoJson.Feature(GeoJson.Point(Coordinates(c(0),c(1)),options.crs))
   }
 
   def search(q:String): Future[Seq[GeoJson.Feature]] = {
@@ -693,13 +693,13 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
         }.getOrElse("")
 
         g match {
-          case GeoJson.Point(coordinates) => g.toString(precision)
-          case GeoJson.LineString(coordinates) => "LineString" + center //asString(line)
-          case GeoJson.Polygon(coordinates) => "Polygon" + center// asString(polygon)
-          case GeoJson.MultiPoint(coordinates) => "MultiPoint" + center// asString(multiPoint)
-          case GeoJson.MultiLineString(coordinates) => "MultiLineString" + center//asString(multiLine)
-          case GeoJson.MultiPolygon(coordinates) => "MultiPolygon" + center//asString(multiPolygon)
-          case GeoJson.GeometryCollection(geometries) => "GeometryCollection" + center//g.toString(precision)
+          case GeoJson.Point(coordinates,crs) => g.toString(precision)
+          case GeoJson.LineString(coordinates,crs) => "LineString" + center //asString(line)
+          case GeoJson.Polygon(coordinates,crs) => "Polygon" + center// asString(polygon)
+          case GeoJson.MultiPoint(coordinates,crs) => "MultiPoint" + center// asString(multiPoint)
+          case GeoJson.MultiLineString(coordinates,crs) => "MultiLineString" + center//asString(multiLine)
+          case GeoJson.MultiPolygon(coordinates,crs) => "MultiPolygon" + center//asString(multiPolygon)
+          case GeoJson.GeometryCollection(geometries,crs) => "GeometryCollection" + center//g.toString(precision)
         }
       }
     }

@@ -9,6 +9,7 @@ import ch.wsl.box.client.utils.{TestHooks, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
+import ch.wsl.box.model.shared.GeoJson.Polygon
 import ch.wsl.box.model.shared.{JSONQuery, _}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -244,6 +245,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       Navigate.to(routes.show(idString))
   }
 
+  def changeExtent(extent:Polygon) = {
+
+    reloadRows(1,Some(extent))
+
+  }
+
   def show(el: => Row) = (e:Event) => {
     val k = ids(el)
     val newState = routes.show(k.asString)
@@ -275,7 +282,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.setIDs(ids)
   }
 
-  def query():JSONQuery = {
+  def query(extent:Option[Polygon]):JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
 
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
@@ -284,16 +291,23 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       JSONQueryFilter(f.field.name,Some(f.filterOperator),f.filterValue)
     }.toList
 
-    JSONQuery(filter, sort, None, Some(services.clientSession.lang()))
+    val filterWithExtent = (model.get.metadata,extent) match {
+      case (Some(metadata),Some(ext)) => metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).foldRight(filter) { (field, filters) =>
+        filters.filter(_.column == field) ++ List(JSONQueryFilter(field.name, Some(Filter.INTERSECT), ext.toEWKT()))
+      }
+      case _ => filter
+    }
+
+    JSONQuery(filterWithExtent, sort, None, Some(services.clientSession.lang()))
   }
 
-  def reloadRows(page:Int): Future[Unit] = {
+  def reloadRows(page:Int,extent:Option[Polygon] = None): Future[Unit] = {
 
     services.clientSession.loading.set(true)
 
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
-    val qOrig = query()
+    val qOrig = query(extent)
     val newQuery = !model.subProp(_.query).get.contains(qOrig)
     model.subProp(_.query).set(Some(qOrig))
     val q = qOrig.copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
@@ -420,7 +434,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val fields = model.get.metadata.map(_.fields).getOrElse(Seq())
 
 
-    val queryNoLimits = query().copy(paging = None)
+    val queryNoLimits = query(None).copy(paging = None)
 
 
     val url = Routes.apiV1(
@@ -580,7 +594,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m,presenter.model.subProp(_.geoms),presenter.clickOnMap)
+            new MapList(m,presenter.model.subProp(_.geoms),presenter.clickOnMap,presenter.changeExtent)
           }
           case None => observer.disconnect()
         }

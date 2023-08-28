@@ -2,11 +2,12 @@ package ch.wsl.box.model
 
 import io.circe._
 import ch.wsl.box.rest.utils.JSONSupport._
-import geotrellis.vector.io.json.Implicits._
+import ch.wsl.box.rest.utils.GeoJsonSupport._
 import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{Filter, JSONID, JSONMetadata, JSONQuery, JSONQueryFilter, JSONSort}
+import ch.wsl.box.model.utils.Geo
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
@@ -215,6 +216,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
         case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
         case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
+        case (Filter.INTERSECT,_,Some(v)) => sql""" extensions.ST_Intersects("#$key",$v) """
       }
       Some(result)
 
@@ -271,7 +273,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         }
         case ("io.circe.Json",_) => filter[Json](col.nullable,parser.parse(v).toOption)
         case ("Array[Byte]",_) => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
-        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
+        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Geo.fromEWKT(v))
         case ("java.util.UUID",_) => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
         case ("Boolean",_) => filter[Boolean](col.nullable,Some(v == "true"))
         case t => throw new Exception(s"$t is not supported for simple query")
