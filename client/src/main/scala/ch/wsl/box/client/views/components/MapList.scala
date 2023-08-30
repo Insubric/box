@@ -2,7 +2,8 @@ package ch.wsl.box.client.views.components
 
 import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapParams, MapStyle}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
-import ch.wsl.box.client.utils.Debounce
+import ch.wsl.box.client.styles.constants.StyleConstants
+import ch.wsl.box.client.utils.{Debounce, ElementId}
 import ch.wsl.box.model.shared.GeoJson.{Coordinates, Polygon}
 import ch.wsl.box.model.shared.{GeoJson, GeoTypes}
 import org.scalajs.dom.html.Div
@@ -10,7 +11,8 @@ import io.circe.generic.auto._
 import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import io.udash.ReadableProperty
-import org.scalajs.dom.{Event, MutationObserver}
+import org.scalajs.dom
+import org.scalajs.dom.{Event, MutationObserver, window}
 import typings.ol.viewMod.FitOptions
 import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, pluggableMapMod, sourceMod, sourceVectorMod, viewMod}
 
@@ -86,9 +88,7 @@ class MapList(div:Div,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => U
   }
 
   val extentChange = Debounce(250.millis)( (_:Unit) => {
-    BrowserConsole.log(map.getView().calculateExtent())
     val ext = extent()
-    println(ext)
     onExtentChange(extent())
   })
 
@@ -102,7 +102,16 @@ class MapList(div:Div,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => U
 
   map.on_pointermove(olStrings.pointermove, (e: mapBrowserEventMod.default) => {
     val features = mapActions.getFeatures(e)
-    //BrowserConsole.log(features)
+    dom.document.getElementsByClassName(StyleConstants.mapHoverClass).foreach(_.classList.remove(StyleConstants.mapHoverClass))
+    for {
+      clicked <- features.headOption
+      id <- clicked.getProperties().get("jsonid")
+    } yield {
+      val el = dom.document.getElementById(ElementId.tableRow(id.toString))
+      if(el != null) {
+        el.classList.add(StyleConstants.mapHoverClass)
+      }
+    }
   })
 
   map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {

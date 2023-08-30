@@ -5,7 +5,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.utils.{TestHooks, URLQuery}
+import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
@@ -791,7 +791,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
               def noAction = p(color := "grey")(Labels.entity.no_action)
 
-              tr((`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= presenter.selected(el.get),
+              tr(id := ElementId.tableRow(presenter.ids(el.get).asString),(`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= presenter.selected(el.get),
                 td(ClientConf.style.smallCells)({
 
                   val tableActions = metadata.toSeq.flatMap(_.action.table(model.get.access))

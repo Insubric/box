@@ -5,7 +5,7 @@ package ch.wsl.box.client.styles
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
 import ch.wsl.box.client.styles.fonts.Font
-import ch.wsl.box.client.styles.utils.{MediaQueries, StyleUtils}
+import ch.wsl.box.client.styles.utils.{ColorUtils, MediaQueries, StyleUtils}
 
 import scala.language.postfixOps
 import scalacss.internal.{AV, CanIUse, FontFace}
@@ -488,6 +488,9 @@ object GlobalStyleFactory{
         unsafeChild("a.action") (
           color(Color("#333")),
         )
+      ),
+      unsafeExt(_ + "." + StyleConstants.mapHoverClass)(
+        backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).lighten(0.8).color)
       )
     )
 

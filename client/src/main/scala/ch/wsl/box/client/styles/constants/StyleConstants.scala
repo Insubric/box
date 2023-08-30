@@ -6,6 +6,7 @@ import scalacss.internal.Macros.Color
 object StyleConstants extends StyleSheet.Inline{
   import dsl._
 
+  val mapHoverClass = "mapOver"
 
   val defaultFontSize = fontSize(14.px)
 
