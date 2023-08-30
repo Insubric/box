@@ -6,7 +6,7 @@ import ch.wsl.box.client.geo.{BoxMapProjections, BoxOlMap, MapActions, MapParams
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dom._
 import org.scalajs.dom._
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.model.shared.GeoJson
@@ -139,10 +139,25 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
   def changedFeatures() = {
 
+
     var changes = false
 
     val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-    convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).foreach { collection =>
+
+    val json = convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
+
+    // Maunually attach CRS since the standard in not well defined
+    val jsonWithCRS = json.flatMap{ jsWithoutProjection =>
+      jsWithoutProjection.hcursor.downField("features").withFocus{featJs =>
+        featJs.as[Seq[Json]].toOption.toSeq.flatten.map { feat =>
+          feat.deepMerge(Json.fromFields(Map("geometry" -> Json.fromFields(Map("crs" -> CRS(options.defaultProjection).asJson)))))
+        }.asJson
+      }.top
+    }
+    jsonWithCRS.foreach(BrowserConsole.log)
+    val featureCollection = jsonWithCRS.flatMap(j => FeatureCollection.decode(j).toOption)
+
+    featureCollection.foreach { collection =>
 
 
       listener.cancel()
