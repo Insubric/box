@@ -18,6 +18,8 @@ import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
+
+  private def postgisSchema = registry.postgisSchema
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
@@ -203,6 +205,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
       val base = sql""" "#$key"#${cast.getOrElse("")} """
 
+
+
       val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
         case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
         case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
@@ -216,7 +220,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
         case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
         case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
-        case (Filter.INTERSECT,_,Some(v)) => sql""" extensions.ST_Intersects("#$key",$v) """
+        case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
       }
       Some(result)
 
