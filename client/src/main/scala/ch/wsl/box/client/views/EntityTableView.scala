@@ -6,6 +6,7 @@ import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageSt
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
+import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
@@ -69,11 +70,11 @@ case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filte
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
                             metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess,
-                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData)
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon])
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Map())
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Map(),None)
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -167,10 +168,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     val defaultQuery:JSONQuery = JSONQuery.empty.limit(ClientConf.pageLength)
 
-    val query:JSONQuery = services.clientSession.getQueryFor(state.kind,state.entity,urlQuery) match {
+    val queryWithGeom:JSONQuery = services.clientSession.getQueryFor(state.kind,state.entity,urlQuery) match {
       case Some(jsonquery) => jsonquery      //in case a query is already stored in Session
       case _ => urlQuery.getOrElse(defaultQuery)
     }
+
+    val geomFields = emptyFieldsForm.geomFields.map(_.name)
+    val query = queryWithGeom.copy(filter = queryWithGeom.filter.filterNot(f => geomFields.contains(f.column)))
 
     {for{
       access <- services.rest.tableAccess(form.entity,state.kind)
@@ -202,7 +206,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         access = access,
         lookups = Seq(),
         query = Some(query),
-        geoms = Map()
+        geoms = Map(),
+        extent = None
       )
 
       saveIds(IDs(true,1,Seq(),0),query)
@@ -246,10 +251,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       Navigate.to(routes.show(idString))
   }
 
-  def changeExtent(extent:Polygon) = {
-
-    reloadRows(1,Some(extent))
-
+  model.subProp(_.extent).listen { extent =>
+    reloadRows(1,extent)
   }
 
   def show(el: => Row) = (e:Event) => {
@@ -294,7 +297,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     val filterWithExtent = (model.get.metadata,extent) match {
       case (Some(metadata),Some(ext)) => metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).foldRight(filter) { (field, filters) =>
-        filters.filter(_.column == field) ++ List(JSONQueryFilter(field.name, Some(Filter.INTERSECT), ext.toEWKT()))
+        filters.filterNot(_.column == field.name) ++ List(JSONQueryFilter(field.name, Some(Filter.INTERSECT), ext.toEWKT()))
       }
       case _ => filter
     }
@@ -450,6 +453,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   def resetFilters() = {
+    model.subProp(_.extent).set(None)
     model.subProp(_.fieldQueries).set(model.subProp(_.fieldQueries).get.map(_.copy(filterValue = "")))
   }
 
@@ -595,7 +599,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m,presenter.model.subProp(_.geoms),presenter.clickOnMap,presenter.changeExtent)
+            new MapList(m,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent))
           }
           case None => observer.disconnect()
         }
@@ -609,20 +613,90 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   }
 
 
-  // Make resizable https://phuoc.ng/collection/html-dom/create-resizable-split-views/
+
   override def getTemplate: generic.Modifier[Element] = div(
     produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
       if (presenter.hasGeometry()) {
-        div(display.flex)(
-          div(showMap()),
-          //div(id ),
-          div(mainTable(metadata,nested))
-        ).render
+        div(TwoPanelResize(showMap(),mainTable(metadata,nested))).render
       } else {
         div(mainTable(metadata,nested)).render
       }
     }
   )
+
+
+  def mainActions(metadata:Option[JSONMetadata]) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
+
+    Seq(
+      div(ClientConf.style.noMobile)(
+        releaser(produce(model.subProp(_.name)) { m =>
+          div({
+            val out: Seq[Modifier] = metadata.toSeq.flatMap(_.action.topTable(a)).map { ta =>
+
+              val importance: StyleA = ta.importance match {
+                case Primary => ClientConf.style.boxButtonImportant
+                case Danger => ClientConf.style.boxButtonDanger
+                case Std => ClientConf.style.boxButton
+              }
+
+              ta.action match {
+                case SaveAction => ???
+                case EditAction => ???
+                case ShowAction => ???
+                case CopyAction => ???
+                case RevertAction => ???
+                case DeleteAction => ???
+                case NoAction => {
+                  button(importance,
+                    id := TestHooks.actionButton(ta.label),
+                    onclick :+= { (e: Event) =>
+                      val execute = ta.confirmText match {
+                        case Some(msg) => window.confirm(msg)
+                        case None => true
+                      }
+                      if (execute) {
+                        val function = ta.executeFunction match {
+                          case Some(f) => services.rest.execute(f, services.clientSession.lang(), Json.Null).map { result =>
+                            result.errorMessage match {
+                              case Some(value) => {
+                                Notification.add(value)
+                                services.clientSession.loading.set(false)
+                                false
+                              }
+                              case None => true
+                            }
+                          }
+                          case None => Future.successful(())
+                        }
+                        function.foreach { _ =>
+                          Routes.getUrl(ta, Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
+                            case Some(url) => Navigate.toUrl(url)
+                            case None => {
+                              Context.applicationInstance.reload()
+                            }
+                          }
+                        }
+                      }
+
+                      e.preventDefault()
+                    })(Labels(ta.label))
+                }
+                case BackAction => ???
+              }
+            }
+            out
+
+          }).render
+        })
+      ),
+      div(
+        releaser(produce(model.subProp(_.name)) { m =>
+
+          button(id := TestHooks.mobileTableAdd, ClientConf.style.mobileBoxAction, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+        })
+      ),
+    ).render
+  }
 
   def mainTable(metadata:Option[JSONMetadata],nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
 
@@ -651,7 +725,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
           ),
           div(Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count))),
-            nested(showIf(model.subProp(_.fieldQueries).transform(_.exists(_.filterValue.nonEmpty))){
+            nested(showIf(model.subProp(_.query).transform(_.exists(_.filter.nonEmpty))){
               small(" - " , Labels.navigation.recordsFiltered," ",button("\uD83D\uDDD9",ClientConf.style.boxButton, onclick :+= ((e:Event) => {
                 presenter.resetFilters()
                 e.preventDefault()
@@ -660,93 +734,22 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           ),
           pagination.render
         ),
-        div(BootstrapStyles.Visibility.clearfix),
-        produceWithNested(model.subProp(_.access)) { (a, releaser) =>
-
-            Seq(
-              div(BootstrapStyles.Float.left(), ClientConf.style.noMobile)(
-                releaser(produce(model.subProp(_.name)) { m =>
-                  div({
-                    val out:Seq[Modifier] = metadata.toSeq.flatMap(_.action.topTable(a)).map{ ta =>
-
-                      val importance: StyleA = ta.importance match {
-                        case Primary => ClientConf.style.boxButtonImportant
-                        case Danger => ClientConf.style.boxButtonDanger
-                        case Std => ClientConf.style.boxButton
-                      }
-
-                      ta.action match {
-                        case SaveAction => ???
-                        case EditAction => ???
-                        case ShowAction => ???
-                        case CopyAction => ???
-                        case RevertAction => ???
-                        case DeleteAction => ???
-                        case NoAction => {
-                          button(importance,
-                            id := TestHooks.actionButton(ta.label),
-                            onclick :+= { (e: Event) =>
-                              val execute = ta.confirmText match {
-                                case Some(msg) => window.confirm(msg)
-                                case None => true
-                              }
-                              if(execute) {
-                                val function = ta.executeFunction match {
-                                  case Some(f) => services.rest.execute(f, services.clientSession.lang(), Json.Null).map { result =>
-                                    result.errorMessage match {
-                                      case Some(value) => {
-                                        Notification.add(value)
-                                        services.clientSession.loading.set(false)
-                                        false
-                                      }
-                                      case None => true
-                                    }
-                                  }
-                                  case None => Future.successful(())
-                                }
-                                function.foreach { _ =>
-                                  Routes.getUrl(ta,Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
-                                    case Some(url) => Navigate.toUrl(url)
-                                    case None => {
-                                      Context.applicationInstance.reload()
-                                    }
-                                  }
-                                }
-                              }
-
-                              e.preventDefault()
-                            })(Labels(ta.label))
-                        }
-                        case BackAction => ???
-                      }
-                    }
-                    out
-
-                  }).render
-                })
-              ),
-              div(
-                releaser(produce(model.subProp(_.name)) { m =>
-
-                  button(id := TestHooks.mobileTableAdd,ClientConf.style.mobileBoxAction,Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
-                })
-              ),
-            ).render
-        },
         div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
           UdashTable(model.subSeq(_.rows))(
 
             headerFactory = Some(_ => {
               frag(
                 tr(
-                  td(ClientConf.style.smallCells)(),
+                  td(ClientConf.style.smallCells,verticalAlign.middle)(
+                    mainActions(metadata)
+                  ),
                   metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ field =>
                     val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field.name))
                     val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field.name))
                     val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
                     val order:ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
 
-                    td(ClientConf.style.smallCells)(
+                    td(ClientConf.style.smallCells,verticalAlign.middle)(
                       a(
                         onclick :+= presenter.sort(fieldQuery),
                         span(bind(title), ClientConf.style.tableHeader), " ",

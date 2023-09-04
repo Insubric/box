@@ -251,10 +251,10 @@ object GlobalStyleFactory{
       ),
 
       unsafeRoot("main")(
-        media.minWidth(600 px)(
-          paddingLeft(50 px),
-          paddingRight(50 px)
-        ),
+//        media.minWidth(600 px)(
+//          paddingLeft(50 px),
+//          paddingRight(50 px)
+//        ),
         backgroundColor.white
       ),
 
@@ -400,7 +400,8 @@ object GlobalStyleFactory{
 
     val formTitle = style(
       fontWeight.bold,
-      fontSize(18 px)
+      fontSize(18 px),
+      padding(0.75 rem)
     )
 
     val formTitleLight = style(
@@ -675,7 +676,6 @@ object GlobalStyleFactory{
         height :=! "calc(100vh - 53px)",
       ),
       overflow.auto,
-      paddingTop(10 px),
       width(100.%%)
     )
 
