@@ -30,6 +30,7 @@ import org.scalajs.dom.{Element, Event, KeyboardEvent, MutationObserver, Mutatio
 import scalacss.internal.Pseudo.Lang
 import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
+import scalatags.generic
 import scribe.Logging
 import typings.choicesJs.anon.PartialOptions
 import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
@@ -589,7 +590,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def showMap() = {
     if(presenter.hasGeometry()) {
-      map = Some(div(height := 400.px).render)
+      map = Some(div(height := window.innerHeight.px).render)
       val observer = new MutationObserver({ (mutations, observer) =>
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
@@ -608,7 +609,22 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   }
 
 
-  override def getTemplate: scalatags.generic.Modifier[Element] = {
+  // Make resizable https://phuoc.ng/collection/html-dom/create-resizable-split-views/
+  override def getTemplate: generic.Modifier[Element] = div(
+    produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
+      if (presenter.hasGeometry()) {
+        div(display.flex)(
+          div(showMap()),
+          //div(id ),
+          div(mainTable(metadata,nested))
+        ).render
+      } else {
+        div(mainTable(metadata,nested)).render
+      }
+    }
+  )
+
+  def mainTable(metadata:Option[JSONMetadata],nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
 
     val pagination = {
 
@@ -628,7 +644,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       )
     }
 
-    produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
+
       div(
         div(ClientConf.style.spaceBetween,
           div(
@@ -717,9 +733,6 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               ),
             ).render
         },
-        div(BootstrapStyles.Visibility.clearfix),
-        showMap(),
-        div(BootstrapStyles.Visibility.clearfix),
         div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
           UdashTable(model.subSeq(_.rows))(
 
@@ -727,9 +740,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               frag(
                 tr(
                   td(ClientConf.style.smallCells)(),
-                  metadata.toSeq.flatMap(_.tabularFields).map{ field =>
-                    val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field))
-                    val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field))
+                  metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ field =>
+                    val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field.name))
+                    val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field.name))
                     val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
                     val order:ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
 
@@ -748,20 +761,19 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 ),
                 tr(
                   td(ClientConf.style.smallCells)(Labels.entity.filters),
-                  metadata.toSeq.flatMap(_.tabularFields).map { field =>
-                    val fieldQuery:Property[Option[FieldQuery]] = model.subProp(_.fieldQueries).bitransform(_.find(_.field.name == field)){ el =>
+                  metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { _field =>
+                    val fieldQuery:Property[Option[FieldQuery]] = model.subProp(_.fieldQueries).bitransform(_.find(_.field.name == _field.name)){ el =>
                       model.subProp(_.fieldQueries).get.map{old =>
-                        if(old.field.name == field && el.isDefined) el.get else old
+                        if(old.field.name == _field.name && el.isDefined) el.get else old
                       }
                     }
                     val filterValue:Property[String] = fieldQuery.bitransform(_.map(_.filterValue).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterValue = value)))
                     val operator:Property[String] = fieldQuery.bitransform(_.map(_.filterOperator).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterOperator = value)))
-                    val jsonField = metadata.flatMap(_.fields.find(_.name == field))
 
                     td(ClientConf.style.smallCells)(
-                      filterOptions(metadata,field,operator),
+                      filterOptions(metadata,_field.name,operator),
                       produceWithNested(operator) { (op,nested) =>
-                        div(position.relative, filterField(filterValue, jsonField, op,nested)).render
+                        div(position.relative, filterField(filterValue, Some(_field), op,nested)).render
                       }
                     ).render
 
@@ -834,12 +846,13 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
                   val value = el.get.data.lift(i).getOrElse("")
                   metadata.flatMap(_.fields.find(_.name == f)) match {
-                    case Some(field) => td(ClientConf.style.smallCells)(TableFieldsRenderer(
+                    case Some(field) if field.`type` == JSONFieldTypes.GEOMETRY => None
+                    case Some(field) => Some(td(ClientConf.style.smallCells)(TableFieldsRenderer(
                       value,
                       field,
                       model.subProp(_.lookups).get
-                    )).render
-                    case None => td().render
+                    )).render)
+                    case None => Some(td().render)
                   }
 
                 }
@@ -860,7 +873,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         ),
         Debug(model)
       ).render
-    }
+
   }
 
 
