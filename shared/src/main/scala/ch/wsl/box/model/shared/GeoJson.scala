@@ -36,6 +36,11 @@ object GeoJson {
     def srid:Int = name.stripPrefix("EPSG:").toInt
   }
 
+  object CRS {
+    def default = wgs84
+    def wgs84 = CRS("EPSG:4326")
+  }
+
 
 
   implicit val decoderCRS: Decoder[CRS] = Decoder.instance{ json =>
@@ -236,13 +241,13 @@ object GeoJson {
 
     implicit val decoder: Decoder[Geometry] = Decoder.instance { c =>
       c.downField("type").as[String].map(_.toLowerCase).flatMap {
-        case "point" => c.as[Point]
-        case "linestring" => c.as[LineString]
-        case "multipoint" => c.as[MultiPoint]
-        case "multilinestring" => c.as[MultiLineString]
-        case "polygon" => c.as[Polygon]
-        case "multipolygon" => c.as[MultiPolygon]
-        case "geometrycollection" => c.as[GeometryCollection]
+        case "point" => c.downField("coordinates").as[Coordinates].map{ coords => Point(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "linestring" =>  c.downField("coordinates").as[Seq[Coordinates]].map{ coords => LineString(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "multipoint" => c.downField("coordinates").as[Seq[Coordinates]].map{ coords => MultiPoint(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "multilinestring" => c.downField("coordinates").as[Seq[Seq[Coordinates]]].map{ coords => MultiLineString(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "polygon" => c.downField("coordinates").as[Seq[Seq[Coordinates]]].map{ coords => Polygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "multipolygon" => c.downField("coordinates").as[Seq[Seq[Seq[Coordinates]]]].map{ coords => MultiPolygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "geometrycollection" => c.downField("coordinates").as[Seq[Geometry]].map{ geoms => GeometryCollection(geoms,c.downField("crs").as[CRS].getOrElse(CRS.default))}
       }
     }
   }

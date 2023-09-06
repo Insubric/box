@@ -4,9 +4,12 @@ import ch.wsl.box.model.shared.GeoJson
 
 class GeoJsonCodecTest extends TestBase {
 
+  import GeoJson._
+
   "GeoJSON" should "encoded and decoded" in {
     val original = """
         |{
+        |  "type": "Feature",
         |  "geometry" : {
         |    "type" : "Point",
         |    "coordinates" : [
@@ -37,7 +40,10 @@ class GeoJsonCodecTest extends TestBase {
       io.circe.parser.parse(original) match {
         case Left(value) => fail(value)
         case Right(value) => value.as[Option[GeoJson.Feature]] match {
-          case Left(value) => fail(value)
+          case Left(value) => {
+            println(value)
+            fail(value)
+          }
           case Right(value) => {
             assert(value.get.geometry.allCoordinates.head.x == 98728.5390625)
           }

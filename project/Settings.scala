@@ -184,7 +184,7 @@ object Settings {
     "org.scala-js" %%% "scalajs-dom" % "2.4.0",
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "org.scalatest" %%% "scalatest" % "3.2.5" % Test,
+    "org.scalatest" %%% "scalatest" % versions.scalatest % Test,
     "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0",
     "org.http4s" %%% "http4s-dom" % "0.2.3",
     "org.http4s" %%% "http4s-client" % "0.23.16",
