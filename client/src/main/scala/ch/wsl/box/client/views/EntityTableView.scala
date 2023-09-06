@@ -190,7 +190,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         fieldQueries = form.tabularFields.flatMap(x => form.fields.find(_.name == x)).map{ field =>
 
           val operator = query.filter.find(_.column == field.name).flatMap(_.operator).getOrElse(Filter.default(field))
-          val rawValue = query.filter.find(_.column == field.name).map(_.value).getOrElse("")
+          val rawValue = query.filter.find(_.column == field.name).flatMap(_.value).getOrElse("")
           FieldQuery(
             field = field,
             sort = query.sort.find(_.column == field.name).map(_.order).getOrElse(Sort.IGNORE),
@@ -292,17 +292,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
 
     val filter = fieldQueries.filter(_.filterValue != "").map{ f =>
-      JSONQueryFilter(f.field.name,Some(f.filterOperator),f.filterValue)
+      JSONQueryFilter.withValue(f.field.name,Some(f.filterOperator),f.filterValue)
     }.toList
 
-    val filterWithExtent = (model.get.metadata,extent) match {
-      case (Some(metadata),Some(ext)) => metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).foldRight(filter) { (field, filters) =>
-        filters.filterNot(_.column == field.name) ++ List(JSONQueryFilter(field.name, Some(Filter.INTERSECT), ext.toEWKT()))
-      }
-      case _ => filter
+    val q = JSONQuery(filter, sort, None)
+    (model.get.metadata,extent) match {
+      case (Some(metadata),Some(ext)) => q.withExtent(metadata,ext)
+      case _ => q
     }
 
-    JSONQuery(filterWithExtent, sort, None, Some(services.clientSession.lang()))
+
   }
 
   def reloadRows(page:Int,extent:Option[Polygon] = None): Future[Unit] = {
@@ -592,14 +591,14 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   var map:Option[Div] = None
 
-  def showMap() = {
+  def showMap(metadata:JSONMetadata) = {
     if(presenter.hasGeometry()) {
       map = Some(div(height := window.innerHeight.px).render)
       val observer = new MutationObserver({ (mutations, observer) =>
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent))
+            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent))
           }
           case None => observer.disconnect()
         }
@@ -617,7 +616,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   override def getTemplate: generic.Modifier[Element] = div(
     produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
       if (presenter.hasGeometry()) {
-        div(TwoPanelResize(showMap(),mainTable(metadata,nested))).render
+        div(TwoPanelResize(showMap(metadata.getOrElse(JSONMetadata.stub)),mainTable(metadata,nested))).render
       } else {
         div(mainTable(metadata,nested)).render
       }

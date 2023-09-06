@@ -122,6 +122,8 @@ object JSONMetadata extends Logging {
     dynamicLabel = None
   )
 
+  def stub = simple(UUID.randomUUID(),EntityKind.FORM.kind,"","",Seq(),Seq())
+
   def hasData(json:Json,keys:Seq[String]):Boolean = {
 
     def hasOnlyEmptyArray(js:Json):Boolean = js.foldWith(new Folder[Boolean]{

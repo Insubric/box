@@ -1,7 +1,9 @@
 package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.Context.services
-import io.udash.Property
+import ch.wsl.box.client.services.BrowserConsole
+import io.circe.Json
+import io.udash.{Property, ReadableProperty}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -11,6 +13,8 @@ trait BoxOlMap {
   import ch.wsl.box.client.Context._
 
   def options:MapParams
+  def allData:ReadableProperty[Json]
+  def id:ReadableProperty[Option[String]]
 
   lazy val baseLayer: Property[Option[MapParamsLayers]] = {
     for {
@@ -42,8 +46,17 @@ trait BoxOlMap {
     }
   }
 
+  def loadMapLookups() = {
+    options.lookups.toList.flatten.foreach(mapActions.addLookupsLayer(allData.get))
+  }
+
   def onLoad() = {
+
+
+
     baseLayer.listen(loadBase, false)
+    id.listen(_ => loadMapLookups(), true)
+    mapActions.registerExtentChange(_ => loadMapLookups())
   }
 
 

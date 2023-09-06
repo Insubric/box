@@ -9,11 +9,10 @@ import org.scalajs.dom._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
 import ch.wsl.box.client.styles.Icons.Icon
-import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.model.shared.{GeoJson, JSONField, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
 import ch.wsl.box.client.views.components.ui.Autocomplete
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
-import ch.wsl.box.model.shared.{JSONField, SharedLabels, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, _}
 import io.circe.generic.auto._
@@ -67,7 +66,7 @@ case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
 
 }
 
-class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json]) extends Widget with BoxOlMap with HasData with Logging {
+class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json], val allData: ReadableProperty[Json], metadata:JSONMetadata) extends Widget with BoxOlMap with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import io.udash.css.CssView._
@@ -79,12 +78,12 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   val options: MapParams = MapWidgetUtils.options(field)
   val proj = new BoxMapProjections(options)
   val defaultProjection = proj.defaultProjection
-  onLoad()
+
 
   var map:mod.Map = null
   logger.info(s"Loading ol map")
 
-  lazy val mapActions = new MapActions(map)
+  lazy val mapActions = new MapActions(map,options,metadata)
 
   var featuresLayer: layerMod.Vector = null
 
@@ -268,7 +267,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)
-      .setStyle(MapStyle.vectorStyle)
+      .setStyle(MapStyle.vectorStyle())
     )
 
     val mousePosition = new controlMousePositionMod.default(controlMousePositionMod.Options()
@@ -294,6 +293,8 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       .setView(view)
     )
 
+    onLoad()
+
 
     val infoOverlay = new Overlay(overlayMod.Options()
       .setElement(div().render)
@@ -311,25 +312,25 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
 
     modify = new interactionModifyMod.default(interactionModifyMod.Options()
       .setSource(vectorSource)
-      .setStyle(MapStyle.simpleStyle)
+      .setStyle(MapStyle.simpleStyle())
     )
     //modify.on_modifyend(olStrings.modifyend,(e:ModifyEvent) => changedFeatures())
 
     drawPoint = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.POINT)
       .setSource(vectorSource)
-      .setStyle(MapStyle.vectorStyle)
+      .setStyle(MapStyle.vectorStyle())
     )
     //drawPoint.on_change(olStrings.change,e => changedFeatures())
 
     drawLineString = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.LINE_STRING)
       .setSource(vectorSource)
-      .setStyle(MapStyle.simpleStyle)
+      .setStyle(MapStyle.simpleStyle())
     )
     //drawLineString.on_change(olStrings.change,e => changedFeatures())
 
     drawPolygon = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.POLYGON)
       .setSource(vectorSource)
-      .setStyle(MapStyle.simpleStyle)
+      .setStyle(MapStyle.simpleStyle())
     )
     drawPolygon.finishDrawing()
     //drawPolygon.on_change(olStrings.change,e => changedFeatures())
@@ -377,7 +378,7 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
       }
     })
 
-    drawHole = new DrawHole(DrawHoleOptions().setStyle(MapStyle.simpleStyle))
+    drawHole = new DrawHole(DrawHoleOptions().setStyle(MapStyle.simpleStyle()))
 
 
 
@@ -728,13 +729,13 @@ class OlMapWidget(id: ReadableProperty[Option[String]], val field: JSONField, va
   var selected:Option[featureMod.default[geomGeometryMod.default]] = None
 
   def highlight(g:Geometry): Unit = {
-    selected.foreach(_.setStyle(MapStyle.vectorStyle))
+    selected.foreach(_.setStyle(MapStyle.vectorStyle()))
     selected = findFeature(g)
     selected.foreach(_.setStyle(MapStyle.highlightStyle))
   }
 
   def removeHighlight(): Unit = {
-    selected.foreach(_.setStyle(MapStyle.vectorStyle))
+    selected.foreach(_.setStyle(MapStyle.vectorStyle()))
   }
 
 
@@ -913,7 +914,7 @@ object OlMapWidget extends ComponentWidgetFactory with Logging {
   override def name: String = WidgetsNames.map
 
   override def create(params: WidgetParams): Widget = {
-    new OlMapWidget(params.id,params.field,params.prop)
+    new OlMapWidget(params.id,params.field,params.prop,params.allData,params.metadata)
   }
 
 }

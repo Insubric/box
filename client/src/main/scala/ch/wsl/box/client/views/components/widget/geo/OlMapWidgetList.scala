@@ -27,7 +27,7 @@ import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.util.Try
 
-class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json]) extends OlMapWidget(id,field,data) {
+class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json],allData: ReadableProperty[Json],metadata:JSONMetadata) extends OlMapWidget(id,field,data,allData,metadata) {
 
   import ch.wsl.box.client.Context._
   import io.udash.css.CssView._
@@ -256,7 +256,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 object OlMapListWidget extends ComponentWidgetFactory {
   override def name: String = WidgetsNames.mapList
 
-  override def create(params: WidgetParams): Widget = new OlMapListWidget(params.id,params.field,params.prop)
+  override def create(params: WidgetParams): Widget = new OlMapListWidget(params.id,params.field,params.prop,params.allData,params.metadata)
 
 }
 

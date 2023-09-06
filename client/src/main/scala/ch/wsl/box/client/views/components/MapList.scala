@@ -5,7 +5,8 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
 import ch.wsl.box.model.shared.GeoJson.{Coordinates, Polygon}
-import ch.wsl.box.model.shared.{GeoJson, GeoTypes}
+import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONMetadata}
+import io.circe.Json
 import org.scalajs.dom.html.Div
 import io.circe.generic.auto._
 import io.circe.scalajs.convertJsonToJs
@@ -20,9 +21,15 @@ import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.scalajs.js.|
 
-class MapList(div:Div,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
+class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
+
+
+  override def allData: ReadableProperty[Json] = Property(Json.Null)
+
+
+  override def id: ReadableProperty[Option[String]] = Property(None)
 
   override val options: MapParams = ClientConf.mapOptions.as[MapParams].getOrElse(BoxMapConstants.defaultParams)
   val proj = new BoxMapProjections(options)
@@ -39,24 +46,9 @@ class MapList(div:Div,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => U
     .setView(view)
   )
 
-  override val mapActions: MapActions = new MapActions(map)
+  override val mapActions: MapActions = new MapActions(map,options,metadata)
 
-  def calculateExtent(): Polygon = {
-    //[
-    //  572952.6647602582,
-    //  166725.98055973882,
-    //  729847.5829071038,
-    //  201208.38015245216
-    //]
-    val ext = map.getView().calculateExtent()
-    Polygon(Seq(Seq(
-      Coordinates(ext._1, ext._2),
-      Coordinates(ext._1, ext._4),
-      Coordinates(ext._3, ext._4),
-      Coordinates(ext._3, ext._2),
-      Coordinates(ext._1, ext._2)
-    )), options.crs)
-  }
+
 
   onLoad()
   loadBase(baseLayer.get).map { _ =>
@@ -67,13 +59,13 @@ class MapList(div:Div,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => U
     val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
     val featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)
-      .setStyle(MapStyle.vectorStyle)
+      .setStyle(MapStyle.vectorStyle())
     )
     map.addLayer(featuresLayer)
 
 
     val extentChange = Debounce(250.millis)((_: Unit) => {
-      extent.set(Some(calculateExtent()))
+      extent.set(Some(mapActions.calculateExtent()))
     })
 
     var extentListenerInitialized = false

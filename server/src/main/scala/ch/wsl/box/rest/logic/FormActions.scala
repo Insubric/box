@@ -57,8 +57,7 @@ case class FormActions(metadata:JSONMetadata,
       JSONQuery(
         filter = defaultQuery.filter ++ query.filter,
         sort = query.sort ++ defaultQuery.sort,
-        paging = query.paging,
-        lang = defaultQuery.lang
+        paging = query.paging
       )
     }.getOrElse(query)
     fkTransform.preFilter(metadata,base.filter).map{ fil => base.copy(filter = fil.filters.toList)}
@@ -354,7 +353,7 @@ case class FormActions(metadata:JSONMetadata,
     val parentFilter = for{
       m <- child.mapping
     } yield {
-      JSONQueryFilter(m.child,Some(Filter.EQUALS),entity.get(m.parent))
+      JSONQueryFilter.withValue(m.child,Some(Filter.EQUALS),entity.get(m.parent))
     }
 
     val filters = parentFilter ++ child.childQuery.toSeq.flatMap(_.filter)

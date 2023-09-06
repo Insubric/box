@@ -54,7 +54,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(
-            JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
+            JSONQueryFilter.withValue("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
             JSONQueryFilter.WHERE.eq("entity_field","true")
           )),
           props = "entity",
@@ -65,7 +65,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.CHILD,"fields_no_db",true,
         child = Some(Child(FORM_FIELD_NOT_DB,"fields_no_db","form_uuid","form_uuid",
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(
-            JSONQueryFilter("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
+            JSONQueryFilter.withValue("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
             JSONQueryFilter.WHERE.eq("entity_field","false")
           )),
           props = "entity",

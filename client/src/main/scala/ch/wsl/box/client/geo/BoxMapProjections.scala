@@ -56,6 +56,7 @@ object BoxMapConstants {
     None,
     None,
     None,
+    None,
     None
   )
 

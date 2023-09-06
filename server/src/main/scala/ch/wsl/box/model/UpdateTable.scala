@@ -44,8 +44,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
   private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
-    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.value.nonEmpty) ||
-    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.value.split(",").exists(_.nonEmpty)) ||
+    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.nonEmpty) ||
+    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.split(",").exists(_.nonEmpty)) ||
     f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
   }
 
@@ -228,7 +228,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     val col = table.typ(key,registry)
 
-    val v = jsonQuery.value
+    val v = jsonQuery.getValue
 
     def splitAndTrim(s:String):Seq[String] = s.split(",").toSeq.map(_.trim).filter(_.nonEmpty)
 

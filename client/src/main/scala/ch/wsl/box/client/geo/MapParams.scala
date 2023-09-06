@@ -1,7 +1,7 @@
 package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.viewmodel.I18n
-import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.model.shared.{GeoJson, JSONQuery}
 import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
 
 /*
@@ -43,6 +43,16 @@ case class MapParamsLayers(
                             time:Option[String]
                           )
 
+case class MapLookup(
+                             color: String,
+                             fillColor: String,
+                             query: Option[JSONQuery],
+                             entity:String,
+                             kind:String
+                          ) {
+  def id = s"$kind-$entity-$query"
+}
+
 case class MapFormatters(
                           point:Option[I18n.Label],
                           multiPoint:Option[I18n.Label],
@@ -80,7 +90,8 @@ case class MapParams(
                       baseLayers: Option[Seq[MapParamsLayers]],
                       precision: Option[Double],
                       formatters: Option[MapFormatters],
-                      enableSwisstopo: Option[Boolean]
+                      enableSwisstopo: Option[Boolean],
+                      lookups:Option[Seq[MapLookup]]
                     ) {
   def crs = CRS(defaultProjection)
 }
