@@ -14,7 +14,7 @@ class DateParserSpec extends BaseSpec {
   }
 
   "Range" should "be parsed" in {
-    DateTimeFormatters.toTimestamp("2015-01-01 to 2016-01-01").length shouldBe 2
+    DateTimeFormatters.toTimestamp("2015-01-01 → 2016-01-01").length shouldBe 2
   }
 
 }

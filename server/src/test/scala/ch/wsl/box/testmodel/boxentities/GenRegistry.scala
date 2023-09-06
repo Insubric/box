@@ -9,6 +9,7 @@ class GenRegistry() extends RegistryInstance {
     override val actions = EntityActionsRegistry
     override val fields = FieldAccessRegistry
     override val schema = "test_box"
+    override val postgisSchema = "test_public"
 
 }
            
