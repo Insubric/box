@@ -59,6 +59,18 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
 
+  private val locale: CustomLocale = {
+    val l = Context.services.clientSession.lang() match {
+      case "it" => typings.flatpickr.distL10nItMod.default.it.get
+      case "fr" => typings.flatpickr.distL10nFrMod.default.fr.get
+      case "de" => typings.flatpickr.distL10nDeMod.default.de.get
+      case _ => typings.flatpickr.distL10nMod.default.default
+    }
+    l.setFirstDayOfWeek(1)
+    l.setRangeSeparator(" → ")
+    l
+  }
+
   override def edit(nested:Binding.NestedInterceptor) = editMe()
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(field.title,nested)
 
@@ -100,7 +112,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
     val result = if(range) {
-      val tokens = str.split("to").map(_.trim)
+
+      val tokens = str.split(locale.rangeSeparator.getOrElse("to")).map(_.trim)
       if(tokens.length > 1)
         tokens.flatMap(t => strToTime(t,false))
       else
@@ -229,13 +242,6 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       setListener(false, instance)
     }
 
-
-    val locale:CustomLocale = Context.services.clientSession.lang() match {
-      case "it" => typings.flatpickr.distL10nItMod.default.it.get.setFirstDayOfWeek(1)
-      case "fr" => typings.flatpickr.distL10nFrMod.default.fr.get.setFirstDayOfWeek(1)
-      case "de" => typings.flatpickr.distL10nDeMod.default.de.get.setFirstDayOfWeek(1)
-      case _ => typings.flatpickr.distL10nMod.default.default.setFirstDayOfWeek(1)
-    }
 
 
 

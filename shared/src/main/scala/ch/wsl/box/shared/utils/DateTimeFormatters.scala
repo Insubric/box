@@ -68,7 +68,7 @@ trait DateTimeFormatters[T]{
 object DateTimeFormatters {
 
   def intervalParser[T](parser:String => Option[T],s:String):List[T] =  {
-    val tokens = s.split(" to ").map(_.trim)
+    val tokens = s.split(" → ").map(_.trim)
     if(tokens.length > 1) {
       tokens.toList.flatMap(x => parser(x))
     } else {
