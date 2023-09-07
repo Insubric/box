@@ -2,11 +2,12 @@ package ch.wsl.box.model
 
 import io.circe._
 import ch.wsl.box.rest.utils.JSONSupport._
-import geotrellis.vector.io.json.Implicits._
+import ch.wsl.box.rest.utils.GeoJsonSupport._
 import Light._
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{Filter, JSONID, JSONMetadata, JSONQuery, JSONQueryFilter, JSONSort}
+import ch.wsl.box.model.utils.Geo
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
@@ -17,6 +18,8 @@ import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
+
+  private def postgisSchema = registry.postgisSchema
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
@@ -41,8 +44,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
   private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
-    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.value.nonEmpty) ||
-    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.value.split(",").exists(_.nonEmpty)) ||
+    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.nonEmpty) ||
+    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.split(",").exists(_.nonEmpty)) ||
     f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
   }
 
@@ -202,6 +205,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
       val base = sql""" "#$key"#${cast.getOrElse("")} """
 
+
+
       val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
         case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
         case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
@@ -215,6 +220,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
         case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
         case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
+        case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
       }
       Some(result)
 
@@ -222,7 +228,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     val col = table.typ(key,registry)
 
-    val v = jsonQuery.value
+    val v = jsonQuery.getValue
 
     def splitAndTrim(s:String):Seq[String] = s.split(",").toSeq.map(_.trim).filter(_.nonEmpty)
 
@@ -271,7 +277,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         }
         case ("io.circe.Json",_) => filter[Json](col.nullable,parser.parse(v).toOption)
         case ("Array[Byte]",_) => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
-        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)
+        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Geo.fromEWKT(v))
         case ("java.util.UUID",_) => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
         case ("Boolean",_) => filter[Boolean](col.nullable,Some(v == "true"))
         case t => throw new Exception(s"$t is not supported for simple query")

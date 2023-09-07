@@ -8,7 +8,8 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 
 class GeoJsonSpec extends BaseSpec {
   import io.circe.generic.auto._
-  import geotrellis.vector.io.json.Implicits._
+  import ch.wsl.box.rest.utils.JSONSupport._
+  import ch.wsl.box.rest.utils.GeoJsonSupport._
 
   case class Test_row(id: Option[Int] = None, name: Option[String] = None, geom: Option[org.locationtech.jts.geom.Geometry] = None)
 

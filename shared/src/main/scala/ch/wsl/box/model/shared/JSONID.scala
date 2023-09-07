@@ -104,6 +104,6 @@ object JSONID {
 }
 
 case class JSONKeyValue(key:String, value:Json) {
-  def filter = JSONQueryFilter(key,Some(Filter.EQUALS),value.string)
+  def filter = JSONQueryFilter.withValue(key,Some(Filter.EQUALS),value.string)
   def asString = key + "::" + value.string
 }

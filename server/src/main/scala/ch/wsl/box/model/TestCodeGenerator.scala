@@ -61,13 +61,15 @@ object TestCodeGenerator extends App {
     override def actions: ActionRegistry = ???
     override def fields: FieldRegistry = ???
     override def schema: String = TestDatabase.boxSchema
+
+    override def postgisSchema: String = TestDatabase.publicSchema
   })
 
   val connection = new ConnectionTestContainerImpl(container,TestDatabase.publicSchema)
 
   TestDatabase.setUp(connection)
 
-  val params = GeneratorParams(tables = Seq("*"), views = Seq("*"), excludes = Seq(), excludeFields = Seq(), schema = TestDatabase.publicSchema, boxSchema = TestDatabase.boxSchema, langs = Seq("en"))
+  val params = GeneratorParams(tables = Seq("*"), views = Seq("*"), excludes = Seq(), excludeFields = Seq(), schema = TestDatabase.publicSchema, boxSchema = TestDatabase.boxSchema, postgisSchema=TestDatabase.publicSchema, langs = Seq("en"))
 
   CodeGeneratorWriter.write(connection,params,args(0),"ch.wsl.box.testmodel")
 

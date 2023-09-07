@@ -66,6 +66,9 @@ lazy val server: Project  = project
     scalacOptions ++= Settings.scalacOptionsServer,
     libraryDependencies ++= Settings.jvmDependencies.value,
     resolvers += "OSGeo Releases" at "https://repo.osgeo.org/repository/release",
+    excludeDependencies ++= Seq(
+      ExclusionRule(organization = "javax.media", name = "jai_core")
+    ),
 //    resolvers += "Eclipse" at "https://repo.eclipse.org/content/groups/snapshots",
     migrate := (Compile / runMain).toTask(" ch.wsl.box.model.Migrate").value, // register manual sbt command
     slick := slickCodeGenTask.value , // register manual sbt command

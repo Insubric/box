@@ -5,7 +5,7 @@ package ch.wsl.box.client.styles
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
 import ch.wsl.box.client.styles.fonts.Font
-import ch.wsl.box.client.styles.utils.{MediaQueries, StyleUtils}
+import ch.wsl.box.client.styles.utils.{ColorUtils, MediaQueries, StyleUtils}
 
 import scala.language.postfixOps
 import scalacss.internal.{AV, CanIUse, FontFace}
@@ -251,10 +251,10 @@ object GlobalStyleFactory{
       ),
 
       unsafeRoot("main")(
-        media.minWidth(600 px)(
-          paddingLeft(50 px),
-          paddingRight(50 px)
-        ),
+//        media.minWidth(600 px)(
+//          paddingLeft(50 px),
+//          paddingRight(50 px)
+//        ),
         backgroundColor.white
       ),
 
@@ -400,7 +400,8 @@ object GlobalStyleFactory{
 
     val formTitle = style(
       fontWeight.bold,
-      fontSize(18 px)
+      fontSize(18 px),
+      padding(0.75 rem)
     )
 
     val formTitleLight = style(
@@ -488,6 +489,9 @@ object GlobalStyleFactory{
         unsafeChild("a.action") (
           color(Color("#333")),
         )
+      ),
+      unsafeExt(_ + "." + StyleConstants.mapHoverClass)(
+        backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).lighten(0.8).color)
       )
     )
 
@@ -672,7 +676,6 @@ object GlobalStyleFactory{
         height :=! "calc(100vh - 53px)",
       ),
       overflow.auto,
-      paddingTop(10 px),
       width(100.%%)
     )
 

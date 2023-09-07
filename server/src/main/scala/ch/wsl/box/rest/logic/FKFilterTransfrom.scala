@@ -40,10 +40,10 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
 
   private def fkFilterForData(filter:JSONQueryFilter,lookup:JSONFieldLookupData):DBIO[Option[JSONQueryFilter]] = {
     val fkFilter = filter.operator match {
-      case Some(Filter.FK_LIKE) => Some(WHERE.in(filter.column,lookup.data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
-      case Some(Filter.FK_EQUALS) => Some(WHERE.in(filter.column,lookup.data.filter(d => d.value == filter.value).map(_.id.string)))
-      case Some(Filter.FK_DISLIKE) => Some(WHERE.notIn(filter.column,lookup.data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
-      case Some(Filter.FK_NOT) => Some(WHERE.notIn(filter.column,lookup.data.filter(d => d.value == filter.value).map(_.id.string)))
+      case Some(Filter.FK_LIKE) => Some(WHERE.in(filter.column,lookup.data.filter(d => d.value.contains(filter.getValue)).map(_.id.string)))
+      case Some(Filter.FK_EQUALS) => Some(WHERE.in(filter.column,lookup.data.filter(d => d.value == filter.getValue).map(_.id.string)))
+      case Some(Filter.FK_DISLIKE) => Some(WHERE.notIn(filter.column,lookup.data.filter(d => d.value.contains(filter.getValue)).map(_.id.string)))
+      case Some(Filter.FK_NOT) => Some(WHERE.notIn(filter.column,lookup.data.filter(d => d.value == filter.getValue).map(_.id.string)))
       case _ => None
     }
     DBIO.successful(fkFilter)
@@ -53,10 +53,10 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     val data = lookup.extractor.results.flatten
 
     val fkFilter = filter.operator match {
-      case Some(Filter.FK_LIKE) => Some(WHERE.in(filter.column,data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
-      case Some(Filter.FK_EQUALS) => Some(WHERE.in(filter.column,data.filter(d => d.value == filter.value).map(_.id.string)))
-      case Some(Filter.FK_DISLIKE) => Some(WHERE.notIn(filter.column,data.filter(d => d.value.contains(filter.value)).map(_.id.string)))
-      case Some(Filter.FK_NOT) => Some(WHERE.notIn(filter.column,data.filter(d => d.value == filter.value).map(_.id.string)))
+      case Some(Filter.FK_LIKE) => Some(WHERE.in(filter.column,data.filter(d => d.value.contains(filter.getValue)).map(_.id.string)))
+      case Some(Filter.FK_EQUALS) => Some(WHERE.in(filter.column,data.filter(d => d.value == filter.getValue).map(_.id.string)))
+      case Some(Filter.FK_DISLIKE) => Some(WHERE.notIn(filter.column,data.filter(d => d.value.contains(filter.getValue)).map(_.id.string)))
+      case Some(Filter.FK_NOT) => Some(WHERE.notIn(filter.column,data.filter(d => d.value == filter.getValue).map(_.id.string)))
       case _ => None
     }
     DBIO.successful(fkFilter)
@@ -78,10 +78,10 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
       }
     }
 
-    def like:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.like(_,filter.value),WHERE.in(filter.column,_))
-    def equals:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.eq(_,filter.value),WHERE.in(filter.column,_))
-    def dislike:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.like(_,filter.value),WHERE.notIn(filter.column,_))
-    def not:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.eq(_,filter.value),WHERE.notIn(filter.column,_))
+    def like:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.like(_,filter.getValue),WHERE.in(filter.column,_))
+    def equals:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.eq(_,filter.getValue),WHERE.in(filter.column,_))
+    def dislike:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.like(_,filter.getValue),WHERE.notIn(filter.column,_))
+    def not:DBIO[Option[JSONQueryFilter]] = transfrom(WHERE.eq(_,filter.getValue),WHERE.notIn(filter.column,_))
 
     filter.operator match {
       case Some(Filter.FK_LIKE) => like

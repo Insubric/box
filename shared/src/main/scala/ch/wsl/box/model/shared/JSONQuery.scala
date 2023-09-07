@@ -1,5 +1,7 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.model.shared.GeoJson.Polygon
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import scribe.Logging
 import io.circe._
 import io.circe.parser._
@@ -16,8 +18,7 @@ import io.circe.generic.auto._
 case class JSONQuery(
                       filter:List[JSONQueryFilter],
                       sort:List[JSONSort],
-                      paging:Option[JSONQueryPaging],
-                      lang:Option[String]
+                      paging:Option[JSONQueryPaging]
                     ){
 
   def filterWith(filter:JSONQueryFilter*) = this.copy(filter = filter.toList)
@@ -26,6 +27,15 @@ case class JSONQuery(
   def currentPage = paging.map(_.currentPage).getOrElse(1)
   def pageLength(n:Int) = paging.map(_.pageLength).getOrElse(n)
   def limit(limit:Int) = copy(paging= Some(paging.getOrElse(JSONQueryPaging(1,1)).copy(pageLength = limit)))
+  def withData(json:Json) = this.copy(filter = filter.map(_.withData(json)))
+
+  def withExtent(metadata:JSONMetadata,extent:Polygon):JSONQuery = {
+
+    val newFilters = metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).foldRight(filter) { (field, filters) =>
+      filters.filterNot(_.column == field.name) ++ List(JSONQueryFilter.withValue(field.name, Some(Filter.INTERSECT), extent.toEWKT()))
+    }
+    copy(filter = newFilters)
+  }
 }
 
 /**
@@ -46,8 +56,11 @@ case class JSONQueryPaging(pageLength:Int, currentPage:Int=1)
 case class JSONQueryFilter(
                             column:String,
                             operator:Option[String],
-                            value:String
+                            value:Option[String],
+                            fieldValue:Option[String]
                           ) {
+
+  def getValue:String = value.getOrElse("")
   def fkFilter:Boolean = operator match {
     case Some(Filter.FK_DISLIKE) => true
     case Some(Filter.FK_NOT) => true
@@ -55,26 +68,40 @@ case class JSONQueryFilter(
     case Some(Filter.FK_LIKE) => true
     case _ => false
   }
+
+  def withData(json: Json): JSONQueryFilter = this.copy(
+    fieldValue = None,
+    value = fieldValue match {
+      case Some(value) => json.getOpt(value)
+      case None => value
+    }
+  )
+
 }
 
 object JSONQueryFilter{
+
+  def withValue(column: String,
+            operator: Option[String],
+            value: String):JSONQueryFilter = JSONQueryFilter(column,operator,Some(value),None)
+
   object WHERE {
-    def eq(column: String, value: String) = JSONQueryFilter(column, Some(Filter.EQUALS), value)
+    def eq(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.EQUALS), value)
 
-    def in(column: String, value: Seq[String]) = JSONQueryFilter(column, Some(Filter.IN), value.mkString(","))
-    def notIn(column: String, value: Seq[String]) = JSONQueryFilter(column, Some(Filter.NOTIN), value.mkString(","))
+    def in(column: String, value: Seq[String]) = JSONQueryFilter.withValue(column, Some(Filter.IN), value.mkString(","))
+    def notIn(column: String, value: Seq[String]) = JSONQueryFilter.withValue(column, Some(Filter.NOTIN), value.mkString(","))
 
-    def not(column: String, value: String) = JSONQueryFilter(column, Some(Filter.NOT), value)
+    def not(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.NOT), value)
 
-    def like(column: String, value: String) = JSONQueryFilter(column, Some(Filter.LIKE), value)
+    def like(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.LIKE), value)
 
-    def gt(column: String, value: String) = JSONQueryFilter(column, Some(Filter.>), value)
+    def gt(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.>), value)
 
-    def lt(column: String, value: String) = JSONQueryFilter(column, Some(Filter.<), value)
+    def lt(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.<), value)
 
-    def gte(column: String, value: String) = JSONQueryFilter(column, Some(Filter.>=), value)
+    def gte(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.>=), value)
 
-    def lte(column: String, value: String) = JSONQueryFilter(column, Some(Filter.<=), value)
+    def lte(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.<=), value)
   }
 
   val AND = WHERE
@@ -93,8 +120,8 @@ case class JSONSort(column:String,order:String)
   */
 object JSONQuery extends Logging {
 
-  def apply(filter:List[JSONQueryFilter], sort:List[JSONSort], pages:Int, currentPage:Int, lang:Option[String]):JSONQuery =
-    JSONQuery(filter, sort, paging = Some(JSONQueryPaging(pageLength = pages, currentPage = currentPage)),None)
+  def apply(filter:List[JSONQueryFilter], sort:List[JSONSort], pages:Int, currentPage:Int):JSONQuery =
+    JSONQuery(filter, sort, paging = Some(JSONQueryPaging(pageLength = pages, currentPage = currentPage)))
   /**
     * Generic query
     */
@@ -102,7 +129,6 @@ object JSONQuery extends Logging {
     filter = List(),
     sort = List(),
     paging = Some(JSONQueryPaging(1000)),
-    lang = None
   )
 
   def filterWith(filter:JSONQueryFilter*) = empty.copy(filter = filter.toList)
@@ -165,11 +191,12 @@ object Filter extends Logging {
   final val NOTIN = "notin"
   final val BETWEEN = "between"
   final val IS_NULL = "isNull"
+  final val INTERSECT = "intersect"
   final val IS_NOT_NULL = "isNotNull"
 //  final val TRUE = "true"
 //  final val FALSE = "false"
 
-  final val all = Seq(NONE,EQUALS,NOT,FK_EQUALS,FK_NOT,>,<,>=,<=,LIKE,DISLIKE,FK_LIKE,FK_DISLIKE,IN,NOTIN,BETWEEN,IS_NULL,IS_NOT_NULL)
+  final val all = Seq(NONE,EQUALS,NOT,FK_EQUALS,FK_NOT,>,<,>=,<=,LIKE,DISLIKE,FK_LIKE,FK_DISLIKE,IN,NOTIN,BETWEEN,IS_NULL,IS_NOT_NULL,INTERSECT)
 
   final val singleEl = Seq(NONE,EQUALS,NOT,>,<,>=,<=,LIKE,DISLIKE,IS_NULL,IS_NOT_NULL)
   final val multiEl = Seq(IN,NOTIN)
@@ -178,6 +205,7 @@ object Filter extends Logging {
     case JSONFieldTypes.NUMBER | JSONFieldTypes.INTEGER  => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT, Filter.LIKE, Filter.IN, Filter.NOTIN, Filter.BETWEEN)
     case JSONFieldTypes.DATE | JSONFieldTypes.DATETIME | JSONFieldTypes.TIME => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT)
     case JSONFieldTypes.STRING => Seq(Filter.LIKE, Filter.DISLIKE, Filter.EQUALS, Filter.NOT, Filter.IN, Filter.NOTIN)
+    case JSONFieldTypes.GEOMETRY => Seq(Filter.EQUALS, Filter.NOT,Filter.INTERSECT)
 //    case JSONFieldTypes.BOOLEAN => Seq(Filter.TRUE, Filter.FALSE)
     case _ => Seq(Filter.EQUALS, Filter.NOT)
   }

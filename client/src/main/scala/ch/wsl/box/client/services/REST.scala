@@ -23,6 +23,8 @@ trait REST{
   def specificKind(kind:String, lang:String, entity:String):Future[String]
   def list(kind:String, lang:String, entity:String, limit:Int): Future[Seq[Json]]
   def list(kind:String, lang:String, entity:String, query:JSONQuery): Future[Seq[Json]]
+
+  def geoData(kind:String, lang:String, entity:String, query:JSONQuery):Future[GeoTypes.GeoData]
   def csv(kind:String, lang:String, entity:String, q:JSONQuery): Future[Seq[Seq[String]]]
   def count(kind:String, lang:String, entity:String): Future[Int]
   def keys(kind:String, lang:String, entity:String): Future[Seq[String]]

@@ -14,6 +14,7 @@ trait RegistryInstance{
   def actions: ActionRegistry
   def fields: FieldRegistry
   def schema:String
+  def postgisSchema:String
 }
 
 object Registry extends Logging {
@@ -72,6 +73,8 @@ object Registry extends Logging {
       override def fields: FieldRegistry = ???
 
       override def schema: String = _schema
+
+      override def postgisSchema: String = ???
     })
   }
 

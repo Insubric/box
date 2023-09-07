@@ -3,9 +3,11 @@ package ch.wsl.box.client.views.components
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.{EntityFormState, EntityTableState}
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, JSONLookup, JSONLookups, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
+import io.circe.parser
 import org.scalajs.dom
 import scalacss.ScalatagsCss._
 import org.scalajs.dom.{Element, Event}
@@ -57,6 +59,10 @@ object TableFieldsRenderer extends Logging{
 //        a(href := routes.edit(JSONKeys.fromMap(Map(field.key -> value)).asString).url,finalLabel)
       }
       case (None,Some(WidgetsNames.richTextEditor)) => renderLongText(value)
+      case (None,Some(WidgetsNames.map)) => {
+        val cell:String = parser.parse(value).flatMap(_.as[Geometry]).map(_.toString(0)).getOrElse(value)
+        p(ClientConf.style.preformatted,cell)
+      }
       case (None,_) => p(ClientConf.style.preformatted,value)
     }
 
@@ -70,6 +76,7 @@ object TableFieldsRenderer extends Logging{
 
     def align = field.`type` match{
       case JSONFieldTypes.NUMBER => if (field.lookup.isEmpty) ClientConf.style.numberCells else ClientConf.style.lookupCells
+      case JSONFieldTypes.BOOLEAN => if (field.lookup.isEmpty) ClientConf.style.numberCells else ClientConf.style.lookupCells
       case JSONFieldTypes.DATE | JSONFieldTypes.DATETIME | JSONFieldTypes.TIME => ClientConf.style.dateCells
       case _ => ClientConf.style.textCells
     }

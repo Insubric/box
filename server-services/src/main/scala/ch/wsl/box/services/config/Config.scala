@@ -5,6 +5,8 @@ trait Config {
 
   def schemaName: String
 
+  def postgisSchemaName:String
+
   def langs: Seq[String]
 
   def frontendUrl:String

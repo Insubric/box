@@ -1,10 +1,11 @@
 package ch.wsl.box.client.services.impl
 
+import ch.wsl.box.client.Context
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
-import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, CurrentUser, DataResultTable, EntityKind, ExportDef, Field, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, CurrentUser, DataResultTable, EntityKind, ExportDef, Field, GeoJson, GeoTypes, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
 import kantan.csv._
@@ -38,6 +39,10 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def csv(kind:String, lang:String, entity:String, q:JSONQuery): Future[Seq[Seq[String]]] = httpClient.post[JSONQuery,String](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/csv"),q).map{ result =>
     result.asUnsafeCsvReader[Seq[String]](rfc).toSeq
   }
+  override def geoData(kind:String, lang:String, entity:String, query:JSONQuery): Future[GeoTypes.GeoData] = {
+    httpClient.post[JSONQuery,GeoTypes.GeoData](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data"),query)
+  }
+
   def count(kind:String, lang:String, entity:String): Future[Int] = httpClient.get[Int](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/count"))
   def keys(kind:String, lang:String, entity:String): Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/keys"))
   def ids(kind:String, lang:String, entity:String, q:JSONQuery): Future[IDs] = httpClient.post[JSONQuery,IDs](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/ids"),q)

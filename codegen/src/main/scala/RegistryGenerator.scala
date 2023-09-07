@@ -2,7 +2,7 @@ package ch.wsl.box.codegen
 
 import slick.model.Model
 
-case class RegistryGenerator(model:Model,schema:String) extends slick.codegen.SourceCodeGenerator(model)
+case class RegistryGenerator(model:Model,schema:String,posgisSchema:String) extends slick.codegen.SourceCodeGenerator(model)
   with BoxSourceCodeGenerator
   with slick.codegen.OutputHelpers {
 
@@ -19,6 +19,7 @@ case class RegistryGenerator(model:Model,schema:String) extends slick.codegen.So
        |    override val actions = EntityActionsRegistry
        |    override val fields = FieldAccessRegistry
        |    override val schema = "${schema}"
+       |    override val postgisSchema = "${posgisSchema}"
        |
        |}
            """.stripMargin

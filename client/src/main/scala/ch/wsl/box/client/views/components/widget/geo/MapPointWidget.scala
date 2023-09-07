@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
+import ch.wsl.box.client.geo.{BoxMapProjections, MapParams, MapParamsFeatures}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
@@ -32,11 +33,15 @@ import typings.ol.projMod
 import scala.scalajs.js
 
 
-case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget with HasData with Logging {
+case class MapPointWidget(params: WidgetParams) extends Widget with HasData with Logging {
+
 
 
   import ch.wsl.box.model.shared.GeoJson.Geometry._
   import ch.wsl.box.client.Context._
+
+  val options: MapParams = MapWidgetUtils.options(field)
+  val proj = new BoxMapProjections(options)
 
   override def field: JSONField = params.field
 
@@ -65,28 +70,28 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
 
   autoRelease(geometry.sync(x)(
     {
-      case Some(Point(coordinates)) => coordinates.x.toString
+      case Some(Point(coordinates,crs)) => coordinates.x.toString
       case _ => ""
     },
     { txt =>
       txt.toDoubleOption.map{ x =>
         geometry.get match {
-          case Some(Point(coordinates)) => Point(Coordinates(x,coordinates.y))
-          case _ => Point(Coordinates(x,0))
+          case Some(Point(coordinates,crs)) => Point(Coordinates(x,coordinates.y),options.crs)
+          case _ => Point(Coordinates(x,0),options.crs)
         }
       }
     }
   ))
   autoRelease(geometry.sync(y)(
     {
-      case Some(Point(coordinates)) => coordinates.y.toString
+      case Some(Point(coordinates,crs)) => coordinates.y.toString
       case _ => ""
     },
     { txt =>
       txt.toDoubleOption.map{ y =>
         geometry.get match {
-          case Some(Point(coordinates)) => Point(Coordinates(coordinates.x,y))
-          case _ => Point(Coordinates(0,y))
+          case Some(Point(coordinates,crs)) => Point(Coordinates(coordinates.x,y),options.crs)
+          case _ => Point(Coordinates(0,y),options.crs)
         }
       }
     }
@@ -170,8 +175,8 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     onclick :+= { (e: Event) =>
       GPS.coordinates().map { coords =>
         val point = coords.map { c =>
-          val localCoords = projMod.transform(js.Array(c.x, c.y), wgs84Proj, defaultProjection)
-          Point(Coordinates(localCoords(0), localCoords(1)))
+          val localCoords = projMod.transform(js.Array(c.x, c.y), proj.wgs84Proj, proj.defaultProjection)
+          Point(Coordinates(localCoords(0), localCoords(1)),options.crs)
         }
         geometry.set(point)
       }

@@ -3,7 +3,7 @@ package ch.wsl.box.rest.io.shp
 import java.io.{ByteArrayOutputStream, File}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import ch.wsl.box.model.shared.{DataResultTable, GeoJson}
-import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
@@ -36,7 +36,7 @@ object ShapeFileWriter extends Logging {
    *
    * @tparam T Geometry type
    */
-  private def schemaFor[T](cls: Class[T],name:String,defs:Seq[ShapeFileAttributeDef]):SimpleFeatureType = {
+  private def schemaFor[T](cls: Class[T],name:String,crs:CRS,defs:Seq[ShapeFileAttributeDef]):SimpleFeatureType = {
 
     /**
      * References
@@ -59,7 +59,8 @@ object ShapeFileWriter extends Logging {
 
     val builder: SimpleFeatureTypeBuilder = new SimpleFeatureTypeBuilder
     builder.setName(name)
-    //builder.setCRS() // TODO <- Coordinate reference system
+   // builder.setCRS(org.geotools.referencing.CRS.decode(crs.name)) // TODO
+
 
 
     // add attributes in order
@@ -130,7 +131,7 @@ object ShapeFileWriter extends Logging {
       case mp:GeoJson.MultiPoint => multiPointJTS(mp)
       case ml:GeoJson.MultiLineString => multiLineJTS(ml)
       case mpoly:GeoJson.MultiPolygon => multiPolygonJTS(mpoly)
-      case GeoJson.GeometryCollection(geometries) => throw new Exception("Geometry collection are not supported in shapefiles")
+      case GeoJson.GeometryCollection(geometries,crs) => throw new Exception("Geometry collection are not supported in shapefiles")
     }
   }
 
@@ -206,8 +207,8 @@ object ShapeFileWriter extends Logging {
         row.zip(myData.headerType).map{ case (value,typ) => ShapeFileAttributes(typ, value)}
       }.zip(myData.geometry(geomCol)).flatMap{ case (attributes,geom) =>
         geom match {
-          case GeoJson.GeometryCollection(geometries) => geometries.map(g => ShapeFileRow(g,attributes))
-          case _ => Seq(ShapeFileRow(geom,attributes))
+          case Some(GeoJson.GeometryCollection(geometries,crs)) => geometries.map(g => ShapeFileRow(g,attributes))
+          case _ => geom.toSeq.map(g => ShapeFileRow(g,attributes))
         }
 
       }
@@ -218,14 +219,14 @@ object ShapeFileWriter extends Logging {
 
         val schema = data.head.geometry match {
           case geometry: GeoJson.SingleGeometry => geometry match {
-            case GeoJson.Point(_) => schemaFor(classOf[Point],name,attributeDef)
-            case GeoJson.LineString(_) => schemaFor(classOf[LineString],name,attributeDef)
-            case GeoJson.Polygon(_) => schemaFor(classOf[Polygon],name,attributeDef)
+            case GeoJson.Point(_,crs) => schemaFor(classOf[Point],name,crs,attributeDef)
+            case GeoJson.LineString(_,crs) => schemaFor(classOf[LineString],name,crs,attributeDef)
+            case GeoJson.Polygon(_,crs) => schemaFor(classOf[Polygon],name,crs,attributeDef)
           }
-          case GeoJson.MultiPoint(_) => schemaFor(classOf[MultiPoint],name,attributeDef)
-          case GeoJson.MultiLineString(_) => schemaFor(classOf[MultiLineString],name,attributeDef)
-          case GeoJson.MultiPolygon(_) => schemaFor(classOf[MultiPolygon],name,attributeDef)
-          case GeoJson.GeometryCollection(_) => throw new Exception("Geometry colletions are not supported in shapefiles")
+          case GeoJson.MultiPoint(_,crs) => schemaFor(classOf[MultiPoint],name,crs,attributeDef)
+          case GeoJson.MultiLineString(_,crs) => schemaFor(classOf[MultiLineString],name,crs,attributeDef)
+          case GeoJson.MultiPolygon(_,crs) => schemaFor(classOf[MultiPolygon],name,crs,attributeDef)
+          case GeoJson.GeometryCollection(_,crs) => throw new Exception("Geometry colletions are not supported in shapefiles")
         }
 
         val shapeFile = createShapefile(schema,data)

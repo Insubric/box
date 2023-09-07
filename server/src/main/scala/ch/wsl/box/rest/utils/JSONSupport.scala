@@ -9,11 +9,9 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.{ContentTypeRange, HttpEntity}
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
-import ch.wsl.box.model.shared.FileUtils
+import ch.wsl.box.model.shared.{FileUtils}
 import ch.wsl.box.shared.utils.DateTimeFormatters
-import geotrellis.vector.io.json.GeoJsonSupport
 import io.circe.Decoder.Result
-import geotrellis.vector._
 import org.apache.tika.Tika
 
 import scala.concurrent.Future
@@ -137,15 +135,5 @@ object JSONSupport {
     }
   }
 
-//  implicit val GeoJSON : Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] = new Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] {
-//
-//    override def apply(a: org.locationtech.jts.geom.Geometry): Json = a.asJson
-//  }.getOrElse(Json.Null)
-//
-//
-//  override def apply(c: HCursor): Result[org.locationtech.jts.geom.Geometry] = Decoder.decodeString.map{s =>
-//    GeoJson.parse[org.locationtech.jts.geom.Geometry](s)
-//  }.apply(c)
-//}
 
 }

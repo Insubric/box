@@ -28,13 +28,14 @@ class RuntimeFunctionSpec extends BaseSpec {
       new RuntimePSQL {
 
 
+        override def table(name: String, query: JSONQuery, keys: Option[Seq[String]])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, mat: Materializer, services: Services): Future[Option[DataResultTable]] = ???
+
         override def dynFunction(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = ???
 
         override def function(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = {
           Future.successful(Some(dr))
         }
 
-        def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]] = ???
       },
       new RuntimeUtils {
         override def qrCode(url: String): String = ???

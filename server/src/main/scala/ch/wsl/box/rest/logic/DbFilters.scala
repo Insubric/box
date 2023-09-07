@@ -34,17 +34,17 @@ trait DbFilters {
 
 
     op match{
-      case Filter.EQUALS  => ==(c, q.value)
-      case Filter.NOT     => not(c, q.value)
-      case Filter.>       => >(c, q.value)
-      case Filter.<       => <(c, q.value)
-      case Filter.>=      => >=(c, q.value)
-      case Filter.<=      => <=(c, q.value)
-      case Filter.LIKE    => like(c, q.value)
-      case Filter.DISLIKE => dislike(c, q.value)
-      case Filter.IN      => in(c, q.value)
-      case Filter.NOTIN   => notin(c, q.value)
-      case Filter.BETWEEN => between(c, q.value)
+      case Filter.EQUALS  => ==(c, q.getValue)
+      case Filter.NOT     => not(c, q.getValue)
+      case Filter.>       => >(c, q.getValue)
+      case Filter.<       => <(c, q.getValue)
+      case Filter.>=      => >=(c, q.getValue)
+      case Filter.<=      => <=(c, q.getValue)
+      case Filter.LIKE    => like(c, q.getValue)
+      case Filter.DISLIKE => dislike(c, q.getValue)
+      case Filter.IN      => in(c, q.getValue)
+      case Filter.NOTIN   => notin(c, q.getValue)
+      case Filter.BETWEEN => between(c, q.getValue)
       case Filter.IS_NULL => isNull(c)
       case Filter.IS_NOT_NULL => isNotNull(c)
     }

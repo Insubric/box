@@ -9,8 +9,8 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.utils.{BoxSession, Cache, JSONSupport, UserProfile}
-import io.circe.Json
+import ch.wsl.box.rest.utils.{BoxSession, Cache, JSONSupport, Lang, UserProfile}
+import io.circe.{Json, JsonObject}
 import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -22,6 +22,7 @@ import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 
+import scala.collection.immutable
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -53,7 +54,7 @@ case class Form(
     import ch.wsl.box.model.shared.EntityKind
     import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 
-
+    implicit val l = Lang(lang)
     implicit val up = session.userProfile
     val db = up.db
     implicit val implicitDB = db
@@ -249,7 +250,28 @@ case class Form(
     }
   }
 
-    def route = pathPrefix("id") {
+  def geoData: Route = path("geo-data") {
+    post {
+      entity(as[JSONQuery]) { query =>
+
+        complete {
+          for {
+            data <- PSQLImpl.table(metadata.view.getOrElse(metadata.entity), query,Some(metadata.keys))
+          } yield {
+            val result: GeoTypes.GeoData = data.map { d =>
+              d.geometry.map { geom =>
+                geom._1 -> d.idString.zip(geom._2).flatMap { case (id, geo) => geo.map(g => GeoJson.Feature(g, Some(JsonObject("jsonid" -> id.asJson)))) }
+              }
+            }.getOrElse(Map())
+            result
+          }
+        }
+      }
+    }
+  }
+
+
+  def route = pathPrefix("id") {
       path(Segment) { strId =>
         JSONID.fromMultiString(strId,metadata) match {
           case ids if ids.nonEmpty =>
@@ -345,6 +367,7 @@ case class Form(
     xls ~
     csv ~
     shp ~
+    geoData ~
     lookups(actions) ~
     pathEnd {
         post {
