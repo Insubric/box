@@ -221,11 +221,6 @@ case class FormActions(metadata:JSONMetadata,
     val emptyFields = form.fields.flatMap {f =>
       (f.child,f.condition) match {
         case (Some(child),Some(condition)) if child.hasData && !condition.check(jsonToUpdate) => {
-          println(s"""
-            ${form.name} - ${f.name}
-            ${condition.check(jsonToUpdate)}
-            $jsonToUpdate
-            """)
           Some(f.name -> Json.fromValues(Seq()))
         }
         case _ => None
@@ -265,19 +260,12 @@ case class FormActions(metadata:JSONMetadata,
 
     logger.debug(s"Applying sub action to $e")
 
-    println("===== subaction ")
-    println(e)
 
     val result = metadata.fields.filter(_.child.exists(_.hasData)).map{ field =>
       for {
         form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
         dbSubforms <- getChild(e,form,field.child.get)
-        subs = {
-          val r = e.seq(field.name)
-          println("---- subs")
-          println(r)
-          r
-        }
+        subs =  e.seq(field.name)
         subJsonWithIndexs = attachArrayIndex(subs,form)
         subJsonWithNegativeConditionFields = subJsonWithIndexs.map(attachEmptyFields(form))
         subJson = attachParentId(subJsonWithNegativeConditionFields,e,field.child.get)

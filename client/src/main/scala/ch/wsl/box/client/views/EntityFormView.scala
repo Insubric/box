@@ -393,6 +393,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     model.subProp(_.changed).set(true)
     window.onbeforeunload = { (e:BeforeUnloadEvent) =>
       if(Context.applicationInstance.currentState.isInstanceOf[EntityFormState] || Context.applicationInstance.currentState.isInstanceOf[EntityTableState]) {
+        e.preventDefault()
         Labels.navigation.goAway
       }
     }
