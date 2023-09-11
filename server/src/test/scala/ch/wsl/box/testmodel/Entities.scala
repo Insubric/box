@@ -32,7 +32,7 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Json_test.schema, Simple.schema, Test_list_types.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Ce.schema, Ces.schema, Cesr.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Json_test.schema, Simple.schema, Test_list_types.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -209,6 +209,183 @@ object Entities {
   }
   /** Collection-like TableQuery object for table App_subchild */
   lazy val App_subchild = new TableQuery(tag => new App_subchild(tag))
+
+  /** Entity class storing rows of table Ce
+   *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey */
+  case class Ce_row(id: Option[Int] = None)
+
+
+  val decodeCe_row:Decoder[Ce_row] = Decoder.forProduct1("id")(Ce_row.apply)
+  val encodeCe_row:EncoderWithBytea[Ce_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct1("id")(x =>
+      (x.id)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Ce_row objects using plain SQL queries */
+
+  /** Table description of table ce. Objects of this class serve as prototypes for rows in queries. */
+  class Ce(_tableTag: Tag) extends Table[Ce_row](_tableTag, Some("test_public"), "ce") with UpdateTable[Ce_row] {
+
+    def boxGetResult = GR(r => Ce_row(r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Ce_row]] = {
+        val kv = keyValueComposer(this)
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_public"."ce" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+          val returning = sql""" returning "id" """
+
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Ce_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Ce_row]] = {
+        val sqlActionBuilder = concat(sql"""select "id" from "test_public"."ce" """,where)
+        sqlActionBuilder.as[Ce_row](boxGetResult)
+      }
+
+    def * = Rep.Some(id).<>(Ce_row, Ce_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(id)).shaped.<>(r => r.map(_=> Ce_row(r)), (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(serial), AutoInc, PrimaryKey */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+  }
+  /** Collection-like TableQuery object for table Ce */
+  lazy val Ce = new TableQuery(tag => new Ce(tag))
+
+  /** Entity class storing rows of table Ces
+   *  @param ce_id Database column ce_id SqlType(int4)
+   *  @param s_id Database column s_id SqlType(int4)
+   *  @param negative Database column negative SqlType(bool), Default(Some(true)) */
+  case class Ces_row(ce_id: Int, s_id: Int, negative: Option[Boolean] = Some(true))
+
+
+  val decodeCes_row:Decoder[Ces_row] = Decoder.forProduct3("ce_id","s_id","negative")(Ces_row.apply)
+  val encodeCes_row:EncoderWithBytea[Ces_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct3("ce_id","s_id","negative")(x =>
+      (x.ce_id, x.s_id, x.negative)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Ces_row objects using plain SQL queries */
+
+  /** Table description of table ces. Objects of this class serve as prototypes for rows in queries. */
+  class Ces(_tableTag: Tag) extends Table[Ces_row](_tableTag, Some("test_public"), "ces") with UpdateTable[Ces_row] {
+
+    def boxGetResult = GR(r => Ces_row(r.<<,r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Ces_row]] = {
+        val kv = keyValueComposer(this)
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_public"."ces" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+          val returning = sql""" returning "ce_id","s_id","negative" """
+
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Ces_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Ces_row]] = {
+        val sqlActionBuilder = concat(sql"""select "ce_id","s_id","negative" from "test_public"."ces" """,where)
+        sqlActionBuilder.as[Ces_row](boxGetResult)
+      }
+
+    def * = (ce_id, s_id, negative).<>(Ces_row.tupled, Ces_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(ce_id), Rep.Some(s_id), negative)).shaped.<>({r=>import r._; _1.map(_=> Ces_row.tupled((_1.get, _2.get, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column ce_id SqlType(int4) */
+    val ce_id: Rep[Int] = column[Int]("ce_id")
+    /** Database column s_id SqlType(int4) */
+    val s_id: Rep[Int] = column[Int]("s_id")
+    /** Database column negative SqlType(bool), Default(Some(true)) */
+    val negative: Rep[Option[Boolean]] = column[Option[Boolean]]("negative", O.Default(Some(true)))
+
+    /** Primary key of Ces (database name ces_pk) */
+    val pk = primaryKey("ces_pk", (ce_id, s_id))
+
+    /** Foreign key referencing Ce (database name ces_fk) */
+    lazy val ceFk = foreignKey("ces_fk", ce_id, Ce)(r => r.id, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+  }
+  /** Collection-like TableQuery object for table Ces */
+  lazy val Ces = new TableQuery(tag => new Ces(tag))
+
+  /** Entity class storing rows of table Cesr
+   *  @param ce_id Database column ce_id SqlType(int4)
+   *  @param s_id Database column s_id SqlType(int4)
+   *  @param p_id Database column p_id SqlType(text) */
+  case class Cesr_row(ce_id: Int, s_id: Int, p_id: String)
+
+
+  val decodeCesr_row:Decoder[Cesr_row] = Decoder.forProduct3("ce_id","s_id","p_id")(Cesr_row.apply)
+  val encodeCesr_row:EncoderWithBytea[Cesr_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct3("ce_id","s_id","p_id")(x =>
+      (x.ce_id, x.s_id, x.p_id)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Cesr_row objects using plain SQL queries */
+
+  /** Table description of table cesr. Objects of this class serve as prototypes for rows in queries. */
+  class Cesr(_tableTag: Tag) extends Table[Cesr_row](_tableTag, Some("test_public"), "cesr") with UpdateTable[Cesr_row] {
+
+    def boxGetResult = GR(r => Cesr_row(r.<<,r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Cesr_row]] = {
+        val kv = keyValueComposer(this)
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_public"."cesr" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+          val returning = sql""" returning "ce_id","s_id","p_id" """
+
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Cesr_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Cesr_row]] = {
+        val sqlActionBuilder = concat(sql"""select "ce_id","s_id","p_id" from "test_public"."cesr" """,where)
+        sqlActionBuilder.as[Cesr_row](boxGetResult)
+      }
+
+    def * = (ce_id, s_id, p_id).<>(Cesr_row.tupled, Cesr_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(ce_id), Rep.Some(s_id), Rep.Some(p_id))).shaped.<>({r=>import r._; _1.map(_=> Cesr_row.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column ce_id SqlType(int4) */
+    val ce_id: Rep[Int] = column[Int]("ce_id")
+    /** Database column s_id SqlType(int4) */
+    val s_id: Rep[Int] = column[Int]("s_id")
+    /** Database column p_id SqlType(text) */
+    val p_id: Rep[String] = column[String]("p_id")
+
+    /** Primary key of Cesr (database name cesr_pkey) */
+    val pk = primaryKey("cesr_pkey", (ce_id, s_id, p_id))
+
+    /** Foreign key referencing Ces (database name cesr_ce_id_s_id_fkey) */
+    lazy val cesFk = foreignKey("cesr_ce_id_s_id_fkey", (ce_id, s_id), Ces)(r => (r.ce_id, r.s_id), onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+  }
+  /** Collection-like TableQuery object for table Cesr */
+  lazy val Cesr = new TableQuery(tag => new Cesr(tag))
 
   /** Entity class storing rows of table Db_child
    *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey

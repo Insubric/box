@@ -532,7 +532,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       action.condition match {
         case Some(conditions) => {
           showIf(model.subProp(_.data).transform{ js => conditions.forall{ cond =>
-            cond.check(js.js(cond.conditionFieldId))
+            cond.check(js)
           }})( actionButton )
         }
         case None => actionButton

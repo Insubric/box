@@ -129,4 +129,54 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
     }
   }
 
+  "Form with two child" should "upsert a row deleting a field" in withServices[Assertion] { implicit services =>
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
+
+
+    def data(subChild:String) = stringToJson(s"""
+                               |{
+                               |  "id": 1,
+                               |  "name": "parent",
+                               |  "childs": [
+                               |     {
+                               |       "id": 1,
+                               |       "name": "child",
+                               |       "parent_id": 1,
+                               |       "subchilds": [
+                               |         $subChild
+                               |       ]
+                               |     },
+                               |     {
+                               |       "id": 2,
+                               |       "name": "child2",
+                               |       "parent_id": 1,
+                               |       "subchilds": [
+                               |       ]
+                               |     }
+                               |  ]
+                               |}""".stripMargin)
+
+    val d1 = data("")
+    val d2 = data(
+      s"""
+         |{
+         |           "id": 1,
+         |           "name": "subchild",
+         |           "child_id": 1
+         |}
+         |""".stripMargin)
+
+
+    for {
+      (formName, _, _, _) <- new FormFixtures("app_").insertForm(up.db)
+      (idEntry, result) <- insert(formName, d1)
+      (r1, r2) <- update(formName, idEntry, d2)
+    } yield {
+      r1 shouldBe r2.get.dropBoxObjectId
+      r1.dropNullValues shouldBe d2.dropNullValues
+      r2.get.dropNullValues.dropBoxObjectId shouldBe d2.dropNullValues
+    }
+  }
+
 }

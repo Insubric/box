@@ -216,6 +216,27 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
+  def attachEmptyFields(form: JSONMetadata)(jsonToUpdate: Json): Json = {
+
+    val emptyFields = form.fields.flatMap {f =>
+      (f.child,f.condition) match {
+        case (Some(child),Some(condition)) if child.hasData && !condition.check(jsonToUpdate) => {
+          println(s"""
+            ${form.name} - ${f.name}
+            ${condition.check(jsonToUpdate)}
+            $jsonToUpdate
+            """)
+          Some(f.name -> Json.fromValues(Seq()))
+        }
+        case _ => None
+      }
+    }
+
+    //jsonToUpdate.deepMerge(Json.fromFields(emptyFields))
+
+    Json.fromFields(emptyFields).deepMerge(jsonToUpdate)
+  }
+
 
 
   def attachParentId(jsonToInsert:Seq[Json],parentJson:Json, child:Child):Seq[Json] = {
@@ -240,22 +261,26 @@ case class FormActions(metadata:JSONMetadata,
     newField
   }
 
-  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
+  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json])): DBIO[Seq[(String,Json)]] = {
 
     logger.debug(s"Applying sub action to $e")
 
-    val result = metadata.fields.filter(_.child.exists(_.hasData)).filter { field =>
-      field.condition match {
-        case Some(condition) => alwaysApply || condition.check(e.js(condition.conditionFieldId))
-        case None => true
-      }
-    }.map{ field =>
+    println("===== subaction ")
+    println(e)
+
+    val result = metadata.fields.filter(_.child.exists(_.hasData)).map{ field =>
       for {
         form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
         dbSubforms <- getChild(e,form,field.child.get)
-        subs = e.seq(field.name)
+        subs = {
+          val r = e.seq(field.name)
+          println("---- subs")
+          println(r)
+          r
+        }
         subJsonWithIndexs = attachArrayIndex(subs,form)
-        subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
+        subJsonWithNegativeConditionFields = subJsonWithIndexs.map(attachEmptyFields(form))
+        subJson = attachParentId(subJsonWithNegativeConditionFields,e,field.child.get)
          deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
           val id = json.ID(jsonIdDBFields(form,form.keyFields))
@@ -292,7 +317,7 @@ case class FormActions(metadata:JSONMetadata,
   def delete(id:JSONID) = {
     for{
       json <- getById(id)
-      subs <- subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true)
+      subs <- subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json))
       current <- deleteSingle(id,json.get)
     } yield 1 + subs.length
   }

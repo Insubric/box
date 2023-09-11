@@ -156,15 +156,24 @@ object Child{
 case class NotCondition(not:Seq[Json])
 
 case class ConditionalField(conditionFieldId:String,conditionValues:Json) {
-  def check(js:Json):Boolean = js.equals(conditionValues) || {
-    conditionValues
-      .asArray.map(_.contains(js))
-      .orElse(conditionValues.as[NotCondition].toOption.map(!_.not.contains(js))) match {
-      case Some(value) => value
-      case None => false //throw new Exception(s"Wrong conditions: $conditionValues value $js")
+
+
+  def check(js:Json):Boolean = ConditionalField.check(js.js(conditionFieldId),conditionValues)
+
+
+}
+
+object ConditionalField{
+  def check(js:Json,conditionValues:Json) = {
+    js.equals(conditionValues) || {
+      conditionValues
+        .asArray.map(_.contains(js))
+        .orElse(conditionValues.as[NotCondition].toOption.map(!_.not.contains(js))) match {
+        case Some(value) => value
+        case None => false //throw new Exception(s"Wrong conditions: $conditionValues value $js")
+      }
     }
   }
-
 }
 
 object JSONFieldTypes{

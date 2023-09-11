@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
-import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SubLayoutBlock}
+import ch.wsl.box.model.shared.{ConditionalField, JSONField, JSONMetadata, SubLayoutBlock}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
@@ -53,7 +53,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
         def evaluate(d:Json):Boolean = {
           val value = d
-          val r = condition.check(value)
+          val r = ConditionalField.check(value,condition.conditionValues)
           logger.info(s"evaluating condition for field: ${field.name} against $value with accepted values: ${condition.conditionValues} with result: $r")
           r
         }

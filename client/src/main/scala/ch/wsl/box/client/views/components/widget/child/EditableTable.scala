@@ -326,7 +326,7 @@ object EditableTable extends ChildRendererFactory {
     def showIfConditionRow(field: JSONField,row:Property[Json],nested:Binding.NestedInterceptor)(m: ConcreteHtmlTag[_ <: dom.html.Element]): Modifier = {
       field.condition match {
         case Some(c) => {
-          nested(showIf(row.transform(r => c.check(r.js(c.conditionFieldId)))) {
+          nested(showIf(row.transform(r => c.check(r))) {
             m.render
           })
         }

@@ -8,6 +8,9 @@ object FieldAccessRegistry extends FieldRegistry {
       "app_child",
       "app_parent",
       "app_subchild",
+      "ce",
+      "ces",
+      "cesr",
       "db_child",
       "db_parent",
       "db_subchild",
@@ -24,6 +27,9 @@ object FieldAccessRegistry extends FieldRegistry {
         "app_child" -> app_child_map,
         "app_parent" -> app_parent_map,
         "app_subchild" -> app_subchild_map,
+        "ce" -> ce_map,
+        "ces" -> ces_map,
+        "cesr" -> cesr_map,
         "db_child" -> db_child_map,
         "db_parent" -> db_parent_map,
         "db_subchild" -> db_subchild_map,
@@ -45,6 +51,19 @@ object FieldAccessRegistry extends FieldRegistry {
               "id" -> ColType("Int","integer",false,false),
               "child_id" -> ColType("Int","integer",false,true),
               "name" -> ColType("String","string",false,true)
+)
+  private def ce_map =  Map(
+              "id" -> ColType("Int","integer",true,false)
+)
+  private def ces_map =  Map(
+              "ce_id" -> ColType("Int","integer",false,false),
+              "s_id" -> ColType("Int","integer",false,false),
+              "negative" -> ColType("Boolean","boolean",true,true)
+)
+  private def cesr_map =  Map(
+              "ce_id" -> ColType("Int","integer",false,false),
+              "s_id" -> ColType("Int","integer",false,false),
+              "p_id" -> ColType("String","string",false,false)
 )
   private def db_child_map =  Map(
               "id" -> ColType("Int","integer",true,false),

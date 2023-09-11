@@ -373,8 +373,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
   private def condition(field:BoxField_row) = for{
     fieldId <- field.conditionFieldId
     values <- field.conditionValues
-    json <- Try(parse(values).right.get.as[Json].right.get).toOption
-  } yield ConditionalField(fieldId,json)
+  } yield ConditionalField(fieldId,parse(values).toOption.get)
 
 
   private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[String] = {

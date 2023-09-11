@@ -23,3 +23,30 @@ create table json_test(
         id serial,
         obj jsonb
 );
+
+create table ce
+(
+    id                   serial primary key
+);
+
+create table ces
+(
+    ce_id integer                        not null
+        constraint ces_fk
+            references ce
+            on update cascade on delete cascade,
+    s_id    integer                        not null,
+    negative boolean default true,
+    constraint ces_pk
+        primary key (ce_id, s_id)
+);
+
+create table cesr
+(
+    ce_id integer                        not null,
+    s_id    integer                        not null,
+    p_id       text                           not null,
+    primary key (ce_id, s_id, p_id),
+    foreign key (ce_id, s_id) references ces
+        on update cascade on delete cascade
+);
