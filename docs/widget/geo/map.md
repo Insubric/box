@@ -103,7 +103,14 @@ Fields:
   - Optional `multiLine`
   - Optional `polygon`
   - Optional `multiPolygon`
-- Optional `enableSwisstopo` enable swisstopo integration (i.e. location search)
+- Optional `enableSwisstopo` - boolean - enable swisstopo integration (i.e. location search)
+- Optional `lookups` list of lookup layers to be added in the map
+  - `color` geometry color
+  - `fillColor` filling color
+  - Optional `query` query to be applied to the lookup entity (as [JSONQuery](/doc/query) )
+  - `kind` (form or table)
+  - `entity` name of the form/table to 
+  - `column` name of the column
 
 | Key           | Value                                 | Default |
 |:--------------|:--------------------------------------|:--------|

@@ -48,9 +48,10 @@ case class MapLookup(
                              fillColor: String,
                              query: Option[JSONQuery],
                              entity:String,
-                             kind:String
+                             kind:String,
+                             column:String
                           ) {
-  def id = s"$kind-$entity-$query"
+  def id = s"$kind-$entity-$query-$column"
 }
 
 case class MapFormatters(
