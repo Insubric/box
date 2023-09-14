@@ -93,7 +93,7 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
     val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data).withExtent(metadata,calculateExtent())
 
     services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, query).foreach { geoms =>
-      geoms.get(layer.column).foreach{ g =>
+      geoms.getOrElse(layer.column,Seq()).foreach{ g =>
         val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
         vectorSource.addFeature(geom)
       }
