@@ -593,7 +593,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def showMap(metadata:JSONMetadata) = {
     if(presenter.hasGeometry()) {
-      map = Some(div(height := window.innerHeight.px).render)
+      map = Some(div(height := (window.innerHeight - 105).px).render)
       val observer = new MutationObserver({ (mutations, observer) =>
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {

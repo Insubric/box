@@ -36,7 +36,8 @@ object TwoPanelResize {
     )
 
     val containerRight = style(
-      flex := "1"
+      flex := "1",
+      minWidth.`0` // not clear to me why.. https://stackoverflow.com/questions/36230944/prevent-flex-items-from-overflowing-a-container
     )
 
 

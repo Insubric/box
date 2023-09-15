@@ -136,8 +136,8 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
 
   def sidebarButton = div(ClientConf.style.sidebarButton,
     showIfElse(sidebarShow) (
-      button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.times),onclick :+= sidebarButtonCallback).render,
-      button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV),onclick :+= sidebarButtonCallback).render
+      button(ClientConf.style.boxButtonImportant,i(UdashIcons.FontAwesome.Solid.times),onclick :+= sidebarButtonCallback).render,
+      button(ClientConf.style.boxButtonImportant,i(UdashIcons.FontAwesome.Solid.ellipsisV),onclick :+= sidebarButtonCallback).render
     )
   )
 

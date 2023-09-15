@@ -341,6 +341,7 @@ object GlobalStyleFactory{
 
     val sidebar = style(
       marginLeft(-250 px),
+      height :=! "calc(100vh - 250px)",
       overflowX.hidden,
       transitionDuration(300 millis),
       width(250 px),
@@ -662,7 +663,7 @@ object GlobalStyleFactory{
 
 
     val fullHeightMax = style(
-      height :=! "calc(100vh - 206px)",
+      height :=! "calc(100vh - 150px)",
       media.maxWidth(600 px)(
         height :=! "calc(100vh - 110px)",
         paddingBottom(70 px)
@@ -1299,8 +1300,9 @@ object GlobalStyleFactory{
 
     val sidebarButton = style(
       position.fixed,
-      top(55 px),
+      top(5 px),
       left(5 px),
+      zIndex(101),
       media.maxWidth(600 px)(
         display.none
       )

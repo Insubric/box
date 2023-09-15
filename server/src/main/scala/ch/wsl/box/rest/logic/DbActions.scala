@@ -122,7 +122,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   override def ids(query: JSONQuery,keys:Seq[String]): DBIO[IDs] = {
     for{
-      keys <- entity.baseTableRow.ids(keys,query)
+      keys <- if(keys.nonEmpty) entity.baseTableRow.ids(keys,query) else DBIO.successful(Seq())
       n <- count(query)
     } yield {
 
