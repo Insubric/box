@@ -69,8 +69,10 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     })
 
     var extentListenerInitialized = false
+    var extentChangeListenerActive = false
 
     geoms.listen({ layers =>
+      extentChangeListenerActive = false
       map.removeLayer(featuresLayer)
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
@@ -89,17 +91,20 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
         if (!extentListenerInitialized) {
           extentListenerInitialized = true
           map.getView().on_changeresolution(olStrings.changeColonresolution, event => {
-            extentChange()
+            if(extentChangeListenerActive)
+              extentChange()
           })
 
           map.getView().on_changecenter(olStrings.changeColoncenter, event => {
-            extentChange()
+            if(extentChangeListenerActive)
+              extentChange()
           })
         }
+
       }
 
       map.render()
-
+      extentChangeListenerActive = true
 
     }, true)
 

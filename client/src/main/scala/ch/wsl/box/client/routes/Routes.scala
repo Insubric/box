@@ -5,7 +5,7 @@ import ch.wsl.box.client.utils.MustacheUtils
 import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
 import ch.wsl.box.model.shared.{FormAction, JSONQuery}
 import org.scalajs.dom
-import org.scalajs.dom.URLSearchParams
+import org.scalajs.dom.{URLSearchParams, window}
 import scribe.Logging
 import yamusca.imports.mustache
 
@@ -68,7 +68,7 @@ object Routes extends Logging {
     def add() = EntityFormState(kind,entityName,"true",None,false)
     def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),false)
     def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),false)
-    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => URIUtils.encodeURIComponent(js.asJson.noSpaces)))
+    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => window.btoa(js.asJson.noSpaces)))
     def entity(name:String) = EntityTableState(kind,name,None)
   }
 

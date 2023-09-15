@@ -159,8 +159,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.loading.set(true)
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
-    val stateQuery = URLQuery(state.query,emptyFieldsForm)
-    val urlQuery:Option[JSONQuery] = URLQuery(Routes.urlParams.get("q"),emptyFieldsForm).orElse(stateQuery)
+    val stateQuery = URLQuery.fromState(state.query)
+    val urlQuery:Option[JSONQuery] = URLQuery.fromQueryParameters(Routes.urlParams.get("q")).orElse(stateQuery)
     services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
@@ -286,8 +286,24 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.setIDs(ids)
   }
 
+  def urlOnlyFilter:Option[JSONQuery] = {
+      for {
+        m <- model.subProp(_.metadata).get
+        uq <-  model.subProp(_.urlQuery).get
+      } yield {
+        val qf = uq.filter.filterNot(f => m.tabularFields.contains(f.column))
+        val qs = uq.sort.filterNot(s => m.tabularFields.contains(s.column))
+        JSONQuery.empty
+          .filterWith(qf: _*)
+          .sortWith(qs: _*)
+      }
+  }
+
   def query(extent:Option[Polygon]):JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
+
+    model.subProp(_.extent).set(extent)
+
 
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
 
@@ -295,11 +311,18 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       JSONQueryFilter.withValue(f.field.name,Some(f.filterOperator),f.filterValue)
     }.toList
 
-    val q = JSONQuery(filter, sort, None)
-    (model.get.metadata,extent) match {
-      case (Some(metadata),Some(ext)) => q.withExtent(metadata,ext)
-      case _ => q
+    val qFields = JSONQuery(filter, sort, None)
+    val q = (model.get.metadata,extent) match {
+      case (Some(metadata),Some(ext)) => qFields.withExtent(metadata,ext)
+      case _ => qFields
     }
+
+    urlOnlyFilter match {
+      case Some(uq) => q.filterWith(q.filter ++ uq.filter:_*).sortWith(q.sort ++ uq.sort:_*)
+      case None => q
+    }
+
+
 
 
   }
@@ -454,6 +477,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   def resetFilters() = {
     model.subProp(_.extent).set(None)
     model.subProp(_.fieldQueries).set(model.subProp(_.fieldQueries).get.map(_.copy(filterValue = "")))
+  }
+
+  def isFiltered(query:Option[JSONQuery]):Boolean = query.exists{ q =>
+    model.subProp(_.metadata).get match {
+      case Some(m) => q.filter.exists(f => m.tabularFields.contains(f.column))
+      case None => q.filter.nonEmpty
+    }
   }
 
 
@@ -724,7 +754,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
           ),
           div(Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count))),
-            nested(showIf(model.subProp(_.query).transform(_.exists(_.filter.nonEmpty))){
+            nested(showIf(model.subProp(_.query).transform(presenter.isFiltered)){
               small(" - " , Labels.navigation.recordsFiltered," ",button("\uD83D\uDDD9",ClientConf.style.boxButton, onclick :+= ((e:Event) => {
                 presenter.resetFilters()
                 e.preventDefault()
