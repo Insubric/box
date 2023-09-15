@@ -74,7 +74,7 @@ object GeoJsonSupport {
         val col = for (i <- 0 until collection.getNumGeometries) yield {
           collection.getGeometryN(i) match {
             case collection: org.locationtech.jts.geom.GeometryCollection => multiGeometries(collection)
-            case _ => simpleGeometry(collection)
+            case geom: org.locationtech.jts.geom.Geometry => simpleGeometry(geom)
           }
         }
         GeometryCollection(col,toGeoJsonCRS(collection.getSRID))
