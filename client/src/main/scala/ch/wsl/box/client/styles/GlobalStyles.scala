@@ -292,6 +292,10 @@ object GlobalStyleFactory{
       ),
 
 
+      unsafeRoot(".ql-editor")(
+        fontWeight.normal
+      ),
+
       unsafeRoot(".ql-editor p")(
         marginBottom.`0`
       ),

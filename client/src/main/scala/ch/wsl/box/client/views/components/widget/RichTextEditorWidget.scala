@@ -18,6 +18,7 @@ import typings.quill.mod.{DeltaStatic, Quill, QuillOptionsStatic, Sources}
 
 import scala.collection.mutable
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters.JSRichIterableOnce
 import scala.util.Try
 
 case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], mode:Mode) extends Widget with HasData with Logging {
@@ -63,7 +64,12 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
       val parent = div(container).render
 
 
+      val baseFormats = Seq("bold","color","font","code","italic","link","size","strike","script","underline","blockquote","header","indent","list","align","direction","code-block")
 
+      val formats = mode match {
+        case RichTextEditorWidget.Minimal => baseFormats
+        case RichTextEditorWidget.Full => baseFormats ++ Seq("image")
+      }
 
       val options = QuillOptionsStatic()
         .setPlaceholder(field.placeholder.getOrElse(""))
@@ -72,6 +78,7 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
         .setModules(StringDictionary(
           "toolbar" -> toolbar,
         ))
+        .setFormats(formats.toJSArray)
 
 
 
