@@ -261,7 +261,16 @@ case class FormActions(metadata:JSONMetadata,
     logger.debug(s"Applying sub action to $e")
 
 
-    val result = metadata.fields.filter(_.child.exists(_.hasData)).map{ field =>
+    val result = metadata.fields
+      .filter(_.child.exists(_.hasData))
+      .filter{f =>
+        f.condition.map(_.check(e)) match {
+          case Some(true) => true
+          case Some(false) => f.params.exists(_.js("deleteWhenHidden") == Json.True)
+          case None => true
+        }
+      }
+      .map{ field =>
       for {
         form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
         dbSubforms <- getChild(e,form,field.child.get)

@@ -15,13 +15,14 @@ import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import _root_.io.circe._
+import _root_.io.circe.syntax._
 
 import java.util.UUID
 import scala.concurrent.Future
 
 class UpdateWithChildMultiKey extends BaseSpec {
 
-  def insertForm(implicit db: UserDatabase) = {
+  def insertForm(db: UserDatabase,deleteWhenHidden:Boolean) = {
 
     val ceForm = BoxForm_row(
       name = "ce",
@@ -93,7 +94,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.NUMBER, name = "ce_id", widget = Some(WidgetsNames.input)),
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.NUMBER, name = "s_id", widget = Some(WidgetsNames.input)),
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.BOOLEAN, name = "negative", widget = Some(WidgetsNames.checkbox)),
-      BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.CHILD, name = "cesr", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(cesrId),masterFields = Some("ce_id,s_id"),childFields = Some("ce_id,s_id"),conditionFieldId = Some("negative"),conditionValues = Some("false"))
+      BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.CHILD, name = "cesr", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(cesrId),masterFields = Some("ce_id,s_id"),childFields = Some("ce_id,s_id"),conditionFieldId = Some("negative"),conditionValues = Some("false"),params = Some(Json.fromFields(Map("deleteWhenHidden" -> deleteWhenHidden.asJson))))
     )
     def cesrFields(cesrId:UUID):Seq[BoxField_row] = Seq(
       BoxField_row(form_uuid = cesrId, `type` = JSONFieldTypes.NUMBER, name = "ce_id", widget = Some(WidgetsNames.input)),
@@ -194,7 +195,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
 
 
     for {
-      formName <- insertForm(up.db)
+      formName <- insertForm(up.db,false)
       (completeId, resultComplete) <- insert(formName, base)
       checkCompleteWithId = baseWithId(completeId.values.head.as[Int].toOption.get)
     } yield {
@@ -250,7 +251,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
 
 
     for {
-      formName <- insertForm(up.db)
+      formName <- insertForm(up.db,false)
       (idEntry, result) <- insert(formName, base)
       withPId = baseWithId(idEntry.values.head.as[Int].toOption.get)
       (r1, r2) <- update(formName, idEntry, withPId)
@@ -261,7 +262,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
     }
   }
 
-  it should "be updated and deleted child with conditional" in withServices[Assertion] { implicit services =>
+  it should "be updated and deleted child with conditional and deleteWhenHidden" in withServices[Assertion] { implicit services =>
     def base = stringToJson(
       s"""
          |{
@@ -346,7 +347,104 @@ class UpdateWithChildMultiKey extends BaseSpec {
 
 
     for {
-      formName <- insertForm(up.db)
+      formName <- insertForm(up.db,true)
+      (idEntry, result) <- insert(formName, base)
+      id = idEntry.values.head.as[Int].toOption.get
+      withPId = baseWithId(id)
+      _ <- update(formName, idEntry, withPId)
+      neg = negativeRequestWithId(id)
+      (r1, r2) <- update(formName, idEntry, neg)
+    } yield {
+      r2.get.dropNullValues.dropBoxObjectId shouldBe negativeResponseWithId(id)
+    }
+  }
+
+  it should "be updated without deletion with conditional when no deleteWhenHidden" in withServices[Assertion] { implicit services =>
+    def base = stringToJson(
+      s"""
+         |{
+         |  "ces": [
+         |     {
+         |       "s_id": 1,
+         |       "negative": true,
+         |       "cesr": []
+         |     },
+         |     {
+         |       "s_id": 2,
+         |       "negative": true,
+         |       "cesr": []
+         |     }
+         |  ]
+         |}""".stripMargin)
+
+    def baseWithId(id: Int) = stringToJson(
+      s"""
+         |{
+         |  "id": $id,
+         |  "ces": [
+         |     {
+         |       "ce_id": $id,
+         |       "s_id": 1,
+         |       "negative": false,
+         |       "cesr": [{"s_id": 1, "p_id": "1", "ce_id": $id}]
+         |     },
+         |     {
+         |       "ce_id": $id,
+         |       "s_id": 2,
+         |       "negative": true,
+         |       "cesr": []
+         |     }
+         |  ]
+         |}""".stripMargin)
+
+    def negativeRequestWithId(id: Int) = {
+      println("negative request")
+      stringToJson(
+        s"""
+           |{
+           |  "id": $id,
+           |  "ces": [
+           |     {
+           |       "ce_id": $id,
+           |       "s_id": 1,
+           |       "negative": true
+           |     },
+           |     {
+           |       "ce_id": $id,
+           |       "s_id": 2,
+           |       "negative": true
+           |     }
+           |  ]
+           |}""".stripMargin)
+    }
+
+    def negativeResponseWithId(id: Int) = stringToJson(
+      s"""
+         |{
+         |  "id": $id,
+         |  "ces": [
+         |     {
+         |       "ce_id": $id,
+         |       "s_id": 1,
+         |       "negative": true,
+         |       "cesr": [{"s_id": 1, "p_id": "1", "ce_id": $id}]
+         |     },
+         |     {
+         |       "ce_id": $id,
+         |       "s_id": 2,
+         |       "negative": true,
+         |       "cesr": []
+         |     }
+         |  ]
+         |}""".stripMargin)
+
+
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
+
+
+    for {
+      formName <- insertForm(up.db,false)
       (idEntry, result) <- insert(formName, base)
       id = idEntry.values.head.as[Int].toOption.get
       withPId = baseWithId(id)
