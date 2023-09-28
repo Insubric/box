@@ -53,6 +53,14 @@ object GlobalStyleFactory{
         Font.bold
       ),
 
+      unsafeRoot("h4")(
+        marginTop(20 px)
+      ),
+
+      unsafeRoot(".block-el-0 h4")(
+        marginTop.`0`.important
+      ),
+
       unsafeRoot("h5")(
         Font.bold,
         fontSize(14 px)

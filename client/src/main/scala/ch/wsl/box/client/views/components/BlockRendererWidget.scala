@@ -8,6 +8,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
+import io.udash.css.CssStyleName
 import io.udash.{Property, ReadableProperty}
 import scalatags.JsDom
 import scalatags.JsDom.all.{div, h3, minHeight, s}
@@ -181,10 +182,10 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
     val setMargin:Modifier = if(!margin) ClientConf.style.removeFieldAndBlockMargin else Seq[Modifier]()
 
     div(BootstrapStyles.Grid.row,ClientConf.style.innerBlock,setMargin,
-      widgets.zip(widths).map { case (widget, width) =>
+      widgets.zip(widths).zipWithIndex.map { case ((widget, width),i) =>
 
 
-        div(BootstrapCol.md(width), ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
+        div(CssStyleName(s"block-el-$i"),BootstrapCol.md(width), ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
           widget.widget.render(write,widget.visibility,nested)
         )
       }
