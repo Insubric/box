@@ -327,7 +327,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   }
 
+  var reloadCount = 0 // avoid out of order
+
   def reloadRows(page:Int,extent:Option[Polygon] = None): Future[Unit] = {
+
+    reloadCount = reloadCount + 1
+    val currentCount = reloadCount
 
     services.clientSession.loading.set(true)
 
@@ -360,13 +365,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       ids <- idsRequest
       lookups <- if(newQuery) lookupReq(csv) else Future.successful( model.subProp(_.lookups).get)
     } yield {
-
-      model.subProp(_.lookups).set(lookups)
-      model.subProp(_.rows).set(csv)
-      model.subProp(_.ids).set(IDsVM.fromIDs(ids))
-      model.subProp(_.pages).set(Navigation.pageCount(ids.count))
-      saveIds(ids, q)
-      services.clientSession.loading.set(false)
+      if(currentCount == reloadCount) {
+        model.subProp(_.lookups).set(lookups)
+        model.subProp(_.rows).set(csv)
+        model.subProp(_.ids).set(IDsVM.fromIDs(ids))
+        model.subProp(_.pages).set(Navigation.pageCount(ids.count))
+        saveIds(ids, q)
+        services.clientSession.loading.set(false)
+      }
     }
 
     r.recover{ _ => services.clientSession.loading.set(false) }
