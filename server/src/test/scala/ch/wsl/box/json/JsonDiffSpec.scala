@@ -78,7 +78,7 @@ class JsonDiffSpec extends BaseSpec {
     diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1","field2")
   }
 
-  it should "ignore missing fields" in {
+  it should "delete missing fields if present in metadata" in {
     val obj1 = parse(
       """
         |{
@@ -93,7 +93,7 @@ class JsonDiffSpec extends BaseSpec {
         |}
         |""".stripMargin).toOption.get
     val diff = obj1.diff(mainMetadata, Seq())(obj2)
-    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq()
+    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1", "field2")
   }
 
 

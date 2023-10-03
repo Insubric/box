@@ -50,7 +50,7 @@ object FormUIDef {
         placeholder = Some("by default primary key is used"),
         tooltip = Some("Manually enter the fields that should be used as primary key. This is useful mainly for updatable views where the primary key of the entity cannot be calculated. Fields are separated with comma")
       ),
-      JSONField(JSONFieldTypes.STRING,"exportFields",true,widget = Some(WidgetsNames.textarea)),
+      JSONField(JSONFieldTypes.STRING,"exportfields",true,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(
@@ -103,7 +103,7 @@ object FormUIDef {
         ).map(Right(_))),
         LayoutBlock(Some("Actions"),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
         LayoutBlock(Some("I18n"),4,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some("Table Info"),12,None,Seq("tabularFields","exportFields").map(Left(_))),
+        LayoutBlock(Some("Table Info"),12,None,Seq("tabularFields","exportfields").map(Left(_))),
         LayoutBlock(Some("Fields"),12,None,Seq("fields").map(Left(_))),
         LayoutBlock(Some("Not DB fields"),12,None,Seq("fields_no_db").map(Left(_))),
         LayoutBlock(Some("Linked forms"),12,None,Seq("fields_child").map(Left(_))),

@@ -27,7 +27,7 @@ class InformationSchemaSpec extends BaseSpec {
 
     res.map{ r =>
       r.nonEmpty shouldBe true
-      r.length shouldBe 2
+      r.length shouldBe 3
       r.exists(_.column_name == "id") shouldBe true
       r.exists(_.column_name == "name") shouldBe true
     }

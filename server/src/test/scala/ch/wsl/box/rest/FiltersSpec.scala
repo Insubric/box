@@ -38,7 +38,7 @@ class FiltersSpec extends BaseSpec{
   it should "filter ignore empty string filters when not string" in withServices { implicit services =>
 
     val dbio =  for{
-      _ <- Json_test += Json_test_row(id = 1)
+      _ <- Json_test += Json_test_row(id = Some(1))
       result <- Registry().actions("json_test").findSimple(JSONQuery.filterWith(WHERE.in("id",Seq(""))))
     } yield result
 

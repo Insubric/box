@@ -562,9 +562,9 @@ object Entities {
   lazy val Db_subchild = new TableQuery(tag => new Db_subchild(tag))
 
   /** Entity class storing rows of table Json_test
-   *  @param id Database column id SqlType(serial), AutoInc
+   *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
    *  @param obj Database column obj SqlType(jsonb), Default(None) */
-  case class Json_test_row(id: Int, obj: Option[io.circe.Json] = None)
+  case class Json_test_row(id: Option[Int] = None, obj: Option[io.circe.Json] = None)
 
 
   val decodeJson_test_row:Decoder[Json_test_row] = Decoder.forProduct2("id","obj")(Json_test_row.apply)
@@ -603,12 +603,12 @@ object Entities {
         sqlActionBuilder.as[Json_test_row](boxGetResult)
       }
 
-    def * = (id, obj).<>(Json_test_row.tupled, Json_test_row.unapply)
+    def * = (Rep.Some(id), obj).<>(Json_test_row.tupled, Json_test_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(id), obj)).shaped.<>({r=>import r._; _1.map(_=> Json_test_row.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(id), obj)).shaped.<>({r=>import r._; _1.map(_=> Json_test_row.tupled((_1, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column id SqlType(serial), AutoInc */
-    val id: Rep[Int] = column[Int]("id", O.AutoInc)
+    /** Database column id SqlType(serial), AutoInc, PrimaryKey */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
     /** Database column obj SqlType(jsonb), Default(None) */
     val obj: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("obj", O.Default(None))
   }
@@ -673,11 +673,11 @@ object Entities {
   lazy val Simple = new TableQuery(tag => new Simple(tag))
 
   /** Entity class storing rows of table Test_list_types
-   *  @param id Database column id SqlType(serial), AutoInc
+   *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
    *  @param texts Database column texts SqlType(_text), Default(None)
    *  @param ints Database column ints SqlType(_int4), Default(None)
    *  @param numbers Database column numbers SqlType(_float8), Default(None) */
-  case class Test_list_types_row(id: Int, texts: Option[List[String]] = None, ints: Option[List[Int]] = None, numbers: Option[List[Double]] = None)
+  case class Test_list_types_row(id: Option[Int] = None, texts: Option[List[String]] = None, ints: Option[List[Int]] = None, numbers: Option[List[Double]] = None)
 
 
   val decodeTest_list_types_row:Decoder[Test_list_types_row] = Decoder.forProduct4("id","texts","ints","numbers")(Test_list_types_row.apply)
@@ -716,12 +716,12 @@ object Entities {
         sqlActionBuilder.as[Test_list_types_row](boxGetResult)
       }
 
-    def * = (id, texts, ints, numbers).<>(Test_list_types_row.tupled, Test_list_types_row.unapply)
+    def * = (Rep.Some(id), texts, ints, numbers).<>(Test_list_types_row.tupled, Test_list_types_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(id), texts, ints, numbers)).shaped.<>({r=>import r._; _1.map(_=> Test_list_types_row.tupled((_1.get, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(id), texts, ints, numbers)).shaped.<>({r=>import r._; _1.map(_=> Test_list_types_row.tupled((_1, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column id SqlType(serial), AutoInc */
-    val id: Rep[Int] = column[Int]("id", O.AutoInc)
+    /** Database column id SqlType(serial), AutoInc, PrimaryKey */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
     /** Database column texts SqlType(_text), Default(None) */
     val texts: Rep[Option[List[String]]] = column[Option[List[String]]]("texts", O.Default(None))
     /** Database column ints SqlType(_int4), Default(None) */

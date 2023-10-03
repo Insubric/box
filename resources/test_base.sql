@@ -13,14 +13,14 @@ alter table "app_subchild" add constraint "app_subchild_child_id_fk" foreign key
 
 
 create table test_list_types(
-    id serial,
+    id serial primary key ,
     texts text[],
     ints int[],
     numbers double precision[]
 );
 
 create table json_test(
-        id serial,
+        id serial primary key,
         obj jsonb
 );
 

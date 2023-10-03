@@ -32,7 +32,7 @@ object BoxForm {
                          layout: Option[String] = None,
                          tabularFields: Option[String] = None,
                          query: Option[String] = None,
-                         exportFields: Option[String] = None,
+                         exportfields: Option[String] = None,
                          guest_user:Option[String] = None,
                          edit_key_field:Option[String] = None,
                          show_navigation:Boolean,
@@ -42,7 +42,7 @@ object BoxForm {
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
   class BoxForm(_tableTag: Tag) extends profile.api.Table[BoxForm_row](_tableTag,schema, "form") {
-    def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportFields,guest_user,edit_key_field,show_navigation,props,params) <> (BoxForm_row.tupled, BoxForm_row.unapply)
+    def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportfields,guest_user,edit_key_field,show_navigation,props,params) <> (BoxForm_row.tupled, BoxForm_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid", O.AutoInc, O.PrimaryKey)
@@ -55,7 +55,7 @@ object BoxForm {
     /** Database column layout SqlType(text), Default(None) */
     val layout: Rep[Option[String]] = column[Option[String]]("layout", O.Default(None))
     val tabularFields: Rep[Option[String]] = column[Option[String]]("tabularFields", O.Default(None))
-    val exportFields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
+    val exportfields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
     val edit_key_field: Rep[Option[String]] = column[Option[String]]("edit_key_field", O.Default(None))
     val query: Rep[Option[String]] = column[Option[String]]("query", O.Default(None))

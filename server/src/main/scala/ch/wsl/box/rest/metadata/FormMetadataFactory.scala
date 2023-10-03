@@ -294,7 +294,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         keys,
         keyStrategy,
         defaultQuery,
-        form.exportFields.map(_.split(",").map(_.trim).toSeq).getOrElse(tableFields),
+        form.exportfields.map(_.split(",").map(_.trim).toSeq).getOrElse(tableFields),
         formI18n.flatMap(_.view_table),
         formActions,
         static = form.entity == FormMetadataFactory.STATIC_PAGE,

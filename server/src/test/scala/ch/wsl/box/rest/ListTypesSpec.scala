@@ -17,7 +17,7 @@ class ListTypesSpec extends BaseSpec {
   "List type"  should "be handled"  in withServices[Assertion] { implicit services =>
 
     def insert = services.connection.dbConnection.run {
-      Test_list_types += Test_list_types_row(1,testTextList)
+      Test_list_types += Test_list_types_row(Some(1),testTextList)
     }
 
     def fetch = services.connection.dbConnection.run {
@@ -46,7 +46,7 @@ class ListTypesSpec extends BaseSpec {
   it should "update list of ints"  in withServices[Assertion] { implicit services =>
 
     def insert = services.connection.dbConnection.run {
-      Test_list_types += Test_list_types_row(1)
+      Test_list_types += Test_list_types_row(Some(1))
     }
 
 
@@ -61,7 +61,7 @@ class ListTypesSpec extends BaseSpec {
     for {
       countInsert <- insert
       entriesLight <- selectLight
-      u <- update(entriesLight.head.id)
+      u <- update(entriesLight.head.id.get)
       entriesAfterUpdate <- selectLight
     } yield {
       countInsert shouldBe 1
@@ -77,7 +77,7 @@ class ListTypesSpec extends BaseSpec {
   it should "update list of texts"  in withServices[Assertion] { implicit services =>
 
     def insert = services.connection.dbConnection.run {
-      Test_list_types += Test_list_types_row(1)
+      Test_list_types += Test_list_types_row(Some(1))
     }
 
 
@@ -92,7 +92,7 @@ class ListTypesSpec extends BaseSpec {
     for {
       countInsert <- insert
       entriesLight <- selectLight
-      u <- update(entriesLight.head.id)
+      u <- update(entriesLight.head.id.get)
       entriesAfterUpdate <- selectLight
     } yield {
       countInsert shouldBe 1
@@ -108,7 +108,7 @@ class ListTypesSpec extends BaseSpec {
   it should "update list of doubles"  in withServices[Assertion] { implicit services =>
 
     def insert = services.connection.dbConnection.run {
-      Test_list_types += Test_list_types_row(1)
+      Test_list_types += Test_list_types_row(Some(1))
     }
 
 
@@ -123,7 +123,7 @@ class ListTypesSpec extends BaseSpec {
     for {
       countInsert <- insert
       entriesLight <- selectLight
-      u <- update(entriesLight.head.id)
+      u <- update(entriesLight.head.id.get)
       entriesAfterUpdate <- selectLight
     } yield {
       countInsert shouldBe 1

@@ -341,12 +341,28 @@ case class FormActions(metadata:JSONMetadata,
     allNullFields.deepMerge(json)
   }
 
+  private def updateOneLevel(id:JSONID, e:Json):DBIO[Json] = {
+    logger.info(s"UPDATE BY ID $id")
+
+    val dataWithoutChilds = e.filterFields(metadata.fields.filter(f => f.isDbStored && f.`type` != JSONFieldTypes.CHILD))
+
+    for {
+      current <- jsonAction.getById(id)
+      newRow <- current match {
+        case Some(value) => DBIO.successful(value)
+        case None => jsonAction.insert(dataWithoutChilds)
+      }
+      diff = newRow.diff(metadata, Seq())(dataWithoutChilds)
+      result <- jsonAction.updateDiff(diff)
+    } yield result.orElse(current).getOrElse(dataWithoutChilds)
+  }
+
   def update(id:JSONID, e:Json):DBIO[Json] = {
     for{
-      result <- jsonAction.update(id,insertNullForMissingFields(e))
+      result <- updateOneLevel(id,insertNullForMissingFields(e))
       childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
     } yield result
-      .filterFields(metadata) // don't expose data not contained in the current form
+      .filterFields(metadata.fields) // don't expose data not contained in the current form
       .deepMerge(Json.fromFields(childs))
   }
 

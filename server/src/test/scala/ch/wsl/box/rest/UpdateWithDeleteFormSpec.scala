@@ -34,7 +34,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
     } yield {
-      assert(i == result.get.dropBoxObjectId)
+      assert(i.dropNullValues == result.get.dropBoxObjectId.dropNullValues)
       (JSONID.fromData(i,form).get,result.get)
     }
   }
@@ -84,8 +84,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
        } yield {
          resultSimple.name shouldBe base.name
          r1 shouldBe r2.get.dropBoxObjectId
-         r1 shouldBe resultWithDeletion
-         r2.get.dropBoxObjectId shouldBe resultWithDeletion
+         r1.dropNullValues shouldBe resultWithDeletion.dropNullValues
+         r2.get.dropBoxObjectId.dropNullValues shouldBe resultWithDeletion.dropNullValues
        }
   }
 

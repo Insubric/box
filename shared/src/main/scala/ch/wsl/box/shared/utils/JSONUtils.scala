@@ -108,8 +108,8 @@ object JSONUtils extends Logging {
       }
     )
 
-    def filterFields(metadata:JSONMetadata):Json = el.asObject match {
-      case Some(value) => value.filter{case (k,_) => metadata.fields.map(_.name).contains(k)}.asJson
+    def filterFields(fields:Seq[JSONField]):Json = el.asObject match {
+      case Some(value) => value.filter{case (k,_) => fields.map(_.name).contains(k)}.asJson
       case None => el
     }
 
@@ -213,23 +213,27 @@ object JSONUtils extends Logging {
       }
     }
 
-    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(_other:Json):JSONDiff = {
+    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
 
-      val other = el.deepMerge(_other) // ignore changes on missing fields
 
       def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata).orElse(JSONID.fromData(el,metadata))
 
       def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JSONDiffModel] = {
         (t.keys ++ o.keys).toSeq.distinct.map{ k =>
           (k,t.get(k),o.get(k))
-        }.filterNot(x => x._2 == x._3).flatMap{ case (key,currentValue,newValue) =>
+        }.filterNot(x => x._2 == x._3).filter { case (k,_,_) =>
+          metadata.fields.map(_.name).contains(k)
+        }.flatMap{ case (key,currentValue,newValue) =>
 
           def handleObject(obj:JsonObject):Seq[JSONDiffModel] = currentValue.flatMap(_.asObject) match {
             case Some(value) => {
               metadata.fields.find(_.name == key) match {
                 case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
-                  val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId)
-                  value.asJson.diff(childMetadata.get,children)(obj.asJson).models
+                  children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId) match {
+                    case Some(childMetadata) => value.asJson.diff(childMetadata,children)(obj.asJson).models
+                    case None => Seq()
+                  }
+
                 }
                 case Some(field) if field.`type` == JSONFieldTypes.FILE => {
                   if(newValue.exists(nv => FileUtils.isKeep(nv.string))) Seq() else
@@ -248,11 +252,15 @@ object JSONUtils extends Logging {
             case Some(currentArray) => {
               metadata.fields.find(_.name == key) match {
                 case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
-                  val childMetadata = children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId).get
-                  val c = currentArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
-                  val n = newArray.map(js => (JSONID.fromBoxObjectId(js,childMetadata).map(_.asString),js)).toMap
-                  (c.keys ++ n.keys).toSeq.distinct.flatMap{ jsonId =>
-                    c.get(jsonId).asJson.diff(childMetadata,children)(n.get(jsonId).asJson).models
+                  children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId) match {
+                    case Some(childMetadata) => {
+                      val c = currentArray.map(js => (JSONID.fromBoxObjectId(js, childMetadata).map(_.asString), js)).toMap
+                      val n = newArray.map(js => (JSONID.fromBoxObjectId(js, childMetadata).map(_.asString), js)).toMap
+                      (c.keys ++ n.keys).toSeq.distinct.flatMap { jsonId =>
+                        c.get(jsonId).asJson.diff(childMetadata, children)(n.get(jsonId).asJson).models
+                      }
+                    }
+                    case None => Seq()
                   }
                 }
                 case Some(filed) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
