@@ -210,8 +210,10 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
         case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
         case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
+        case (Filter.CUSTOM_LIKE,true,None) => concat(base,sql""" is null """)
         case (Filter.EQUALS,_,Some(v)) => concat(base,sql"""= $v """)
         case (Filter.LIKE,_,Some(v)) => concat(base,sql"""  ilike '%#$v%' """)
+        case (Filter.CUSTOM_LIKE,_,Some(v)) => concat(base,sql"""  ilike '#$v' """)
         case (Filter.<,_,Some(v)) => concat(base,sql""" < $v """)
         case (Filter.NOT,_,Some(v)) => concat(base,sql""" <> $v """)
         case (Filter.>,_,Some(v)) => concat(base,sql""" > $v """)
@@ -248,17 +250,17 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     } else {
       (col.name,jsonQuery.operator) match {
         case ("String",_)  => filter(col.nullable,Some(v))
-        case ("Int",Some(Filter.LIKE)) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
+        case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
         case ("Int",_) => filter[Int](col.nullable,v.toIntOption)
-        case ("Long",Some(Filter.LIKE)) => filter[Long](col.nullable,v.toLongOption,Some("::text"))
+        case ("Long",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Long](col.nullable,v.toLongOption,Some("::text"))
         case ("Long",_) => filter[Long](col.nullable,v.toLongOption)
-        case ("Short",Some(Filter.LIKE)) => filter[Short](col.nullable,v.toShortOption,Some("::text"))
+        case ("Short",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Short](col.nullable,v.toShortOption,Some("::text"))
         case ("Short",_) => filter[Short](col.nullable,v.toShortOption)
-        case ("Float",Some(Filter.LIKE)) => filter[Float](col.nullable,v.toFloatOption,Some("::text"))
+        case ("Float",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Float](col.nullable,v.toFloatOption,Some("::text"))
         case ("Float",_) => filter[Float](col.nullable,v.toFloatOption)
-        case ("Double",Some(Filter.LIKE)) => filter[Double](col.nullable,v.toDoubleOption,Some("::text"))
+        case ("Double",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Double](col.nullable,v.toDoubleOption,Some("::text"))
         case ("Double",_) => filter[Double](col.nullable,v.toDoubleOption)
-        case ("BigDecimal" | "scala.math.BigDecimal",Some(Filter.LIKE)) => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption,Some("::text"))
+        case ("BigDecimal" | "scala.math.BigDecimal",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption,Some("::text"))
         case ("BigDecimal" | "scala.math.BigDecimal",_) => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
         case ("java.time.LocalDate",_) => {
           DateTimeFormatters.toDate(v) match {
