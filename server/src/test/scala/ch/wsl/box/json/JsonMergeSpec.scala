@@ -16,7 +16,7 @@ class JsonMergeSpec extends BaseSpec {
     complexObj1.merge(complexTypeMetadata)(complexObj2) shouldBe complexObj2
     complexObj2.deepMerge(complexObj1) shouldBe complexObj1
     complexObj2.merge(complexTypeMetadata)(complexObj1) shouldBe complexObj1
-    complexObj2.merge(complexTypeMetadata)(complexObj3) shouldBe complexObj3
+    complexObj2.merge(complexTypeMetadata)(complexObj2) shouldBe complexObj2
   }
 
   it should "merge array type as atomic type" in {

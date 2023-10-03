@@ -108,6 +108,11 @@ object JSONUtils extends Logging {
       }
     )
 
+    def filterFields(metadata:JSONMetadata):Json = el.asObject match {
+      case Some(value) => value.filter{case (k,_) => metadata.fields.map(_.name).contains(k)}.asJson
+      case None => el
+    }
+
     def ID(fields:Seq[JSONField]):Option[JSONID] = {
       if(fields.forall(x => x.nullable || getOpt(x.name).isDefined)) {
 
@@ -208,9 +213,11 @@ object JSONUtils extends Logging {
       }
     }
 
-    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
+    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(_other:Json):JSONDiff = {
 
-      def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata)
+      val other = el.deepMerge(_other) // ignore changes on missing fields
+
+      def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata).orElse(JSONID.fromData(el,metadata))
 
       def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JSONDiffModel] = {
         (t.keys ++ o.keys).toSeq.distinct.map{ k =>

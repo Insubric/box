@@ -48,9 +48,7 @@ trait TableActions[T] extends ViewActions[T] {
 
   def update(id:JSONID, obj: T): DBIO[T]
 
-  def updateDiff(diff:JSONDiff):DBIO[Seq[JSONID]]
-
-  def updateField(id:JSONID, fieldName:String, value:Json): DBIO[T]
+  def updateDiff(diff:JSONDiff):DBIO[Option[T]]
 
 }
 

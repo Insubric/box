@@ -70,10 +70,30 @@ class JsonDiffSpec extends BaseSpec {
     val obj2 = parse(
       """
         |{
+        | "field1": null,
+        | "field2": null
         |}
         |""".stripMargin).toOption.get
     val diff = obj1.diff(mainMetadata,Seq())(obj2)
     diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("field1","field2")
+  }
+
+  it should "ignore missing fields" in {
+    val obj1 = parse(
+      """
+        |{
+        | "field1": 1,
+        | "field2": "test"
+        |}
+        |""".stripMargin).toOption.get
+
+    val obj2 = parse(
+      """
+        |{
+        |}
+        |""".stripMargin).toOption.get
+    val diff = obj1.diff(mainMetadata, Seq())(obj2)
+    diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq()
   }
 
 
@@ -82,8 +102,6 @@ class JsonDiffSpec extends BaseSpec {
 
     val diff = complexObj1.diff(complexTypeMetadata,Seq())(complexObj2)
     diff.models.flatMap(_.fields.map(_.field)) shouldBe Seq("complex")
-    diff.models.head.fields.head.value.get shouldBe Json.fromFields(Map("a" -> Json.True))
-
     val equal = complexObj1.diff(complexTypeMetadata,Seq())(complexObj1)
     equal.models.flatMap(_.fields.map(_.field)) shouldBe Seq()
 

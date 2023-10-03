@@ -63,19 +63,23 @@ case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] wi
   private implicit def enc = encoder.light()
 
   override def update(id:JSONID, json: Json):DBIO[Json] = {
-    for{
-      //metadata <- dbActions.metadata
-      //current <- getById(id) //retrieve values in db
-      //merged <- DBIO.from(mergeCurrent(metadata,id,current.get,json)) //merge old and new json
-      updated <- dbActions.update(id, toM(json)).map(_.asJson)
-    } yield updated
+    logger.info(s"UPDATE BY ID $id")
+
+    for {
+      current <- getById(id)
+      newRow <- current match {
+        case Some(value) => DBIO.successful(value)
+        case None => dbActions.insert(toM(json)).map(_.asJson)
+      }
+      met <- dbActions.metadata
+      diff = newRow.diff(met, Seq())(json)
+      result <- updateDiff(diff)
+    } yield result.orElse(current).getOrElse(json)
   }
 
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[Json] = dbActions.updateField(id, fieldName, value).map(_.asJson)
 
-
-  override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???
+  override def updateDiff(diff: JSONDiff):DBIO[Option[Json]] = dbActions.updateDiff(diff).map(_.map(_.asJson))
 
   override def insert(json: Json):DBIO[Json] = dbActions.insert(toM(json)).map(_.asJson)
 

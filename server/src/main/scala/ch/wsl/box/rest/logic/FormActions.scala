@@ -345,7 +345,9 @@ case class FormActions(metadata:JSONMetadata,
     for{
       result <- jsonAction.update(id,insertNullForMissingFields(e))
       childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
-    } yield result.deepMerge(Json.fromFields(childs))
+    } yield result
+      .filterFields(metadata) // don't expose data not contained in the current form
+      .deepMerge(Json.fromFields(childs))
   }
 
   def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[Json] = {
@@ -366,10 +368,9 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[Json] = jsonAction.updateField(id, fieldName, value)
 
 
-  override def updateDiff(diff: JSONDiff):DBIO[Seq[JSONID]] = ???
+  override def updateDiff(diff: JSONDiff):DBIO[Option[Json]] = ???
 
   private def createQuery(entity:Json, child: Child):JSONQuery = {
     val parentFilter = for{

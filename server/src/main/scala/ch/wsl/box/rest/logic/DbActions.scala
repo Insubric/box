@@ -219,49 +219,24 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
       currentJs = newRow.map(_.asJson)
       met <- metadata
       diff = currentJs.map(c => c.diff(met,Seq())(e.asJson))
-      fields:Seq[(String,Json)] = diff.flatMap(_.models.find(_.model == entity.baseTableRow.tableName)) match {
-        case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
-        case None => Seq()
-      }
-      _ <- DBIO.from(resetFileCache(fields, id))
-      result <- entity.baseTableRow.updateReturning(fields.toMap,id.toFields)
+      result <- updateDiff(diff.getOrElse(JSONDiff.empty))
     } yield result.orElse(current).getOrElse(e)
   }
 
+  override def updateDiff(diff: JSONDiff): DBIO[Option[M]]= {
 
-  override def updateField(id: JSONID, fieldName: String, value: Json): DBIO[M] = {
+    val result = for{
+      tableDiff <- diff.models.find(_.model == entity.baseTableRow.tableName)
+      id <- tableDiff.id
+    } yield {
+      val fields =  tableDiff.fields.map(f => (f.field, f.value.getOrElse(Json.Null)))
+      for {
+        _ <- DBIO.from(resetFileCache(fields, id))
+        result <- entity.baseTableRow.updateReturning(fields.toMap, id.toFields)
+      } yield result
+    }
 
-
-    entity.baseTableRow.updateReturning(Map(fieldName -> value),id.toFields).map(_.get)
-
-//    def update[T]()(implicit shape: Shape[_ <: FlatShapeLevel, T, T, _],decoder:Decoder[T]) = (value.isNull,value.as[T]) match {
-//      case (true,_) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(None)
-//      case (_,Right(v)) => filter(id).map(_.col(fieldName).rep.asInstanceOf[Rep[Option[T]]]).update(Some(v))
-//      case (_,Left(value)) => throw value
-//    }
-//
-//    import ch.wsl.box.rest.utils.JSONSupport._
-//
-//    val updateDbIO = entity.baseTableRow.typ(fieldName).name match {
-//      case "String" => update[String]()
-//      case "Int" => update[Int]()
-//      case "Double" => update[Double]()
-//      case "BigDecimal" => update[BigDecimal]()
-//      case "java.time.LocalDate" => update[java.time.LocalDate]()
-//      case "java.time.LocalTime" => update[java.time.LocalTime]()
-//      case "java.time.LocalDateTime" => update[java.time.LocalDateTime]()
-//      case "io.circe.Json" => update[Json]()
-//      case "Array[Byte]" => update[Array[Byte]]()
-//      case "org.locationtech.jts.geom.Geometry" => update[Geometry]()
-//      case "java.util.UUID" => update[java.util.UUID]()
-//      case t:String => throw new Exception(s"$t is not supported for single field update")
-//    }
-//
-//    for{
-//      updateCount <- updateDbIO
-//    } yield (id.update(fieldName,value),updateCount)
+    result.getOrElse(DBIO.successful(None))
 
   }
-
-  override def updateDiff(diff: JSONDiff): DBIO[Seq[JSONID]]= ???
 }

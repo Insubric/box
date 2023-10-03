@@ -5,10 +5,12 @@ import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersSt
 import ch.wsl.box.client.utils._
 import io.udash.wrappers.jquery._
 import org.scalajs.dom
-import org.scalajs.dom.{Element, WebSocket, document}
+import org.scalajs.dom.{Element, WebSocket, document, window}
 import scribe.{Level, Logger, Logging}
 
 import scala.concurrent.Future
+import scala.scalajs.js
+import scala.scalajs.js.Object.keys
 
 object Main extends Logging {
   import Context._
@@ -40,6 +42,19 @@ object Main extends Logging {
     document.addEventListener("DOMContentLoaded", { (e: dom.Event) =>
       setupUI()
     })
+
+// TODO Handle client errors
+//    window.onerror = (event, source, lineno, colno, error) => {
+//      println("AAAAAAAAAAAAa")
+//      BrowserConsole.log(event)
+//      BrowserConsole.log(source)
+//      BrowserConsole.log(lineno)
+//      BrowserConsole.log(colno)
+//      BrowserConsole.log(error.asInstanceOf[js.Dynamic].stack.asInstanceOf[js.Any])
+//      false
+//    }
+//
+//    scala.scalajs.js.Dynamic.global.applyDynamic("adfasfda")()
   }
 
   def setupUI(): Future[Unit] = {

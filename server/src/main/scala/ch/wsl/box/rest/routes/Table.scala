@@ -265,9 +265,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
   def updateDiff(ids:Seq[JSONID]):Route = put {
     entity(as[JSONDiff]) { e =>
       onComplete(db.run(dbActions.updateDiff(e).transactionally)) {
-        case Success(rows) => complete{
-          if(rows.length == 1) rows.head.asJson else rows.asJson
-        }
+        case Success(row) => complete{row.asJson}
         case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
       }
     }

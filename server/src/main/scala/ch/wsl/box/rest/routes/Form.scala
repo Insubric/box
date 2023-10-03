@@ -169,12 +169,12 @@ case class Form(
       entity(as[JSONDiff]) { e =>
         complete {
           for {
-            jsonId <- db.run{
+            json <- db.run{
               actions.updateDiff(e).transactionally
             }
           } yield {
             resetCacheOnBox()
-            if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
+            json
           }
         }
       }

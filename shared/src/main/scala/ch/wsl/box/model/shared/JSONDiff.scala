@@ -14,3 +14,7 @@ case class JSONDiffModel(model:String,id:Option[JSONID],fields:Seq[JSONDiffField
 
 case class JSONDiff(models:Seq[JSONDiffModel])
 
+object JSONDiff {
+  def empty = JSONDiff(Seq())
+}
+
