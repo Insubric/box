@@ -617,15 +617,16 @@ object Entities {
 
   /** Entity class storing rows of table Simple
    *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
-   *  @param name Database column name SqlType(varchar), Default(None) */
-  case class Simple_row(id: Option[Int] = None, name: Option[String] = None)
+   *  @param name Database column name SqlType(varchar), Default(None)
+   *  @param name2 Database column name2 SqlType(text), Default(None) */
+  case class Simple_row(id: Option[Int] = None, name: Option[String] = None, name2: Option[String] = None)
 
 
-  val decodeSimple_row:Decoder[Simple_row] = Decoder.forProduct2("id","name")(Simple_row.apply)
+  val decodeSimple_row:Decoder[Simple_row] = Decoder.forProduct3("id","name","name2")(Simple_row.apply)
   val encodeSimple_row:EncoderWithBytea[Simple_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct2("id","name")(x =>
-      (x.id, x.name)
+    Encoder.forProduct3("id","name","name2")(x =>
+      (x.id, x.name, x.name2)
     )
   }
 
@@ -636,7 +637,7 @@ object Entities {
   /** Table description of table simple. Objects of this class serve as prototypes for rows in queries. */
   class Simple(_tableTag: Tag) extends Table[Simple_row](_tableTag, Some("test_public"), "simple") with UpdateTable[Simple_row] {
 
-    def boxGetResult = GR(r => Simple_row(r.<<,r.<<))
+    def boxGetResult = GR(r => Simple_row(r.<<,r.<<,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Simple_row]] = {
         val kv = keyValueComposer(this)
@@ -645,7 +646,7 @@ object Entities {
           val head = concat(sql"""update "test_public"."simple" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "id","name" """
+          val returning = sql""" returning "id","name","name2" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Simple_row](boxGetResult).head.map(x => Some(x))
@@ -653,18 +654,20 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Simple_row]] = {
-        val sqlActionBuilder = concat(sql"""select "id","name" from "test_public"."simple" """,where)
+        val sqlActionBuilder = concat(sql"""select "id","name","name2" from "test_public"."simple" """,where)
         sqlActionBuilder.as[Simple_row](boxGetResult)
       }
 
-    def * = (Rep.Some(id), name).<>(Simple_row.tupled, Simple_row.unapply)
+    def * = (Rep.Some(id), name, name2).<>(Simple_row.tupled, Simple_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(id), name)).shaped.<>({r=>import r._; _1.map(_=> Simple_row.tupled((_1, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(id), name, name2)).shaped.<>({r=>import r._; _1.map(_=> Simple_row.tupled((_1, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
     /** Database column name SqlType(varchar), Default(None) */
     val name: Rep[Option[String]] = column[Option[String]]("name", O.Default(None))
+    /** Database column name2 SqlType(text), Default(None) */
+    val name2: Rep[Option[String]] = column[Option[String]]("name2", O.Default(None))
   }
   /** Collection-like TableQuery object for table Simple */
   lazy val Simple = new TableQuery(tag => new Simple(tag))

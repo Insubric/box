@@ -123,6 +123,38 @@ class UpdateFormSpec extends BaseSpec {
     }
   }
 
+  it should "not delete not in form-fields" in withServices[Assertion] { implicit services =>
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser, Seq()))
+
+    val nameIns = "name"
+    val nameUpd = "upd"
+    def data(name:String) = Json.fromFields(Map("id" -> Json.fromInt(1), "name" -> Json.fromString(name)))
+    def dataExt(name:String) = Json.fromFields(Map("id" -> Json.fromInt(1), "name" -> Json.fromString(name),"name2" -> Json.fromString("name2")))
+
+
+
+    for {
+      _ <- FormFixtures.insertSimple(up.db, ec)
+      _ <- FormFixtures.insertSimpleExt(up.db, ec)
+      form <- up.db.run(FormMetadataFactory.of(FormFixtures.simpleName, "it", session.user))
+      formExt <- up.db.run(FormMetadataFactory.of(FormFixtures.simpleExtName, "it", session.user))
+      id = JSONID.fromData(data(nameIns), form).get
+      actions = FormActions(form, Registry(), FormMetadataFactory)
+      actionsExt = FormActions(formExt, Registry(), FormMetadataFactory)
+      i <- up.db.run(actionsExt.insert(dataExt(nameIns)).transactionally)
+      u <- up.db.run(actions.update(id, data(nameUpd)).transactionally)
+      ext <- up.db.run(actionsExt.getById(id).transactionally)
+      s <- up.db.run(actions.getById(id).transactionally)
+    } yield {
+      i.dropBoxObjectId shouldBe dataExt(nameIns)
+      u.dropBoxObjectId shouldBe data(nameUpd)
+      ext.get.dropBoxObjectId shouldBe dataExt(nameUpd)
+      s.get.dropBoxObjectId shouldBe data(nameUpd)
+    }
+  }
+
   "Db managed form" should "insert a single layer json" in withServices[Assertion] { implicit services =>
 
     dbManagedUpsert(dbManagedLayers(1)){ json =>

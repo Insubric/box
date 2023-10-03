@@ -144,14 +144,8 @@ private object Fixtures {
       |}
       |""".stripMargin).toOption.get
 
-  val complexObj2 = parse(
-    """
-      |{
-      |  "complex": {"a": true}
-      |}
-      |""".stripMargin).toOption.get
 
-  val complexObj3 = parse(
+  val complexObj2 = parse(
     """
       |{
       |  "complex": {"a": true, "b": null}

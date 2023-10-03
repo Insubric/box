@@ -47,6 +47,42 @@ object FormFixtures{
   } yield {
     (simpleForm.name,simpleId)
   }
+
+  val simpleExtName = "simpleExt"
+
+  private val simpleExtForm = BoxForm_row(
+    name = simpleExtName,
+    entity = simpleName,
+    layout = Some(
+      """
+        |{
+        |  "blocks" : [
+        |    {
+        |      "title" : null,
+        |      "width" : 6,
+        |      "fields" : [
+        |       "id",
+        |       "name",
+        |       "name2"
+        |      ]
+        |    }
+        |  ]
+        |}
+        |""".stripMargin),
+    show_navigation = true
+  )
+
+  private def simpleFormFieldsExt(simpleFormId: UUID) = simpleFormFields(simpleFormId)++ Seq(
+    BoxField_row(form_uuid = simpleFormId, `type` = JSONFieldTypes.STRING, name = "name2", required = Some(false), widget = Some(WidgetsNames.input)),
+  )
+
+  def insertSimpleExt(implicit db: UserDatabase, ec: ExecutionContext): Future[(String, UUID)] = for {
+    _ <- db.run(BoxFormTable.filter(x => x.name === simpleExtName).delete)
+    simpleId <- db.run((BoxFormTable returning BoxFormTable.map(_.form_uuid)) += simpleExtForm)
+    _ <- db.run(DBIO.sequence(simpleFormFieldsExt(simpleId).map(x => BoxFieldTable += x)))
+  } yield {
+    (simpleExtForm.name, simpleId)
+  }
 }
 
 class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {

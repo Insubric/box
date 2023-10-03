@@ -85,7 +85,8 @@ object FieldAccessRegistry extends FieldRegistry {
 )
   private def simple_map =  Map(
               "id" -> ColType("Int","integer",true,false),
-              "name" -> ColType("String","string",false,true)
+              "name" -> ColType("String","string",false,true),
+              "name2" -> ColType("String","string",false,true)
 )
   private def test_list_types_map =  Map(
               "id" -> ColType("Int","integer",true,false),
