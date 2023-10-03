@@ -41,12 +41,12 @@ import scala.util.{Failure, Success, Try}
   * Created by andre on 4/24/2017.
   */
 
-case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], data:Json,
+case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], originalData:Json,data:Json,
                            error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
 
-  val empty = EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false)
+  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false)
 
   implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
@@ -117,6 +117,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         kind = state.kind,
         id = state.id,
         metadata = Some(metadata),
+        originalData = dataWithQueryParams,
         data = dataWithQueryParams,
         "",
         children,
@@ -205,14 +206,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     val m = model.get
     val metadata = m.metadata.get
+    val originalId = JSONID.fromData(m.originalData,metadata)
     val data:Json = m.data
 
     def saveAction(data:Json):Future[(JSONID,Json)] = {
 
-      logger.info(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
+      logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
       for {
         result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
-          case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
+          case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, originalId.getOrElse(id), data,m.public)
           case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
         }
       } yield {
@@ -266,6 +268,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         val promise = Promise[Json]()
         reset()
         model.subProp(_.data).set(resultSaved)
+        model.subProp(_.originalData).set(resultSaved)
         resetChanges()
         model.subProp(_.id).set(Some(id.asString), true)
         enableGoAway("reload")
@@ -301,6 +304,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def reset(): Unit = {
     model.subProp(_.data).set(Json.Null)
+    model.subProp(_.originalData).set(Json.Null)
     model.subProp(_.id).set(None)
     enableGoAway("reset")
   }

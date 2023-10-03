@@ -98,6 +98,31 @@ class UpdateFormSpec extends BaseSpec {
 
   }
 
+  it should "update the primary key" in withServices[Assertion] { implicit services =>
+    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
+
+    def data(id:Int) = Json.fromFields(Map("id" -> Json.fromInt(id), "name" -> Json.fromString("name")))
+    def id(o:Json):Int =  o.js("id").as[Int].toOption.get
+
+
+    for {
+      _ <- FormFixtures.insertSimple(up.db,ec)
+      form <- up.db.run(FormMetadataFactory.of(FormFixtures.simpleName, "it", session.user))
+      actions = FormActions(form, Registry(), FormMetadataFactory)
+      i <- up.db.run(actions.insert(data(1)).transactionally)
+      u <- up.db.run(actions.update(JSONID.fromData(i, form).get,data(2)))
+      n <- up.db.run(actions.getById(JSONID.fromData(data(2), form).get).transactionally)
+      o <- up.db.run(actions.getById(JSONID.fromData(data(1), form).get).transactionally)
+    } yield {
+      id(i) shouldBe 1
+      id(u) shouldBe 2
+      n.isDefined shouldBe true
+      o.isEmpty shouldBe true
+    }
+  }
+
   "Db managed form" should "insert a single layer json" in withServices[Assertion] { implicit services =>
 
     dbManagedUpsert(dbManagedLayers(1)){ json =>
