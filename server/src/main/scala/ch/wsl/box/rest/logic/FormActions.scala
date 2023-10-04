@@ -261,7 +261,7 @@ case class FormActions(metadata:JSONMetadata,
     logger.debug(s"Applying sub action to $e")
 
 
-    val result = metadata.fields
+    val subFields = metadata.fields
       .filter(_.child.exists(_.hasData))
       .filter{f =>
         f.condition.map(_.check(e)) match {
@@ -270,7 +270,8 @@ case class FormActions(metadata:JSONMetadata,
           case None => true
         }
       }
-      .map{ field =>
+
+    val result = subFields.map{ field =>
       for {
         form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
         dbSubforms <- getChild(e,form,field.child.get)

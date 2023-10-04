@@ -218,6 +218,8 @@ object JSONUtils extends Logging {
 
       def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata).orElse(JSONID.fromData(el,metadata))
 
+      def modelForField(field:JSONDiffField):Seq[JSONDiffModel] = Seq(JSONDiffModel(metadata.entity,currentId,Seq(field)))
+
       def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JSONDiffModel] = {
         (t.keys ++ o.keys).toSeq.distinct.map{ k =>
           (k,t.get(k),o.get(k))
@@ -237,14 +239,14 @@ object JSONUtils extends Logging {
                 }
                 case Some(field) if field.`type` == JSONFieldTypes.FILE => {
                   if(newValue.exists(nv => FileUtils.isKeep(nv.string))) Seq() else
-                  Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+                  modelForField(JSONDiffField(key,currentValue,newValue))
                 }
-                case Some(field) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+                case Some(field) => modelForField(JSONDiffField(key,currentValue,newValue))
                 case None => Seq()
               }
 
             }
-            case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue,insert = true))))
+            case None => modelForField(JSONDiffField(key,currentValue,newValue,insert = true))
           }
 
 
@@ -263,26 +265,26 @@ object JSONUtils extends Logging {
                     case None => Seq()
                   }
                 }
-                case Some(filed) => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+                case Some(filed) => modelForField(JSONDiffField(key,currentValue,newValue))
                 case None => Seq()
               }
 
             }
-            case None => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue,insert = true))))
+            case None => modelForField(JSONDiffField(key,currentValue,newValue,insert = true))
           }
 
 
           newValue.map{_.fold(
-            Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
-            bool => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
-            num => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))),
+            modelForField(JSONDiffField(key,currentValue,newValue)),
+            bool => modelForField(JSONDiffField(key,currentValue,newValue)),
+            num => modelForField(JSONDiffField(key,currentValue,newValue)),
             str => metadata.fields.find(f => f.name == key && f.`type` == JSONFieldTypes.FILE) match {
               case Some(_) if FileUtils.isKeep(str) => Seq()
-              case _ => Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue))))
+              case _ => modelForField(JSONDiffField(key,currentValue,newValue))
             },
             handleArray,
             handleObject
-          )}.getOrElse(Seq(JSONDiffModel(metadata.name,currentId,Seq(JSONDiffField(key,currentValue,newValue)))))
+          )}.getOrElse(modelForField(JSONDiffField(key,currentValue,newValue)))
 
 
         }
@@ -290,8 +292,8 @@ object JSONUtils extends Logging {
 
       val fields = (el.asObject,other.asObject) match {
         case (Some(t),Some(o)) => JSONDiff(_diff(t.toMap,o.toMap))
-        case (None,Some(obj)) => JSONDiff(Seq(JSONDiffModel(metadata.name,JSONID.fromData(other,metadata),obj.toMap.map{case (key, value) => JSONDiffField(key,None,Some(value),insert = true)}.toSeq)))
-        case (Some(obj),None) => JSONDiff(Seq(JSONDiffModel(metadata.name,JSONID.fromData(el,metadata),obj.toMap.map{ case (key, value) => JSONDiffField(key,Some(value),Some(Json.Null),delete = true) }.toSeq)))
+        case (None,Some(obj)) => JSONDiff(Seq(JSONDiffModel(metadata.entity,JSONID.fromData(other,metadata),obj.toMap.map{case (key, value) => JSONDiffField(key,None,Some(value),insert = true)}.toSeq)))
+        case (Some(obj),None) => JSONDiff(Seq(JSONDiffModel(metadata.entity,JSONID.fromData(el,metadata),obj.toMap.map{ case (key, value) => JSONDiffField(key,Some(value),Some(Json.Null),delete = true) }.toSeq)))
         case _ => throw new Exception("Cannot compare non-object json")
       }
       JSONDiff(
