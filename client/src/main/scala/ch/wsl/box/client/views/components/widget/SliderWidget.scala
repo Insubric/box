@@ -7,7 +7,6 @@ import ch.wsl.box.model.shared.{Internationalization, JSONField, JSONFieldTypes,
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import scalatags.JsDom
-import io.udash.properties.single.Property
 import io.udash._
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
@@ -35,7 +34,7 @@ object SliderWidget extends ComponentWidgetFactory {
 
     override def field: JSONField = params.field
 
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {}
+
 
 
 
@@ -56,7 +55,7 @@ object SliderWidget extends ComponentWidgetFactory {
       }
     }
 
-    private def renderSlider(): Binding = {
+    private def renderSlider(disabled:Boolean = false): Binding = {
       val slider = document.createElement("toolcool-range-slider").asInstanceOf[RangeSlider]
       val wrapper: Div = div(slider.asInstanceOf[Node]).render
       val binding = new Binding {
@@ -71,6 +70,7 @@ object SliderWidget extends ComponentWidgetFactory {
 
           slider.min = min
           slider.max = max
+          slider.disabled = disabled
           slider.sliderWidth = "100%"
           slider.pointerWidth = "15px"
           slider.pointerHeight = "15px"
@@ -107,29 +107,34 @@ object SliderWidget extends ComponentWidgetFactory {
     }
 
 
-    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
-      div(
-        nested(renderSlider()),
-        div(ClientConf.style.spaceBetween,marginTop := 2.px,
-          div(nested(bind(params.prop.transform(_.toString())))," ",unit),
-          div(secondaryLabel)
-        )
+    private def onTable(nested:Binding.NestedInterceptor, write:Boolean) = div(
+      nested(renderSlider(!write)),
+      div(ClientConf.style.spaceBetween, marginTop := 2.px,
+        div(nested(bind(params.prop.transform(_.toString()))), " ", unit),
+        div(secondaryLabel)
       )
-    }
+    )
 
-    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+    private def onForm(nested:Binding.NestedInterceptor, write:Boolean) = {
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
-      div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
-        WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
-        div(BootstrapStyles.Float.right(),bind(params.prop.transform(_.toString()))),
-        tooltip(div(nested(renderSlider())).render)._1,
+      div(BootstrapCol.md(12), ClientConf.style.noPadding, ClientConf.style.mediumBottomMargin,
+        WidgetUtils.toLabel(field, WidgetUtils.LabelRight),
+        div(BootstrapStyles.Float.right(), bind(params.prop.transform(_.toString()))),
+        tooltip(div(nested(renderSlider(!write))).render)._1,
       )
 
 
-
     }
+
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = onTable(nested,true)
+
+    override def showOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = onTable(nested,false)
+
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = onForm(nested,true)
+
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = onForm(nested,false)
 
     override def json(): _root_.io.udash.ReadableProperty[Json] = params.prop
 
