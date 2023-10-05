@@ -107,7 +107,7 @@ object SliderWidget extends ComponentWidgetFactory {
     }
 
 
-    private def onTable(nested:Binding.NestedInterceptor, write:Boolean) = div(
+    private def onTable(nested:Binding.NestedInterceptor, write:Boolean) = div(padding := 5.px,
       nested(renderSlider(!write)),
       div(ClientConf.style.spaceBetween, marginTop := 2.px,
         div(nested(bind(params.prop.transform(_.toString()))), " ", unit),

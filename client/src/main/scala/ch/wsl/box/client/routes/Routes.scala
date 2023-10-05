@@ -78,16 +78,7 @@ object Routes extends Logging {
       .replace("$id", id.getOrElse(""))
       .replace("$writable", writable.toString)
 
-    mustache.parse(urlInternalSubstitutions) match {
-      case Left(err) => {
-        println(err._2)
-        urlInternalSubstitutions
-      }
-      case Right(tmpl) => {
-
-        mustache.render(tmpl)(MustacheUtils.context(tmpl, data))
-      }
-    }
+    MustacheUtils.render(urlInternalSubstitutions,data)
 
 
   }

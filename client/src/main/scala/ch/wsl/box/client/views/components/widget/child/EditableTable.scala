@@ -58,7 +58,7 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
   val table = style(
     borderColor(Colors.GreySemi),
     borderCollapse.collapse,
-    minWidth(100.%%),
+    //minWidth(100.%%),
     marginBottom(20.px)
   )
 

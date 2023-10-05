@@ -179,7 +179,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       case "List[Short]" => update[List[Short]](col)
       case "List[Long]" => update[List[Long]](col)
       case "List[String]" => update[List[String]](col)
-      case t:String => throw new Exception(s"$t is not supported for single field update")
+      case t:String => throw new Exception(s"Key: $key with type $t is not supported for single field update")
     }
     result
   }
