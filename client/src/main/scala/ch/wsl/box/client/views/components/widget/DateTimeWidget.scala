@@ -27,6 +27,7 @@ import typings.flatpickr.distTypesLocaleMod.{CustomLocale, Locale}
 import typings.flatpickr.distTypesOptionsMod.Hook
 import typings.flatpickr.mod.flatpickr.Options.DateOption
 
+import java.util
 import scala.scalajs.js
 import scala.util.Try
 import scala.scalajs.js.JSConverters._
@@ -131,8 +132,16 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     format match {
       case Some(formatter) => nested(bind(data.transform{js =>
+
+        val locale = Context.services.clientSession.lang() match {
+          case "it" => java.util.Locale.ITALIAN
+          case "de" => java.util.Locale.GERMAN
+          case "fr" => java.util.Locale.FRENCH
+          case _ => java.util.Locale.ENGLISH
+        }
+
         dateTimeFormatters.parse(js.string)
-          .map(x => dateTimeFormatters.format(x,Some(formatter)))
+          .map{x => dateTimeFormatters.format(x,Some(formatter),Some(locale))}
           .getOrElse(js.string)
       }))
       case None => nested(bind(data.transform(_.string)))

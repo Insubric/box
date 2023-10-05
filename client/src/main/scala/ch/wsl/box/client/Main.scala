@@ -43,18 +43,8 @@ object Main extends Logging {
       setupUI()
     })
 
-// TODO Handle client errors
-//    window.onerror = (event, source, lineno, colno, error) => {
-//      println("AAAAAAAAAAAAa")
-//      BrowserConsole.log(event)
-//      BrowserConsole.log(source)
-//      BrowserConsole.log(lineno)
-//      BrowserConsole.log(colno)
-//      BrowserConsole.log(error.asInstanceOf[js.Dynamic].stack.asInstanceOf[js.Any])
-//      false
-//    }
-//
-//    scala.scalajs.js.Dynamic.global.applyDynamic("adfasfda")()
+    //window.onerror = ErrorHandler.onError
+
   }
 
   def setupUI(): Future[Unit] = {

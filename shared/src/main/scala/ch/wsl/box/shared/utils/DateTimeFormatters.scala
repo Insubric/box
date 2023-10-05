@@ -3,7 +3,7 @@ package ch.wsl.box.shared.utils
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.time.temporal.{ChronoField, TemporalAccessor, TemporalField}
 import java.time._
-
+import java.util.Locale
 import scala.util.{Failure, Try}
 
 
@@ -17,7 +17,7 @@ trait DateTimeFormatters[T]{
   def nextYear(obj:T):T
 
 
-  def format(dt:T,format:Option[String] = None):String
+  def format(dt:T,format:Option[String] = None,locale: Option[Locale] = None):String
 
   def parse(str:String):Option[T] = toObject(str)
 
@@ -114,8 +114,8 @@ object DateTimeFormatters {
       )
     }
 
-    override def format(dt: LocalDateTime, format: Option[String]): String = format match {
-      case Some(value) => dt.format(DateTimeFormatter.ofPattern(value))
+    override def format(dt: LocalDateTime, format: Option[String],locale: Option[Locale]): String = format match {
+      case Some(value) => dt.format(DateTimeFormatter.ofPattern(value,locale.getOrElse(Locale.ENGLISH)))
       case None => dt.toString
     }
 
@@ -147,8 +147,8 @@ object DateTimeFormatters {
       )
     }
 
-    override def format(dt: LocalDate, format: Option[String]): String = format match {
-      case Some(value) => dt.format(DateTimeFormatter.ofPattern(value))
+    override def format(dt: LocalDate, format: Option[String],locale:Option[Locale]): String = format match {
+      case Some(value) => dt.format(DateTimeFormatter.ofPattern(value,locale.getOrElse(Locale.ENGLISH)))
       case None => dt.toString
     }
 
@@ -180,8 +180,8 @@ object DateTimeFormatters {
 
     override protected def fromZonedTimeZone(i: ZonedDateTime): LocalTime = i.toLocalTime
 
-    override def format(dt: LocalTime, format: Option[String]): String = format match {
-      case Some(value) => dt.format(DateTimeFormatter.ofPattern(value))
+    override def format(dt: LocalTime, format: Option[String],locale:Option[Locale]): String = format match {
+      case Some(value) => dt.format(DateTimeFormatter.ofPattern(value,locale.getOrElse(Locale.ENGLISH)))
       case None => dt.toString
     }
   }

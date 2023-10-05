@@ -1,4 +1,5 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
+import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
 
 val publishSettings = List(
@@ -226,12 +227,13 @@ lazy val client: Project = (project in file("client"))
     concurrentRestrictions := Seq(
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
-
+    localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
   )
   .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
-    ScalablyTypedConverterPlugin
+    ScalablyTypedConverterPlugin,
+    LocalesPlugin
   )
   .dependsOn(sharedJS)
 
