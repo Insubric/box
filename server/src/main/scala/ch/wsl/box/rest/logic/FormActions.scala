@@ -336,16 +336,17 @@ case class FormActions(metadata:JSONMetadata,
   } yield inserted.deepMerge(Json.fromFields(childs))
 
 
+  private def dbTableFields:Set[String] = registry.fields.tableFields(metadata.entity).keySet
 
   private def insertNullForMissingFields(json:Json):Json = {
-    val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored).map(x => x.name -> Json.Null))
+    val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored(dbTableFields)).map(x => x.name -> Json.Null))
     allNullFields.deepMerge(json)
   }
 
   private def updateOneLevel(id:JSONID, e:Json):DBIO[Json] = {
     logger.info(s"UPDATE BY ID $id")
 
-    val dataWithoutChilds = e.filterFields(metadata.fields.filter(f => f.isDbStored && f.`type` != JSONFieldTypes.CHILD))
+    val dataWithoutChilds = e.filterFields(metadata.fields.filter(f => f.isDbStored(dbTableFields) && f.`type` != JSONFieldTypes.CHILD))
 
     for {
       current <- jsonAction.getById(id)
