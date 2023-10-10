@@ -7,14 +7,14 @@ import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpHead
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{ Translations}
+import ch.wsl.box.model.Translations
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, EntityKind, PDFTable, XLSTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.io.pdf.PDFExport
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.routes.{Export, Form, Functions, Table}
+import ch.wsl.box.rest.routes.{Export, Form, Functions, MapRoute, Table}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import ch.wsl.box.services.Services
@@ -111,6 +111,14 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  def map(implicit s: BoxSession) = pathPrefix("map") {
+    pathPrefix(Segment) { lang =>
+      pathPrefix(Segment) { name =>
+        new MapRoute(name).route
+      }
+    }
+  }
+
   def news(implicit up:UserProfile) = pathPrefix("news") {
     pathPrefix(Segment) { lang =>
       get{
@@ -192,6 +200,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         views ~
         forms ~
         form ~
+        map ~
         news ~
         renderTable ~
         exportCSV ~

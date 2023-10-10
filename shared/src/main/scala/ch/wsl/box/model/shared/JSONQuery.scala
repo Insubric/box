@@ -139,15 +139,18 @@ object JSONQuery extends Logging {
   def limit(l:Int) = empty.copy(paging = Some(JSONQueryPaging(currentPage = 1, pageLength = l)))
 
   def fromString(s:String):Option[JSONQuery] = parse(s) match {
-    case Right(value) => value.as[JSONQuery] match {
-      case Right(value) => Some(value)
-      case Left(value) => {
-        logger.warn(s"Unable to parse JSONQuery: ${value.message} of $s")
-        None
-      }
-    }
+    case Right(value) => fromJson(value)
     case Left(value) => {
       logger.warn(s"Unable to parse JSONQuery: ${value.message} of $s")
+      None
+    }
+  }
+
+
+  def fromJson(j:Json): Option[JSONQuery] =  j.as[JSONQuery] match {
+    case Right(value) => Some(value)
+    case Left(value) => {
+      logger.warn(s"Unable to parse JSONQuery: ${value.message} of $j")
       None
     }
   }
