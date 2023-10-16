@@ -30,9 +30,11 @@ object TwoPanelResize {
     val containerLeft = style(
       width(leftDefaultWidth %%),
       media.maxWidth(600 px)(
-        width := "calc(100% - 15px)"
+        width.`0` //:= "calc(100% - 15px)"
       ),
-      flexShrink(0)
+      flexShrink(0),
+      backgroundColor.white,
+      zIndex(2)
     )
 
     val containerRight = style(
@@ -46,7 +48,11 @@ object TwoPanelResize {
       width(15 px),
       backgroundColor(conf.colors.main),
       cursor.ewResize,
-      flexShrink(0)
+      flexShrink(0),
+      zIndex(2),
+      media.maxWidth(600 px)(
+        width.`0`
+      )
     )
 
     val resizerLabel = style(
@@ -57,7 +63,16 @@ object TwoPanelResize {
       paddingLeft(4 px),
       //transform := "rotate(90deg)",
       cursor.pointer,
-      userSelect.none
+      userSelect.none,
+      media.maxWidth(600 px)(
+        fontSize(24 px),
+        position.absolute,
+        left.`0`,
+        width(50 px),
+        backgroundColor(conf.colors.main),
+        textAlign.center
+      )
+
     )
 
     val noSelect = style(
@@ -84,7 +99,11 @@ object TwoPanelResize {
     val closeId = s"close-${Random.alphanumeric.take(8)}"
     val openLabel = i(UdashIcons.FontAwesome.Solid.caretRight, id := openId).render
     val closeLabel = i(UdashIcons.FontAwesome.Solid.caretLeft, id := closeId).render
-    openLabel.classList.add(style.hide.htmlClass)
+    if(window.innerWidth < 600) { // on mobile default not showing map
+      closeLabel.classList.add(style.hide.htmlClass)
+    } else {
+      openLabel.classList.add(style.hide.htmlClass)
+    }
 
     val resizerLabel = p(style.resizerLabel, openLabel,closeLabel).render
 
@@ -103,7 +122,7 @@ object TwoPanelResize {
     resizerLabel.addEventListener("click", (e: Event) => {
       if(leftSide.getBoundingClientRect().width < 10) {
         if(window.innerWidth < 600) {
-          leftSide.style.width =  "calc(100% - 15px)"
+          leftSide.style.width =  "100%"
         } else {
           leftSide.style.width = leftDefaultWidth + "%"
         }

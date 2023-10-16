@@ -38,7 +38,14 @@
         <link rel="stylesheet" href="@{basePath}assets/quill/dist/quill.snow.css">
 
         <link rel="stylesheet" href="@{basePath}assets/ol/ol.css" >
-        <link rel="stylesheet" href="@{basePath}assets/open-sans-all/css/open-sans.min.css" >
+
+        @for(group <- Seq("latin","latin-ext")) {
+            @for( width <- Seq("300","400","600","700")) {
+                <link rel="stylesheet" href="@{basePath}assets/@@fontsource/open-sans/@group-@{width}.css" >
+            }
+        }
+
+
 
         <link rel="stylesheet" href="@{basePath}assets/choices.js/public/assets/styles/choices.min.css" />
 

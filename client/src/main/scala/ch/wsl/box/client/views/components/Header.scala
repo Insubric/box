@@ -86,7 +86,7 @@ object Header {
 
       div(BootstrapStyles.Float.right())(
         a(ClientConf.style.linkHeaderFooter,
-          produce(showMenu){ if(_) span(fontSize := 22.px, "🗙").render else span(fontSize := 22.px,"☰").render},
+          produce(showMenu){ if(_) span(fontSize := 35.px, "⨯").render else span(fontSize := 22.px,"☰").render},
           onclick :+= {(e:Event) => showMenu.set(!showMenu.get); e.preventDefault() }
         )
       ),

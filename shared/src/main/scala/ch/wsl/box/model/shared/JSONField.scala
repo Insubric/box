@@ -37,9 +37,9 @@ case class JSONField(
 
   def withWidget(name:String) = copy(widget = Some(name))
 
-  def isDbStored:Boolean = this.`type` match {
+  def isDbStored(fieldList:Set[String]):Boolean = this.`type` match {
     case JSONFieldTypes.CHILD | JSONFieldTypes.STATIC => false
-    case _ => true
+    case _ => fieldList.contains(name)
   }
 
   def fromString(s:String):Json = JSONUtils.toJs(s,`type`).getOrElse(Json.Null)

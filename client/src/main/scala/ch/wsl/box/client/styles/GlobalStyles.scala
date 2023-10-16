@@ -418,7 +418,7 @@ object GlobalStyleFactory{
     )
 
     val formTitleLight = style(
-      fontWeight.lighter,
+      fontWeight._300,
       fontSize(14 px)
     )
 

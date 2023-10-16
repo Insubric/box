@@ -86,7 +86,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
       if (extent.get.isEmpty && layers.values.flatten.size > 0) {
 
         val sourceExtent = vectorSource.getExtent()
-        map.getView().fit(sourceExtent)
+        map.getView().fit(sourceExtent,FitOptions().setPadding(js.Array(20.0,20.0,20.0,20.0)))
 
         if (!extentListenerInitialized) {
           extentListenerInitialized = true
