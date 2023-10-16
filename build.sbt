@@ -96,7 +96,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","open-sans-all","@fortawesome/fontawesome-free","choices.js","gridstack").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack").map{ p =>
       if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -159,7 +159,7 @@ lazy val client: Project = (project in file("client"))
       "monaco-editor" -> "0.34.0",
       "quill" -> "1.3.7",
       "@types/quill" -> "1.3.10",
-      "open-sans-all" -> "0.1.3",
+      "@fontsource/open-sans" -> "5.0.15",
       "file-saver" -> "2.0.5",
       "@types/file-saver" -> "2.0.1",
       "js-md5" -> "0.7.3",
@@ -177,7 +177,7 @@ lazy val client: Project = (project in file("client"))
       "jspdf-autotable" -> "3.5.28",
       "gridstack" -> "8.3.0"
     ),
-    stIgnore += "open-sans-all",
+    stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",
     stIgnore += "crypto-browserify",
     stIgnore += "ol-ext",
