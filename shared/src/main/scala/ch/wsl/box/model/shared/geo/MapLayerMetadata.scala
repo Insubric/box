@@ -1,62 +1,43 @@
 package ch.wsl.box.model.shared.geo
 
 import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 
 import java.util.UUID
 
 
-sealed trait MapLayerParams {
-  def id: UUID
-  def name: String
-  def extra: Json
-}
+
+sealed trait MapLayerMetadata
 
 
-case class ExternalMetadataParams(
-                              id: UUID,
-                              name: String,
-                              extra: Json
-                            ) extends MapLayerParams
-
-case class DbVectorParams(
-                           id: UUID,
-                           name: String,
-                           extra: Json,
-                           editable: Boolean,
-                           entity: Option[String],
-                           query: Option[JSONQuery]
-                         ) extends MapLayerParams
-
-sealed trait MapLayerMetadata {
-  def params:MapLayerParams
-}
+case class DbVector(
+           id: UUID,
+           entity: String,
+           field: String,
+           srid:MapProjection,
+           geometryType: GeometryType,
+           query: Option[JSONQuery],
+           extra: Json,
+           editable: Boolean,
+         ) extends MapLayerMetadata
 
 
-sealed trait DbVector extends MapLayerMetadata {
-  def params:DbVectorParams
-}
 
-case class Point(params: DbVectorParams) extends DbVector
-case class MultiPoint(params: DbVectorParams) extends DbVector
-case class LineString(params: DbVectorParams) extends DbVector
-case class MultiLineString(params: DbVectorParams) extends DbVector
-case class Polygon(params: DbVectorParams) extends DbVector
-case class MultiPolygon(params: DbVectorParams) extends DbVector
-case class GeometryCollection(params: DbVectorParams) extends DbVector
-case class WMTS(params: ExternalMetadataParams) extends MapLayerMetadata
-case class WMS( params: ExternalMetadataParams) extends MapLayerMetadata
+case class WMTS(
+                 id: UUID,
+                 capabilitiesUrl: String,
+                 layerId: String,
+                 srid: MapProjection,
+                 extra: Json
+               ) extends MapLayerMetadata
 
-object GeometryTypes {
-  val VECTOR_POINT = "vector_point"
-  val VECTOR_MULTIPOINT = "vector_multipoint"
-  val VECTOR_LINESTRING = "vector_linestring"
-  val VECTOR_MULTILINESTRING = "vector_multilinestring"
-  val VECTOR_POLYGON = "vector_polygon"
-  val VECTOR_MULTIPOLYGON = "vector_multipolygon"
-  val VECTOR_GEOMETRYCOLLECTION = "vector_geometrycollection"
-  val WMTS = "wmts"
-  val WMS = "wms"
+sealed trait GeometryType
+case object POINT extends GeometryType
+case object MULTIPOINT  extends GeometryType
+case object LINESTRING extends GeometryType
+case object MULTILINESTRING extends GeometryType
+case object POLYGON extends GeometryType
+case object MULTIPOLYGON extends GeometryType
+case object GEOMETRYCOLLECTION  extends GeometryType
 
-  val dbHandled = Set(VECTOR_POINT,VECTOR_MULTIPOINT,VECTOR_LINESTRING,VECTOR_MULTILINESTRING,VECTOR_POLYGON,VECTOR_MULTIPOLYGON,VECTOR_GEOMETRYCOLLECTION)
-}

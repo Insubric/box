@@ -444,6 +444,10 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         look = lookup(field, fieldI18n)
         linked <- linkedForms(field, fieldI18n)
         subform <- subform(field)
+        mapMetadata <- field.map_uuid match {
+          case Some(value) => MapMetadataFactory.of(value).map(Some(_))
+          case None => DBIO.successful(None)
+        }
       } yield {
         JSONField(
           `type` = field.`type`,
@@ -469,7 +473,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
           } yield query,
           function = field.function,
           minMax = Some(MinMax(min = field.min, max = field.max)),
-          roles = field.roles.getOrElse(Seq())
+          roles = field.roles.getOrElse(Seq()),
+          map = mapMetadata
         )
       }
 

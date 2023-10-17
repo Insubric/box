@@ -76,7 +76,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   logger.info(s"Loading ol map1")
 
   val options: MapParams = MapWidgetUtils.options(field)
-  val proj = new BoxMapProjections(options)
+
+
+
+  val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
   val defaultProjection = proj.defaultProjection
 
 

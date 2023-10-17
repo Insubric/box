@@ -25,6 +25,7 @@ object WidgetsNames {
   val popup = "popup"
   val popupWidget = "popupWidget"
   val map = "map"
+  val mapChild = "mapChild"
   val mapList = "mapList"
   val mapPoint = "mapPoint"
   val code = "code"

@@ -32,7 +32,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
   override def id: ReadableProperty[Option[String]] = Property(None)
 
   override val options: MapParams = ClientConf.mapOptions.as[MapParams].getOrElse(BoxMapConstants.defaultParams)
-  val proj = new BoxMapProjections(options)
+  val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
 
   val view = new viewMod.default(viewMod.ViewOptions()

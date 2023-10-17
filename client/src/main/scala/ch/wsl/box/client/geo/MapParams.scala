@@ -3,6 +3,7 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.client.viewmodel.I18n
 import ch.wsl.box.model.shared.{GeoJson, JSONQuery}
 import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
+import ch.wsl.box.model.shared.geo.{Box2d, MapProjection}
 
 /*
 {
@@ -29,12 +30,6 @@ case class MapParamsFeatures(
                               geometryCollection: Boolean
                             )
 
-case class MapParamsProjection(
-                                name:String,
-                                proj:String,
-                                extent: Seq[Double],
-                                unit: String
-                              )
 
 case class MapParamsLayers(
                             name: String,
@@ -87,7 +82,7 @@ case class MapFormatters(
 case class MapParams(
                       features: MapParamsFeatures,
                       defaultProjection: String,
-                      projections: Seq[MapParamsProjection],
+                      projections: Seq[MapProjection],
                       baseLayers: Option[Seq[MapParamsLayers]],
                       precision: Option[Double],
                       formatters: Option[MapFormatters],
@@ -95,5 +90,6 @@ case class MapParams(
                       lookups:Option[Seq[MapLookup]]
                     ) {
   def crs = CRS(defaultProjection)
+  def bbox = Box2d.fromSeq(projections.find(_.name == defaultProjection).get.extent.get)
 }
 

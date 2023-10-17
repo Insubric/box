@@ -196,14 +196,14 @@ lazy val client: Project = (project in file("client"))
       "webpack-merge" -> "5.8.0",
       "style-loader" -> "3.3.1",
       "css-loader" -> "6.7.1",
-      "mini-css-extract-plugin" -> "2.6.1",
+      //"mini-css-extract-plugin" -> "2.6.1",
       "monaco-editor-webpack-plugin" -> "7.0.1",
       "file-loader" -> "6.2.0",
     ),
     // https://scalacenter.github.io/scalajs-bundler/cookbook.html#webpack-dev-server
     webpackDevServerPort := 8888,
-    webpack / version := "5.74.0",
-    webpackCliVersion := "4.10.0",
+    webpack / version := "5.89.0",
+    webpackCliVersion := "5.1.4",
     installJsdom / version := "20.0.0",
     startWebpackDevServer / version  := "4.11.1",
 
