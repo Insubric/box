@@ -5,6 +5,7 @@ import ch.wsl.box.client.geo.BoxMapProjections.toExtent
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.geo.{Box2d, MapProjection}
 import scribe.Logging
+import typings.ol.anon.FnCall
 import typings.ol.extentMod.Extent
 import typings.ol.{layerBaseTileMod, layerMod, projMod, projProj4Mod, projProjectionMod, sourceMod}
 
@@ -12,21 +13,25 @@ import scala.scalajs.js
 
 class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:String,bbox:Box2d) extends Logging {
 
-  typings.proj4.mod.^.asInstanceOf[js.Dynamic].default.defs(
+  private val proj4 = typings.proj4.mod.^.asInstanceOf[js.Dynamic].default
+
+
+  proj4.defs(
     wgs84.name,
     wgs84.proj
   )
 
 
-  _projections.map { projection =>
-    //typings error need to map it manually
-    typings.proj4.mod.^.asInstanceOf[js.Dynamic].default.defs(
+  _projections.foreach { projection =>
+    proj4.defs(
       projection.name,
       projection.proj
     )
   }
 
-  projProj4Mod.register(typings.proj4.mod.^.asInstanceOf[js.Dynamic].default)
+  projProj4Mod.register(proj4.asInstanceOf[FnCall])
+
+
 
 
   def toOlProj(projection: MapProjection) = {
@@ -47,7 +52,7 @@ class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:Strin
 }
 
 object BoxMapProjections {
-  def toExtent(s:Seq[Double]):Extent = js.Tuple4(
+  def toExtent(s:Seq[Double]):Extent = js.Array(
                 s.lift(0).getOrElse(0),
                 s.lift(1).getOrElse(0),
                 s.lift(2).getOrElse(0),

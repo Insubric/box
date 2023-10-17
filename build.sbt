@@ -142,11 +142,11 @@ lazy val client: Project = (project in file("client"))
     scalaJSUseMainModuleInitializer := true,
     scalaJSStage := FullOptStage,
     Compile / npmDependencies ++= Seq(
-      "ol" -> "6.3.1",
-      "@types/ol" -> "6.3.1",
-      "proj4" -> "2.8.0",
-      "@types/proj4" -> "2.5.2",
-      "ol-ext" -> "3.1.14",
+      "ol" -> "8.1.0",
+      "proj4" -> "2.9.1",
+      "@types/proj4" -> "2.5.3",
+      "ol-ext" -> "4.0.11",
+      //"@siedlerchr/types-ol-ext" -> "3.2.4",
       "jsts" -> "2.7.1",
       "@types/jsts" -> "0.17.13",
       "jquery" -> "3.4.1",
@@ -196,7 +196,7 @@ lazy val client: Project = (project in file("client"))
       "webpack-merge" -> "5.8.0",
       "style-loader" -> "3.3.1",
       "css-loader" -> "6.7.1",
-      //"mini-css-extract-plugin" -> "2.6.1",
+      "mini-css-extract-plugin" -> "2.6.1",
       "monaco-editor-webpack-plugin" -> "7.0.1",
       "file-loader" -> "6.2.0",
     ),
@@ -268,6 +268,12 @@ lazy val sharedJS: Project = shared.js.settings(
 
 lazy val migrate = taskKey[Unit]("migrate")
 
+lazy val restartClient = taskKey[Unit]("Restart client")
+lazy val restartClientTask = Def.sequential(
+    (client / Compile / fastOptJS / stopWebpackDevServer),
+    (client / Compile / fastOptJS / startWebpackDevServer),
+  )
+
 
 // code generation task that calls the customized code generator
 lazy val slick = taskKey[Seq[File]]("gen-tables")
@@ -317,6 +323,7 @@ lazy val deleteSlickTask = Def.task{
 
 lazy val box = (project in file("."))
   .settings(
+    restartClient := restartClientTask.value,
     publishAll := publishAllTask.value,
     publishAllLocal := publishAllLocalTask.value,
     installBox := installBoxTask.value,

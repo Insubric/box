@@ -2,16 +2,18 @@ package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.JSONQuery
-import ch.wsl.box.model.shared.geo.{DbVector, MapMetadata,WMTS}
+import ch.wsl.box.model.shared.geo.{DbVector, MapMetadata, WMTS}
 import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import io.udash._
 import org.scalajs.dom.MutationObserver
 import scalatags.JsDom._
 import scalatags.JsDom.all._
-import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mod, pluggableMapMod, projProjectionMod, sourceMod, sourceVectorMod, viewMod}
+import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mod, sourceMod, sourceVectorMod, viewMod}
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
+import typings.ol.layerWebGLTileMod.SourceType
+import typings.ol.mapMod.MapOptions
 import typings.ol.viewMod.FitOptions
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +40,7 @@ class StandaloneMap(mapDiv:Div, metadata:MapMetadata) {
 
   val view = new viewMod.default(viewOptions)
 
-  val map = new mod.Map(pluggableMapMod.MapOptions()
+  val map = new mod.Map(MapOptions()
     .setTarget(mapDiv)
     .setView(view)
   )
@@ -56,10 +58,11 @@ class StandaloneMap(mapDiv:Div, metadata:MapMetadata) {
   def dbVectorLayer(vector:DbVector) = {
     services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.query.getOrElse(JSONQuery.empty)).map{ geoms =>
       val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
-      geoms(vector.field).foreach { g =>
-        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-        vectorSource.addFeature(geom)
+      val features = geoms(vector.field).map { g =>
+        new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
       }
+
+      vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
 
       val layer = new layerMod.Vector(layerBaseVectorMod.Options()
         .setSource(vectorSource)
@@ -78,14 +81,12 @@ class StandaloneMap(mapDiv:Div, metadata:MapMetadata) {
     case wmts:WMTS => wmtsLayer(wmts)
   }).map { layers =>
     layers.foreach { layer =>
-      BrowserConsole.log(layer)
       map.addLayer(layer)
     }
     val extent = layers.flatMap{
-      case v:layerMod.Vector => Some(v.getSource().getExtent())
+      case v:layerMod.Vector[_] => Some(v.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]].getExtent())
       case _ => None
     }.reduce(extentMod.extend)
-    BrowserConsole.log(extent)
     map.getView().fit(extent, FitOptions().setPadding(js.Array(20.0, 20.0, 20.0, 20.0)))
     map.render()
   }

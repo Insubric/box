@@ -29,7 +29,6 @@ import scalatags.JsDom
 import scribe.Logging
 import typings.ol._
 import typings.ol.coordinateMod.{Coordinate, createStringXY}
-import typings.ol.formatIgcMod.IGCZ.GPS
 import typings.ol.interactionSelectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
 import typings.ol.viewMod.FitOptions
@@ -40,14 +39,16 @@ import scala.util.Try
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
 import typings.ol.formatMod.WKT
-import typings.ol.mod.Overlay
+import typings.ol.mod.{MapBrowserEvent, Overlay}
 import typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
 import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
+import typings.ol.mapMod.MapOptions
+import typings.ol.objectMod.ObjectEvent
 
-import scala.scalajs.js.URIUtils
+import scala.scalajs.js.{URIUtils, |}
 
 case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
   import dsl._
@@ -88,7 +89,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   lazy val mapActions = new MapActions(map,options,metadata)
 
-  var featuresLayer: layerMod.Vector = null
+  var featuresLayer: layerBaseMod.default = null
 
 
 
@@ -118,7 +119,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var view: viewMod.default = null
 
   var listener: Registration = null
-  var onAddFeature: js.Function1[VectorSourceEvent[typings.ol.geomGeometryMod.default], Unit] = null
+  var onAddFeature: js.Function1[ObjectEvent | VectorSourceEvent[typings.ol.geomGeometryMod.default] | typings.ol.eventsEventMod.default, Unit] = null
 
   def registerListener(immediate: Boolean) = {
     listener = data.listen({ geoData =>
@@ -127,13 +128,13 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
       if (!geoData.isNull) {
         val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geoData).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-        vectorSource.addFeature(geom)
-        view.fit(geom.getGeometry().getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
+        vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
+        view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
       } else {
         view.fit(defaultProjection.getExtent())
       }
 
-      vectorSource.on_addfeature(olStrings.addfeature, onAddFeature)
+      vectorSource.asInstanceOf[js.Dynamic].on(olStrings.addfeature, onAddFeature)
     }, immediate)
   }
 
@@ -290,7 +291,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
 
-    map = new mod.Map(pluggableMapMod.MapOptions()
+    map = new mod.Map(MapOptions()
       .setTarget(mapDiv)
       .setControls(controls.getArray())
       .setView(view)
@@ -303,12 +304,12 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       .setElement(div().render)
     )
 
-    onAddFeature = (e: VectorSourceEvent[geomGeometryMod.default]) => changedFeatures()
+    onAddFeature = _ => changedFeatures()
 
     registerListener(true)
 
 
-    vectorSource.on_changefeature(olStrings.changefeature, {(e: VectorSourceEvent[geomGeometryMod.default]) =>
+    vectorSource.asInstanceOf[js.Dynamic].on(olStrings.changefeature, { () =>
       changedFeatures()
     })
 
@@ -319,19 +320,19 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     )
     //modify.on_modifyend(olStrings.modifyend,(e:ModifyEvent) => changedFeatures())
 
-    drawPoint = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.POINT)
+    drawPoint = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryMod.Type.Point)
       .setSource(vectorSource)
       .setStyle(MapStyle.vectorStyle())
     )
     //drawPoint.on_change(olStrings.change,e => changedFeatures())
 
-    drawLineString = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.LINE_STRING)
+    drawLineString = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryMod.Type.LineString)
       .setSource(vectorSource)
       .setStyle(MapStyle.simpleStyle())
     )
     //drawLineString.on_change(olStrings.change,e => changedFeatures())
 
-    drawPolygon = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryTypeMod.default.POLYGON)
+    drawPolygon = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryMod.Type.Polygon)
       .setSource(vectorSource)
       .setStyle(MapStyle.simpleStyle())
     )
@@ -346,22 +347,22 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     delete = new interactionSelectMod.default(interactionSelectMod.Options())
 
-    delete.on_select(olStrings.select, (e: SelectEvent) => {
+    delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
       if (window.confirm(Labels.form.removeMap)) {
-        e.selected.foreach(x => vectorSource.removeFeature(x))
+        e.asInstanceOf[SelectEvent].selected.foreach(x => vectorSource.removeFeature(x))
         changedFeatures()
       }
     })
 
 
-    map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {
+    map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e: Any) => {
 
-      val features = mapActions.getFeatures(e)
+      val features = mapActions.getFeatures(e.asInstanceOf[MapBrowserEvent[_]])
 
       features.nonEmpty && activeControl.get == Control.VIEW match {
         case true => {
           infoOverlay.element.innerHTML = ""
-          val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(features)
+          val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(features.asInstanceOf[js.Array[renderFeatureMod.default]])
           for{
             json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
             collection <- FeatureCollection.decode(json).toOption
@@ -528,10 +529,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
       val points = proj.projections.map { case (name,proj) =>
 
-        val minLng = proj.getExtent()._1
-        val minLat = proj.getExtent()._2
-        val maxLng = proj.getExtent()._3
-        val maxLat = proj.getExtent()._4
+        val minLng = proj.getExtent()(0)
+        val minLat = proj.getExtent()(1)
+        val maxLng = proj.getExtent()(2)
+        val maxLat = proj.getExtent()(3)
 
 
 
@@ -685,17 +686,16 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     if(vectorSource!= null) {
       val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
       convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).toOption.flatMap { collection =>
-        import ch.wsl.box.model.shared.GeoJson.Geometry._
-        import ch.wsl.box.model.shared.GeoJson._
+
         val geometries = collection.features.map(_.geometry)
         logger.info(s"$geometries")
         geometries.find(_.toSingle.contains(g)).flatMap { contanierFeature =>
 
           vectorSource.getFeatures().toSeq.find { f =>
-            val coords = Try(f.getGeometry().asInstanceOf[js.Dynamic].flatCoordinates.asInstanceOf[js.Array[Double]]).toOption
+            val coords = Try(f.getFlatCoordinates()).toOption
             coords.exists(c => contanierFeature.equalsToFlattenCoords(c.toSeq))
           }
-        }
+        }.map(f => renderFeatureMod.toFeature(f))
       }
     } else None
   }
@@ -750,10 +750,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       logger.info(s"Found: $location")
       location.bbox match {
         case Some(bbox) => {
-          val extent = (bbox(0),bbox(1),bbox(2),bbox(3))
+          val extent = js.Array(bbox(0),bbox(1),bbox(2),bbox(3))
           logger.info(s"Go to extent $extent")
           map.getView().fit(extent)
-          if(map.getView().getZoom() > 12) map.getView().setZoom(12)
+          if(map.getView().getZoom().getOrElse(0.0) > 12) map.getView().setZoom(12)
         }
         case None => {
           val coordinates = location.geometry.allCoordinates.head
@@ -790,7 +790,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
       parseCoordinates(insertCoordinateField.get).foreach { p =>
-        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p))
+        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p)).asInstanceOf[typings.ol.renderFeatureMod.default]
         vectorSource.addFeature(feature)
       }
       e.preventDefault()

@@ -7,12 +7,13 @@ import typings.ol.{formatMod, layerBaseTileMod, layerMod, sourceMod, sourceWmtsM
 
 import scala.concurrent.Promise
 import scala.scalajs.js
+import scala.scalajs.js.|._
 
 object MapUtils extends Logging {
 
   def loadWmtsLayer(capabilitiesUrl: String, layer: String, time: Option[String]) = {
 
-    val result = Promise[layerMod.Tile]()
+    val result = Promise[layerMod.Tile[_]]()
 
     logger.info(s"Loading WMTS layer $layer")
 
@@ -26,10 +27,12 @@ object MapUtils extends Logging {
         val capabilities = new formatMod.WMTSCapabilities().read(xhr.responseText)
         val wmtsOptions = sourceWmtsMod.optionsFromCapabilities(capabilities, js.Dictionary(
           "layer" -> layer
-        ))
+        )).asInstanceOf[sourceWmtsMod.Options]
+
+
 
         time.foreach { t =>
-          wmtsOptions.setDimensions(js.Dictionary("Time" -> t))
+          wmtsOptions .setDimensions(js.Dictionary("Time" -> t))
         }
 
         val wmts = new layerMod.Tile(layerBaseTileMod.Options().setSource(new sourceMod.WMTS(wmtsOptions)))

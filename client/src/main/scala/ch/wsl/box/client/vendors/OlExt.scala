@@ -3,7 +3,7 @@ package ch.wsl.box.client.vendors
 
 import typings.ol.eventsConditionMod.Condition
 import typings.ol.interactionDrawMod.SketchCoordType
-import typings.ol.geomGeometryTypeMod.GeometryType
+import typings.ol.geomGeometryMod.Type
 import typings.ol.featureMod.FeatureLike
 import typings.ol.interactionSelectMod.FilterFunction
 import typings.ol.styleStyleMod.{Style, StyleLike}
@@ -28,8 +28,8 @@ trait DrawHoleOptions extends js.Object {
   var filter: js.UndefOr[FilterFunction] = js.native
   var hitTolerance: js.UndefOr[Double] = js.native
   var layers: js.UndefOr[
-    js.Array[typings.ol.layerLayerMod.default[typings.ol.sourceSourceMod.default]] | (js.Function1[
-      /* p0 */ typings.ol.layerLayerMod.default[typings.ol.sourceSourceMod.default],
+    js.Array[typings.ol.layerLayerMod.default[typings.ol.sourceSourceMod.default,_]] | (js.Function1[
+      /* p0 */ typings.ol.layerLayerMod.default[typings.ol.sourceSourceMod.default,_],
       Boolean
     ])
   ] = js.native
@@ -56,8 +56,8 @@ object DrawHoleOptions{
         x.asInstanceOf[js.Dynamic].updateDynamic(key)(value)
         x
       }
-      @scala.inline
-      def setType(value: GeometryType): Self = this.set("type", value.asInstanceOf[js.Any])
+//      @scala.inline
+//      def setType(value: GeometryType): Self = this.set("type", value.asInstanceOf[js.Any])
       @scala.inline
       def setClickTolerance(value: Double): Self = this.set("clickTolerance", value.asInstanceOf[js.Any])
       @scala.inline

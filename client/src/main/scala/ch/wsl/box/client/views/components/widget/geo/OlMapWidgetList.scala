@@ -81,7 +81,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         }
 
         toInsert.foreach{ f =>
-          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[typings.ol.renderFeatureMod.default]
           vectorSource.addFeature(geom)
         }
 
@@ -114,7 +114,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
       parseCoordinates(insertCoordinateField.get).foreach { p =>
-        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p))
+        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p)).asInstanceOf[typings.ol.renderFeatureMod.default]
         vectorSource.addFeature(feature)
       }
       e.preventDefault()

@@ -14,8 +14,11 @@ import io.circe.syntax.EncoderOps
 import io.udash.{Property, ReadableProperty}
 import org.scalajs.dom
 import org.scalajs.dom.{Event, MutationObserver, window}
+import typings.ol.mapMod.MapOptions
+import typings.ol.mod.MapBrowserEvent
+import typings.ol.objectMod.ObjectEvent
 import typings.ol.viewMod.FitOptions
-import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, pluggableMapMod, sourceMod, sourceVectorMod, viewMod}
+import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
@@ -41,7 +44,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
   )
 
-  val map = new mod.Map(pluggableMapMod.MapOptions()
+  val map = new mod.Map(MapOptions()
     .setTarget(div)
     .setView(view)
   )
@@ -78,7 +81,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
       layers.values.flatten.foreach { g =>
         val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-        vectorSource.addFeature(geom)
+        vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
       }
 
       map.addLayer(featuresLayer)
@@ -90,12 +93,13 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
         if (!extentListenerInitialized) {
           extentListenerInitialized = true
-          map.getView().on_changeresolution(olStrings.changeColonresolution, event => {
+          BrowserConsole.log("AAAAA")
+          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
             if(extentChangeListenerActive)
               extentChange()
           })
 
-          map.getView().on_changecenter(olStrings.changeColoncenter, event => {
+          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
             if(extentChangeListenerActive)
               extentChange()
           })
@@ -111,7 +115,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
 
 
-    map.on_pointermove(olStrings.pointermove, (e: mapBrowserEventMod.default) => {
+    map.asInstanceOf[js.Dynamic].on(olStrings.pointermove, (e: MapBrowserEvent[_]) => {
       val features = mapActions.getFeatures(e)
       dom.document.getElementsByClassName(StyleConstants.mapHoverClass).foreach(_.classList.remove(StyleConstants.mapHoverClass))
       for {
@@ -125,7 +129,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
       }
     })
 
-    map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {
+    map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
       val features = mapActions.getFeatures(e)
 
       for {

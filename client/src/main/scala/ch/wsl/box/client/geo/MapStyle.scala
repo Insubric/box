@@ -14,7 +14,7 @@ object MapStyle {
         .setFill(
           new styleMod.Fill(styleFillMod.Options().setColor(color))
         )
-      )
+      ).asInstanceOf[typings.ol.imageMod.default]
     )
   )
 
@@ -26,7 +26,7 @@ object MapStyle {
           .setStroke(
             new styleMod.Stroke(styleStrokeMod.Options().setColor(color).setWidth(2))
           )
-        )
+        ).asInstanceOf[typings.ol.imageMod.default]
       )
     )
   )
@@ -40,7 +40,7 @@ object MapStyle {
           .setFill(
             new styleMod.Fill(styleFillMod.Options().setColor("rgba(237, 28, 36)"))
           )
-        )
+        ).asInstanceOf[typings.ol.imageMod.default]
       )
     ),
     new styleMod.Style(styleStyleMod.Options()
@@ -49,7 +49,7 @@ object MapStyle {
           .setStroke(
             new styleMod.Stroke(styleStrokeMod.Options().setColor("#ed1c24").setWidth(4))
           )
-        )
+        ).asInstanceOf[typings.ol.imageMod.default]
       )
     )
   )

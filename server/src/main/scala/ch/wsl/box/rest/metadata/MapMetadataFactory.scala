@@ -1,10 +1,11 @@
 package ch.wsl.box.rest.metadata
 
 import ch.wsl.box.model.boxentities.BoxMap
-import ch.wsl.box.model.shared.geo.{Box2d, DbVector,GEOMETRYCOLLECTION, LINESTRING, MULTILINESTRING, MULTIPOINT, MULTIPOLYGON, MapLayerMetadata, MapMetadata, MapProjection, POINT, POLYGON, WMTS}
+import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GEOMETRYCOLLECTION, LINESTRING, MULTILINESTRING, MULTIPOINT, MULTIPOLYGON, MapLayerMetadata, MapMetadata, MapProjection, POINT, POLYGON, WMTS}
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
 import org.opengis.feature.`type`.GeometryType
 
@@ -15,7 +16,10 @@ object MapMetadataFactory {
 
   private def getSrid(srid: Int)(implicit ex: ExecutionContext):DBIO[MapProjection] = {
 
-      sql""" select auth_name,auth_srid,proj4text from spatial_ref_sys where srid=$srid""".as[(String,Int,String)].head.map{ case (name,srid,proj4) =>
+      def postgisSchema = Registry().postgisSchema
+
+
+      sql""" select auth_name,auth_srid,proj4text from #$postgisSchema.spatial_ref_sys where srid=$srid""".as[(String,Int,String)].head.map{ case (name,srid,proj4) =>
         MapProjection(s"$name:$srid", proj4)
       }
   }
