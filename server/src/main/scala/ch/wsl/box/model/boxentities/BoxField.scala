@@ -16,7 +16,7 @@ object BoxField {
 
   private val schema = Some(Registry.box().schema)
 
-  case class BoxField_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[String] = None, default: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, lookupQuery: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None)
+  case class BoxField_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[Json] = None, default: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, lookupQuery: Option[Json] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None)
 
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,schema, "field") {
