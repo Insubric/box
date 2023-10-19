@@ -1,6 +1,7 @@
 package ch.wsl.box.model.boxentities
 
 import ch.wsl.box.rest.runtime.Registry
+import io.circe.Json
 
 
 /**
@@ -17,7 +18,7 @@ object BoxExportField {
 
 
   case class BoxExportField_row(field_uuid: Option[java.util.UUID] = None, export_uuid: java.util.UUID, `type`: String, name: String, widget: Option[String] = None,
-                                lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery:Option[String] = None,
+                                lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery:Option[Json] = None,
                                 default:Option[String] = None, conditionFieldId:Option[String] = None, conditionValues:Option[String] = None)
   /** GetResult implicit for fetching Field_row objects using plain SQL queries */
 
@@ -43,7 +44,7 @@ object BoxExportField {
     val lookupEntity: Rep[Option[String]] = column[Option[String]]("lookupEntity", O.Default(None))
     /** Database column refValueProperty SqlType(text), Default(None) */
     val lookupValueField: Rep[Option[String]] = column[Option[String]]("lookupValueField", O.Default(None))
-    val lookupQuery: Rep[Option[String]] = column[Option[String]]("lookupQuery", O.Default(None))
+    val lookupQuery: Rep[Option[Json]] = column[Option[Json]]("lookupQuery", O.Default(None))
     /** Database column subform SqlType(int4), Default(None) */
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
     val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))

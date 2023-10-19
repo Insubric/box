@@ -397,8 +397,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
       val childQuery: Option[JSONQuery] = for {
         filter <- field.childQuery
-        json <- parse(filter).right.toOption
-        result <- json.as[JSONQuery].right.toOption
+        result <- filter.as[JSONQuery].toOption
       } yield result
 
       (field.childQuery, childQuery) match {
@@ -464,8 +463,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
           lookupLabel = lookupLabel(field,fieldI18n),
           query = for{
             q <- field.childQuery.orElse(field.lookupQuery)
-            js <- parse(q).toOption
-            query <- js.as[JSONQuery].toOption
+            query <- q.as[JSONQuery].toOption
           } yield query,
           function = field.function,
           minMax = Some(MinMax(min = field.min, max = field.max)),

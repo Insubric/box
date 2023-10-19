@@ -22,11 +22,11 @@ object BoxField {
                            widget: Option[String],
                            lookupEntity: Option[String] = None,
                            lookupValueField: Option[String] = None,
-                           lookupQuery:Option[String] = None,
+                           lookupQuery:Option[Json] = None,
                            child_form_uuid: Option[java.util.UUID] = None,
                            masterFields:Option[String] = None,
                            childFields:Option[String] = None,
-                           childQuery:Option[String] = None,
+                           childQuery:Option[Json] = None,
                            default:Option[String] = None,
                            conditionFieldId:Option[String] = None,
                            conditionValues:Option[String] = None,
@@ -55,14 +55,14 @@ object BoxField {
     val widget: Rep[Option[String]] = column[Option[String]]("widget", O.Default(None))
     /** Database column refModel SqlType(text), Default(None) */
     val lookupEntity: Rep[Option[String]] = column[Option[String]]("lookupEntity", O.Default(None))
-    val lookupQuery: Rep[Option[String]] = column[Option[String]]("lookupQuery", O.Default(None))
+    val lookupQuery: Rep[Option[Json]] = column[Option[Json]]("lookupQuery", O.Default(None))
     /** Database column refValueProperty SqlType(text), Default(None) */
     val lookupValueField: Rep[Option[String]] = column[Option[String]]("lookupValueField", O.Default(None))
     /** Database column subform SqlType(int4), Default(None) */
     val child_form_uuid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("child_form_uuid", O.Default(None))
     val masterFields: Rep[Option[String]] = column[Option[String]]("masterFields", O.Default(None))
     val childFields: Rep[Option[String]] = column[Option[String]]("childFields", O.Default(None))
-    val childQuery: Rep[Option[String]] = column[Option[String]]("childQuery", O.Default(None))
+    val childQuery: Rep[Option[Json]] = column[Option[Json]]("childQuery", O.Default(None))
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
     val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
     val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))

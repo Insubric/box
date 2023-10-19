@@ -45,7 +45,7 @@ object CommonField {
     widget = Some(WidgetsNames.input)
   )
 
-  def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.STRING,"lookupQuery",true,
+  def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
     widget = Some(WidgetsNames.code),
     condition = Some(ConditionalField("lookupEntity",tables.asJson)),
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
