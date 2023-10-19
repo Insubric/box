@@ -28,8 +28,8 @@ SELECT fi.type,
         FROM information_schema.columns
         WHERE columns.table_name::name = f.entity::text
           AND columns.column_name::name = fi.name::text) AS entity_field
-FROM wssweb_box.field fi
-         LEFT JOIN wssweb_box.form f ON fi.form_uuid = f.form_uuid;
+FROM field fi
+         LEFT JOIN form f ON fi.form_uuid = f.form_uuid;
 
 alter table v_field
     owner to postgres;
