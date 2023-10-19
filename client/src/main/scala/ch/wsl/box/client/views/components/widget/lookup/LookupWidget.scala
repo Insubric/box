@@ -134,29 +134,12 @@ trait LookupWidget extends Widget with HasData {
     }
 
 
-    def extractVariables(query: String): Seq[String] = {
-      query.zipWithIndex.filter(_._1 == '#').map { case (_, i) =>
-        val nextIndex = Seq(query.length, query.indexOf(' ', i), query.indexOf('}', i), query.indexOf(',', i)).min
-        query.substring(i + 1, nextIndex).replaceAll("\n", "").trim
-      }.distinct
-    }
 
-    fieldLookup.lookupQuery.map(_.replaceAll("##lang",services.clientSession.lang())) match {
+    fieldLookup.lookupQuery.flatMap(JSONQuery.fromJson) match {
       case Some(query) => {
-        val variables = extractVariables(query)
         autoRelease(allData.listen({ allJs =>
-
-          val q = variables.foldRight(query) { (variable, finalQuery) =>
-            finalQuery.replaceAll("#" + variable, "\"" + allJs.get(variable) + "\"")
-          }
-          val jsonQuery = JSONQuery.fromString(q) match {
-            case Some(value) => value
-            case None => {
-              logger.warn(s""" Query not parsed correctly: $q """)
-              JSONQuery.empty.limit(2000)
-            }
-          }
-          fetchRemoteLookup(jsonQuery)
+          val newQuery = query.withData(allJs,services.clientSession.lang())
+          fetchRemoteLookup(newQuery)
 
         }, true))
       }

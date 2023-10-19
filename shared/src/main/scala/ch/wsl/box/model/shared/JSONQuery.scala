@@ -27,7 +27,14 @@ case class JSONQuery(
   def currentPage = paging.map(_.currentPage).getOrElse(1)
   def pageLength(n:Int) = paging.map(_.pageLength).getOrElse(n)
   def limit(limit:Int) = copy(paging= Some(paging.getOrElse(JSONQueryPaging(1,1)).copy(pageLength = limit)))
-  def withData(json:Json) = this.copy(filter = filter.map(_.withData(json)))
+  def withData(json:Json,lang:String) = this.copy(
+    filter = filter.map(_.withData(json)).map{f =>
+      if(f.value.contains("##lang")) f.copy(value = Some(lang)) else f
+    },
+    sort = sort.map{ s =>
+      if(s.column == "##lang") s.copy(column = lang) else s
+    }
+  )
 
   def withExtent(metadata:JSONMetadata,extent:Polygon):JSONQuery = {
 
@@ -36,6 +43,8 @@ case class JSONQuery(
     }
     copy(filter = newFilters)
   }
+
+  def variables:Set[String] = filter.flatMap(_.fieldValue).distinct.toSet
 }
 
 /**

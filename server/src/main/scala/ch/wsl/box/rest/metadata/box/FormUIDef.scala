@@ -368,7 +368,7 @@ object FormUIDef {
           WidgetsNames.trasparentChild,
         ).asJson))
       ),
-      JSONField(JSONFieldTypes.STRING,"childQuery",true,
+      JSONField(JSONFieldTypes.JSON,"childQuery",true,
         widget = Some(WidgetsNames.code),
         params = Some(Json.obj("language" -> "json".asJson, "height" -> 200.asJson)),
         condition = Some(ConditionalField("widget",Seq(

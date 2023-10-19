@@ -16,7 +16,7 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
 
   private def singleLookupRemote(table:String, field: String, query:JSONQuery,lookup:JSONFieldLookupRemote):DBIO[JSONLookups] = {
     val remoteLabels = lookup.map.textProperty.split(",").toSeq
-    val baseQuery:JSONQuery = lookup.lookupQuery.flatMap(q => JSONQuery.fromString(q)).getOrElse(JSONQuery.empty)
+    val baseQuery:JSONQuery = lookup.lookupQuery.flatMap(q => JSONQuery.fromJson(q)).getOrElse(JSONQuery.empty)
     for{
       values <- registry.actions(table).distinctOn(field,query)
       query = baseQuery.copy(filter = WHERE.in(lookup.map.valueProperty,values.map(_.string)) :: baseQuery.filter)

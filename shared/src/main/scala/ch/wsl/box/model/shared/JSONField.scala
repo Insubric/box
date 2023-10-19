@@ -91,7 +91,7 @@ sealed trait JSONFieldLookup
   * @param lookupQuery
   * @param lookupExtractor map with on the first place the key of the Json, on second place the possible values with they respective values
   */
-case class JSONFieldLookupRemote(lookupEntity:String, map:JSONFieldMap, lookupQuery:Option[String] = None) extends JSONFieldLookup
+case class JSONFieldLookupRemote(lookupEntity:String, map:JSONFieldMap, lookupQuery:Option[Json] = None) extends JSONFieldLookup
 case class JSONFieldLookupExtractor(extractor: JSONLookupExtractor) extends JSONFieldLookup
 case class JSONFieldLookupData(data:Seq[JSONLookup]) extends JSONFieldLookup
 
@@ -108,7 +108,7 @@ object JSONFieldLookup {
     JSONLookup(lookupRow.js(mapping.valueProperty),label)
   }
 
-  def fromDB(lookupEntity:String, mapping:JSONFieldMap, lookupQuery:Option[String] = None):JSONFieldLookup = {
+  def fromDB(lookupEntity:String, mapping:JSONFieldMap, lookupQuery:Option[Json] = None):JSONFieldLookup = {
     JSONFieldLookupRemote(lookupEntity, mapping,lookupQuery)
   }
 
