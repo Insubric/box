@@ -1,6 +1,7 @@
 package ch.wsl.box.model.shared.geo
 
 
+import ch.wsl.box.model.shared.GeoJson.{CRS, Coordinates, Polygon}
 import ch.wsl.box.model.shared.JSONQuery
 
 import java.util.UUID
@@ -12,6 +13,13 @@ case class Box2d(
                   yMax: Double
                 ) {
   def toExtent():Seq[Double] = Seq(xMin,yMin,xMax,yMax)
+  def toPolygon(crs:CRS):Polygon = Polygon(Seq(Seq(
+    Coordinates(xMin, yMin),
+    Coordinates(xMin, yMax),
+    Coordinates(xMax, yMax),
+    Coordinates(xMax, yMin),
+    Coordinates(xMin, yMin)
+  )), crs)
 }
 
 object Box2d{
@@ -31,6 +39,7 @@ case class MapMetadata(
                         parameters: Seq[String],
                         srid: MapProjection,
                         boundingBox: Box2d,
+                        maxZoom: Double,
                         wmts: Seq[WMTS],
                         db: Seq[DbVector]
                       )

@@ -44,6 +44,13 @@ case class JSONQuery(
     copy(filter = newFilters)
   }
 
+  def withExtent(field: String, extent: Polygon): JSONQuery = {
+
+    val newFilters = filter.filterNot(_.column == field) ++ List(JSONQueryFilter.withValue(field, Some(Filter.INTERSECT), extent.toEWKT()))
+
+    copy(filter = newFilters)
+  }
+
   def variables:Set[String] = filter.flatMap(_.fieldValue).distinct.toSet
 }
 

@@ -7,7 +7,8 @@ create table maps (
     x_min double precision not null,
     y_min double precision not null,
     x_max double precision not null,
-    y_max double precision not null
+    y_max double precision not null,
+    max_zoom double precision not null
 );
 
 create table map_layer_vector_db (
@@ -20,7 +21,8 @@ create table map_layer_vector_db (
                 z_index int not null,
                 extra jsonb,
                 editable boolean not null default false,
-                query jsonb
+                query jsonb,
+                autofocus boolean not null default false
 );
 
 create table map_layer_wmts (

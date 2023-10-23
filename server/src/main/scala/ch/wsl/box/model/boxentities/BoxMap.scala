@@ -14,7 +14,7 @@ object BoxMap {
   import profile._
 
 
-  case class Map_row(map_id: java.util.UUID, name: String, parameters: Option[List[String]] = None, srid: Int, x_min: Double, y_min: Double, x_max: Double, y_max: Double)
+  case class Map_row(map_id: java.util.UUID, name: String, parameters: Option[List[String]] = None, srid: Int, x_min: Double, y_min: Double, x_max: Double, y_max: Double,max_zoom:Double)
 
 
   /** GetResult implicit for fetching Map_row objects using plain SQL queries */
@@ -23,10 +23,9 @@ object BoxMap {
   class Maps(_tableTag: Tag) extends Table[Map_row](_tableTag, schema, "maps") {
 
 
-    def * = (map_id, name, parameters, srid, x_min, y_min, x_max, y_max).<>(Map_row.tupled, Map_row.unapply)
+    def * = (map_id, name, parameters, srid, x_min, y_min, x_max, y_max, max_zoom).<>(Map_row.tupled, Map_row.unapply)
 
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(map_id), Rep.Some(name), parameters, srid, x_min, y_min, x_max, y_max)).shaped.<>({ r => import r._; _1.map(_ => Map_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8))) }, (_: Any) => throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column map_id SqlType(uuid), PrimaryKey */
     val map_id: Rep[java.util.UUID] = column[java.util.UUID]("map_id", O.PrimaryKey)
@@ -39,6 +38,7 @@ object BoxMap {
     val y_min: Rep[Double] = column[Double]("y_min")
     val x_max: Rep[Double] = column[Double]("x_max")
     val y_max: Rep[Double] = column[Double]("y_max")
+    val max_zoom: Rep[Double] = column[Double]("max_zoom")
   }
 
   /** Collection-like TableQuery object for table Map */
@@ -56,14 +56,14 @@ object BoxMap {
    * @param extra         Database column extra SqlType(jsonb), Default(None)
    * @param editable      Database column editable SqlType(bool), Default(false)
    * @param query         Database column query SqlType(jsonb), Default(None) */
-  case class Map_layer_vector_db_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, entity: String, field: String, geometry_type: String, z_index: Int, extra: Option[io.circe.Json] = None, editable: Boolean = false, query: Option[io.circe.Json] = None, srid:Int)
+  case class Map_layer_vector_db_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, entity: String, field: String, geometry_type: String, z_index: Int, extra: Option[io.circe.Json] = None, editable: Boolean = false, query: Option[io.circe.Json] = None, srid:Int, autofocus:Boolean)
 
 
   /** Table description of table map_layer_vector_db. Objects of this class serve as prototypes for rows in queries. */
   class Map_layer_vector_db(_tableTag: Tag) extends Table[Map_layer_vector_db_row](_tableTag,schema, "map_layer_vector_db") {
 
 
-    def * = (Rep.Some(layer_id), map_id, entity, field, geometry_type, z_index, extra, editable, query, srid).<>(Map_layer_vector_db_row.tupled, Map_layer_vector_db_row.unapply)
+    def * = (Rep.Some(layer_id), map_id, entity, field, geometry_type, z_index, extra, editable, query, srid,autofocus).<>(Map_layer_vector_db_row.tupled, Map_layer_vector_db_row.unapply)
 
 
     /** Database column layer_id SqlType(uuid), PrimaryKey */
@@ -82,6 +82,7 @@ object BoxMap {
     val extra: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("extra", O.Default(None))
     /** Database column editable SqlType(bool), Default(false) */
     val editable: Rep[Boolean] = column[Boolean]("editable", O.Default(false))
+    val autofocus: Rep[Boolean] = column[Boolean]("autofocus", O.Default(false))
     /** Database column query SqlType(jsonb), Default(None) */
     val query: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("query", O.Default(None))
     val srid: Rep[Int] = column[Int]("srid")

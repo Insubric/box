@@ -20,7 +20,8 @@ case class DbVector(
            query: Option[JSONQuery],
            extra: Json,
            editable: Boolean,
-           order:Int
+           order:Int,
+           autofocus: Boolean
          ) extends MapLayerMetadata
 
 

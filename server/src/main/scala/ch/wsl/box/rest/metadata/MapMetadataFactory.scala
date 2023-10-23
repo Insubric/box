@@ -4,6 +4,7 @@ import ch.wsl.box.model.boxentities.BoxMap
 import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GEOMETRYCOLLECTION, LINESTRING, MULTILINESTRING, MULTIPOINT, MULTIPOLYGON, MapLayerMetadata, MapMetadata, MapProjection, POINT, POLYGON, WMTS}
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.GeoJson.CRS
 import ch.wsl.box.model.shared.JSONQuery
 import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
@@ -50,7 +51,7 @@ object MapMetadataFactory {
     } yield {
 
 
-      MapMetadata(map.map_id, map.name, map.parameters.getOrElse(Seq()), srid, map2bbox(map),
+      MapMetadata(map.map_id, map.name, map.parameters.getOrElse(Seq()), srid, map2bbox(map),map.max_zoom,
         wmts,
         vectors
       )
@@ -83,7 +84,8 @@ object MapMetadataFactory {
         l.query.flatMap(JSONQuery.fromJson),
         l.extra.getOrElse(Json.Null),
         l.editable,
-        l.z_index
+        l.z_index,
+        l.autofocus
       )
 
     }

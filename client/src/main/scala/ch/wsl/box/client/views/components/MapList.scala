@@ -93,7 +93,6 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
         if (!extentListenerInitialized) {
           extentListenerInitialized = true
-          BrowserConsole.log("AAAAA")
           map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
             if(extentChangeListenerActive)
               extentChange()
