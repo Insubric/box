@@ -51,7 +51,3 @@ trait TableActions[T] extends ViewActions[T] {
   def updateDiff(diff:JSONDiff):DBIO[Option[T]]
 
 }
-
-trait JsonQuery{
-  def findQuery(query: JSONQuery): Query[MappedProjection[Json, _], Json, Seq]
-}

@@ -14,6 +14,7 @@ import io.circe.{Json, JsonObject}
 import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.rest.io.csv.CSV
 import ch.wsl.box.rest.io.shp.ShapeFileWriter
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
@@ -250,26 +251,6 @@ case class Form(
     }
   }
 
-  def geoData: Route = path("geo-data") {
-    post {
-      entity(as[JSONQuery]) { query =>
-
-        complete {
-          for {
-            data <- PSQLImpl.table(metadata.view.getOrElse(metadata.entity), query,Some(metadata.keys))
-          } yield {
-            val result: GeoTypes.GeoData = data.map { d =>
-              d.geometry.map { geom =>
-                geom._1 -> d.idString.zip(geom._2).flatMap { case (id, geo) => geo.map(g => GeoJson.Feature(g, Some(JsonObject("jsonid" -> id.asJson)))) }
-              }
-            }.getOrElse(Map())
-            result
-          }
-        }
-      }
-    }
-  }
-
 
   def route = pathPrefix("id") {
       path(Segment) { strId =>
@@ -367,7 +348,7 @@ case class Form(
     xls ~
     csv ~
     shp ~
-    geoData ~
+    GeoData(db,actions, metadata) ~
     lookups(actions) ~
     pathEnd {
         post {

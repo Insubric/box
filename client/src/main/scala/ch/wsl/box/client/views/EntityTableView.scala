@@ -74,7 +74,7 @@ case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery]
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Map(),None)
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None)
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -206,7 +206,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         access = access,
         lookups = Seq(),
         query = Some(query),
-        geoms = Map(),
+        geoms = Seq(),
         extent = None
       )
 
@@ -347,8 +347,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
     if(hasGeometry()) {
-      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, q.limit(10000000)).foreach{ geoms =>
-        model.subProp(_.geoms).set(geoms)
+      Future.sequence(model.get.metadata.toList.flatMap(_.geomFields).map{ f =>
+          services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, f.name, q.limit(10000000))
+      }).foreach{ geoms =>
+        model.subProp(_.geoms).set(geoms.flatten)
       }
     }
 

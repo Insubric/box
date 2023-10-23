@@ -39,8 +39,8 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def csv(kind:String, lang:String, entity:String, q:JSONQuery): Future[Seq[Seq[String]]] = httpClient.post[JSONQuery,String](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/csv"),q).map{ result =>
     result.asUnsafeCsvReader[Seq[String]](rfc).toSeq
   }
-  override def geoData(kind:String, lang:String, entity:String, query:JSONQuery): Future[GeoTypes.GeoData] = {
-    httpClient.post[JSONQuery,GeoTypes.GeoData](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data"),query)
+  override def geoData(kind:String, lang:String, entity:String, field:String, query:JSONQuery): Future[GeoTypes.GeoData] = {
+    httpClient.post[JSONQuery,GeoTypes.GeoData](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data/$field"),query)
   }
 
   def count(kind:String, lang:String, entity:String): Future[Int] = httpClient.get[Int](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/count"))

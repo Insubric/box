@@ -20,6 +20,7 @@ case class DbVector(
            query: Option[JSONQuery],
            extra: Json,
            editable: Boolean,
+           order:Int
          ) extends MapLayerMetadata
 
 
@@ -29,7 +30,8 @@ case class WMTS(
                  capabilitiesUrl: String,
                  layerId: String,
                  srid: MapProjection,
-                 extra: Json
+                 extra: Json,
+                 order:Int
                ) extends MapLayerMetadata
 
 sealed trait GeometryType

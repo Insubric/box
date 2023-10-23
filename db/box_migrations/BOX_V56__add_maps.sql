@@ -17,7 +17,7 @@ create table map_layer_vector_db (
                 field text not null,
                 geometry_type text not null,
                 srid int not null,
-                z_index int,
+                z_index int not null,
                 extra jsonb,
                 editable boolean not null default false,
                 query jsonb
@@ -29,7 +29,7 @@ create table map_layer_wmts (
               capabilities_url text not null,
               wmts_layer_id text not null,
               srid int not null,
-              z_index int,
+              z_index int not null,
               extra jsonb
 );
 

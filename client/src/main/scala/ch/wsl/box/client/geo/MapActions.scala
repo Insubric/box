@@ -94,8 +94,8 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
 
     val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(metadata,calculateExtent())
 
-    services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, query).foreach { geoms =>
-      val features = geoms.getOrElse(layer.column,Seq()).map{ g =>
+    services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, query).foreach { geoms =>
+      val features = geoms.map{ g =>
         new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
       }
 

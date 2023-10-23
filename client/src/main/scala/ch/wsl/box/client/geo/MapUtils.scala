@@ -11,7 +11,7 @@ import scala.scalajs.js.|._
 
 object MapUtils extends Logging {
 
-  def loadWmtsLayer(capabilitiesUrl: String, layer: String, time: Option[String]) = {
+  def loadWmtsLayer(capabilitiesUrl: String, layer: String, time: Option[String],zIndex: Int = 0) = {
 
     val result = Promise[layerMod.Tile[_]]()
 
@@ -35,7 +35,10 @@ object MapUtils extends Logging {
           wmtsOptions .setDimensions(js.Dictionary("Time" -> t))
         }
 
-        val wmts = new layerMod.Tile(layerBaseTileMod.Options().setSource(new sourceMod.WMTS(wmtsOptions)))
+        val wmts = new layerMod.Tile(layerBaseTileMod.Options()
+          .setSource(new sourceMod.WMTS(wmtsOptions))
+          .setZIndex(zIndex)
+        )
         result.success(wmts)
       }
     }

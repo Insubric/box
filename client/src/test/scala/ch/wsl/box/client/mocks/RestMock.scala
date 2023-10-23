@@ -58,7 +58,7 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def geoData(kind:String, lang:String, entity:String, query:JSONQuery): Future[GeoTypes.GeoData] = ???
+  override def geoData(kind:String, lang:String, entity:String, field:String, query:JSONQuery): Future[GeoTypes.GeoData] = ???
 
   override def csv(kind: String, lang: String, entity: String, q: JSONQuery): Future[Seq[Seq[String]]] = {
     println("csv not implemented")

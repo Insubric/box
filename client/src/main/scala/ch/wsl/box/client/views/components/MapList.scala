@@ -79,14 +79,14 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
       map.removeLayer(featuresLayer)
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
-      layers.values.flatten.foreach { g =>
+      layers.foreach { g =>
         val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
         vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
       }
 
       map.addLayer(featuresLayer)
 
-      if (extent.get.isEmpty && layers.values.flatten.size > 0) {
+      if (extent.get.isEmpty && layers.nonEmpty) {
 
         val sourceExtent = vectorSource.getExtent()
         map.getView().fit(sourceExtent,FitOptions().setPadding(js.Array(20.0,20.0,20.0,20.0)))

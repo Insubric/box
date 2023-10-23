@@ -31,5 +31,6 @@ case class MapMetadata(
                         parameters: Seq[String],
                         srid: MapProjection,
                         boundingBox: Box2d,
-                        layers: Seq[MapLayerMetadata]
+                        wmts: Seq[WMTS],
+                        db: Seq[DbVector]
                       )

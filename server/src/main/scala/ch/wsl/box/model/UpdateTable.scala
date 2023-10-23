@@ -220,8 +220,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.<=,_,Some(v)) => concat(base,sql""" <= $v """)
         case (Filter.>=,_,Some(v)) => concat(base,sql""" >= $v """)
         case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
-        case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
-        case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
+        case (Filter.IS_NOT_NULL,_,_) => concat(base,sql""" is not null """)
+        case (Filter.IS_NULL,_,_) => concat(base,sql""" is null """)
         case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
       }
       Some(result)

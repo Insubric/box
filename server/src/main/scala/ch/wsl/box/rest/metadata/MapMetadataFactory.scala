@@ -43,21 +43,24 @@ object MapMetadataFactory {
 
     for {
       vectorLayers <- BoxMap.Map_layer_vector_db.filter(_.map_id === map.map_id).result
+      vectors <- DBIO.sequence(vectorLayers.map(toLayer))
       wmtsLayers <- BoxMap.Map_layer_wmts.filter(_.map_id === map.map_id).result
+      wmts <- DBIO.sequence(wmtsLayers.map(toLayer))
       srid <- getSrid(map.srid)
-      layers <- DBIO.sequence(vectorLayers.map(toLayer) ++ wmtsLayers.map(toLayer))
     } yield {
 
-      val sortedLayers = layers.sortBy(_._1).map(_._2)
 
-      MapMetadata(map.map_id, map.name, map.parameters.getOrElse(Seq()), srid, map2bbox(map), sortedLayers)
+      MapMetadata(map.map_id, map.name, map.parameters.getOrElse(Seq()), srid, map2bbox(map),
+        wmts,
+        vectors
+      )
 
 
     }
   }
 
 
-  def toLayer(l: BoxMap.Map_layer_vector_db_row)(implicit ex:ExecutionContext): DBIO[(Int,MapLayerMetadata)] = {
+  def toLayer(l: BoxMap.Map_layer_vector_db_row)(implicit ex:ExecutionContext): DBIO[DbVector] = {
 
     val geom = l.geometry_type match {
       case "POINT" => POINT
@@ -71,7 +74,7 @@ object MapMetadataFactory {
 
     getSrid(l.srid).map { srid =>
 
-      (l.z_index.getOrElse(-1),DbVector(
+      DbVector(
         l.layer_id.get,
         l.entity,
         l.field,
@@ -80,21 +83,23 @@ object MapMetadataFactory {
         l.query.flatMap(JSONQuery.fromJson),
         l.extra.getOrElse(Json.Null),
         l.editable,
-      ))
+        l.z_index
+      )
 
     }
 
 
   }
 
-  def toLayer(l: BoxMap.Map_layer_wmts_row)(implicit ex:ExecutionContext): DBIO[(Int,MapLayerMetadata)] =  getSrid(l.srid).map { srid =>
-    (l.z_index.getOrElse(-1),WMTS(
+  def toLayer(l: BoxMap.Map_layer_wmts_row)(implicit ex:ExecutionContext): DBIO[WMTS] =  getSrid(l.srid).map { srid =>
+    WMTS(
       l.layer_id.get,
       l.capabilities_url,
       l.wmts_layer_id,
       srid,
-      l.extra.getOrElse(Json.Null)
-    ))
+      l.extra.getOrElse(Json.Null),
+      l.z_index
+    )
   }
 
 
