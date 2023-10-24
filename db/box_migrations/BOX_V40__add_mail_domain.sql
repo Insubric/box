@@ -4,7 +4,7 @@ CREATE EXTENSION if not exists citext;
 --create types
 DO $$
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'email') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'email' and typnamespace=current_schema::regnamespace::oid ) THEN
             CREATE DOMAIN email AS citext
                 CHECK ( value ~ '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$' );
         END IF;
