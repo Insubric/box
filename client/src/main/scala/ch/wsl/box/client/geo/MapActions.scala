@@ -90,7 +90,7 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
     map.removeLayer(featuresLayer)
     vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
-    val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(metadata,calculateExtent())
+    val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent())
 
     services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, query).foreach { geoms =>
       geoms.getOrElse(layer.column,Seq()).foreach{ g =>
