@@ -1,7 +1,9 @@
 package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.model.shared.Internationalization.I18n
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, SurrugateKey}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
@@ -80,6 +82,15 @@ object WidgetUtils extends Logging{
     metadata.keyStrategy == SurrugateKey &&
     !( ClientConf.manualEditKeyFields || ClientConf.manualEditSingleKeyFields.contains(metadata.entity + "." + field.name))
 
+  }
+
+  import ch.wsl.box.client.Context._
+  def i18nLabel(params:Option[Json],field:String):Option[String] = {
+    val sl = params.flatMap(_.jsOpt(field))
+    sl.flatMap(_.as[I18n].toOption) match {
+      case Some(value) => value.lang(services.clientSession.lang())
+      case None => sl.flatMap(_.asString)
+    }
   }
 
 }
