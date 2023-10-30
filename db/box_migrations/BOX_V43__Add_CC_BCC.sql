@@ -1,8 +1,13 @@
 alter domain email drop constraint email_check;
-alter domain email add
-    constraint email_check check (VALUE OPERATOR (~)
-                                  '^([a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)?(.+ <[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*>)?$'::citext);
-
+DO $$
+    declare
+        citext_schema text;
+    BEGIN
+        select nspname into citext_schema from pg_namespace where oid=(select extnamespace from pg_extension where extname='citext');
+        execute 'alter domain email add constraint email_check check (VALUE OPERATOR (~)
+                                  ''^([a-zA-Z0-9.!#$%&''''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)?(.+ <[a-zA-Z0-9.!#$%&''''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*>)?$''::'|| citext_schema ||'.citext);';
+        --more types here...
+END$$;
 
 alter table mails add column mail_cc text[] not null default array[]::text[];
 alter table mails add column mail_bcc text[] not null default array[]::text[];

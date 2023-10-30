@@ -6,7 +6,7 @@ import ch.wsl.box.model.shared.{DataResultTable, GeoJson}
 import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
-import org.geotools.data.shapefile.ShapefileDataStoreFactory
+import org.geotools.data.shapefile.{ShapefileDataStore, ShapefileDataStoreFactory}
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.feature.DefaultFeatureCollection
@@ -18,6 +18,7 @@ import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.opengis.feature.simple.SimpleFeatureType
 import org.geotools.data.simple._
 
+import java.nio.charset.Charset
 import java.nio.file.Files
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -59,21 +60,20 @@ object ShapeFileWriter extends Logging {
 
     val builder: SimpleFeatureTypeBuilder = new SimpleFeatureTypeBuilder
     builder.setName(name)
-   // builder.setCRS(org.geotools.referencing.CRS.decode(crs.name)) // TODO
-
+    builder.setCRS(org.geotools.referencing.CRS.decode(crs.name))
 
 
     // add attributes in order
     builder.add("the_geom", cls) // SHP should always have a column holding the geometry the_geom
-    defs.foreach{ d =>
+    defs.zipWithIndex.foreach{ case (d,i) =>
+      val columnName = d.name.take(8) + i
       d.typ match {
-        case "integer" => builder.add(d.name.take(15),classOf[Integer])
-        case "number" => builder.add(d.name.take(15),classOf[Double])
+        case "integer" => builder.add(columnName,classOf[Integer])
+        case "number" => builder.add(columnName,classOf[Double])
         case "geometry" => {}
-        case _ => builder.length(255).add(d.name.take(15),classOf[String])
+        case _ => builder.length(255).add(columnName,classOf[String])
       }
     }
-    builder.length(15).add("Name", classOf[String]) // <- 15 chars width for name field
 
     builder.buildFeatureType
 
@@ -136,7 +136,6 @@ object ShapeFileWriter extends Logging {
   }
 
 
-
   private def attributeWriter(attributes: Seq[ShapeFileAttributes],featureBuilder:SimpleFeatureBuilder) = {
     attributes.foreach{ sfa =>
       sfa.typ match {
@@ -148,7 +147,7 @@ object ShapeFileWriter extends Logging {
           if(str.isEmpty) {
             featureBuilder.add(null)
           } else {
-            featureBuilder.add(sfa.value.string.take (255) )
+            featureBuilder.add(sfa.value.string.take(255) )
           }
         }
       }
@@ -162,10 +161,10 @@ object ShapeFileWriter extends Logging {
     val dataStoreFactory = new ShapefileDataStoreFactory
     val params = Map(
       "url" -> file.toURI.toURL,
-      "create spatial index" -> java.lang.Boolean.TRUE
+      "charset" -> "utf8",
+      "create spatial index"  -> java.lang.Boolean.TRUE,
     )
-    val dataStore = dataStoreFactory.createNewDataStore(params.asJava.asInstanceOf[java.util.Map[String,java.io.Serializable]])
-
+    val dataStore = dataStoreFactory.createNewDataStore(params.asJava)
     dataStore.createSchema(schema)
     val typeName = dataStore.getTypeNames()(0)
     val featureSource = dataStore.getFeatureSource(typeName)

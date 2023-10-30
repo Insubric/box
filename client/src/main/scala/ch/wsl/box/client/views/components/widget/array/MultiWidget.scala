@@ -52,6 +52,8 @@ object MultiWidget extends ComponentWidgetFactory {
     override def field: JSONField = params.field
 
     private def multiWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
+    private def showTotal = field.`type` == JSONFieldTypes.ARRAY_NUMBER && field.params.exists(_.js("showTotal") == Json.True)
+    private def showTotalLabel = WidgetUtils.i18nLabel(params.field.params,"showTotalLabel")
 
 
     private val widgetJsonField = {
@@ -84,6 +86,12 @@ object MultiWidget extends ComponentWidgetFactory {
         nested(repeatWithNested(data) { (d, n) =>
           div(ClientConf.style.editableTableMulti, createWidget(d).editOnTable(n)).render
         }),
+        if(showTotal) {
+          nested(produce(data) { d =>
+            val total = d.flatMap(_._1.as[Double].toOption).sum
+            div(textAlign.center,fontWeight.bold,total,showTotalLabel).render
+          })
+        } else Seq[Modifier](),
         nested(showIf(data.transform(_.length < params.field.minMax.flatMap(_.max.map(_.toInt)).getOrElse(Int.MaxValue))) {
           a("Add", onclick :+= ((e: Event) => add())).render
         })

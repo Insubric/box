@@ -38,14 +38,7 @@ object SliderWidget extends ComponentWidgetFactory {
 
 
 
-    def secondaryLabel:String = {
-      val sl = params.field.params.flatMap(_.jsOpt("secondaryLabel"))
-      val maybeString = sl.flatMap(_.as[I18n].toOption) match {
-        case Some(value) => value.find(_.lang == services.clientSession.lang()).orElse(value.headOption).map(_.label)
-        case None => sl.flatMap(_.asString)
-      }
-      maybeString.getOrElse("")
-    }
+    def secondaryLabel:String = WidgetUtils.i18nLabel(params.field.params,"secondaryLabel").getOrElse("")
     def unit = params.field.params.flatMap(_.getOpt("unit")).getOrElse("")
     def step:Option[Double] = {
       params.field.params.flatMap(_.js("step").as[Double].toOption) match {

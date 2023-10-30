@@ -161,6 +161,7 @@ object Settings {
     "com.vladsch.flexmark" % "flexmark-profile-pegdown" % "0.62.2" % Test,
     "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
     "org.geotools" % "gt-shapefile" % "27.2",
+    "org.geotools" % "gt-epsg-hsql" % "27.2",
     "com.google.zxing" % "core" % "3.5.0",
     "com.google.zxing" % "javase" % "3.5.0",
     "com.typesafe" %% "ssl-config-core" % "0.6.1",
