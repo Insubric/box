@@ -18,8 +18,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
 
     logger.info(s"match URL $localUrl logged: ${services.clientSession.isSet(ClientSession.USER)}")
     services.clientSession.isSet(ClientSession.USER) match {
-      //case true => loggedInUrl2State.applyOrElse (url.value.stripSuffix ("/"), (x: String) => ErrorState)
-      case true => loggedInUrl2State.applyOrElse ( localUrl, (x: String) => {
+      case true => loggedInUrl2State.applyOrElse ( localUrl.stripPrefix("/public"), (x: String) => {
         logger.warn(s"Not found $localUrl")
         Notification.add(Labels.error.notfound + " " + localUrl)
         IndexState
