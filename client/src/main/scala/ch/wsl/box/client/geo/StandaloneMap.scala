@@ -8,6 +8,7 @@ import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom.MutationObserver
 import scalatags.JsDom._
@@ -32,15 +33,28 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
   val editable = metadata.db.exists(_.editable)
 
+
+  val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
+  val selectedVectorSource: ReadableProperty[Option[sourceMod.Vector[geomGeometryMod.default]]] = selectedLayerForEdit.transform(_.flatMap(layerOf).map(_.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]))
+
+  val controlsDiv = div().render
+
   val mapDiv:Div = if (editable) {
-    val selectedLayerForEdit: Property[DbVector] = Property(metadata.db.filter(_.editable).head)
+
+
 
     val _mapDiv = div(height := (_div.clientHeight - 20).px).render
     val wrapper = div(
       div(height := 20.px,
-        Select(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)))(x => x.field),
-        onchange :+= ((e: Event) => BrowserConsole.log(selectedLayerForEdit.get.toString))
+        Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field),
+        onchange :+= { (e: Event) => BrowserConsole.log(selectedLayerForEdit.get.toString)
+          controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
+          selectedLayerForEdit.get.foreach { vector =>
+            controlsDiv.appendChild(control.renderControls(EnabledControls.fromDbVector(vector),Binding.NestedInterceptor.Identity))
+          }
+        }
       ),
+      controlsDiv,
       _mapDiv).render
 
     _div.appendChild(wrapper)
@@ -74,6 +88,8 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
   )
 
   window.asInstanceOf[js.Dynamic].test = map
+
+  val control = new MapControlsIcons(MapControlsParams(map,selectedVectorSource,proj,Seq(),None,None,true,() => (), None))
 
   def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
 
@@ -138,7 +154,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
         .setSource(vectorSource)
         .setZIndex(vector.order)
         .setProperties(StringDictionary((BOX_LAYER_ID,vector.id.toString)))
-        .setStyle(MapStyle.vectorStyle())
+        .setStyle(MapStyle.vectorStyle(vector.color))
       )
 
 
@@ -161,6 +177,9 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
       extent = fit()
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v,d,Some(extent))))
     } yield {
+      if(selectedLayerForEdit.get.isEmpty) {
+        selectedLayerForEdit.set(metadata.db.find(_.editable))
+      }
       addLayers(extraLayers)
     }
   }, true)

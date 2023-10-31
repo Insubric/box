@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components
 
-import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapParams, MapStyle}
+import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapParams, MapStyle, MapUtils}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
@@ -49,7 +49,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     .setView(view)
   )
 
-  override val mapActions: MapActions = new MapActions(map,options,metadata)
+  override val mapActions: MapActions = new MapActions(map,options.crs)
 
 
 
@@ -68,7 +68,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
 
     val extentChange = Debounce(250.millis)((_: Unit) => {
-      extent.set(Some(mapActions.calculateExtent()))
+      extent.set(Some(mapActions.calculateExtent(proj.default.crs)))
     })
 
     var extentListenerInitialized = false
@@ -115,7 +115,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
 
     map.asInstanceOf[js.Dynamic].on(olStrings.pointermove, (e: MapBrowserEvent[_]) => {
-      val features = mapActions.getFeatures(e)
+      val features = MapUtils.getFeatures(map,e)
       dom.document.getElementsByClassName(StyleConstants.mapHoverClass).foreach(_.classList.remove(StyleConstants.mapHoverClass))
       for {
         clicked <- features.headOption
@@ -129,7 +129,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     })
 
     map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
-      val features = mapActions.getFeatures(e)
+      val features = MapUtils.getFeatures(map,e)
 
       for {
         clicked <- features.headOption

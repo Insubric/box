@@ -2,9 +2,9 @@ package ch.wsl.box.client.views.components.widget.geo
 
 import cats.effect._
 import cats.effect.unsafe.implicits._
-import ch.wsl.box.client.geo.{BoxMapProjections, BoxOlMap, MapActions, MapParams, MapParamsLayers, MapStyle, MapUtils}
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dom._
+import ch.wsl.box.client.geo.{BoxMapProjections, BoxOlMap, Control, EnabledControls, MapActions, MapControls, MapControlsIcons, MapControlsParams, MapParams, MapParamsLayers, MapStyle, MapUtils}
 import org.scalajs.dom._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
@@ -87,7 +87,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var map:mod.Map = null
   logger.info(s"Loading ol map")
 
-  lazy val mapActions = new MapActions(map,options,metadata)
+  lazy val mapActions = new MapActions(map,options.crs)
 
   var featuresLayer: layerBaseMod.default = null
 
@@ -227,47 +227,20 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     // when adding a point go back to view mode
     if(
       changes &&
-        (activeControl.get == Control.POINT ||
-        activeControl.get == Control.LINESTRING ||
-        activeControl.get == Control.POLYGON)
+        (mapControls.activeControl.get == Control.POINT ||
+          mapControls.activeControl.get == Control.LINESTRING ||
+          mapControls.activeControl.get == Control.POLYGON)
     ) {
-      activeControl.set(Control.VIEW)
+      mapControls.activeControl.set(Control.VIEW)
     }
 
   }
 
-  var modify:interactionModifyMod.default = null
-  var drawPoint:interactionDrawMod.default = null
-  var drawLineString:interactionDrawMod.default = null
-  var drawPolygon:interactionDrawMod.default = null
-  var snap:interactionSnapMod.default = null
-  var drag:interactionTranslateMod.default = null
-  var delete:interactionSelectMod.default = null
-  var drawHole:DrawHole = null
+  var mapControls:MapControls = null
 
-  def dynamicInteraction = Seq(
-    modify,
-    drawPoint,
-    drawLineString,
-    drawPolygon,
-    snap,
-    drag,
-    delete,
-    drawHole
-  )
-
-  def loadMap(mapDiv:Div) = {
-
-
-
-
+  def loadMap(mapDiv:Div,controlFactory:MapControlsParams => MapControls) = {
 
      vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
-
-
-    //red #ed1c24
-
-
 
     featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)
@@ -300,143 +273,18 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     onLoad()
 
 
-    val infoOverlay = new Overlay(overlayMod.Options()
-      .setElement(div().render)
-    )
-
-    onAddFeature = _ => changedFeatures()
-
-    registerListener(true)
-
-
     vectorSource.asInstanceOf[js.Dynamic].on(olStrings.changefeature, { () =>
       changedFeatures()
     })
 
-
-    modify = new interactionModifyMod.default(interactionModifyMod.Options()
-      .setSource(vectorSource)
-      .setStyle(MapStyle.simpleStyle())
-    )
-    //modify.on_modifyend(olStrings.modifyend,(e:ModifyEvent) => changedFeatures())
-
-    drawPoint = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryMod.Type.Point)
-      .setSource(vectorSource)
-      .setStyle(MapStyle.vectorStyle())
-    )
-    //drawPoint.on_change(olStrings.change,e => changedFeatures())
-
-    drawLineString = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryMod.Type.LineString)
-      .setSource(vectorSource)
-      .setStyle(MapStyle.simpleStyle())
-    )
-    //drawLineString.on_change(olStrings.change,e => changedFeatures())
-
-    drawPolygon = new interactionDrawMod.default(interactionDrawMod.Options(geomGeometryMod.Type.Polygon)
-      .setSource(vectorSource)
-      .setStyle(MapStyle.simpleStyle())
-    )
-    drawPolygon.finishDrawing()
-    //drawPolygon.on_change(olStrings.change,e => changedFeatures())
-
-    drag = new interactionTranslateMod.default(interactionTranslateMod.Options())
-    //drag.on_translateend(olStrings.translateend, (e:TranslateEvent) => changedFeatures())
-
-
-    snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vectorSource))
-
-    delete = new interactionSelectMod.default(interactionSelectMod.Options())
-
-    delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
-      if (window.confirm(Labels.form.removeMap)) {
-        e.asInstanceOf[SelectEvent].selected.foreach(x => vectorSource.removeFeature(x))
-        changedFeatures()
-      }
+    val controlParams = MapControlsParams(map,Property(Some(vectorSource)),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters)
+    mapControls = controlFactory(controlParams)
+    baseLayer.get.foreach( l => mapControls.baseLayer.set(l.name))
+    autoRelease(mapControls.baseLayer.listen{ bs =>
+      baseLayer.set(options.baseLayers.toSeq.flatten.find(_.name == bs))
     })
 
-
-    map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e: Any) => {
-
-      val features = mapActions.getFeatures(e.asInstanceOf[MapBrowserEvent[_]])
-
-      features.nonEmpty && activeControl.get == Control.VIEW match {
-        case true => {
-          infoOverlay.element.innerHTML = ""
-          val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(features.asInstanceOf[js.Array[renderFeatureMod.default]])
-          for{
-            json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
-            collection <- FeatureCollection.decode(json).toOption
-            feature <- collection.features.headOption
-          } yield {
-            feature.geometry match {
-              case GeoJson.Point(coordinates,crs) => {
-                infoOverlay.element.appendChild(div(ClientConf.style.mapPopup,coordinates.y,br,coordinates.x).render)
-                infoOverlay.setPosition(js.Array(coordinates.x,coordinates.y))
-              }
-              case _ => {}
-            }
-
-          }
-        }
-        case false => infoOverlay.setPosition()
-      }
-    })
-
-    drawHole = new DrawHole(DrawHoleOptions().setStyle(MapStyle.simpleStyle()))
-
-
-
-    dynamicInteraction.foreach(x => {
-      map.addInteraction(x)
-      x.setActive(false)
-    })
-
-    activeControl.listen({ section =>
-      dynamicInteraction.foreach(x => x.setActive(false))
-
-
-      infoOverlay.setPosition()
-
-      section match {
-        case Control.EDIT => {
-          modify.setActive(true)
-          snap.setActive(true)
-        }
-        case Control.POINT => {
-          drawPoint.setActive(true)
-          modify.setActive(true)
-          snap.setActive(true)
-        }
-        case Control.LINESTRING => {
-          drawLineString.setActive(true)
-          modify.setActive(true)
-          snap.setActive(true)
-        }
-        case Control.POLYGON => {
-          drawPolygon.setActive(true)
-          modify.setActive(true)
-          snap.setActive(true)
-        }
-        case Control.POLYGON_HOLE => {
-          drawHole.setActive(true)
-          modify.setActive(true)
-        }
-        case Control.MOVE => {
-          drag.setActive(true)
-          snap.setActive(true)
-        }
-        case Control.DELETE => {
-          delete.setActive(true)
-          snap.setActive(true)
-        }
-        case _ => {}
-      }
-
-    }, true)
-
-
-
-    map.addOverlay(infoOverlay)
+    registerListener(true)
 
     (map,vectorSource)
 
@@ -446,7 +294,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     val mapDiv: Div = div(height := 400).render
 
-    loadMap(mapDiv)
+    loadMap(mapDiv,p => null)
 
     val observer = new MutationObserver({(mutations,observer) =>
       if(document.contains(mapDiv)) {
@@ -464,308 +312,13 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     )
   }
 
-  object Control {
-
-    sealed trait Section
-    case object VIEW extends Section
-    case object EDIT extends Section
-    case object POINT extends Section
-    case object LINESTRING extends Section
-    case object POLYGON extends Section
-    case object POLYGON_HOLE extends Section
-    case object MOVE extends Section
-    case object DELETE extends Section
-  }
-  val activeControl:Property[Control.Section] = Property(Control.VIEW)
-
-
-  val client = FetchClientBuilder[IO].create
-
-  def controlButton(icon:Icon,labelKey:String,section:Control.Section) = {
-
-    var tooltip:Option[UdashTooltip] = None
-
-    produce(activeControl) { c =>
-
-      tooltip.foreach(_.destroy())
-
-      val isActive = if(c == section) "active" else "none"
-
-      val label = field.params.flatMap(_.getOpt(labelKey)).map(x => Labels(x)).getOrElse(Labels.apply(labelKey))
-
-
-      val (el,tt) = WidgetUtils.addTooltip(Some(label))(
-        button(
-          cls := isActive,
-          ClientConf.style.mapButton
-        )(
-         onclick :+= {(e:Event) =>
-           if(activeControl.get == section) {
-             activeControl.set(Control.VIEW)
-           } else {
-             activeControl.set(section)
-           }
-           e.preventDefault()
-         }
-        )(icon).render
-      )
-
-      tooltip = tt
-
-      el.render //modify
-    }
-  }
-
-  def parseCoordinates(coord:String): Option[Coordinate] = {
-
-
-    val separators = Seq(',',';',' ')
-    val tokens = separators.foldLeft(Seq(coord.replace("'","")))((acc,sep) => acc.flatMap(_.trim.split(sep)))
-
-
-    Try{
-      val x = tokens(0).trim.toDouble
-      val y = tokens(1).trim.toDouble
-
-      val points = proj.projections.map { case (name,proj) =>
-
-        val minLng = proj.getExtent()(0)
-        val minLat = proj.getExtent()(1)
-        val maxLng = proj.getExtent()(2)
-        val maxLat = proj.getExtent()(3)
-
-
-
-        val point = if(x >= minLat && x <= maxLat && y >= minLng && y <= maxLng) {
-          Some(js.Array(y,x))
-        } else if (y >= minLat && y <= maxLat && x >= minLng && x <= maxLng) {
-          Some(js.Array(x,y))
-        } else {
-          None
-        }
-
-        val projectedPoint = point.map{ p =>
-          projMod.transform(p,proj,defaultProjection)
-        }
-
-        logger.info(s"Tokens: $tokens x:$x y:$y original: $point projected: $projectedPoint for projection: $name")
-
-        (name,projectedPoint)
-
-      }.filter(_._2.isDefined)
-
-      points.find(_._1 == options.defaultProjection).orElse(points.headOption).get._2.get
-
-
-
-    }.toOption
-
-  }
-
-  def coordsToGeoJson(c:Coordinate):GeoJson.Feature = {
-    GeoJson.Feature(GeoJson.Point(Coordinates(c(0),c(1)),options.crs))
-  }
-
-  def search(q:String): Future[Seq[GeoJson.Feature]] = {
-    if(options.enableSwisstopo.exists(x => x)) {
-      val sr = options.defaultProjection.replaceAll("EPSG:", "").toIntOption.getOrElse(21781)
-      parseCoordinates(q) match {
-        case Some(value) => Future.successful(Seq(coordsToGeoJson(value)))
-        case None => {
-          val query = URIUtils.encodeURI(q)
-          client.expect[GeoJson.FeatureCollection](s"https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&geometryFormat=geojson&sr=$sr&searchText=$query&lang=${services.clientSession.lang()}").attempt.unsafeToFuture().map {
-            case Left(value) =>
-              logger.warn(value.getMessage)
-              Seq()
-            case Right(value) => value.features
-          }
-        }
-// Mock Swisstopo
-//        case None => {
-//            val promise = Promise[Seq[GeoJson.Feature]]()
-//            window.setTimeout(() => promise.success(Seq(GeoJson.Feature(Point(Coordinates(1,2))))),1000)
-//
-//
-//            promise.future
-//        }
-      }
-    } else Future.successful(Seq())
-  }
-
-  import GeoJson._
-
-  def toSuggestion(el:GeoJson.Feature):HTMLDivElement = {
-    logger.info(el.toString)
-    val label:Modifier = el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
-      case Some(value) => scalatags.JsDom.all.raw(value)
-      case None => span(el.geometry.toString(options.precision.getOrElse(0)))
-    }
-    div(label).render
-  }
-
-  def toSuggestionLabel(data:Option[GeoJson.Feature]):String = {
-    data match {
-      case Some(el) => el.properties.flatMap(_.apply("label")).flatMap(_.asString) match {
-        case Some(value) => {
-          val labDiv = document.createElement("div")
-          labDiv.innerHTML = value
-          labDiv.innerText
-        }
-        case None => {
-          val precision: Double = options.precision.getOrElse(0)
-          val coords = el.geometry.allCoordinates.head
-          s"${coords.xApprox(precision)},${coords.yApprox(precision)}"
-        }
-      }
-      case None => ""
-    }
-
-  }
-
-  def searchBox = Autocomplete[GeoJson.Feature](goToField,
-    search,
-    toSuggestionLabel,
-    toSuggestion
-  )(placeholder := Labels.map.goTo )
-
-  case class EnabledFeatures(geometry:Option[Geometry]) {
-    val point = {
-      options.features.point &&
-      (
-        geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
-          (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall{ // when gc is enabled check if is the only point
-          case g: Point => false
-          case _ => true
-        })
-      ) ||
-        options.features.multiPoint && geometry.toSeq.flatMap(_.toSingle).forall{
-          case g: Point => true
-          case _ => options.features.geometryCollection
-        }
-    }
-
-    val line = {
-      options.features.line  &&
-        (
-          geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
-            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall{ // when gc is enabled check if is the only point
-              case g: LineString => false
-              case g: MultiLineString => false
-              case _ => true
-            })
-          ) ||
-        options.features.multiLine && geometry.toSeq.flatMap(_.toSingle).forall{
-          case g: LineString => true
-          case _ => options.features.geometryCollection
-        }
-    }
-
-    val polygon = {
-      options.features.polygon &&
-        (
-          geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
-            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall{ // when gc is enabled check if is the only point
-              case g: Polygon => false
-              case _ => true
-            })
-          ) ||
-        options.features.multiPolygon && geometry.toSeq.flatMap(_.toSingle).forall{
-          case g: Polygon => true
-          case _ => options.features.geometryCollection
-        }
-    }
-
-    val polygonHole = geometry.exists{
-      case g: Polygon => true
-      case g: MultiPolygon => true
-      case _ => false
-    }
-  }
-
-  def findFeature(g:Geometry): Option[featureMod.default[geomGeometryMod.default]] = {
-    if(vectorSource!= null) {
-      val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-      convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).toOption.flatMap { collection =>
-
-        val geometries = collection.features.map(_.geometry)
-        logger.info(s"$geometries")
-        geometries.find(_.toSingle.contains(g)).flatMap { contanierFeature =>
-
-          vectorSource.getFeatures().toSeq.find { f =>
-            val coords = Try(f.getFlatCoordinates()).toOption
-            coords.exists(c => contanierFeature.equalsToFlattenCoords(c.toSeq))
-          }
-        }.map(f => renderFeatureMod.toFeature(f))
-      }
-    } else None
-  }
-
-  def geomToString(g:Geometry):String = {
-    val precision = options.precision.getOrElse(0.0)
-    options.formatters match {
-      case Some(value) => value.geomToString(precision,services.clientSession.lang())(g)
-      case None => {
-        val center =  Try{
-          val jtsGeom = new typings.jsts.mod.io.WKTReader().read(g.toString(precision))
-          val centroid = jtsGeom.getCentroid()
-          s" (centroid: ${GeoJson.approx(precision,centroid.getX())},${GeoJson.approx(precision,centroid.getY())})"
-        }.getOrElse("")
-
-        g match {
-          case GeoJson.Point(coordinates,crs) => g.toString(precision)
-          case GeoJson.LineString(coordinates,crs) => "LineString" + center //asString(line)
-          case GeoJson.Polygon(coordinates,crs) => "Polygon" + center// asString(polygon)
-          case GeoJson.MultiPoint(coordinates,crs) => "MultiPoint" + center// asString(multiPoint)
-          case GeoJson.MultiLineString(coordinates,crs) => "MultiLineString" + center//asString(multiLine)
-          case GeoJson.MultiPolygon(coordinates,crs) => "MultiPolygon" + center//asString(multiPolygon)
-          case GeoJson.GeometryCollection(geometries,crs) => "GeometryCollection" + center//g.toString(precision)
-        }
-      }
-    }
-  }
 
   override def toLabel(json: Json): Modifier = {
-    val name = data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
+    val name = data.get.as[GeoJson.Geometry].toOption.map(g => MapUtils.geomToString(g,options.precision,options.formatters)).getOrElse("")
     span(name)
   }
 
-  var selected:Option[featureMod.default[geomGeometryMod.default]] = None
 
-  def highlight(g:Geometry): Unit = {
-    selected.foreach(_.setStyle(MapStyle.vectorStyle()))
-    selected = findFeature(g)
-    selected.foreach(_.setStyle(MapStyle.highlightStyle))
-  }
-
-  def removeHighlight(): Unit = {
-    selected.foreach(_.setStyle(MapStyle.vectorStyle()))
-  }
-
-
-  val goToField:Property[Option[GeoJson.Feature]] = Property(None)
-
-  goToField.listen{
-    case None => ()
-    case Some(location) => {
-      logger.info(s"Found: $location")
-      location.bbox match {
-        case Some(bbox) => {
-          val extent = js.Array(bbox(0),bbox(1),bbox(2),bbox(3))
-          logger.info(s"Go to extent $extent")
-          map.getView().fit(extent)
-          if(map.getView().getZoom().getOrElse(0.0) > 12) map.getView().setZoom(12)
-        }
-        case None => {
-          val coordinates = location.geometry.allCoordinates.head
-          val c = js.Array(coordinates.x,coordinates.y)
-          logger.info(s"Go to coords $c")
-          map.getView().setCenter(c)
-          map.getView().setZoom(9)
-        }
-      }
-
-    }
-  }
 
   override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
@@ -775,7 +328,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     val mapDiv: Div = div(mapStyle.map).render
 
-    val (map,vectorSource) = loadMap(mapDiv)
+    loadMap(mapDiv, p => new MapControlsIcons(p))
 
     val observer = new MutationObserver({(mutations,observer) =>
       if(document.contains(mapDiv) && mapDiv.offsetHeight > 0 ) {
@@ -787,51 +340,6 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
 
-    val insertCoordinateField = Property("")
-    val insertCoordinateHandler = ((e: Event) => {
-      parseCoordinates(insertCoordinateField.get).foreach { p =>
-        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p)).asInstanceOf[typings.ol.renderFeatureMod.default]
-        vectorSource.addFeature(feature)
-      }
-      e.preventDefault()
-    })
-
-    var ttgpsButtonGoTo:Option[UdashTooltip] = None
-    def gpsButtonGoTo = {
-      ttgpsButtonGoTo.foreach(_.destroy())
-      val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.goToGPS)){
-        button(ClientConf.style.mapButton)(
-          onclick :+= ((e: Event) => {
-            ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
-              val localCoords = projMod.transform(js.Array(coords.x, coords.y), proj.wgs84Proj, defaultProjection)
-              goToField.set(Some(coordsToGeoJson(localCoords)))
-            }}
-            e.preventDefault()
-          })
-        )(Icons.target).render
-      }
-      ttgpsButtonGoTo = tt
-      el
-    }
-
-    var ttgpsButtonInsert:Option[UdashTooltip] = None
-    def gpsButtonInsert = {
-      val(el,tt) = WidgetUtils.addTooltip(Some(Labels.map.insertPointGPS)){
-        button(ClientConf.style.mapButton)(
-          onclick :+= ((e: Event) => {
-            ch.wsl.box.client.utils.GPS.coordinates().map { _.map{ coords =>
-              val localCoords = projMod.transform(js.Array(coords.x, coords.y), proj.wgs84Proj, defaultProjection)
-              insertCoordinateField.set(s"${localCoords(0)}, ${localCoords(1)}")
-              insertCoordinateHandler(e)
-            }}
-            e.preventDefault()
-          })
-        )(Icons.target).render
-      }
-      ttgpsButtonInsert = tt
-      el
-    }
-
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
     div(
@@ -841,72 +349,9 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       nested(produce(data) { geo =>
 
         val geometry = geo.as[GeoJson.Geometry].toOption
+        val enable = EnabledControls.fromGeometry(geometry, options)
+        mapControls.renderControls(enable, nested)
 
-        val enable = EnabledFeatures(geometry)
-
-        if(!enable.point && activeControl.get == Control.POINT) activeControl.set(Control.VIEW)
-        if(!enable.line && activeControl.get == Control.LINESTRING) activeControl.set(Control.VIEW)
-        if(!enable.polygon && Seq(Control.POLYGON,Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
-        if(!enable.polygonHole && Seq(Control.POLYGON_HOLE).contains(activeControl.get)) activeControl.set(Control.VIEW)
-        if(geometry.isEmpty && Seq(Control.EDIT,Control.MOVE,Control.DELETE).contains(activeControl.get)) activeControl.set(Control.VIEW)
-
-        goToField.set(None)
-        insertCoordinateField.set("")
-
-
-
-        frag(
-
-          div(
-            ClientConf.style.controlButtons
-          )( //controls
-            controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW),
-            if (geometry.isDefined) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT) else frag(),
-            if (enable.point) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT) else frag(),
-            if (enable.line) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING) else frag(),
-            if (enable.polygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON) else frag(),
-            if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE) else frag(),
-            if (geometry.isDefined) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE) else frag(),
-            if (geometry.isDefined) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE) else frag(),
-            if (geometry.isDefined) button(ClientConf.style.mapButton)(
-              onclick :+= { (e: Event) =>
-                map.getView().fit(vectorSource.getExtent(), FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5))
-                e.preventDefault()
-              }
-            )(Icons.search).render else frag(),
-            if(options.baseLayers.exists(_.length > 1)) Select(baseLayer,SeqProperty(options.baseLayers.toSeq.flatten.map(x => Some(x))))((x:Option[MapParamsLayers]) => StringFrag(x.map(_.name).getOrElse("")),ClientConf.style.mapLayerSelect) else frag()
-          ),
-          div(
-            nested(showIf(activeControl.transform(c => Seq(Control.VIEW,Control.POINT).contains(c))) {
-              div(
-                ClientConf.style.mapSearch
-              )( //controls
-                nested(showIf(activeControl.transform(_ == Control.VIEW)){
-                  searchBox
-                }),
-                nested(showIf(activeControl.transform(_ == Control.POINT)){
-                  TextInput(insertCoordinateField)(placeholder := Labels.map.insertPoint, onsubmit :+= insertCoordinateHandler).render
-                }),
-                div(
-                  BootstrapStyles.Button.group,
-                  BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
-                )(
-                  nested(showIf(activeControl.transform(_ == Control.POINT)) {
-                    button(ClientConf.style.mapButton)(
-                      onclick :+= insertCoordinateHandler
-                    )(Icons.plusFill).render
-                  }),
-                  nested(showIf(activeControl.transform(_ == Control.VIEW)){
-                    gpsButtonGoTo
-                  }),
-                  nested(showIf(activeControl.transform(_ == Control.POINT)){
-                    gpsButtonInsert
-                  }),
-                )
-              ).render
-            })
-          )
-        ).render
       }),
       mapDiv
     )

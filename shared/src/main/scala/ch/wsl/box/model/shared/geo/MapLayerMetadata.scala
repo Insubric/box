@@ -21,7 +21,8 @@ case class DbVector(
            extra: Json,
            editable: Boolean,
            order:Int,
-           autofocus: Boolean
+           autofocus: Boolean,
+           color: String
          ) extends MapLayerMetadata
 
 

@@ -48,6 +48,8 @@ class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:Strin
   val wgs84Proj = toOlProj(wgs84)
   val projections = _projections.map { projection => projection.name -> toOlProj(projection) }.toMap
 
+  val default = _projections.find(_.name == _defaultProjection).get
+
   val defaultProjection = projections(_defaultProjection)
 }
 

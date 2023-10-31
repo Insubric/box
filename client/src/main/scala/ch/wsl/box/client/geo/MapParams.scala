@@ -40,7 +40,6 @@ case class MapParamsLayers(
 
 case class MapLookup(
                              color: String,
-                             fillColor: String,
                              query: Option[JSONQuery],
                              entity:String,
                              kind:String,

@@ -56,14 +56,14 @@ object BoxMap {
    * @param extra         Database column extra SqlType(jsonb), Default(None)
    * @param editable      Database column editable SqlType(bool), Default(false)
    * @param query         Database column query SqlType(jsonb), Default(None) */
-  case class Map_layer_vector_db_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, entity: String, field: String, geometry_type: String, z_index: Int, extra: Option[io.circe.Json] = None, editable: Boolean = false, query: Option[io.circe.Json] = None, srid:Int, autofocus:Boolean)
+  case class Map_layer_vector_db_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, entity: String, field: String, geometry_type: String, z_index: Int, extra: Option[io.circe.Json] = None, editable: Boolean = false, query: Option[io.circe.Json] = None, srid:Int, autofocus:Boolean, color:String)
 
 
   /** Table description of table map_layer_vector_db. Objects of this class serve as prototypes for rows in queries. */
   class Map_layer_vector_db(_tableTag: Tag) extends Table[Map_layer_vector_db_row](_tableTag,schema, "map_layer_vector_db") {
 
 
-    def * = (Rep.Some(layer_id), map_id, entity, field, geometry_type, z_index, extra, editable, query, srid,autofocus).<>(Map_layer_vector_db_row.tupled, Map_layer_vector_db_row.unapply)
+    def * = (Rep.Some(layer_id), map_id, entity, field, geometry_type, z_index, extra, editable, query, srid,autofocus,color).<>(Map_layer_vector_db_row.tupled, Map_layer_vector_db_row.unapply)
 
 
     /** Database column layer_id SqlType(uuid), PrimaryKey */
@@ -74,6 +74,7 @@ object BoxMap {
     val entity: Rep[String] = column[String]("entity")
     /** Database column field SqlType(text) */
     val field: Rep[String] = column[String]("field")
+    val color: Rep[String] = column[String]("color")
     /** Database column geometry_type SqlType(text) */
     val geometry_type: Rep[String] = column[String]("geometry_type")
     /** Database column z_index SqlType(int4), Default(None) */

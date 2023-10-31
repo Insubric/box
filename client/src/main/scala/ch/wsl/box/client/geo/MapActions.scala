@@ -19,7 +19,7 @@ import scala.scalajs.js
 import scala.scalajs.js.Any.jsArrayOps
 import scala.scalajs.js.JSConverters.JSRichIterableOnce
 
-class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Logging {
+class MapActions(map:mod.Map,crs:CRS) extends Logging {
 
   import ch.wsl.box.client.Context._
 
@@ -32,14 +32,7 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
     }
   }
 
-  def getFeatures(e:MapBrowserEvent[_]): js.Array[typings.ol.featureMod.default[typings.ol.geomGeometryMod.default]] = {
-    map.getFeaturesAtPixel(e.pixel).flatMap {
-      case x: typings.ol.featureMod.default[typings.ol.geomGeometryMod.default] => Some(x)
-      case _ => None
-    }
-  }
-
-  def calculateExtent(): Polygon = {
+  def calculateExtent(crs:CRS): Polygon = {
     //[
     //  572952.6647602582,
     //  166725.98055973882,
@@ -53,7 +46,7 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
       Coordinates(ext(2), ext(3)),
       Coordinates(ext(2), ext(1)),
       Coordinates(ext(0), ext(1))
-    )), options.crs)
+    )),crs)
   }
 
   def registerExtentChange(onExtentChange: Unit => Unit) = {
@@ -77,7 +70,7 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
         val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
         val featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
           .setSource(vectorSource)
-          .setStyle(MapStyle.vectorStyle(layer.color, layer.fillColor))
+          .setStyle(MapStyle.vectorStyle(layer.color))
         )
         lookupLayers.addOne(layer.id -> (vectorSource,featuresLayer))
         (vectorSource,featuresLayer)
@@ -92,7 +85,7 @@ class MapActions(map:mod.Map,options:MapParams,metadata:JSONMetadata) extends Lo
     map.removeLayer(featuresLayer)
     vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
-    val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent())
+    val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent(crs))
 
     services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, query).foreach { geoms =>
       val features = geoms.map{ g =>

@@ -85,7 +85,8 @@ object MapMetadataFactory {
         l.extra.getOrElse(Json.Null),
         l.editable,
         l.z_index,
-        l.autofocus
+        l.autofocus,
+        l.color
       )
 
     }

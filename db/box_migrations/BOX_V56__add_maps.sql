@@ -22,7 +22,8 @@ create table map_layer_vector_db (
                 extra jsonb,
                 editable boolean not null default false,
                 query jsonb,
-                autofocus boolean not null default false
+                autofocus boolean not null default false,
+                color text not null
 );
 
 create table map_layer_wmts (
@@ -38,4 +39,5 @@ create table map_layer_wmts (
 
 
 alter table field add column map_uuid uuid;
+
 
