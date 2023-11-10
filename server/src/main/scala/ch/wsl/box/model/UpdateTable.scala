@@ -43,17 +43,17 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
-  private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
-    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.nonEmpty) ||
-    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.split(",").exists(_.nonEmpty)) ||
-    f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
-  }
+//  private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
+//    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.nonEmpty) ||
+//    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.split(",").exists(_.nonEmpty)) ||
+//    f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
+//  }
 
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
-    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
-    val where = if(nonEmptyFilters.nonEmpty) {
-      val filters = nonEmptyFilters.flatMap(kv)
+//    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
+    val filters = query.filter.flatMap(kv)
+    val where = if(filters.nonEmpty) {
       filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
     } else sql""
 
@@ -190,7 +190,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     val key = jsonQuery.column
 
-    def filterMany[T](nullable:Boolean, value:Option[Seq[T]])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+    def filterMany[T](value:Option[Seq[T]])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
       val values = value.toSeq.flatten
       val list = if(values.nonEmpty) values.tail.foldLeft(sql" ${values.head} ")((a,b) => concat(a, sql" , $b ") )
       else sql" "
@@ -201,30 +201,36 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
     }
 
-    def filter[T](nullable:Boolean, value:Option[T],cast:Option[String] = None)(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+    def filter[T](value:Option[T],cast:Option[String] = None)(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
 
       val base = sql""" "#$key"#${cast.getOrElse("")} """
 
 
+      value match {
+        case Some(v) => {
+          val result = jsonQuery.operator.getOrElse(Filter.EQUALS) match {
+            case Filter.EQUALS => concat(base, sql"""= $v """)
+            case Filter.LIKE => concat(base, sql"""  ilike '%#$v%' """)
+            case Filter.CUSTOM_LIKE => concat(base, sql"""  ilike '#$v' """)
+            case Filter.< => concat(base, sql""" < $v """)
+            case Filter.NOT=> concat(base, sql""" <> $v """)
+            case Filter.> => concat(base, sql""" > $v """)
+            case Filter.<= => concat(base, sql""" <= $v """)
+            case Filter.>= => concat(base, sql""" >= $v """)
+            case Filter.DISLIKE => concat(base, sql""" not ilike '%#$v%' """)
+            case Filter.IS_NOT_NULL => concat(base, sql""" is not null """)
+            case Filter.IS_NULL => concat(base, sql""" is null """)
+            case Filter.INTERSECT => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
+          }
+          Some(result)
+        }
+        case None => jsonQuery.operator.getOrElse(Filter.EQUALS) match {
+          case Filter.EQUALS | Filter.LIKE | Filter.CUSTOM_LIKE | Filter.INTERSECT => Some(concat(base,sql""" is null """))
+          case Filter.NOT | Filter.DISLIKE => Some(concat(base,sql""" is not null """))
+          case _ => None
 
-      val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
-        case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
-        case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
-        case (Filter.CUSTOM_LIKE,true,None) => concat(base,sql""" is null """)
-        case (Filter.EQUALS,_,Some(v)) => concat(base,sql"""= $v """)
-        case (Filter.LIKE,_,Some(v)) => concat(base,sql"""  ilike '%#$v%' """)
-        case (Filter.CUSTOM_LIKE,_,Some(v)) => concat(base,sql"""  ilike '#$v' """)
-        case (Filter.<,_,Some(v)) => concat(base,sql""" < $v """)
-        case (Filter.NOT,_,Some(v)) => concat(base,sql""" <> $v """)
-        case (Filter.>,_,Some(v)) => concat(base,sql""" > $v """)
-        case (Filter.<=,_,Some(v)) => concat(base,sql""" <= $v """)
-        case (Filter.>=,_,Some(v)) => concat(base,sql""" >= $v """)
-        case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
-        case (Filter.IS_NOT_NULL,_,_) => concat(base,sql""" is not null """)
-        case (Filter.IS_NULL,_,_) => concat(base,sql""" is null """)
-        case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
+        }
       }
-      Some(result)
 
     }
 
@@ -236,52 +242,52 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
       col.name match {
-        case "String"  => filterMany(col.nullable,Some(splitAndTrim(v)))
-        case "Int" => filterMany[Int](col.nullable,Some(splitAndTrim(v).flatMap(_.toIntOption)))
-        case "Long" => filterMany[Long](col.nullable,Some(splitAndTrim(v).flatMap(_.toLongOption)))
-        case "Short" => filterMany[Short](col.nullable,Some(splitAndTrim(v).flatMap(_.toShortOption)))
-        case "Double" => filterMany[Double](col.nullable,Some(splitAndTrim(v).flatMap(_.toDoubleOption)))
-        case "Float" => filterMany[Float](col.nullable,Some(splitAndTrim(v).flatMap(_.toFloatOption)))
-        case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
-        case "io.circe.Json" => filterMany[Json](col.nullable,Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
-        case "java.util.UUID" => filterMany[java.util.UUID](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
+        case "String"  => filterMany(Some(splitAndTrim(v)))
+        case "Int" => filterMany[Int](Some(splitAndTrim(v).flatMap(_.toIntOption)))
+        case "Long" => filterMany[Long](Some(splitAndTrim(v).flatMap(_.toLongOption)))
+        case "Short" => filterMany[Short](Some(splitAndTrim(v).flatMap(_.toShortOption)))
+        case "Double" => filterMany[Double](Some(splitAndTrim(v).flatMap(_.toDoubleOption)))
+        case "Float" => filterMany[Float](Some(splitAndTrim(v).flatMap(_.toFloatOption)))
+        case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
+        case "io.circe.Json" => filterMany[Json](Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
+        case "java.util.UUID" => filterMany[java.util.UUID](Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
         case t => throw new Exception(s"$t is not supported for simple multi query")
       }
     } else {
       (col.name,jsonQuery.operator) match {
-        case ("String",_)  => filter(col.nullable,Some(v))
-        case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
-        case ("Int",_) => filter[Int](col.nullable,v.toIntOption)
-        case ("Long",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Long](col.nullable,v.toLongOption,Some("::text"))
-        case ("Long",_) => filter[Long](col.nullable,v.toLongOption)
-        case ("Short",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Short](col.nullable,v.toShortOption,Some("::text"))
-        case ("Short",_) => filter[Short](col.nullable,v.toShortOption)
-        case ("Float",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Float](col.nullable,v.toFloatOption,Some("::text"))
-        case ("Float",_) => filter[Float](col.nullable,v.toFloatOption)
-        case ("Double",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Double](col.nullable,v.toDoubleOption,Some("::text"))
-        case ("Double",_) => filter[Double](col.nullable,v.toDoubleOption)
-        case ("BigDecimal" | "scala.math.BigDecimal",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption,Some("::text"))
-        case ("BigDecimal" | "scala.math.BigDecimal",_) => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
+        case ("String",_)  => filter(Some(v))
+        case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](v.toIntOption,Some("::text"))
+        case ("Int",_) => filter[Int](v.toIntOption)
+        case ("Long",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Long](v.toLongOption,Some("::text"))
+        case ("Long",_) => filter[Long](v.toLongOption)
+        case ("Short",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Short](v.toShortOption,Some("::text"))
+        case ("Short",_) => filter[Short](v.toShortOption)
+        case ("Float",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Float](v.toFloatOption,Some("::text"))
+        case ("Float",_) => filter[Float](v.toFloatOption)
+        case ("Double",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Double](v.toDoubleOption,Some("::text"))
+        case ("Double",_) => filter[Double](v.toDoubleOption)
+        case ("BigDecimal" | "scala.math.BigDecimal",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[BigDecimal](Try(BigDecimal(v)).toOption,Some("::text"))
+        case ("BigDecimal" | "scala.math.BigDecimal",_) => filter[BigDecimal](Try(BigDecimal(v)).toOption)
         case ("java.time.LocalDate",_) => {
           DateTimeFormatters.toDate(v) match {
-            case head :: Nil => filter[java.time.LocalDate](col.nullable,Some(head))
+            case head :: Nil => filter[java.time.LocalDate](Some(head))
             case from :: (to :: Nil) =>  Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }
         }
-        case ("java.time.LocalTime",_) => filter[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
+        case ("java.time.LocalTime",_) => filter[java.time.LocalTime](DateTimeFormatters.time.parse(v))
         case ("java.time.LocalDateTime",_) => {
           DateTimeFormatters.toTimestamp(v) match {
-            case head :: Nil => filter[java.time.LocalDateTime](col.nullable, Some(head))
+            case head :: Nil => filter[java.time.LocalDateTime]( Some(head))
             case from :: (to :: Nil) => Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }
         }
-        case ("io.circe.Json",_) => filter[Json](col.nullable,parser.parse(v).toOption)
-        case ("Array[Byte]",_) => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
-        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Geo.fromEWKT(v))
-        case ("java.util.UUID",_) => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
-        case ("Boolean",_) => filter[Boolean](col.nullable,Some(v == "true"))
+        case ("io.circe.Json",_) => filter[Json](parser.parse(v).toOption)
+        case ("Array[Byte]",_) => filter[Array[Byte]](Try(Base64.getDecoder.decode(v)).toOption)
+        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](Geo.fromEWKT(v))
+        case ("java.util.UUID",_) => filter[java.util.UUID](Try(UUID.fromString(v)).toOption)
+        case ("Boolean",_) => filter[Boolean](Some(v == "true"))
         case t => throw new Exception(s"$t is not supported for simple query")
       }
     }
