@@ -15,8 +15,8 @@ import io.circe.Json
 import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
 import io.circe.syntax.EncoderOps
 import io.circe.generic.auto._
-
 import cats.effect.unsafe.implicits._
+import ch.wsl.box.client.geo.MapControlsParams.toVectorSource
 import org.http4s.circe.CirceEntityCodec._
 import io.udash._
 import io.udash.bindings.modifiers.Binding
@@ -27,7 +27,7 @@ import scalatags.JsDom.all._
 import scribe.Logging
 import typings.ol.interactionSelectMod.SelectEvent
 import typings.ol.mod.{MapBrowserEvent, Overlay}
-import typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod}
+import typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -58,7 +58,7 @@ object Control {
 
 case class MapControlsParams(
                               map:mod.Map,
-                              vectorSource: ReadableProperty[Option[sourceMod.Vector[geomGeometryMod.default]]],
+                              layerSource: ReadableProperty[Option[layerMod.Vector[_]]],
                               projections:BoxMapProjections,
                               baseLayers: Seq[String],
                               extra:Option[Json],
@@ -67,7 +67,13 @@ case class MapControlsParams(
                               change: () => Unit,
                               formatters:Option[MapFormatters]
                             ) {
+
+  def vectorSource = layerSource.transform(_.map(toVectorSource))
   def sourceMap[T](f:sourceMod.Vector[geomGeometryMod.default] => T):Option[T] = vectorSource.get.map(f)
+}
+
+object  MapControlsParams{
+  def toVectorSource(l:layerMod.Vector[_]) = l.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]
 }
 
 abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContext) extends Logging {
@@ -323,20 +329,9 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
   var drawLineString:interactionDrawMod.default = null
   var drawPolygon:interactionDrawMod.default = null
   var snap:interactionSnapMod.default = null
-
-  val drag = new interactionTranslateMod.default(interactionTranslateMod.Options())
-  //drag.on_translateend(olStrings.translateend, (e:TranslateEvent) => changedFeatures())
-
-  val delete = new interactionSelectMod.default(interactionSelectMod.Options())
-
-  delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
-    if (window.confirm(Labels.form.removeMap)) {
-      e.asInstanceOf[SelectEvent].selected.foreach(x => sourceMap(_.removeFeature(x)))
-      change()
-    }
-  })
-
-  private val drawHole = new DrawHole(DrawHoleOptions().setStyle(MapStyle.simpleStyle()))
+  var drag: interactionTranslateMod.default = null
+  var delete:interactionSelectMod.default = null
+  var drawHole: DrawHole = null
 
   private def dynamicInteraction = Seq(
     modify,
@@ -349,13 +344,23 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     drawHole
   )
 
-  vectorSource.listen({
-    case None => ()
-    case Some(vs) =>
+  layerSource.listen({
+    case None => {
+      finishDrawing()
+      activeControl.set(Control.VIEW)
+    }
+    case Some(ls) =>
+
+    val vs = MapControlsParams.toVectorSource(ls)
 
     finishDrawing()
+    activeControl.set(Control.VIEW)
 
-    dynamicInteraction.filterNot(_ == null).foreach(map.removeInteraction)
+    dynamicInteraction.filterNot(_ == null).foreach { c =>
+      c.setActive(false)
+      map.removeInteraction(c)
+      c.dispose()
+    }
 
     modify = new interactionModifyMod.default(interactionModifyMod.Options()
       .setSource(vs)
@@ -382,6 +387,28 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     //drawPolygon.on_change(olStrings.change,e => changedFeatures())
 
     snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vs))
+
+    def lsFixTypes = ls.asInstanceOf[
+      typings.ol.layerLayerMod.default[
+        typings.ol.sourceSourceMod.default,
+        typings.ol.layerLayerMod.default[Any, /* ol.ol/layer/Layer.default<any> */ Any]
+      ]
+    ]
+
+    val layers = js.Array(lsFixTypes)
+
+    drag = new interactionTranslateMod.default(interactionTranslateMod.Options().setLayers(layers))
+
+    delete = new interactionSelectMod.default(interactionSelectMod.Options().setLayers(layers))
+
+    delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
+      if (window.confirm(Labels.form.removeMap)) {
+        e.asInstanceOf[SelectEvent].selected.foreach(x => sourceMap(_.removeFeature(x)))
+        change()
+      }
+    })
+
+    drawHole = new DrawHole(DrawHoleOptions().setSource(vs).setStyle(MapStyle.simpleStyle()))
 
     dynamicInteraction.foreach(x => {
       map.addInteraction(x)

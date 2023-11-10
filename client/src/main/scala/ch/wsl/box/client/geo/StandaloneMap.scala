@@ -35,7 +35,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
 
   val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
-  val selectedVectorSource: ReadableProperty[Option[sourceMod.Vector[geomGeometryMod.default]]] = selectedLayerForEdit.transform(_.flatMap(layerOf).map(_.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]))
+  val selectedLayer: ReadableProperty[Option[layerMod.Vector[_]]] = selectedLayerForEdit.transform(_.flatMap(layerOf))
 
   val controlsDiv = div().render
 
@@ -58,10 +58,20 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
       _mapDiv).render
 
     _div.appendChild(wrapper)
+
     _mapDiv
   } else {
     _div
   }
+
+  selectedLayerForEdit.listen(sl => {
+    window.setTimeout(() => {
+      controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
+      sl.foreach { vector =>
+        controlsDiv.appendChild(control.renderControls(EnabledControls.fromDbVector(vector), Binding.NestedInterceptor.Identity))
+      }
+    },0)
+  }, true)
 
 
 
@@ -89,25 +99,41 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
   window.asInstanceOf[js.Dynamic].test = map
 
-  val control = new MapControlsIcons(MapControlsParams(map,selectedVectorSource,proj,Seq(),None,None,true,() => (), None))
+  val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,() => (), None))
 
   def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
 
 
-  def fit():Box2d = {
-    val focusedExtent = Try(metadata.db.filter(_.autofocus).flatMap(layerOf).flatMap { v =>
-      Try(v.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]].getExtent()).toOption
-    }.reduce(extentMod.extend)).toOption
-
-    val extent = if (focusedExtent.nonEmpty && !focusedExtent.contains(null)) focusedExtent.get else {
-      map.getLayers().getArray().flatMap {
-        case v: layerMod.Vector[_] => Some(v.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]].getExtent())
-        case _ => None
-      }.reduce(extentMod.extend)
+  private def extentOfLayers(layers:js.Array[layerBaseMod.default]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
+    val layersExtent = layers.flatMap {
+      case v: layerMod.Vector[_] => {
+        val vs = v.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]
+        if (vs.getFeatures().isEmpty) None else Some(vs.getExtent())
+      }
+      case _ => None
     }
-    map.getView().fit(extent, FitOptions().setPadding(js.Array(20.0, 20.0, 20.0, 20.0)))
-    map.render()
-    Box2d.fromSeq(extent.toSeq)
+    if (layersExtent.isEmpty) {
+      None
+    } else {
+      Some(layersExtent.reduce(extentMod.extend))
+    }
+  }
+
+  def fit():Box2d = {
+    val focusedExtent = Try{
+      val layers = metadata.db.filter(_.autofocus).flatMap(layerOf).map(_.asInstanceOf[layerBaseMod.default]).toJSArray
+      extentOfLayers(layers)
+    }.toOption.flatten
+
+    val extent = if (focusedExtent.nonEmpty && !focusedExtent.contains(null)) Some(focusedExtent.get) else {
+      extentOfLayers(map.getLayers().getArray())
+    }
+
+    extent.foreach { e =>
+      map.getView().fit(e, FitOptions().setPadding(js.Array(20.0, 20.0, 20.0, 20.0)))
+      map.render()
+    }
+    Box2d.fromSeq(extent.getOrElse(map.getView().calculateExtent()).toSeq)
   }
 
   def addLayers(layers:Seq[layerBaseMod.default]) = {
@@ -201,6 +227,8 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
   map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
       extentChange()
   })
+
+
 
 
 

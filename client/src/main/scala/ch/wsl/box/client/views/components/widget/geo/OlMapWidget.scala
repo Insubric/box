@@ -89,7 +89,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   lazy val mapActions = new MapActions(map,options.crs)
 
-  var featuresLayer: layerBaseMod.default = null
+  var featuresLayer: layerMod.Vector[_] = null
 
 
 
@@ -277,7 +277,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       changedFeatures()
     })
 
-    val controlParams = MapControlsParams(map,Property(Some(vectorSource)),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters)
+    val controlParams = MapControlsParams(map,Property(Some(featuresLayer)),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters)
     mapControls = controlFactory(controlParams)
     baseLayer.get.foreach( l => mapControls.baseLayer.set(l.name))
     autoRelease(mapControls.baseLayer.listen{ bs =>
