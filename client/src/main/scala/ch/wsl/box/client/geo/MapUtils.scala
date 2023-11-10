@@ -1,14 +1,18 @@
 package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.Context.services
+import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.GeoJson
-import ch.wsl.box.model.shared.GeoJson.{CRS, Coordinates, Geometry}
+import ch.wsl.box.model.shared.GeoJson._
+import io.circe._
+import io.circe.scalajs.convertJsToJson
+import io.circe.syntax.EncoderOps
 import org.scalajs.dom
 import scalatags.JsDom.all.s
 import scribe.Logging
 import typings.ol.coordinateMod.Coordinate
 import typings.ol.mapBrowserEventMod.MapBrowserEvent
-import typings.ol.{formatMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
+import typings.ol.{formatGeoJSONMod, formatMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
 
 import scala.concurrent.Promise
 import scala.scalajs.js
@@ -95,7 +99,7 @@ object MapUtils extends Logging {
 
       }.filter(_._2.isDefined)
 
-      points.find(_._1 == projections.defaultProjection).orElse(points.headOption).get._2.get
+      points.find(_._1 == projections.default.name).orElse(points.headOption).get._2.get
 
 
     }.toOption
@@ -133,6 +137,68 @@ object MapUtils extends Logging {
           case GeoJson.MultiPolygon(coordinates, crs) => "MultiPolygon" + center //asString(multiPolygon)
           case GeoJson.GeometryCollection(geometries, crs) => "GeometryCollection" + center //g.toString(precision)
         }
+      }
+    }
+  }
+
+
+  def vectorSourceGeoms(vectorSource:sourceMod.Vector[_],defaultProjection:String): Option[FeatureCollection] = {
+    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+
+    val json = convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
+
+    // Maunually attach CRS since the standard in not well defined
+    val jsonWithCRS = json.flatMap { jsWithoutProjection =>
+      jsWithoutProjection.hcursor.downField("features").withFocus { featJs =>
+        featJs.as[Seq[Json]].toOption.toSeq.flatten.map { feat =>
+          feat.deepMerge(Json.fromFields(Map("geometry" -> Json.fromFields(Map("crs" -> CRS(defaultProjection).asJson)))))
+        }.asJson
+      }.top
+    }
+    jsonWithCRS.foreach(BrowserConsole.log)
+    jsonWithCRS.flatMap(j => FeatureCollection.decode(j).toOption)
+  }
+
+  def factorGeometries(geometries:Seq[Geometry],features:MapParamsFeatures, crs:CRS):Option[Geometry] = {
+    geometries.length match {
+      case 0 => {
+        None
+      }
+      case 1 => {
+        Some(geometries.head)
+      }
+      case _ => {
+        val multiPoint = geometries.map {
+          case g: Point => Some(Seq(g.coordinates))
+          case g: MultiPoint => Some(g.coordinates)
+          case _ => None
+        }
+        val multiLine = geometries.map {
+          case g: LineString => Some(Seq(g.coordinates))
+          case g: MultiLineString => Some(g.coordinates)
+          case _ => None
+        }
+        val multiPolygon = geometries.map {
+          case g: Polygon => Some(Seq(g.coordinates))
+          case g: MultiPolygon => Some(g.coordinates)
+          case _ => None
+        }
+
+        val collection: Option[GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && features.multiPoint) {
+          Some(MultiPoint(multiPoint.flatMap(_.get), crs))
+        } else if (multiLine.forall(_.isDefined) && features.multiLine) {
+          Some(MultiLineString(multiLine.flatMap(_.get), crs))
+        } else if (multiPolygon.forall(_.isDefined) && features.multiPolygon) {
+          Some(MultiPolygon(multiPolygon.flatMap(_.get), crs))
+        } else if (features.geometryCollection) {
+          Some(GeometryCollection(geometries, crs))
+        } else {
+          None
+        }
+
+
+        collection
+
       }
     }
   }

@@ -49,7 +49,10 @@ class MapControlsList(params: MapControlsParams)(implicit ex:ExecutionContext)  
 
   }
 
-  override def renderControls(enable: EnabledControls, nested: Binding.NestedInterceptor): Node = {
+  override def renderControls(nested: Binding.NestedInterceptor): Node = {
+
+    val enable = enabled()
+
     val showGeometries = geometries().flatMap(_.toSingle).map { geom =>
       div(ClientConf.style.mapInfoChild,
         onmouseover :+= { (e: Event) => highlight(geom); e.preventDefault() },
@@ -57,9 +60,9 @@ class MapControlsList(params: MapControlsParams)(implicit ex:ExecutionContext)  
         span(MapUtils.geomToString(geom,precision,formatters)),
         div(ClientConf.style.mapGeomAction,
           if (!geom.isInstanceOf[Point])
-            controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT),
-          controlButton(Icons.move, SharedLabels.map.move, Control.MOVE),
-          if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE),
+            controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT,nested),
+          controlButton(Icons.move, SharedLabels.map.move, Control.MOVE,nested),
+          if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE,nested),
           button(ClientConf.style.mapButton, onclick :+= { (e: Event) =>
             deleteGeometry(geom)
             e.preventDefault()

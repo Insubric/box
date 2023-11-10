@@ -110,11 +110,8 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       nested(produce(data) { geo =>
         import ch.wsl.box.model.shared.GeoJson.Geometry._
         import ch.wsl.box.model.shared.GeoJson._
-        val geometry = geo.as[ch.wsl.box.model.shared.GeoJson.Geometry].toOption
 
-        val enable = EnabledControls.fromGeometry(geometry,options)
-
-        mapControls.renderControls(enable, nested)
+        mapControls.renderControls(nested)
 
 
 

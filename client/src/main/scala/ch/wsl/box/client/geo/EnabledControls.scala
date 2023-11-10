@@ -7,60 +7,53 @@ case class EnabledControls(point:Boolean,line:Boolean,polygon:Boolean,polygonHol
 
 object EnabledControls{
 
-  def fromDbVector(db:DbVector):EnabledControls = {
-    db.geometryType match {
-      case POINT | MULTIPOINT => EnabledControls(point = true, line = false, polygon = false, polygonHole = false)
-      case LINESTRING | MULTILINESTRING => EnabledControls(point = false, line = true, polygon = false, polygonHole = false)
-      case POLYGON | MULTIPOLYGON => EnabledControls(point = false, line = false, polygon = true, polygonHole = true)
-      case GEOMETRYCOLLECTION => EnabledControls(point = true, line = true, polygon = true, polygonHole = true)
-    }
-  }
+  def none = EnabledControls(point = false, line = false, polygon = false, polygonHole = false)
 
-  def fromGeometry(geometry: Option[Geometry],options:MapParams):EnabledControls = {
+  def fromGeometry(geometry: Option[Geometry],options:MapParamsFeatures):EnabledControls = {
 
     val point = {
-      options.features.point &&
+      options.point &&
         (
           geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
-            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
+            (options.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
               case g: Point => false
               case _ => true
             })
           ) ||
-        options.features.multiPoint && geometry.toSeq.flatMap(_.toSingle).forall {
+        options.multiPoint && geometry.toSeq.flatMap(_.toSingle).forall {
           case g: Point => true
-          case _ => options.features.geometryCollection
+          case _ => options.geometryCollection
         }
     }
 
     val line = {
-      options.features.line &&
+      options.line &&
         (
           geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
-            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
+            (options.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
               case g: LineString => false
               case g: MultiLineString => false
               case _ => true
             })
           ) ||
-        options.features.multiLine && geometry.toSeq.flatMap(_.toSingle).forall {
+        options.multiLine && geometry.toSeq.flatMap(_.toSingle).forall {
           case g: LineString => true
-          case _ => options.features.geometryCollection
+          case _ => options.geometryCollection
         }
     }
 
     val polygon = {
-      options.features.polygon &&
+      options.polygon &&
         (
           geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
-            (options.features.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
+            (options.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
               case g: Polygon => false
               case _ => true
             })
           ) ||
-        options.features.multiPolygon && geometry.toSeq.flatMap(_.toSingle).forall {
+        options.multiPolygon && geometry.toSeq.flatMap(_.toSingle).forall {
           case g: Polygon => true
-          case _ => options.features.geometryCollection
+          case _ => options.geometryCollection
         }
     }
 

@@ -4,7 +4,7 @@ import cats.effect._
 import cats.effect.unsafe.implicits._
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dom._
-import ch.wsl.box.client.geo.{BoxMapProjections, BoxOlMap, Control, EnabledControls, MapActions, MapControls, MapControlsIcons, MapControlsParams, MapParams, MapParamsLayers, MapStyle, MapUtils}
+import ch.wsl.box.client.geo.{BoxLayer, BoxMapProjections, BoxOlMap, Control, EnabledControls, MapActions, MapControls, MapControlsIcons, MapControlsParams, MapParams, MapParamsLayers, MapStyle, MapUtils}
 import org.scalajs.dom._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{Icons, StyleConf}
@@ -140,99 +140,12 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   import GeoJson._
 
-  def changedFeatures() = {
+  def changedFeatures(newData:Json) = {
 
 
-    var changes = false
-
-    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-
-    val json = convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
-
-    // Maunually attach CRS since the standard in not well defined
-    val jsonWithCRS = json.flatMap{ jsWithoutProjection =>
-      jsWithoutProjection.hcursor.downField("features").withFocus{featJs =>
-        featJs.as[Seq[Json]].toOption.toSeq.flatten.map { feat =>
-          feat.deepMerge(Json.fromFields(Map("geometry" -> Json.fromFields(Map("crs" -> CRS(options.defaultProjection).asJson)))))
-        }.asJson
-      }.top
-    }
-    jsonWithCRS.foreach(BrowserConsole.log)
-    val featureCollection = jsonWithCRS.flatMap(j => FeatureCollection.decode(j).toOption)
-
-    featureCollection.foreach { collection =>
-
-
-      listener.cancel()
-
-      val currentData = data.get.as[GeoJson.Geometry].toOption
-
-      import GeoJson.Geometry._
-      import GeoJson._
-      val geometries = collection.features.map(_.geometry)
-      logger.info(s"$geometries")
-      geometries.length match {
-        case 0 => {
-          data.set(Json.Null)
-          changes = !currentData.isEmpty
-        }
-        case 1 => {
-          data.set(geometries.head.asJson)
-          changes = !currentData.contains(geometries.head)
-        }
-        case _ => {
-          val multiPoint = geometries.map {
-            case g: Point => Some(Seq(g.coordinates))
-            case g: MultiPoint => Some(g.coordinates)
-            case _ => None
-          }
-          val multiLine = geometries.map {
-            case g: LineString => Some(Seq(g.coordinates))
-            case g: MultiLineString => Some(g.coordinates)
-            case _ => None
-          }
-          val multiPolygon = geometries.map {
-            case g: Polygon => Some(Seq(g.coordinates))
-            case g: MultiPolygon => Some(g.coordinates)
-            case _ => None
-          }
-
-          val collection: Option[GeoJson.Geometry] = if (multiPoint.forall(_.isDefined) && options.features.multiPoint) {
-            Some(MultiPoint(multiPoint.flatMap(_.get),options.crs))
-          } else if (multiLine.forall(_.isDefined) && options.features.multiLine) {
-            Some(MultiLineString(multiLine.flatMap(_.get),options.crs))
-          } else if (multiPolygon.forall(_.isDefined) && options.features.multiPolygon) {
-            Some(MultiPolygon(multiPolygon.flatMap(_.get),options.crs))
-          } else if (options.features.geometryCollection) {
-            Some(GeometryCollection(geometries,options.crs))
-          } else {
-            None
-          }
-
-          changes = (currentData, collection) match {
-            case (None,None) => false
-            case (Some(c),Some(n)) => {
-              c.toSingle.length != n.toSingle.length || c.toSingle.diff(n.toSingle).nonEmpty
-            }
-            case (_,_) => true
-          }
-
-          data.set(collection.asJson)
-
-        }
-      }
-    }
+    listener.cancel()
+    data.set(newData)
     registerListener(false)
-
-    // when adding a point go back to view mode
-    if(
-      changes &&
-        (mapControls.activeControl.get == Control.POINT ||
-          mapControls.activeControl.get == Control.LINESTRING ||
-          mapControls.activeControl.get == Control.POLYGON)
-    ) {
-      mapControls.activeControl.set(Control.VIEW)
-    }
 
   }
 
@@ -273,11 +186,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     onLoad()
 
 
-    vectorSource.asInstanceOf[js.Dynamic].on(olStrings.changefeature, { () =>
-      changedFeatures()
-    })
-
-    val controlParams = MapControlsParams(map,Property(Some(featuresLayer)),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters)
+    val controlParams = MapControlsParams(map,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters)
     mapControls = controlFactory(controlParams)
     baseLayer.get.foreach( l => mapControls.baseLayer.set(l.name))
     autoRelease(mapControls.baseLayer.listen{ bs =>
@@ -347,11 +256,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       nested(produce(data) { geo =>
-
-        val geometry = geo.as[GeoJson.Geometry].toOption
-        val enable = EnabledControls.fromGeometry(geometry, options)
-        mapControls.renderControls(enable, nested)
-
+        mapControls.renderControls(nested)
       }),
       mapDiv
     )

@@ -35,7 +35,9 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
 
   val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
-  val selectedLayer: ReadableProperty[Option[layerMod.Vector[_]]] = selectedLayerForEdit.transform(_.flatMap(layerOf))
+  val selectedLayer: ReadableProperty[Option[BoxLayer]] = selectedLayerForEdit.transform(_.flatMap(x => layerOf(x).map{l =>
+    BoxLayer(l,MapParamsFeatures.fromDbVector(x))
+  }))
 
   val controlsDiv = div().render
 
@@ -46,13 +48,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
     val _mapDiv = div(height := (_div.clientHeight - 20).px).render
     val wrapper = div(
       div(height := 20.px,
-        Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field),
-        onchange :+= { (e: Event) => BrowserConsole.log(selectedLayerForEdit.get.toString)
-          controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
-          selectedLayerForEdit.get.foreach { vector =>
-            controlsDiv.appendChild(control.renderControls(EnabledControls.fromDbVector(vector),Binding.NestedInterceptor.Identity))
-          }
-        }
+        Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field)
       ),
       controlsDiv,
       _mapDiv).render
@@ -64,13 +60,25 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
     _div
   }
 
+  val nestedCustom = new Binding.NestedInterceptor{
+    protected final val nestedBindings: js.Array[Binding] = js.Array()
+    override def apply(binding: Binding): binding.type = {
+      nestedBindings.push(binding)
+      binding
+    }
+    def kill() = {
+        nestedBindings.foreach(_.kill())
+        nestedBindings.length = 0 // JS way to clear an array
+    }
+  }
+  def redrawControl():Unit = {
+    controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
+    nestedCustom.kill()
+    controlsDiv.appendChild(control.renderControls(nestedCustom))
+  }
+
   selectedLayerForEdit.listen(sl => {
-    window.setTimeout(() => {
-      controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
-      sl.foreach { vector =>
-        controlsDiv.appendChild(control.renderControls(EnabledControls.fromDbVector(vector), Binding.NestedInterceptor.Identity))
-      }
-    },0)
+    window.setTimeout(() => redrawControl(),0)
   }, true)
 
 
@@ -99,7 +107,10 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
   window.asInstanceOf[js.Dynamic].test = map
 
-  val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,() => (), None))
+  val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,data => {
+    BrowserConsole.log(data)
+    redrawControl()
+  }, None))
 
   def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
 

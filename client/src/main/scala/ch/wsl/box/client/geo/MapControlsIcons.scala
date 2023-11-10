@@ -20,7 +20,9 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
 
-  def renderControls(enable: EnabledControls, nested: Binding.NestedInterceptor): Node = {
+  def renderControls(nested: Binding.NestedInterceptor): Node = {
+
+    val enable = enabled()
 
     val geometry = geometries()
 
@@ -40,14 +42,14 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
       div(
         ClientConf.style.controlButtons
       )( //controls
-        controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW),
-        if (geometry.nonEmpty) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT) else frag(),
-        if (enable.point) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT) else frag(),
-        if (enable.line) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING) else frag(),
-        if (enable.polygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON) else frag(),
-        if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE) else frag(),
-        if (geometry.nonEmpty) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE) else frag(),
-        if (geometry.nonEmpty) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE) else frag(),
+        controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW,nested),
+        if (geometry.nonEmpty) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT,nested) else frag(),
+        if (enable.point) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT,nested) else frag(),
+        if (enable.line) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING,nested) else frag(),
+        if (enable.polygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON,nested) else frag(),
+        if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE,nested) else frag(),
+        if (geometry.nonEmpty) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE,nested) else frag(),
+        if (geometry.nonEmpty) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE,nested) else frag(),
         if (geometry.nonEmpty) button(ClientConf.style.mapButton)(
           onclick :+= { (e: Event) =>
             sourceMap(_.getExtent()).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))

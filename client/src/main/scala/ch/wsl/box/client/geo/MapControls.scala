@@ -2,7 +2,7 @@ package ch.wsl.box.client.geo
 
 import cats.effect.IO
 import ch.wsl.box.client.Context.services
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
@@ -27,7 +27,7 @@ import scalatags.JsDom.all._
 import scribe.Logging
 import typings.ol.interactionSelectMod.SelectEvent
 import typings.ol.mod.{MapBrowserEvent, Overlay}
-import typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod}
+import typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod, sourceVectorEventTypeMod}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -56,18 +56,25 @@ object Control {
   case object DELETE extends Section
 }
 
+case class BoxLayer(
+                     olLayer: layerMod.Vector[_],
+                     features:MapParamsFeatures
+                   )
+
 case class MapControlsParams(
                               map:mod.Map,
-                              layerSource: ReadableProperty[Option[layerMod.Vector[_]]],
+                              layer: ReadableProperty[Option[BoxLayer]],
                               projections:BoxMapProjections,
                               baseLayers: Seq[String],
                               extra:Option[Json],
                               precision:Option[Double],
                               enableSwisstopo: Boolean,
-                              change: () => Unit,
+                              change: Json => Unit,
                               formatters:Option[MapFormatters]
                             ) {
 
+
+  def layerSource = layer.transform(_.map(_.olLayer))
   def vectorSource = layerSource.transform(_.map(toVectorSource))
   def sourceMap[T](f:sourceMod.Vector[geomGeometryMod.default] => T):Option[T] = vectorSource.get.map(f)
 }
@@ -119,13 +126,13 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     }
   }
 
-  def featureCollection() = {
-    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(sourceMap(_.getFeatures()).getOrElse(js.Array()))
-    convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).toOption.getOrElse(FeatureCollection(Seq()))
+
+  def geometries(): Seq[Geometry] =  sourceMap(vs => MapUtils.vectorSourceGeoms(vs,projections.default.name)).flatten.map(_.features.map(_.geometry)).getOrElse(Seq())
+
+  def geometry(): Option[Geometry] = {
+    val geometries = sourceMap(vs => MapUtils.vectorSourceGeoms(vs, projections.default.name)).flatten.map(_.features.map(_.geometry)).getOrElse(Seq())
+    layer.get.flatMap(l => MapUtils.factorGeometries(geometries, l.features, projections.default.crs))
   }
-
-  def geometries(): Seq[Geometry] =  featureCollection().features.map(_.geometry)
-
 
   protected def deleteGeometry(geom: SingleGeometry) = if (window.confirm(Labels.form.removeMap)) {
 
@@ -151,7 +158,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
           sourceMap(_.addFeature(geom))
         }
 
-        change()
+        changedFeatures()
       }
 
 
@@ -246,11 +253,11 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
   protected def buttonLabel(labelKey:String) = extra.flatMap(_.getOpt(labelKey)).map(x => Labels(x)).getOrElse(Labels.apply(labelKey))
 
-  protected def controlButton(icon: Icon, labelKey: String, section: Control.Section) = {
+  protected def controlButton(icon: Icon, labelKey: String, section: Control.Section,nested:Binding.NestedInterceptor) = {
 
     var tooltip: Option[UdashTooltip] = None
 
-    produce(activeControl) { c =>
+    nested(produce(activeControl) { c =>
 
       tooltip.foreach(_.destroy())
 
@@ -278,7 +285,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
       tooltip = tt
 
       el.render //modify
-    }
+    })
   }
 
   private var ttgpsButtonGoTo: Option[UdashTooltip] = None
@@ -344,6 +351,26 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     drawHole
   )
 
+  private var oldVectorSource:Option[sourceMod.Vector[geomGeometryMod.default]] = None
+
+  val changedFeatures: js.Function0[Unit] = () => {
+
+    import GeoJson.Geometry._
+    import GeoJson._
+
+    change(geometry().asJson)
+
+    // when adding a point go back to view mode
+    if (
+      activeControl.get == Control.POINT ||
+        activeControl.get == Control.LINESTRING ||
+        activeControl.get == Control.POLYGON
+    ) {
+      activeControl.set(Control.VIEW)
+    }
+
+  }
+
   layerSource.listen({
     case None => {
       finishDrawing()
@@ -351,7 +378,14 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     }
     case Some(ls) =>
 
+
+    oldVectorSource.foreach { vs =>
+      vs.asInstanceOf[js.Dynamic].un(olStrings.changefeature, changedFeatures)
+      vs.asInstanceOf[js.Dynamic].un(olStrings.addfeature, changedFeatures)
+    }
+
     val vs = MapControlsParams.toVectorSource(ls)
+    oldVectorSource = Some(vs)
 
     finishDrawing()
     activeControl.set(Control.VIEW)
@@ -404,11 +438,16 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
       if (window.confirm(Labels.form.removeMap)) {
         e.asInstanceOf[SelectEvent].selected.foreach(x => sourceMap(_.removeFeature(x)))
-        change()
+        changedFeatures()
       }
     })
 
     drawHole = new DrawHole(DrawHoleOptions().setSource(vs).setStyle(MapStyle.simpleStyle()))
+
+
+    //listen for changes
+    vs.asInstanceOf[js.Dynamic].on(olStrings.changefeature, changedFeatures)
+    vs.asInstanceOf[js.Dynamic].on(olStrings.addfeature,changedFeatures)
 
     dynamicInteraction.foreach(x => {
       map.addInteraction(x)
@@ -515,7 +554,13 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
   val baseLayer:Property[String] = Property(baseLayers.headOption.getOrElse(""))
 
-  def renderControls(enable:EnabledControls,nested:Binding.NestedInterceptor):Node
+
+
+
+
+  def enabled():EnabledControls = layer.get.map(l => EnabledControls.fromGeometry(geometry(),l.features)).getOrElse(EnabledControls.none)
+
+  def renderControls(nested:Binding.NestedInterceptor):Node
 
 
 }

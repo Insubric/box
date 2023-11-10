@@ -3,7 +3,7 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.client.viewmodel.I18n
 import ch.wsl.box.model.shared.{GeoJson, JSONQuery}
 import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
-import ch.wsl.box.model.shared.geo.{Box2d, MapProjection}
+import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GEOMETRYCOLLECTION, LINESTRING, MULTILINESTRING, MULTIPOINT, MULTIPOLYGON, MapProjection, POINT, POLYGON}
 
 /*
 {
@@ -21,14 +21,28 @@ import ch.wsl.box.model.shared.geo.{Box2d, MapProjection}
 }
 */
 case class MapParamsFeatures(
-                              point: Boolean,
-                              multiPoint: Boolean,
-                              line: Boolean,
-                              multiLine:Boolean,
-                              polygon: Boolean,
-                              multiPolygon: Boolean,
-                              geometryCollection: Boolean
+                              point: Boolean = false,
+                              multiPoint: Boolean = false,
+                              line: Boolean = false,
+                              multiLine:Boolean = false,
+                              polygon: Boolean = false,
+                              multiPolygon: Boolean = false,
+                              geometryCollection: Boolean = false
                             )
+
+object MapParamsFeatures{
+  def fromDbVector(db: DbVector): MapParamsFeatures = {
+    db.geometryType match {
+      case POINT => MapParamsFeatures(point = true)
+      case MULTIPOINT => MapParamsFeatures(point=true, multiPoint = true)
+      case LINESTRING => MapParamsFeatures(line = true)
+      case MULTILINESTRING => MapParamsFeatures(line = true, multiLine = true)
+      case POLYGON => MapParamsFeatures(polygon = true)
+      case MULTIPOLYGON => MapParamsFeatures(polygon = true,multiPolygon = true)
+      case GEOMETRYCOLLECTION => MapParamsFeatures(point = true, multiPoint = true, line = true, multiLine = true, polygon = true, multiPolygon = true, geometryCollection = true)
+    }
+  }
+}
 
 
 case class MapParamsLayers(
