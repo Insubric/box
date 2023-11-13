@@ -11,7 +11,11 @@ import java.util.UUID
 
 
 
-sealed trait MapLayerMetadata
+sealed trait MapLayerMetadata {
+  def id:UUID
+  def order:Int
+  def name:String
+}
 
 case class DbVectorProperties(id:JSONID,field:String,entity:String)
 case class DbVector(
@@ -32,6 +36,8 @@ case class DbVector(
     val id = JSONID.fromData(data,entityPrimaryKey)
     Feature(geometry,DbVectorProperties(id, field, entity).asJson.asObject)
   }
+
+  def name = field
 }
 
 
@@ -43,7 +49,9 @@ case class WMTS(
                  srid: MapProjection,
                  extra: Json,
                  order:Int
-               ) extends MapLayerMetadata
+               ) extends MapLayerMetadata {
+  def name = layerId
+}
 
 sealed trait GeometryType
 case object POINT extends GeometryType

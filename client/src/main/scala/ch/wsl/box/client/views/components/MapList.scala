@@ -80,7 +80,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
       layers.foreach { g =>
-        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+        val geom = MapUtils.boxFeatureToOlFeature(g)
         vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
       }
 

@@ -3,8 +3,9 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection}
+import ch.wsl.box.model.shared.GeoTypes.GeoData
 import ch.wsl.box.model.shared.JSONQuery
-import ch.wsl.box.model.shared.geo.{Box2d, DbVector, MapMetadata, WMTS}
+import ch.wsl.box.model.shared.geo.{Box2d, DbVector, MapLayerMetadata, MapMetadata, WMTS}
 import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
@@ -12,7 +13,7 @@ import io.udash._
 import io.udash.bindings.modifiers.Binding
 import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom.MutationObserver
-import scalatags.JsDom._
+import scalatags.JsDom.{StringFrag, _}
 import scalatags.JsDom.all._
 import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mod, olStrings, sourceMod, sourceVectorMod, viewMod}
 import org.scalajs.dom._
@@ -20,6 +21,7 @@ import org.scalajs.dom.html.Div
 import typings.ol.mapMod.MapOptions
 import typings.ol.viewMod.FitOptions
 
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -30,7 +32,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   import ch.wsl.box.client.Context._
 
-  val BOX_LAYER_ID = "box_layer_id"
+
 
   val editable = metadata.db.exists(_.editable)
 
@@ -44,6 +46,26 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   val controlsDiv = div().render
 
+  val layersSelection = div().render
+
+  ready.listenOnce(_ => {
+    layersSelection.appendChild(div(
+      (metadata.db.filterNot(_.editable) ++ metadata.wmts).groupBy(_.order).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
+        div(
+          input(`type` := "checkbox", checked := "checked", onchange :+= { (e: Event) => map.getLayers().getArray().filter(_.getZIndex() == i).map(_.setVisible(e.currentTarget.asInstanceOf[HTMLInputElement].checked)) }),
+          if (alternativeLayers.length == 1) alternativeLayers.head.name else {
+            val selected: Property[MapLayerMetadata] = Property(alternativeLayers.head)
+            selected.listen(layer => {
+              alternativeLayers.flatMap(l => layerOf(l.id)).foreach(_.setVisible(false))
+              layerOf(layer.id).foreach(_.setVisible(true))
+            })
+            Select[MapLayerMetadata](selected, SeqProperty(alternativeLayers))(x => StringFrag(x.name))
+          }
+        ).render
+      }
+    ).render)
+  })
+
   val mapDiv:Div = if (editable) {
 
 
@@ -54,13 +76,22 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
         Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field)
       ).render },
       controlsDiv,
-      _mapDiv).render
+      _mapDiv,
+      layersSelection
+    ).render
 
     _div.appendChild(wrapper)
 
     _mapDiv
   } else {
-    _div
+    val _mapDiv = div(height := (_div.clientHeight).px).render
+    val wrapper = div(
+      _mapDiv,
+      layersSelection
+    ).render
+    _div.appendChild(wrapper)
+
+    _mapDiv
   }
 
   val nestedCustom = new Binding.NestedInterceptor{
@@ -131,7 +162,8 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     redrawControl()
   }, None))
 
-  def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
+  def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
+  def layerOf(id:UUID):Option[layerBaseMod.default] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(id.toString))
 
   def sourceOf(db:DbVector): Option[sourceMod.Vector[_]] = layerOf(db).map(_.getSource().asInstanceOf[sourceMod.Vector[_]])
 
@@ -169,16 +201,26 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   def addLayers(layers:Seq[layerBaseMod.default]) = {
     layers.foreach { layer =>
+      if(map.getLayers().getArray().exists(_.getZIndex() == layer.getZIndex())) {
+        layer.setVisible(false)
+      }
+      layer.getZIndex()
       map.addLayer(layer)
     }
-
-
-
     map.render()
+  }
+
+  def addFeaturesToLayer(db: DbVector, geoms:GeoData) = {
+    sourceOf(db).map{s =>
+      val features = geoms.map(MapUtils.boxFeatureToOlFeature)
+      s.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
+    }
+
   }
 
   def wmtsLayer(wmts:WMTS) = {
     val layer = MapUtils.loadWmtsLayer(
+      wmts.id,
       wmts.capabilitiesUrl,
       wmts.layerId,
       None,
@@ -190,7 +232,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     }
   }
 
-  def dbVectorLayer(vector:DbVector,d:Json,extent:Option[Box2d]) = {
+  def dbVectorLayer(vector:DbVector,d:Json,extent:Option[Box2d]): Future[(DbVector,GeoData)] = {
 
     val baseQuery = vector.query.map(_.withData(d,services.clientSession.lang())).getOrElse(JSONQuery.empty)
 
@@ -199,25 +241,25 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       case None => baseQuery
     }
 
-    services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.field,query).map{ geoms =>
-      val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
-      val features = geoms.map { g =>
-        new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-      }
-
-      vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
-
-      val layer = new layerMod.Vector(layerBaseVectorMod.Options()
-        .setSource(vectorSource)
-        .setZIndex(vector.order)
-        .setProperties(StringDictionary((BOX_LAYER_ID,vector.id.toString)))
-        .setStyle(MapStyle.vectorStyle(vector.color))
-      )
+    services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.field,query).map(x => (vector,x))
+  }
 
 
-      layer
 
-    }
+  def geomsToLayer(vector:DbVector,geoms:GeoData):layerMod.Vector[_] = {
+    val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
+    val features = geoms.map(MapUtils.boxFeatureToOlFeature)
+
+    vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
+
+    val layer = new layerMod.Vector(layerBaseVectorMod.Options()
+      .setSource(vectorSource)
+      .setZIndex(vector.order)
+      .setProperties(StringDictionary((MapUtils.BOX_LAYER_ID, vector.id.toString)))
+      .setStyle(MapStyle.vectorStyle(vector.color))
+    )
+
+    layer
   }
 
 
@@ -230,7 +272,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
     for{
       baseLayers <- Future.sequence(metadata.db.filter(_.autofocus).map(v => dbVectorLayer(v,d,None)))
-      _ = addLayers(baseLayers)
+      _ = addLayers(baseLayers.map(x => geomsToLayer(x._1,x._2)))
       extent = fit()
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v,d,Some(extent))))
     } yield {
@@ -239,19 +281,18 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       } else {
         selectedLayerForEdit.set(selectedLayerForEdit.get,true) // retrigger layer listener
       }
-      addLayers(extraLayers)
+      addLayers(extraLayers.map(x => geomsToLayer(x._1,x._2)))
       redrawControl()
       ready.set(true)
     }
   }, true)
 
   val extentChange = Debounce(250.millis)((_: Unit) => {
-    metadata.db.filterNot(_.autofocus).flatMap(layerOf).foreach(map.removeLayer)
     val extent = Box2d.fromSeq(view.calculateExtent().toSeq)
     for{
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, properties.get, Some(extent))))
     } yield {
-      addLayers(extraLayers)
+      extraLayers.foreach({ case (l,g) => addFeaturesToLayer(l,g)})
     }
   })
 

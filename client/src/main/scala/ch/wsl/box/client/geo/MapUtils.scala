@@ -2,18 +2,20 @@ package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.BrowserConsole
-import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.model.shared.{GeoJson, JSONID}
 import ch.wsl.box.model.shared.GeoJson._
 import io.circe._
-import io.circe.scalajs.convertJsToJson
+import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
 import io.circe.syntax.EncoderOps
+import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom
 import scalatags.JsDom.all.s
 import scribe.Logging
 import typings.ol.coordinateMod.Coordinate
 import typings.ol.mapBrowserEventMod.MapBrowserEvent
-import typings.ol.{formatGeoJSONMod, formatMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
+import typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
 
+import java.util.UUID
 import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.|._
@@ -21,7 +23,9 @@ import scala.util.Try
 
 object MapUtils extends Logging {
 
-  def loadWmtsLayer(capabilitiesUrl: String, layer: String, time: Option[String],zIndex: Int = 0) = {
+  val BOX_LAYER_ID = "box_layer_id"
+
+  def loadWmtsLayer(id:UUID, capabilitiesUrl: String, layer: String, time: Option[String],zIndex: Int = 0) = {
 
     val result = Promise[layerMod.Tile[_]]()
 
@@ -48,6 +52,7 @@ object MapUtils extends Logging {
         val wmts = new layerMod.Tile(layerBaseTileMod.Options()
           .setSource(new sourceMod.WMTS(wmtsOptions))
           .setZIndex(zIndex)
+          .setProperties(StringDictionary((BOX_LAYER_ID, id.toString)))
         )
         result.success(wmts)
       }
@@ -201,6 +206,15 @@ object MapUtils extends Logging {
 
       }
     }
+  }
+
+  def boxFeatureToOlFeature(box:Feature): featureMod.default[geomGeometryMod.default] = {
+    import io.circe.generic.auto._
+    val ol = new formatGeoJSONMod.default().readFeature(convertJsonToJs(box.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+    box.properties.flatMap(_.apply("jsonid").flatMap(_.as[JSONID].toOption)).map(_.asString).foreach{ id =>
+      ol.setId(id)
+    }
+    ol
   }
 
 
