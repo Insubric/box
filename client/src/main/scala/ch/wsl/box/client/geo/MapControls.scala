@@ -158,7 +158,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
           sourceMap(_.addFeature(geom))
         }
 
-        changedFeatures()
+        changedFeatures(null)
       }
 
 
@@ -353,10 +353,14 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
   private var oldVectorSource:Option[sourceMod.Vector[geomGeometryMod.default]] = None
 
-  val changedFeatures: js.Function0[Unit] = () => {
+  val changedFeatures: js.Function1[eventsEventMod.BaseEvent,Unit] = (e) => {
 
-    import GeoJson.Geometry._
-    import GeoJson._
+
+    if(activeControl.get == Control.POLYGON_HOLE && (e == null || e.`type` == olStrings.addfeature.toString)) {
+      vectorSource.get.foreach(vs => {
+        vs.removeFeature(vs.getFeatures().last)
+      })
+    }
 
     change(geometry().asJson)
 
@@ -438,7 +442,9 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
       if (window.confirm(Labels.form.removeMap)) {
         e.asInstanceOf[SelectEvent].selected.foreach(x => sourceMap(_.removeFeature(x)))
-        changedFeatures()
+        changedFeatures(e.asInstanceOf[eventsEventMod.BaseEvent])
+      } else {
+        delete.getFeatures().clear()
       }
     })
 

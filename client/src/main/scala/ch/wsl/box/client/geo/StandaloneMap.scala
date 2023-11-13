@@ -33,6 +33,8 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
   val editable = metadata.db.exists(_.editable)
 
+  val ready = Property(false)
+
 
   val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
   val selectedLayer: ReadableProperty[Option[BoxLayer]] = selectedLayerForEdit.transform(_.flatMap(x => layerOf(x).map{l =>
@@ -47,9 +49,9 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
     val _mapDiv = div(height := (_div.clientHeight - 20).px).render
     val wrapper = div(
-      div(height := 20.px,
+      showIf(ready) { div(height := 20.px,
         Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field)
-      ),
+      ).render },
       controlsDiv,
       _mapDiv).render
 
@@ -72,13 +74,15 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
     }
   }
   def redrawControl():Unit = {
-    controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
-    nestedCustom.kill()
-    controlsDiv.appendChild(control.renderControls(nestedCustom))
+    window.setTimeout(() => {
+      controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
+      nestedCustom.kill()
+      controlsDiv.appendChild(control.renderControls(nestedCustom))
+    },0)
   }
 
   selectedLayerForEdit.listen(sl => {
-    window.setTimeout(() => redrawControl(),0)
+   redrawControl()
   }, true)
 
 
@@ -205,7 +209,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
   metadata.wmts.foreach(wmtsLayer)
 
   data.listen({d =>
-
+    ready.set(false)
     metadata.db.flatMap(layerOf).foreach(map.removeLayer)
 
     for{
@@ -216,8 +220,12 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
     } yield {
       if(selectedLayerForEdit.get.isEmpty) {
         selectedLayerForEdit.set(metadata.db.find(_.editable))
+      } else {
+        selectedLayerForEdit.set(selectedLayerForEdit.get,true) // retrigger layer listener
       }
       addLayers(extraLayers)
+      redrawControl()
+      ready.set(true)
     }
   }, true)
 

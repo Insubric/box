@@ -43,7 +43,7 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
         ClientConf.style.controlButtons
       )( //controls
         controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW,nested),
-        if (geometry.nonEmpty) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT,nested) else frag(),
+        if (geometry.nonEmpty && (enable.line || enable.polygon)) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT,nested) else frag(),
         if (enable.point) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT,nested) else frag(),
         if (enable.line) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING,nested) else frag(),
         if (enable.polygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON,nested) else frag(),
