@@ -44,7 +44,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   def resetChanges() = {
     logger.info(s"${metadata.name} resetChanges")
-    blocks.foreach(_._2.resetChangeAlert())
+    blocks.foreach(_.widget.resetChangeAlert())
     currentData.set(data.get)
   }
 
@@ -88,20 +88,16 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
 
+
   private def saveAll(data:Json,widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
     // start to empty and populate
 
-    def extractFields(fields:Either[String,SubLayoutBlock]):Seq[String] = fields match {
-      case Left(value) if metadata.fields.exists(_.name == value) => Seq(value)
-      case Left(_) => Seq()
-      case Right(value) => value.fields.flatMap(extractFields)
-    }
+
 
     val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
-      widgetAction(b._2)(data,metadata).map { intermediateResult =>
-        val fields:Seq[String] = b._1.fields.flatMap(extractFields)
-        logger.debug(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n $fields")
-        Json.fromFields(fields.flatMap{k =>
+      widgetAction(b.widget)(data,metadata).map { intermediateResult =>
+        logger.debug(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n ${b.fields}")
+        Json.fromFields(b.fields.flatMap{k =>
           intermediateResult.jsOpt(k).map(v => k -> v)
         })
       }
@@ -129,24 +125,27 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   }
 
-  val blocks: Seq[(LayoutBlock, Widget)] = metadata.layout.blocks.map { block =>
+  case class FormBlock(widget:Widget,fields:Seq[String],layoutBlock: Option[LayoutBlock])
+
+  val blocks: Seq[FormBlock] = metadata.layout.blocks.map { block =>
     val hLayout = block.distribute.contains(true) match {
       case true => Right(true)
       case false => Left(Stream.continually(12))
     }
-    (
-      block,
-      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,hLayout)
+    FormBlock(
+      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,hLayout),
+      block.extractFields(metadata),
+      Some(block),
     )
   }
 
 
   override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value,_.beforeSave)
 
-  override def killWidget(): Unit = blocks.foreach(_._2.killWidget())
+  override def killWidget(): Unit = blocks.foreach(_.widget.killWidget())
 
 
-  override def afterRender() = Future.sequence(blocks.map(_._2.afterRender())).map(_.forall(x => x))
+  override def afterRender() = Future.sequence(blocks.map(_.widget.afterRender())).map(_.forall(x => x))
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
 
@@ -174,12 +173,12 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
     div(
         div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
-          renderBlocks(blocks.filterNot(_._1.tabGroup.isDefined).map(x => WidgetBlock(x._1,x._2))),
-          blocks.filter(_._1.tabGroup.isDefined).groupBy(_._1.tabGroup).toSeq.map{ case (tabGroup,blks) =>
-            val tabs = blks.map(_._1.tab).distinct
+          renderBlocks(blocks.filter(_.layoutBlock.isDefined).filterNot(_.layoutBlock.flatMap(_.tabGroup).isDefined).map(x => WidgetBlock(x.layoutBlock.get,x.widget))),
+          blocks.filter(_.layoutBlock.flatMap(_.tabGroup).isDefined).groupBy(_.layoutBlock.map(_.tabGroup).get).toSeq.map{ case (tabGroup,blks) =>
+            val tabs = blks.map(_.layoutBlock.get.tab).distinct
             val tabKey = SelectedTabKey(metadata.objId,tabGroup)
             val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
-            div(BootstrapCol.md(blks.map(_._1.width).max),
+            div(BootstrapCol.md(blks.map(_.layoutBlock.get.width).max),
               ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
                 tabs.map { name =>
                   val title = name.getOrElse("No title")
@@ -197,7 +196,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
                 }
               ),
               nested(produce(selectedTab) { tabName =>
-                renderBlocks(blks.filter(_._1.tab == tabName).map(x => WidgetBlock.ofTab(x._1,x._2))).render
+                renderBlocks(blks.filter(_.layoutBlock.get.tab == tabName).map(x => WidgetBlock.ofTab(x.layoutBlock.get,x.widget))).render
               })
             )
           }

@@ -140,11 +140,11 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   import GeoJson._
 
-  def changedFeatures(newData:Json) = {
+  def changedFeatures(newData:Option[Geometry]) = {
 
 
     listener.cancel()
-    data.set(newData)
+    data.set(newData.asJson)
     registerListener(false)
 
   }

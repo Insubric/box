@@ -55,6 +55,8 @@ object GeoJson {
   implicit val encoderCoordinates: Encoder[Coordinates] = Encoder.instance( e => Json.arr(e.x.asJson,e.y.asJson) )
   implicit val featureEncoder: Encoder[Feature] = deriveEncoder[Feature]
   implicit val featureDecoder: Decoder[Feature] = deriveDecoder[Feature]
+  implicit val featureCollectionEncoder: Encoder[FeatureCollection] = deriveEncoder[FeatureCollection]
+  implicit val featureCollectionDecoder: Decoder[FeatureCollection] = deriveDecoder[FeatureCollection]
 
 
 

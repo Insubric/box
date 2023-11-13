@@ -1,8 +1,11 @@
 package ch.wsl.box.model.shared.geo
 
-import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.model.shared.GeoJson.{Feature, Geometry}
+import ch.wsl.box.model.shared.{JSONID, JSONQuery}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
-import io.circe.Json
+import io.circe.syntax.EncoderOps
+import io.circe.{Json, JsonObject}
+import io.circe.generic.auto._
 
 import java.util.UUID
 
@@ -10,11 +13,12 @@ import java.util.UUID
 
 sealed trait MapLayerMetadata
 
-
+case class DbVectorProperties(id:JSONID,field:String,entity:String)
 case class DbVector(
            id: UUID,
            entity: String,
            field: String,
+           entityPrimaryKey:Seq[String],
            srid:MapProjection,
            geometryType: GeometryType,
            query: Option[JSONQuery],
@@ -23,7 +27,12 @@ case class DbVector(
            order:Int,
            autofocus: Boolean,
            color: String
-         ) extends MapLayerMetadata
+         ) extends MapLayerMetadata {
+  def toData(geometry:Geometry,data:Json) = {
+    val id = JSONID.fromData(data,entityPrimaryKey)
+    Feature(geometry,DbVectorProperties(id, field, entity).asJson.asObject)
+  }
+}
 
 
 

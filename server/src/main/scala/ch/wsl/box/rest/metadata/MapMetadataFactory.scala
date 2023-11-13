@@ -7,6 +7,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.GeoJson.CRS
 import ch.wsl.box.model.shared.JSONQuery
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.services.Services
 import io.circe.Json
 import org.opengis.feature.`type`.GeometryType
 
@@ -26,13 +27,13 @@ object MapMetadataFactory {
   }
 
   def map2bbox(map:BoxMap.Map_row):Box2d =  Box2d(map.x_min, map.y_min, map.x_max, map.y_max)
-  def of(uuid:UUID)(implicit ex: ExecutionContext): DBIO[MapMetadata] = {
+  def of(uuid:UUID)(implicit ex: ExecutionContext,services:Services): DBIO[MapMetadata] = {
     for {
       map <- BoxMap.Maps.filter(_.map_id === uuid).result.head
       result <- metadata(map)
     } yield result
   }
-  def of(name:String)(implicit ex:ExecutionContext):DBIO[MapMetadata] = {
+  def of(name:String)(implicit ex:ExecutionContext,services:Services):DBIO[MapMetadata] = {
     for{
       map <- BoxMap.Maps.filter(_.name === name).result.head
       result <- metadata(map)
@@ -40,7 +41,7 @@ object MapMetadataFactory {
 
   }
 
-  private def metadata(map:BoxMap.Map_row)(implicit ex: ExecutionContext): DBIO[MapMetadata] = {
+  private def metadata(map:BoxMap.Map_row)(implicit ex: ExecutionContext,services:Services): DBIO[MapMetadata] = {
 
     for {
       vectorLayers <- BoxMap.Map_layer_vector_db.filter(_.map_id === map.map_id).result
@@ -61,7 +62,7 @@ object MapMetadataFactory {
   }
 
 
-  def toLayer(l: BoxMap.Map_layer_vector_db_row)(implicit ex:ExecutionContext): DBIO[DbVector] = {
+  def toLayer(l: BoxMap.Map_layer_vector_db_row)(implicit ex:ExecutionContext,services:Services): DBIO[DbVector] = {
 
     val geom = l.geometry_type match {
       case "POINT" => POINT
@@ -73,12 +74,16 @@ object MapMetadataFactory {
       case "GEOMETRYCOLLECTION" => GEOMETRYCOLLECTION
     }
 
-    getSrid(l.srid).map { srid =>
+    for{
+      srid <- getSrid(l.srid)
+      keys <- EntityMetadataFactory.keysOf(Registry().schema,l.entity)
+    } yield  {
 
       DbVector(
         l.layer_id.get,
         l.entity,
         l.field,
+        keys,
         srid, //srid
         geom,
         l.query.flatMap(JSONQuery.fromJson),

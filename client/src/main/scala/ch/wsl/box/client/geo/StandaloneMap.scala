@@ -2,6 +2,7 @@ package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.client.utils.Debounce
+import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection}
 import ch.wsl.box.model.shared.JSONQuery
 import ch.wsl.box.model.shared.geo.{Box2d, DbVector, MapMetadata, WMTS}
 import io.circe.Json
@@ -25,7 +26,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters.JSRichIterableOnce
 import scala.util.Try
 
-class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
+class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) {
 
   import ch.wsl.box.client.Context._
 
@@ -111,13 +112,28 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
   window.asInstanceOf[js.Dynamic].test = map
 
-  val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,data => {
-    BrowserConsole.log(data)
+  def save(): Unit = {
+
+    val features = metadata.db.filter(_.editable)
+                  .flatMap(l => sourceOf(l).map(x => (x,l)))
+                  .flatMap{ case (s,l) => MapUtils.vectorSourceGeoms(s,metadata.srid.name).map(x => (x,l)) }
+                  .flatMap{ case (f,l) => MapUtils.factorGeometries(f.features.map(_.geometry),MapParamsFeatures.fromDbVector(l),metadata.srid.crs).map(x => (x,l))}
+                  //.map{case (g,l) => l.field -> g}
+                  .map{case (g,l) => l.toData(g,properties.get)}
+    val result = FeatureCollection(features)
+    import ch.wsl.box.model.shared.GeoJson._
+    BrowserConsole.log(result.asJson)
+    data.set(result.asJson)
+  }
+
+  val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,_data => {
+    save()
     redrawControl()
   }, None))
 
   def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
 
+  def sourceOf(db:DbVector): Option[sourceMod.Vector[_]] = layerOf(db).map(_.getSource().asInstanceOf[sourceMod.Vector[_]])
 
   private def extentOfLayers(layers:js.Array[layerBaseMod.default]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
     val layersExtent = layers.flatMap {
@@ -208,7 +224,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
 
   metadata.wmts.foreach(wmtsLayer)
 
-  data.listen({d =>
+  properties.listen({d =>
     ready.set(false)
     metadata.db.flatMap(layerOf).foreach(map.removeLayer)
 
@@ -233,7 +249,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,data:Property[Json]) {
     metadata.db.filterNot(_.autofocus).flatMap(layerOf).foreach(map.removeLayer)
     val extent = Box2d.fromSeq(view.calculateExtent().toSeq)
     for{
-      extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, data.get, Some(extent))))
+      extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, properties.get, Some(extent))))
     } yield {
       addLayers(extraLayers)
     }

@@ -18,7 +18,7 @@ import scalatags.JsDom.all._
 case class MapChild(params: WidgetParams) extends Widget { // with BoxOlMap with HasData with Logging {
   override def field: JSONField = params.field
 
-  val data = params._allData.bitransform (js => Json.fromFields(field.map.toList.flatMap(_.parameters).map(f => f -> js.js(f))))(map => params._allData.get.deepMerge(map))
+  val parameters = params._allData.transform (js => Json.fromFields(field.map.toList.flatMap(_.parameters).map(f => f -> js.js(f))))
 
   override protected def show(nested: Binding.NestedInterceptor): JsDom.all.Modifier = edit(nested)
 
@@ -27,7 +27,7 @@ case class MapChild(params: WidgetParams) extends Widget { // with BoxOlMap with
 
       val observer = new MutationObserver({ (mutations, observer) =>
         if (document.contains(mapDiv)) {
-          new StandaloneMap(mapDiv,field.map.get,data)
+          new StandaloneMap(mapDiv,field.map.get,parameters,params.prop)
           observer.disconnect()
         }
       })
