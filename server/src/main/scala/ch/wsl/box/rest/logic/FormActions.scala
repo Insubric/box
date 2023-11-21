@@ -354,7 +354,7 @@ case class FormActions(metadata:JSONMetadata,
         case Some(value) => DBIO.successful(value)
         case None => jsonAction.insert(dataWithoutChilds)
       }
-      diff = newRow.diff(metadata, Seq())(dataWithoutChilds)
+      diff = newRow.diff(JSONMetadata.layoutOnly(metadata), Seq())(dataWithoutChilds)
       result <- jsonAction.updateDiff(diff)
     } yield result.orElse(current).getOrElse(dataWithoutChilds)
   }
