@@ -130,13 +130,15 @@ case class FormActions(metadata:JSONMetadata,
 
   def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(query).map{ rows =>
 
+    val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
+
     val data: Seq[Seq[Json]] = rows.map { row =>
-      metadata.exportFields.map { f =>
-        listRenderer(row, lookupElements, dropHtml)(f)
+      fields.map { f =>
+        listRenderer(row, lookupElements, dropHtml)(f.name)
       }
     }
     val keys = rows.map(row => JSONID.fromBoxObjectId(row,metadata).map(_.asString))
-    val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
+
     val geomColumn = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
     DataResultTable(fields.map(_.title),fields.map(_.`type`),data,keys,geomColumn.map{ case f =>
       f.name -> rows.map{ row => row.js(f.name).as[Geometry].toOption }

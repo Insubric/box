@@ -15,7 +15,7 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.io.shp.ShapeFileWriter
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
@@ -37,7 +37,7 @@ case class Form(
                  metadataFactory: MetadataFactory,
                  kind:String,
                  public: Boolean = false
-               )(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] {
+               )(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] with Exporters {
 
     import JSONSupport._
     import Light._
@@ -79,7 +79,7 @@ case class Form(
 
   }
 
-    def tabularMetadata(fields:Option[Seq[String]] = None) = {
+    def tabularMetadata(fields:Option[Seq[String]] = None): DBIO[JSONMetadata] = {
       val filteredFields = metadata.view match {
         case None => DBIO.successful(_tabMetadata(fields,metadata))
         case Some(view) => DBIO.from(EntityMetadataFactory.of(view,registry).map{ vm =>
@@ -99,29 +99,6 @@ case class Form(
       }
     }
 
-
-  def xls = path("xlsx") {
-    get {
-      privateOnly {
-        parameters('q) { q =>
-          val query = parse(q).right.get.as[JSONQuery].right.get
-          val io = for {
-            metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-            formActions = FormActions(metadata, registry, metadataFactory)
-            data <- formActions.list(query, true, true,_.exportFields)
-            xlsTable = XLSTable(
-              title = name,
-              header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
-              rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
-            )
-          } yield {
-            XLS.route(xlsTable)
-          }
-          onSuccess(db.run(io))(x => x)
-        }
-      }
-    }
-  }
 
   def csvTable(query:JSONQuery):Future[CSVTable] = {
     for {
@@ -181,25 +158,6 @@ case class Form(
     }
   }
 
-  def shp:Route = path("shp") {
-    get {
-      parameters('q) { q =>
-        val query = parse(q).right.get.as[JSONQuery].right.get
-        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
-          complete {
-            for {
-              metadata <- boxDb.adminDb.run(tabularMetadata())
-              formActions = FormActions(metadata, registry, metadataFactory)
-              data <- db.run(formActions.dataTable(query, None))
-              shapefile <- ShapeFileWriter.writeShapeFile(name,data)
-            }  yield {
-              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
-            }
-          }
-        }
-      }
-    }
-  }
 
   def _get(ids:Seq[JSONID]) = get {
     privateOnly {
@@ -364,9 +322,12 @@ case class Form(
       }
     } ~
     lookup(Future.successful(metadata)) ~
-    xls ~
-    csv ~
-    shp ~
+    privateOnly {
+      xls ~
+        csv ~
+        shp ~
+        geoPkg
+    } ~
     geoData ~
     lookups(actions) ~
     pathEnd {

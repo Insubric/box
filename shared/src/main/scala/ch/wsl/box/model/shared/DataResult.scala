@@ -7,11 +7,14 @@ import io.circe.syntax._
 
 sealed trait DataResult
 
+case class TableTypes(name:String,typ:String)
 case class DataResultTable(headers:Seq[String], headerType:Seq[String],rows:Seq[Seq[Json]],idString:Seq[Option[String]] = Seq(),geometry: Map[String,Seq[Option[Geometry]]] = Map(), errorMessage:Option[String] = None) extends DataResult {
 
   lazy val toMap: Seq[Map[String, Json]] = rows.map(r => headers.zip(r).toMap)
 
   lazy val geomColumn:Seq[String] = geometry.keys.toSeq
+
+  lazy val types = headers.zip(headerType).map{ case (n,t) => TableTypes(n,t)}
 
   def keys(metadata:JSONMetadata):Seq[Option[JSONID]] = {
     idString.map(id => id.flatMap( x => JSONID.fromString(x,metadata)))
