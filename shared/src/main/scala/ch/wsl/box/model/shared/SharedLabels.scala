@@ -215,6 +215,7 @@ object SharedLabels extends LabelsCollection {
     def csv = "table.csv"
     def xls = "table.xls"
     def shp = "table.shp"
+    def geopackage = "table.geopackage"
     def all = Seq(
       filters,
       actions,
@@ -227,7 +228,8 @@ object SharedLabels extends LabelsCollection {
       confirmRevert,
       csv,
       xls,
-      shp
+      shp,
+      geopackage
     )
   }
 

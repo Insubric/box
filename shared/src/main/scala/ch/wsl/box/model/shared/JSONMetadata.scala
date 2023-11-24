@@ -100,6 +100,11 @@ object JSONMetadata extends Logging {
     case Right(sub) => extractFields(sub.fields)
   }
 
+  def layoutOnly(metadata: JSONMetadata):JSONMetadata = {
+    val layoutField = metadata.layout.blocks.flatMap(x => extractFields(x.fields))
+    metadata.copy(fields = metadata.fields.filter(f => layoutField.contains(f.name)))
+  }
+
 
   def simple(id:UUID, kind:String, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
     objId = id,

@@ -162,11 +162,13 @@ object Settings {
     "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
     "org.geotools" % "gt-shapefile" % "27.2",
     "org.geotools" % "gt-epsg-hsql" % "27.2",
+    "org.geotools" % "gt-geopkg" % "27.2",
     "com.google.zxing" % "core" % "3.5.0",
     "com.google.zxing" % "javase" % "3.5.0",
     "com.typesafe" %% "ssl-config-core" % "0.6.1",
     "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
     "org.apache.xmlgraphics" % "batik-codec" % "1.16",
+    //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
     //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"
     //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,

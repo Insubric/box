@@ -1,25 +1,23 @@
-package ch.wsl.box.rest.io.shp
+package ch.wsl.box.rest.io.geotools
 
-import java.io.{ByteArrayOutputStream, File}
-import java.util.zip.{ZipEntry, ZipOutputStream}
-import ch.wsl.box.model.shared.{DataResultTable, GeoJson}
 import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
+import ch.wsl.box.model.shared.{DataResultTable, GeoJson}
+import ch.wsl.box.rest.io.geotools.Utils.toJTS
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
-import org.geotools.data.shapefile.{ShapefileDataStore, ShapefileDataStoreFactory}
-import org.geotools.data.simple.SimpleFeatureStore
-import org.geotools.feature.simple.SimpleFeatureBuilder
-import org.geotools.feature.DefaultFeatureCollection
-import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.data.DefaultTransaction
-import org.locationtech.jts.geom.{Coordinate, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon}
-import scribe.Logging
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder
+import org.geotools.data.shapefile.ShapefileDataStoreFactory
+import org.geotools.data.simple.SimpleFeatureStore
+import org.geotools.feature.DefaultFeatureCollection
+import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
+import org.geotools.geometry.jts.JTSFactoryFinder
+import org.locationtech.jts.geom._
 import org.opengis.feature.simple.SimpleFeatureType
-import org.geotools.data.simple._
+import scribe.Logging
 
-import java.nio.charset.Charset
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.Files
+import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,7 +29,7 @@ case class ShapeFileRow(geometry: Geometry, attributes:Seq[ShapeFileAttributes])
 object ShapeFileWriter extends Logging {
 
 
-  private val geometryFactory = JTSFactoryFinder.getGeometryFactory
+
 
   /**
    *
@@ -79,61 +77,10 @@ object ShapeFileWriter extends Logging {
 
   }
 
-  private def pointJTS(point:GeoJson.Point):Point =   {
-    geometryFactory.createPoint(new Coordinate(point.coordinates.x,point.coordinates.y))
-  }
-
-  private def lineJTS(line:GeoJson.LineString):LineString=  {
-    geometryFactory.createLineString(line.coordinates.map(c => new Coordinate(c.x,c.y)).toArray)
-  }
-
-  private def polygonJTS(poly:GeoJson.Polygon):Polygon = {
-
-    val ring = geometryFactory.createLinearRing{
-      poly.coordinates.head.map(c => new Coordinate(c.x,c.y)).toArray
-    }
-
-    val holes = poly.coordinates.tail.map{ hole =>
-      geometryFactory.createLinearRing(hole.map(c => new Coordinate(c.x,c.y)).toArray)
-    }.toArray
-
-    geometryFactory.createPolygon(ring,holes)
-
-  }
-
-  private def multiPointJTS(points:GeoJson.MultiPoint):MultiPoint =  {
-    geometryFactory.createMultiPoint{
-      points.toSingle.map(p => pointJTS(p.asInstanceOf[GeoJson.Point])).toArray
-    }
-  }
-
-  private def multiLineJTS(lines:GeoJson.MultiLineString):MultiLineString =  {
-    geometryFactory.createMultiLineString{
-      lines.toSingle.map(p => lineJTS(p.asInstanceOf[GeoJson.LineString])).toArray
-    }
-  }
-
-  private def multiPolygonJTS(polygons:GeoJson.MultiPolygon):MultiPolygon =  {
-    geometryFactory.createMultiPolygon{
-      polygons.toSingle.map(p => polygonJTS(p.asInstanceOf[GeoJson.Polygon])).toArray
-    }
-  }
 
 
 
-  private def toJTS(geometry: Geometry):org.locationtech.jts.geom.Geometry = {
-    geometry match {
-      case geometry: GeoJson.SingleGeometry => geometry match {
-        case p:GeoJson.Point => pointJTS(p)
-        case l:GeoJson.LineString => lineJTS(l)
-        case poly:GeoJson.Polygon => polygonJTS(poly)
-      }
-      case mp:GeoJson.MultiPoint => multiPointJTS(mp)
-      case ml:GeoJson.MultiLineString => multiLineJTS(ml)
-      case mpoly:GeoJson.MultiPolygon => multiPolygonJTS(mpoly)
-      case GeoJson.GeometryCollection(geometries,crs) => throw new Exception("Geometry collection are not supported in shapefiles")
-    }
-  }
+
 
 
   private def attributeWriter(attributes: Seq[ShapeFileAttributes],featureBuilder:SimpleFeatureBuilder) = {

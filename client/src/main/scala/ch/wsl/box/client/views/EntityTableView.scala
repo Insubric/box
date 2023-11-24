@@ -455,6 +455,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
+  val downloadGeoPackage = (e: Event) => {
+    download("gpkg")
+    e.preventDefault()
+  }
+
   val downloadXLS = (e:Event) => {
     download("xlsx")
     e.preventDefault()
@@ -904,7 +909,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
           if (presenter.hasGeometry()) {
-            button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp)
+            Seq(
+              button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
+              button(`type` := "button", onclick :+= presenter.downloadGeoPackage, ClientConf.style.boxButton, Labels.entity.geoPackage)
+            )
           } else frag(),
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {
             p("loading...").render

@@ -140,6 +140,7 @@ object Labels {
     def csv = get(SharedLabels.entity.csv)
     def xls = get(SharedLabels.entity.xls)
     def shp = get(SharedLabels.entity.shp)
+    def geoPackage = get(SharedLabels.entity.geopackage)
   }
 
   object header{

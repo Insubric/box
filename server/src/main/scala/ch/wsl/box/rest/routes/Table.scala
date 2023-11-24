@@ -21,7 +21,7 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
-import ch.wsl.box.rest.io.shp.ShapeFileWriter
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
@@ -117,6 +117,24 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
               shapefile <- ShapeFileWriter.writeShapeFile(name,data.get)
             } yield {
               HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def geoPkg: Route = path("gpkg") {
+    get {
+      parameters('q) { q =>
+        val query = parse(q).right.get.as[JSONQuery].right.get
+        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.gpkg"))) {
+          complete {
+            for {
+              data <- PSQLImpl.table(name, query)
+              shapefile <- GeoPackageWriter.write(name, data.get)
+            } yield {
+              HttpResponse(entity = HttpEntity(MediaTypes.`application/octet-stream`, shapefile))
             }
           }
         }
@@ -297,6 +315,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       xls ~
       csv ~
       shp ~
+      geoPkg ~
       GeoData(db,dbActions, jsonMetadata) ~
       lookups(dbActions) ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format

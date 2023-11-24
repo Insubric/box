@@ -71,6 +71,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   }
 
   protected def whereBuilder(where:Map[String,Json]): SQLActionBuilder = {
+    if(where.isEmpty) return sql" "
     val kv = keyValueComposer(this,Select)
     val chunks = where.flatMap(kv)
     val result = chunks.tail.foldLeft(concat(sql" where ",chunks.head)){ case (builder, chunk) => concat(builder, concat(sql" and ",chunk)) }
