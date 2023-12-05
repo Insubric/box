@@ -53,8 +53,8 @@ object MapMetadataFactory {
 
 
       MapMetadata(map.map_id, map.name, map.parameters.getOrElse(Seq()), srid, map2bbox(map),map.max_zoom,
-        wmts,
-        vectors
+        wmts.sortBy(row => (row.zIndex,row.order)),
+        vectors.sortBy(row => (row.zIndex,row.order))
       )
 
 
@@ -90,6 +90,7 @@ object MapMetadataFactory {
         l.extra.getOrElse(Json.Null),
         l.editable,
         l.z_index,
+        l.layer_order,
         l.autofocus,
         l.color
       )
@@ -106,6 +107,7 @@ object MapMetadataFactory {
       l.wmts_layer_id,
       srid,
       l.extra.getOrElse(Json.Null),
+      l.layer_order,
       l.z_index
     )
   }

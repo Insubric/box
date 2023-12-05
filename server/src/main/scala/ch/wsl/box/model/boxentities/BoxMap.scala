@@ -56,14 +56,14 @@ object BoxMap {
    * @param extra         Database column extra SqlType(jsonb), Default(None)
    * @param editable      Database column editable SqlType(bool), Default(false)
    * @param query         Database column query SqlType(jsonb), Default(None) */
-  case class Map_layer_vector_db_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, entity: String, field: String, geometry_type: String, z_index: Int, extra: Option[io.circe.Json] = None, editable: Boolean = false, query: Option[io.circe.Json] = None, srid:Int, autofocus:Boolean, color:String)
+  case class Map_layer_vector_db_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, entity: String, field: String, geometry_type: String, z_index: Int, layer_order: Int, extra: Option[io.circe.Json] = None, editable: Boolean = false, query: Option[io.circe.Json] = None, srid:Int, autofocus:Boolean, color:String)
 
 
   /** Table description of table map_layer_vector_db. Objects of this class serve as prototypes for rows in queries. */
   class Map_layer_vector_db(_tableTag: Tag) extends Table[Map_layer_vector_db_row](_tableTag,schema, "map_layer_vector_db") {
 
 
-    def * = (Rep.Some(layer_id), map_id, entity, field, geometry_type, z_index, extra, editable, query, srid,autofocus,color).<>(Map_layer_vector_db_row.tupled, Map_layer_vector_db_row.unapply)
+    def * = (Rep.Some(layer_id), map_id, entity, field, geometry_type, z_index, layer_order, extra, editable, query, srid,autofocus,color).<>(Map_layer_vector_db_row.tupled, Map_layer_vector_db_row.unapply)
 
 
     /** Database column layer_id SqlType(uuid), PrimaryKey */
@@ -79,6 +79,7 @@ object BoxMap {
     val geometry_type: Rep[String] = column[String]("geometry_type")
     /** Database column z_index SqlType(int4), Default(None) */
     val z_index: Rep[Int] = column[Int]("z_index")
+    val layer_order: Rep[Int] = column[Int]("layer_order")
     /** Database column extra SqlType(jsonb), Default(None) */
     val extra: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("extra", O.Default(None))
     /** Database column editable SqlType(bool), Default(false) */
@@ -102,7 +103,7 @@ object BoxMap {
    * @param srid             Database column srid SqlType(int4)
    * @param z_index          Database column z_index SqlType(int4), Default(None)
    * @param extra            Database column extra SqlType(jsonb), Default(None) */
-  case class Map_layer_wmts_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, capabilities_url: String, wmts_layer_id: String, srid: Int, z_index: Int, extra: Option[io.circe.Json] = None)
+  case class Map_layer_wmts_row(layer_id: Option[java.util.UUID] = None, map_id: java.util.UUID, capabilities_url: String, wmts_layer_id: String, srid: Int, z_index: Int, layer_order: Int, extra: Option[io.circe.Json] = None)
 
 
 
@@ -111,7 +112,7 @@ object BoxMap {
   /** Table description of table map_layer_wmts. Objects of this class serve as prototypes for rows in queries. */
   class Map_layer_wmts(_tableTag: Tag) extends Table[Map_layer_wmts_row](_tableTag,schema, "map_layer_wmts") {
 
-    def * = (Rep.Some(layer_id), map_id, capabilities_url, wmts_layer_id, srid, z_index, extra).<>(Map_layer_wmts_row.tupled, Map_layer_wmts_row.unapply)
+    def * = (Rep.Some(layer_id), map_id, capabilities_url, wmts_layer_id, srid, z_index, layer_order, extra).<>(Map_layer_wmts_row.tupled, Map_layer_wmts_row.unapply)
 
     /** Maps whole row to an option. Useful for outer joins. */
 
@@ -127,6 +128,7 @@ object BoxMap {
     val srid: Rep[Int] = column[Int]("srid")
     /** Database column z_index SqlType(int4), Default(None) */
     val z_index: Rep[Int] = column[Int]("z_index")
+    val layer_order: Rep[Int] = column[Int]("layer_order")
     /** Database column extra SqlType(jsonb), Default(None) */
     val extra: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("extra", O.Default(None))
 

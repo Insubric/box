@@ -13,6 +13,7 @@ import java.util.UUID
 
 sealed trait MapLayerMetadata {
   def id:UUID
+  def zIndex:Int
   def order:Int
   def name:String
 }
@@ -28,6 +29,7 @@ case class DbVector(
            query: Option[JSONQuery],
            extra: Json,
            editable: Boolean,
+           zIndex:Int,
            order:Int,
            autofocus: Boolean,
            color: String
@@ -48,7 +50,8 @@ case class WMTS(
                  layerId: String,
                  srid: MapProjection,
                  extra: Json,
-                 order:Int
+                 order:Int,
+                 zIndex:Int
                ) extends MapLayerMetadata {
   def name = layerId
 }

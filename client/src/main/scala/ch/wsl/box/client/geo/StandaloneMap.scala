@@ -52,15 +52,16 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   ready.listenOnce(_ => {
     layersSelection.appendChild(div(
-      (metadata.db.filterNot(_.editable) ++ metadata.wmts).groupBy(_.order).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
+      (metadata.db.filterNot(_.editable) ++ metadata.wmts).groupBy(_.zIndex).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
         div(
           input(`type` := "checkbox", checked := "checked", onchange :+= { (e: Event) => map.getLayers().getArray().filter(_.getZIndex().getOrElse(-1) == i).map(_.setVisible(e.currentTarget.asInstanceOf[HTMLInputElement].checked)) }),
           if (alternativeLayers.length == 1) alternativeLayers.head.name else {
-            val selected: Property[MapLayerMetadata] = Property(alternativeLayers.head)
+            val sortedLayers = alternativeLayers.sortBy(_.order)
+            val selected: Property[MapLayerMetadata] = Property(sortedLayers.head)
             selected.listen(layer => {
-              alternativeLayers.flatMap(l => layerOf(l.id)).foreach(_.setVisible(false))
+              sortedLayers.flatMap(l => layerOf(l.id)).foreach(_.setVisible(false))
               layerOf(layer.id).foreach(_.setVisible(true))
-            })
+            },true)
             Select[MapLayerMetadata](selected, SeqProperty(alternativeLayers))(x => StringFrag(x.name))
           }
         ).render
@@ -237,7 +238,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       wmts.capabilitiesUrl,
       wmts.layerId,
       None,
-      wmts.order
+      wmts.zIndex
     )
     layer.map{ l =>
       addLayers(Seq(l))
@@ -267,7 +268,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
     val layer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)
-      .setZIndex(vector.order)
+      .setZIndex(vector.zIndex)
       .setProperties(StringDictionary((MapUtils.BOX_LAYER_ID, vector.id.toString)))
       .setStyle(MapStyle.vectorStyle(vector.color))
     )
