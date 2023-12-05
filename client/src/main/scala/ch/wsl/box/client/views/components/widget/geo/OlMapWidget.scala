@@ -120,35 +120,22 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
   var view: viewMod.default = null
 
-  var listener: Option[Registration] = None
-  var onAddFeature: js.Function1[ObjectEvent | VectorSourceEvent[typings.ol.geomGeometryMod.default] | typings.ol.eventsEventMod.default, Unit] = null
 
-  def registerListener(immediate: Boolean) = {
-    listener = Some(data.listen({ geoData =>
-      vectorSource.removeEventListener("addfeature", onAddFeature.asInstanceOf[eventsMod.Listener])
-      vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
+  def registerListener() = {
 
-      if (!geoData.isNull) {
-        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geoData).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+      if (!data.get.isNull) {
+        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(data.get).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
         vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
         view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
       } else {
         view.fit(defaultProjection.getExtent())
       }
-
-      vectorSource.asInstanceOf[js.Dynamic].on(olStrings.addfeature, onAddFeature)
-    }, immediate))
   }
 
   import GeoJson._
 
   def changedFeatures(newData:Option[Geometry]) = {
-
-
-    listener.foreach(_.cancel())
     data.set(newData.asJson)
-    registerListener(false)
-
   }
 
   var mapControls:MapControls = null
@@ -213,7 +200,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       baseLayer.set(options.baseLayers.toSeq.flatten.find(_.name == bs))
     })
 
-    registerListener(true)
+    registerListener()
 
     (map,vectorSource)
 
