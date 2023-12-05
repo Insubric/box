@@ -83,6 +83,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
   val defaultProjection = proj.defaultProjection
 
+  val fullScreen = Property(false)
+
 
   var map:mod.Map = null
   logger.info(s"Loading ol map")
@@ -118,11 +120,11 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
   var view: viewMod.default = null
 
-  var listener: Registration = null
+  var listener: Option[Registration] = None
   var onAddFeature: js.Function1[ObjectEvent | VectorSourceEvent[typings.ol.geomGeometryMod.default] | typings.ol.eventsEventMod.default, Unit] = null
 
   def registerListener(immediate: Boolean) = {
-    listener = data.listen({ geoData =>
+    listener = Some(data.listen({ geoData =>
       vectorSource.removeEventListener("addfeature", onAddFeature.asInstanceOf[eventsMod.Listener])
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
@@ -135,7 +137,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       }
 
       vectorSource.asInstanceOf[js.Dynamic].on(olStrings.addfeature, onAddFeature)
-    }, immediate)
+    }, immediate))
   }
 
   import GeoJson._
@@ -143,7 +145,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   def changedFeatures(newData:Option[Geometry]) = {
 
 
-    listener.cancel()
+    listener.foreach(_.cancel())
     data.set(newData.asJson)
     registerListener(false)
 
@@ -151,7 +153,25 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   var mapControls:MapControls = null
 
+  private var _mapDiv:Option[Div] = None
+  private var originalHeight:Option[String] = None
+
+  fullScreen.listen { fs =>
+    if (fs) {
+      _mapDiv.foreach{md =>
+        originalHeight = Some(md.style.height)
+        md.style.height = (window.innerHeight - 20 - 105 - 50).px
+      }
+    } else {
+      _mapDiv.foreach(md => md.style.height = originalHeight.getOrElse("400px"))
+    }
+    map.render()
+  }
+
   def loadMap(mapDiv:Div,controlFactory:MapControlsParams => MapControls) = {
+
+
+    _mapDiv = Some(mapDiv)
 
      vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
 
@@ -186,7 +206,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     onLoad()
 
 
-    val controlParams = MapControlsParams(map,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters)
+    val controlParams = MapControlsParams(map,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
     mapControls = controlFactory(controlParams)
     baseLayer.get.foreach( l => mapControls.baseLayer.set(l.name))
     autoRelease(mapControls.baseLayer.listen{ bs =>
@@ -216,6 +236,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
     div(
+      `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullScreen),
       label(field.title),
       mapDiv
     )
@@ -252,6 +273,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
     div(
+      `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullScreen),
       mapStyleElement,
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field

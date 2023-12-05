@@ -1152,6 +1152,27 @@ object GlobalStyleFactory{
       )
     )
 
+    val mapLayerSelectFullscreen = style(
+      position.fixed,
+      right.`0`,
+      bottom(95 px),
+      backgroundColor.white,
+      padding(10 px),
+      unsafeChild("select") {
+        width(90 %%)
+      }
+    )
+
+    val mapFullscreen = style(
+      position.fixed,
+      top(50 px),
+      left.`0`,
+      width(100 %%),
+      backgroundColor.white,
+      zIndex(10),
+      height :=! "calc(100vh - 105px)"
+    )
+
     val simpleInputBottomBorder = style(
       margin.`0`,
       padding.`0`,

@@ -53,4 +53,27 @@ class GeoJsonCodecTest extends TestBase {
 
   }
 
+
+  "Feature Collection" should "be decoded" in {
+    val original =
+      """
+        |{"type":"FeatureCollection","features":[{"geometry":{"crs":{"type":"name","properties":{"name":"EPSG:21781"}},"type":"MultiPolygon","coordinates":[[[[688304.8679199219,154272.203125],[688289.9666748047,154280.1616821289],[688300.2958984375,154297.4337158203],[688303.0053100586,154305.73107910156],[688307.5772705078,154311.65789794922],[688311.4719238281,154316.9071044922],[688319.5999145508,154316.6109008789],[688337.5493164062,154315.55249023438],[688330.7125244141,154303.64630126953],[688304.8679199219,154272.203125]]]]},"type":"Feature","properties":null}]}
+        |""".stripMargin
+
+    io.circe.parser.parse(original) match {
+      case Left(value) => fail(value)
+      case Right(value) => value.as[Option[GeoJson.FeatureCollection]] match {
+        case Left(value) => {
+          println(value)
+          fail(value)
+        }
+        case Right(value) => {
+          assert(value.get.features.head.geometry.crs.srid == 21781)
+        }
+      }
+
+    }
+
+  }
+
 }

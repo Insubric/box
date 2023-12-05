@@ -70,7 +70,8 @@ case class MapControlsParams(
                               precision:Option[Double],
                               enableSwisstopo: Boolean,
                               change: Option[Geometry] => Unit,
-                              formatters:Option[MapFormatters]
+                              formatters:Option[MapFormatters],
+                              fullscreen: Property[Boolean]
                             ) {
 
 
@@ -564,7 +565,10 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
 
 
-  def enabled():EnabledControls = layer.get.map(l => EnabledControls.fromGeometry(geometry(),l.features)).getOrElse(EnabledControls.none)
+  def enabled():EnabledControls = {
+    val geoms = geometry()
+    layer.get.map(l => EnabledControls.fromGeometry(geoms,l.features)).getOrElse(EnabledControls.none)
+  }
 
   def renderControls(nested:Binding.NestedInterceptor):Node
 

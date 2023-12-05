@@ -160,12 +160,11 @@ object MapUtils extends Logging {
         }.asJson
       }.top
     }
-    jsonWithCRS.foreach(BrowserConsole.log)
     jsonWithCRS.flatMap(j => FeatureCollection.decode(j).toOption)
   }
 
   def factorGeometries(geometries:Seq[Geometry],features:MapParamsFeatures, crs:CRS):Option[Geometry] = {
-    geometries.length match {
+    val result = geometries.length match {
       case 0 => {
         None
       }
@@ -206,6 +205,7 @@ object MapUtils extends Logging {
 
       }
     }
+    result
   }
 
   def boxFeatureToOlFeature(box:Feature): featureMod.default[geomGeometryMod.default] = {

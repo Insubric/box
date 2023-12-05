@@ -1,6 +1,6 @@
 package ch.wsl.box.client.geo
 
-import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection}
 import ch.wsl.box.model.shared.GeoTypes.GeoData
@@ -46,7 +46,11 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   val controlsDiv = div().render
 
-  val layersSelection = div().render
+
+  val fullscreen = Property(false)
+
+
+  val layersSelection = div(`class`.bindIf(Property(ClientConf.style.mapLayerSelectFullscreen.className.value),fullscreen) ).render
 
   ready.listenOnce(_ => {
     layersSelection.appendChild(div(
@@ -66,12 +70,23 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     ).render)
   })
 
+
   val mapDiv:Div = if (editable) {
 
 
 
     val _mapDiv = div(height := (_div.clientHeight - 20).px).render
-    val wrapper = div(
+
+    fullscreen.listen{fs =>
+      if(fs) {
+        _mapDiv.style.height = (window.innerHeight - 20 - 105 - 50).px
+      } else {
+        _mapDiv.style.height = (_div.clientHeight - 20).px
+      }
+      map.render()
+    }
+
+    val wrapper = div( `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
       showIf(ready) { div(height := 20.px,
         Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field)
       ).render },
@@ -160,7 +175,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,_data => {
     save()
     redrawControl()
-  }, None))
+  }, None,fullscreen))
 
   def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
   def layerOf(id:UUID):Option[layerBaseMod.default] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(id.toString))

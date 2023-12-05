@@ -56,7 +56,15 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
             e.preventDefault()
           }
         )(Icons.search).render else frag(),
-        if (baseLayers.length > 1) Select(baseLayer, SeqProperty(baseLayers))((x: String) => StringFrag(x), ClientConf.style.mapLayerSelect) else frag()
+        if (baseLayers.length > 1) Select(baseLayer, SeqProperty(baseLayers))((x: String) => StringFrag(x), ClientConf.style.mapLayerSelect) else frag(),
+        button(
+          ClientConf.style.mapButton
+        )(
+          onclick :+= { (e: Event) =>
+            params.fullscreen.toggle()
+            e.preventDefault()
+          }
+        )(Icons.enterFullscreen).render
       ),
       div(
         nested(showIf(activeControl.transform(c => Seq(Control.VIEW, Control.POINT).contains(c))) {
