@@ -424,49 +424,56 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       action.target match {
         case Self => Navigate.toUrl(url)
         case NewWindow => {
-          println(url)
           window.open(url)
         }
       }
     }
 
-    def executeFuntion():Future[Boolean] = action.executeFunction match {
+    def executeFunction():Future[Option[Boolean]] = action.executeFunction match {
       case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
         result.errorMessage match {
           case Some(value) => {
             Notification.add(value)
             services.clientSession.loading.set(false)
-            false
+            Some(false)
           }
-          case None => true
+          case None => Some(true)
         }
       }
-      case None => Future.successful(true)
+      case None => Future.successful(None)
     }
 
     def callBack() = action.action match {
       case SaveAction =>  save(action.html5check).map{ case (_id,data) =>
-        executeFuntion().map { functionOk =>
-          if(functionOk) {
+
+        def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
+          logger.warn(s"Navigating to $url")
+          //reset()
+          afterGoto(url)
+        }
+
+        executeFunction().map {
+          case Some(true) => {
             if (action.reload) {
               reload(_id)
             }
-            Routes.getUrl(action,model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
-              logger.warn(s"Navigating to $url")
-              //reset()
-              afterGoto(url)
-
-            }
+            onSuccess
           }
+          case None => onSuccess
+          case Some(false) => ()
+
         }
       }
       case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-        executeFuntion().map { functionOk =>
-          if(functionOk) {
-            if(Navigate.canGoAway)
+        executeFunction().map {
+          case Some(true) => {
+            if (Navigate.canGoAway)
               reset()
             afterGoto(url)
           }
+          case None => afterGoto(url)
+          case Some(false) => ()
+
         }
       }
       case CopyAction => duplicate()
