@@ -5,7 +5,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
 import ch.wsl.box.model.shared.GeoJson.{Coordinates, Polygon}
-import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONMetadata}
+import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONID, JSONMetadata}
 import io.circe.Json
 import org.scalajs.dom.html.Div
 import io.circe.generic.auto._
@@ -113,15 +113,12 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
 
 
-
     map.asInstanceOf[js.Dynamic].on(olStrings.pointermove, (e: MapBrowserEvent[_]) => {
-      val features = MapUtils.getFeatures(map,e)
       dom.document.getElementsByClassName(StyleConstants.mapHoverClass).foreach(_.classList.remove(StyleConstants.mapHoverClass))
       for {
-        clicked <- features.headOption
-        id <- clicked.getProperties().get("jsonid")
+        id <- MapUtils.toJsonId(map,e)
       } yield {
-        val el = dom.document.getElementById(ElementId.tableRow(id.toString))
+        val el = dom.document.getElementById(ElementId.tableRow(id.asString))
         if (el != null) {
           el.classList.add(StyleConstants.mapHoverClass)
         }
@@ -129,13 +126,9 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     })
 
     map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
-      val features = MapUtils.getFeatures(map,e)
-
       for {
-        clicked <- features.headOption
-        id <- clicked.getProperties().get("jsonid")
-      } yield edit(id.toString)
-
+        id <- MapUtils.toJsonId(map,e)
+      } yield edit(id.asString)
     })
 
   }
