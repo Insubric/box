@@ -35,6 +35,8 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     complete.as[Json]
   }
 
+  def fetchPlain(sql:String,query:JSONQuery): SQLActionBuilder = concat(sql""" #$sql """,whereBuilder(query))
+
   def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
 
   def ids(keys:Seq[String],query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[JSONID]] = doFetch(keys,whereBuilder(query)).map{ rows =>

@@ -309,6 +309,11 @@ case class Form(
         geoPkg
     } ~
     GeoData(db,actions, metadata) ~
+    GeoData.wkb(db,actions, metadata) ~
+    GeoData.wkb2(db,actions, metadata) ~
+    GeoData.wkb3(db,actions, metadata) ~
+    GeoData.wkb4(db,actions, metadata) ~
+    GeoData.wkb5(db,actions, metadata) ~
     lookups(actions) ~
     pathEnd {
         post {

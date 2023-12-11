@@ -12,7 +12,7 @@ import scribe.Logging
 import slick.ast.Node
 import slick.basic.DatabasePublisher
 import slick.dbio.{DBIOAction, Effect}
-import slick.jdbc.{ResultSetConcurrency, ResultSetType}
+import slick.jdbc.{ResultSetConcurrency, ResultSetType, SQLActionBuilder}
 import slick.lifted.{ColumnOrdered, FlatShapeLevel, Shape, TableQuery}
 import slick.sql.FixedSqlStreamingAction
 
@@ -116,6 +116,7 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   override def fetchFields(fields: Seq[String], query: JSONQuery) = entity.baseTableRow.fetch(fields,query)
 
 
+  override def fetchPlain(sql: String, query: JSONQuery): SQLActionBuilder = entity.baseTableRow.fetchPlain(sql, query)
 
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 

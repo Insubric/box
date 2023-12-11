@@ -7,6 +7,7 @@ import ch.wsl.box.jdbc.PostgresProfile
 import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONLookups, JSONLookupsRequest, JSONQuery, JSONQueryFilter}
 import io.circe.Json
 import slick.dbio.DBIO
+import slick.jdbc.SQLActionBuilder
 
 object JSONPageActions extends TableActions[Json] {
   private val responseId = JSONID(Vector(JSONKeyValue("static",Json.fromString("page"))))
@@ -23,6 +24,8 @@ object JSONPageActions extends TableActions[Json] {
 
 
   override def fetchFields(fields: Seq[String], query: JSONQuery): _root_.ch.wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
+
+  override def fetchPlain(sql: String, query: JSONQuery): SQLActionBuilder = ???
 
   override def distinctOn(field: String, query: JSONQuery): _root_.ch.wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 

@@ -168,6 +168,8 @@ object Settings {
     "com.typesafe" %% "ssl-config-core" % "0.6.1",
     "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
     "org.apache.xmlgraphics" % "batik-codec" % "1.16",
+    "com.lihaoyi" %% "upickle" % "3.1.3",
+    "io.suzaku" %% "boopickle" % "1.4.0"
     //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
     //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"

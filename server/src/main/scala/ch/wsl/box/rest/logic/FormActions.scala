@@ -23,6 +23,7 @@ import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import io.circe.Json.{JNumber, Null}
+import slick.jdbc.SQLActionBuilder
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -92,6 +93,9 @@ case class FormActions(metadata:JSONMetadata,
     q <- queryForm(query)
     result <- jsonAction.fetchFields(fields,query)
   } yield result
+
+
+  override def fetchPlain(sql: String, query: JSONQuery): SQLActionBuilder = jsonAction.fetchPlain(sql, query)
 
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
     queryForm(query).flatMap { q =>

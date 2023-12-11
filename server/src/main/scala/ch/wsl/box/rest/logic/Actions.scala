@@ -10,6 +10,7 @@ import akka.stream.scaladsl.Source
 import ch.wsl.box.jdbc.FullDatabase
 import io.circe.Json
 import slick.dbio.{DBIOAction, Effect, Streaming}
+import slick.jdbc.SQLActionBuilder
 import slick.lifted.MappedProjection
 
 
@@ -19,6 +20,8 @@ trait ViewActions[T] {
   def findSimple(query:JSONQuery): DBIO[Seq[T]]
 
   def fetchFields(fields:Seq[String],query:JSONQuery):DBIO[Seq[Json]]
+
+  def fetchPlain(sql:String,query:JSONQuery):SQLActionBuilder
 
   def distinctOn(field:String,query:JSONQuery): DBIO[Seq[Json]]
 
