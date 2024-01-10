@@ -48,18 +48,19 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def lookupField(referencingTable:String, firstNoPK:Option[String])(implicit services: Services):String = {
+  def lookupField(registry:RegistryInstance, referencingTable:String, firstNoPK:Option[String],valueField:String)(implicit services: Services):String = {
 
     val lookupLabelFields = services.config.fksLookupLabels
 
-    val default = lookupLabelFields.as[Option[String]]("default").getOrElse("name")
+    val default = lookupLabelFields.as[Option[String]]("default").getOrElse(valueField)
 
     val myDefaultTableLookupLabelField: String = default match {
-      case "firstNoPKField" => firstNoPK.getOrElse("name")
+      case "firstNoPKField" => firstNoPK.getOrElse(valueField)
       case _ => default
     }
 
-    lookupLabelFields.as[Option[String]](referencingTable).getOrElse(myDefaultTableLookupLabelField)
+    val maybeField = lookupLabelFields.as[Option[String]](referencingTable).getOrElse(myDefaultTableLookupLabelField)
+    if(registry.fields.field(referencingTable,maybeField).isDefined) maybeField else valueField
   }
 
 
@@ -101,10 +102,10 @@ object EntityMetadataFactory extends Logging {
                   constraints = fk.constraintName :: constraints //add fk constraint to contraint list
 
 
-                  val text = lookupField(fk.referencingTable, firstNoPK)
-
-                  val model = fk.referencingTable
                   val value = fk.referencingKeys.head //todo verify for multiple keys
+                  val model = fk.referencingTable
+
+                  val text = lookupField(registry,model, firstNoPK, value)
 
 
                   JSONField(

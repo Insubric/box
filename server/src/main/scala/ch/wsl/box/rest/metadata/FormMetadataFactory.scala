@@ -422,7 +422,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
   private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row])(implicit ec:ExecutionContext,services:Services): Option[JSONFieldLookup] = {for{
     refEntity <- field.lookupEntity
     value <- field.lookupValueField
-    text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,None))
+    text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(Registry(),refEntity,None,value))
   } yield {
 
       Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), field.lookupQuery))
