@@ -10,6 +10,7 @@ import ch.wsl.box.model.shared.{Filter, JSONID, JSONMetadata, JSONQuery, JSONQue
 import ch.wsl.box.model.utils.Geo
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
@@ -24,15 +25,30 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
 
-  private def doFetch(fields: Seq[String], where: SQLActionBuilder) = {
-    if(fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
+  private def jsonbBuilder(fields: Seq[String]):SQLActionBuilder = {
     val head = sql"""select jsonb_build_object( """
-    val body = fields.zipWithIndex.foldLeft(head){ case (q,(field,i)) =>
-      val q2 = if(i > 0) concat(q,sql""" , """) else q
+    val body = fields.zipWithIndex.foldLeft(head) { case (q, (field, i)) =>
+      val q2 = if (i > 0) concat(q, sql""" , """) else q
       concat(q2, sql""" '#$field', "#$field" """)
     }
-    val complete = concat(body, concat(sql""" ) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
+    concat(body,sql""" ) """ )
+  }
+
+  private def checkFields[S](fields: Seq[String])(f: => S): Either[Throwable,S] = {
+    if(fields.map(f => registry.fields.field(t.tableName, f)).forall(_.nonEmpty)) {
+      Right(f)
+    } else {
+      Left(new Exception(s"Fields ${fields.mkString(",")} not exists in table ${t.tableName}"))
+    }
+  }
+
+  private def doFetch(fields: Seq[String], where: SQLActionBuilder) = checkFields(fields) {
+    if (fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
+    val complete = concat(jsonbBuilder(fields), concat(sql""" ) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
     complete.as[Json]
+  } match {
+    case Left(value) => DBIO.failed(value)
+    case Right(value) => value
   }
 
   def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
@@ -78,18 +94,17 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     result
   }
 
-  def distinctOn(field:String,query:JSONQuery):DBIO[Seq[Json]] = {
-    registry.fields.field(t.tableName, field) match {
-      case Some(value) => {
-        val q =concat(concat(
-          sql"""select to_jsonb(f) from (select distinct "#$field" from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
-          whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
-        ),sql""" )  as t(f)  """).as[Json]
-        q
-      }
-      case None => DBIO.failed(new Exception(s"Field $field not exists in table ${t.tableName}"))
-    }
+  def distinctOn(fields:Seq[String],query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[Json]] = checkFields(fields) {
+    val selector = fields.map(f => "\"" + f + "\"").mkString(",")
 
+    val q = concat(concat(
+      concat(jsonbBuilder(fields), sql""" from (select distinct #$selector from #${t.schemaName.getOrElse("public")}.#${t.tableName} """),
+      whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
+    ), sql""" )  as t(#$selector)  """).as[Json]
+    q
+  } match {
+    case Left(value) => DBIO.failed(value)
+    case Right(value) => value
   }
 
   def count(query: Option[JSONQuery]): DBIO[Int] = {
@@ -186,6 +201,22 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   }
 
 
+  private def jsonToSql[A](js:Json)(implicit decoder: Decoder[A],sp:SetParameter[A]) = {
+    js.as[A].toOption.map{v => sql"$v" }.get
+  }
+
+  private def toRecord(values: Seq[SQLActionBuilder]):SQLActionBuilder = {
+    if (values.length == 1) {
+      concat(sql"(", concat(values.head, sql")"))
+    } else {
+      val composingRecord = values.zipWithIndex.foldRight(sql"(") { case ((v, i), r) =>
+        val r2 = concat(r, v)
+        if (values.length == i + 1) concat(r2, sql",") else r2
+      }
+      concat(composingRecord, sql")")
+    }
+  }
+
 
   protected def jsonQueryComposer(table:Table[_]): (JSONQueryFilter) => Option[SQLActionBuilder] = { jsonQuery =>
 
@@ -229,11 +260,46 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     }
 
+    def filterManyRecords(fields:Seq[String],values:String):Option[SQLActionBuilder] = checkFields(fields) {
+      parser.parse(values) match {
+        case Left(value) => throw value
+        case Right(v) => v.asArray match {
+          case Some(rows) => {
+
+            val allRows = rows.map{r =>
+              val sqlValues = fields.map{ f =>
+                val col = table.typ(f,registry)
+                col.name match {
+                  case "String" => jsonToSql[String](r.js(f))
+                  case "Int" => jsonToSql[Int](r.js(f))
+                  case "Long" => jsonToSql[Long](r.js(f))
+                  case "Short" => jsonToSql[Short](r.js(f))
+                  case "Double" => jsonToSql[Double](r.js(f))
+                  case "Float" => jsonToSql[Float](r.js(f))
+                  case "BigDecimal" | "scala.math.BigDecimal" => jsonToSql[BigDecimal](r.js(f))
+                  case "io.circe.Json" => sql"${r.js(f)}"
+                  case "java.util.UUID" => jsonToSql[UUID](r.js(f))
+                  case t => throw new Exception(s"$t is not supported for simple multi records query")
+                }
+              }
+              toRecord(sqlValues)
+
+            }
+            val selector = fields.mkString("(\"", "\",\"", "\")")
+
+            concat(sql""" #$selector in ( """, concat(toRecord(allRows), sql")"))
+          }
+          case None => throw new Exception("values is not an array")
+        }
+      }
+    }.toOption
+
     val col = table.typ(key,registry)
 
     val v = jsonQuery.getValue
 
     def splitAndTrim(s:String):Seq[String] = s.split(",").toSeq.map(_.trim).filter(_.nonEmpty)
+
 
     if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
       col.name match {
@@ -250,6 +316,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
     } else {
       (col.name,jsonQuery.operator) match {
+        case (_,Some(Filter.MULTI_IN)) => filterManyRecords(splitAndTrim(jsonQuery.column),v)
         case ("String",_)  => filter(col.nullable,Some(v))
         case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
         case ("Int",_) => filter[Int](col.nullable,v.toIntOption)

@@ -81,8 +81,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   def count(query:JSONQuery):DBIO[Int] = entity.baseTableRow.count(Some(query))
 
 
-  override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = {
-    entity.baseTableRow.distinctOn(field, query)
+  override def distinctOn(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = {
+    entity.baseTableRow.distinctOn(fields, query)
   }
 
   override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {

@@ -51,7 +51,7 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
   override def count(query: JSONQuery) = dbActions.count(query)
 
 
-  override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = dbActions.distinctOn(field, query)
+  override def distinctOn(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = dbActions.distinctOn(fields, query)
 
   override def ids(query:JSONQuery,keys:Seq[String]):DBIO[IDs] = dbActions.ids(query,keys)
 
