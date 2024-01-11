@@ -96,7 +96,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites").map{ p =>
       if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -175,7 +175,8 @@ lazy val client: Project = (project in file("client"))
       "xlsx-js-style" -> "1.2.0",
       "jspdf" -> "2.5.1",
       "jspdf-autotable" -> "3.5.28",
-      "gridstack" -> "8.3.0"
+      "gridstack" -> "8.3.0",
+      "jspreadsheet-ce" -> "4.13.4"
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",
