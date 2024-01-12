@@ -27,7 +27,7 @@ import scala.scalajs.js.timers.setTimeout
   * Created by andre on 6/1/2017.
   */
 
-case class ChildRow(widget:ChildWidget,id:String, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], changed:Property[Boolean], changedListener:Registration, newRow:Boolean, deleted:Boolean=false) {
+case class ChildRow(widget:ChildWidget,id:UUID, data:Property[Json], open:Property[Boolean],metadata:Option[JSONMetadata], changed:Property[Boolean], changedListener:Registration, newRow:Boolean, deleted:Boolean=false) {
   def rowId:ReadableProperty[Option[JSONID]] = data.transform(js => metadata.flatMap(m => JSONID.fromData(js,m,false)))
   def rowIdStr:ReadableProperty[String] = rowId.transform(_.map(_.asString).getOrElse("noid"))
 }
@@ -85,12 +85,16 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val duplicateIgnoreFields:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateIgnoreFields").as[Seq[String]].toOption).flatten
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
+
+    // childWidgets contains the JSONMetadata renderer for each child
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
-    def getWidget(id:String):(ChildRow,Int) = childWidgets.zipWithIndex.find(_._1.id == id) match {
+    def getWidget(id:UUID):(ChildRow,Int) = childWidgets.zipWithIndex.find(_._1.id == id) match {
       case Some(value) => value
       case None => throw new Exception(s"Widget not found $id")
     }
-    val entity: SeqProperty[String] = SeqProperty(Seq())
+
+
+    val entity: SeqProperty[UUID] = SeqProperty(Seq())
     val metadata = children.find(_.objId == child.objId)
 
     val changedField = widgetParam.otherField(ChildRenderer.CHANGED_KEY)
@@ -129,7 +133,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         (child.props.map(p => p -> js.js(p)).toMap ++ staticProps).asJson
       }
 
-      val id = UUID.randomUUID().toString
+      val id = UUID.randomUUID()
       val propData = Property(data.deepMerge(props.get))
       val childId = Property(data.ID(metadata.get.keyFields).map(_.asString))
 
