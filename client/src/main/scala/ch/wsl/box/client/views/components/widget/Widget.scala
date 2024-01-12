@@ -109,6 +109,7 @@ trait HasData extends Widget {
 
 
   override def text(): ReadableProperty[String] = data.transform(_.string)
+  override def json(): ReadableProperty[Json] = data
 
 }
 
