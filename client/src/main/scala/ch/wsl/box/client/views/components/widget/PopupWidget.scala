@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.client.utils.TestHooks
+import ch.wsl.box.client.utils.{Shorten, TestHooks}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -39,14 +39,18 @@ object PopupWidget extends ComponentWidgetFactory  {
     import io.udash.css.CssView._
     import scalacss.ScalatagsCss._
     import scalatags.JsDom.all._
+    import ch.wsl.box.client.Context._
 
     private def embeddedWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
 
     private val widget:Widget = WidgetRegistry.forName(embeddedWidget).create(params)
 
-    private val widgetLabel:ReadableProperty[Modifier] = params.prop.transform(widget.toLabel)
+    private val widgetLabel:Property[String] = Property("")
 
-    def produceLabel = produce(widgetLabel){l => span(l).render }
+    autoRelease(params.prop.listen(js => widget.toLabel(js).foreach(widgetLabel.set(_))))
+
+
+    def produceLabel = produce(widgetLabel){l => span(Shorten(l)).render }
 
     override def killWidget(): Unit = {
       widget.killWidget()

@@ -116,6 +116,22 @@ object Spreadsheet extends ChildRendererFactory {
           case _ => jspreadsheetCeStrings.text
         }
 
+        def rowIndex(cell:HTMLTableCellElement):Int = cell.dataset.get("y").flatMap(_.toIntOption).getOrElse(0)
+        def rowData(cell:HTMLTableCellElement):Property[Json] = {
+          val i = rowIndex(cell)
+          widgetParam.prop.bitransform({rows:Json =>
+            rows.asArray.flatMap(_.lift(i)).getOrElse(Json.Null)
+
+          })({ row:Json =>
+            widgetParam.prop.get.asArray match {
+              case Some(value) => Json.fromValues(value.zipWithIndex.map{ case (js,j) =>
+                if(i == j) js.deepMerge(row) else js
+              })
+              case None => Seq(row).asJson
+            }
+
+          })
+        }
 
         val col = c.lookup match {
           case Some(fieldLookup:JSONFieldLookupRemote) => {
@@ -124,10 +140,12 @@ object Spreadsheet extends ChildRendererFactory {
             val editor = CustomEditor()
               .setOpenEditor((cell,el,empty,e) => {
                 BrowserConsole.log("Open editor: " + cell.innerHTML)
+                BrowserConsole.log(s"Row: ${rowIndex(cell)}")
+                BrowserConsole.log(s"Row: ${rowData(cell)}")
                 BrowserConsole.log(cell)
                 cell.innerHTML = ""
-                val row = Property(Json.fromString(cell.innerHTML))
-                val v = row.bitransform(child => child.js(field.name))(el => row.get.deepMerge(Json.obj(field.name -> el)))
+                val row = rowData(cell)
+                val v = row.bitransform(child => child.js(c.name))(el => row.get.deepMerge(Json.obj(c.name -> el)))
                 widget = colContentWidget(row,v,c, metadata)
                 val w = div(widget.editOnTable(NestedInterceptor.Identity)).render
                 cell.appendChild(w)
@@ -150,7 +168,7 @@ object Spreadsheet extends ChildRendererFactory {
                 if(value != null && value.isDefined) {
                   BrowserConsole.log(s"UpdateCell: ${value.toString}")
                   Future {
-                    val w = colContentWidget(Property(widgetParam.prop.get.asArray.get.head), Property(cellValueToJson(value)), c, metadata)
+                    val w = colContentWidget(rowData(cell), Property(cellValueToJson(value)), c, metadata)
                     cell.innerHTML = ""
                     cell.appendChild(div(w.showOnTable(NestedInterceptor.Identity)).render)
                   }
@@ -188,20 +206,33 @@ object Spreadsheet extends ChildRendererFactory {
         col
       }
 
-      val data:Seq[js.Array[CellValue] | std.Record[String,CellValue]] = widgetParam.prop.get.asArray.get.map{ row =>
-        fields(metadata).map(f => jsonToCellValue(row.js(f.name))).toJSArray
+      val futureData = Future.sequence(widgetParam.prop.get.asArray.get.map{ row =>
+        Future.sequence(fields(metadata).map{f =>
+          val col = row.js(f.name)
+          val w = colContentWidget(Property(row), Property(col), f, metadata)
+          w.toUserReadableData(col).map(jsonToCellValue)
+        })
+      })
+
+      futureData.foreach{ _data =>
+
+        val data:Seq[js.Array[CellValue] | std.Record[String,CellValue]] = _data.map(_.toJSArray)
+
+        val jspreadsheet = typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
+
+        val table = jspreadsheet(_div,JSpreadsheetOptions()
+          .setColumns(columns.toJSArray)
+          .setData(data.toJSArray)
+
+        )
+        BrowserConsole.log(_div)
+        BrowserConsole.log(table)
+        window.asInstanceOf[js.Dynamic].tableTest = table
       }
 
-      val jspreadsheet = typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
+      //
 
-      val table = jspreadsheet(_div,JSpreadsheetOptions()
-        .setColumns(columns.toJSArray)
-        .setData(data.toJSArray)
 
-      )
-      BrowserConsole.log(_div)
-      BrowserConsole.log(table)
-      window.asInstanceOf[js.Dynamic].tableTest = table
     }
 
     val table = div().render

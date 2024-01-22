@@ -721,9 +721,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     }
   }
 
-  override def toLabel(json: Json): Modifier = {
-    val name = data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
-    span(name)
+  override def toLabel(json: Json): Future[String] = Future.successful {
+    data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
   }
 
   var selected:Option[featureMod.default[geomGeometryMod.default]] = None

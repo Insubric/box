@@ -57,7 +57,7 @@ trait LookupWidget extends Widget with HasData {
   override def text() = model.transform(_.map(_.value).getOrElse(""))
 
 
-  private def setNewLookup(_newLookup:Seq[JSONLookup]) = {
+  private def setNewLookup(_newLookup:Seq[JSONLookup]):Seq[JSONLookup] = {
 
     val newLookup = if(data.get != Json.Null && !_newLookup.exists(_.id == data.get) && data.get.string != JSONUtils.FIRST ) {
       _newLookup ++ Seq(JSONLookup(data.get,Seq(data.get.string)))
@@ -80,6 +80,7 @@ trait LookupWidget extends Widget with HasData {
 
       registerDataSync()
     }
+    newLookup
   }
 
 
@@ -91,59 +92,60 @@ trait LookupWidget extends Widget with HasData {
     super.killWidget()
   }
 
-  private def remoteLookup(fieldLookup:JSONFieldLookupRemote) = {
-    def fetchRemoteLookup(q: JSONQuery) = {
-      dataSyncRegistration.foreach(_.cancel())
-      logger.debug(s"Fetching remote lookup $q")
 
-      val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
+  private def fetchRemoteLookup(fieldLookup:JSONFieldLookupRemote)(q: JSONQuery):Future[Seq[JSONLookup]] = {
+    dataSyncRegistration.foreach(_.cancel())
+    logger.debug(s"Fetching remote lookup $q")
 
-
+    val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
 
 
-      LookupWidget.remoteLookup.get(cacheKey) match {
-        case Some(value) => value.map(setNewLookup)
-        case _ => {
-          _lookup.set(Seq(), true) //reset lookup state
 
-          val request = for{
-            lookups <- services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public)
-            singleLookup <- if(data.get != Json.Null && !lookups.exists(_.id == data.get)) {
-              services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, JSONQuery.filterWith(WHERE.in(fieldLookup.map.valueProperty,Seq(data.get.string))), public)
-            } else Future.successful(Seq[JSONLookup]())
-          } yield {
-            logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
-            if (lookups.isEmpty) {
-              LookupWidget.remoteLookup.remove(cacheKey)
-            }
 
-            val allLookups = singleLookup ++ lookups
-            setNewLookup(allLookups)
-            allLookups
+    LookupWidget.remoteLookup.get(cacheKey) match {
+      case Some(value) => value.map(setNewLookup)
+      case _ => {
+        _lookup.set(Seq(), true) //reset lookup state
+
+        val request = for{
+          lookups <- services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public)
+          singleLookup <- if(data.get != Json.Null && !lookups.exists(_.id == data.get)) {
+            services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, JSONQuery.filterWith(WHERE.in(fieldLookup.map.valueProperty,Seq(data.get.string))), public)
+          } else Future.successful(Seq[JSONLookup]())
+        } yield {
+          logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
+          if (lookups.isEmpty) {
+            LookupWidget.remoteLookup.remove(cacheKey)
           }
 
-
-
-          logger.debug(s"Calling lookup with $q")
-          LookupWidget.remoteLookup.put(cacheKey, request)
-
-
+          val allLookups = singleLookup ++ lookups
+          setNewLookup(allLookups)
+          allLookups
         }
+
+
+
+        logger.debug(s"Calling lookup with $q")
+        LookupWidget.remoteLookup.put(cacheKey, request)
+        request
+
       }
     }
+  }
 
+  private def remoteLookup(fieldLookup:JSONFieldLookupRemote) = {
 
 
     fieldLookup.lookupQuery.flatMap(JSONQuery.fromJson) match {
       case Some(query) => {
         autoRelease(allData.listen({ allJs =>
           val newQuery = query.withData(allJs,services.clientSession.lang())
-          fetchRemoteLookup(newQuery)
+          fetchRemoteLookup(fieldLookup)(newQuery)
 
         }, true))
       }
-      case None => fetchRemoteLookup(JSONQuery.empty.limit(1000))
+      case None => fetchRemoteLookup(fieldLookup)(JSONQuery.empty.limit(1000))
     }
 
 
@@ -183,6 +185,24 @@ trait LookupWidget extends Widget with HasData {
     case JSONFieldLookupData(data) => setNewLookup(data)
   }
 
+  private def extractUserData(data:Seq[JSONLookup])(json:Json) = data.find(_.id == json).map(x => Json.fromString(x.value)).getOrElse(Json.Null)
+  override def toUserReadableData(json: Json): Future[Json] = {
+    fieldLookup match {
+      case r:JSONFieldLookupRemote => {
+        val lookups = r.lookupQuery.flatMap(JSONQuery.fromJson) match {
+          case Some(query) => {
+            val newQuery = query.withData(allData.get,services.clientSession.lang())
+            fetchRemoteLookup(r)(newQuery)
 
-
+          }
+          case None => fetchRemoteLookup(r)(JSONQuery.empty.limit(1000))
+        }
+        lookups.map(d => extractUserData(d)(json))
+      }
+      case JSONFieldLookupExtractor(extractor) => Future.successful(
+        extractUserData(extractor.map.get(allData.get.js(extractor.key)).toList.flatten)(json)
+      )
+      case JSONFieldLookupData(data) => Future.successful(extractUserData(data)(json))
+    }
+  }
 }
