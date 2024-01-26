@@ -15,7 +15,7 @@ import io.udash.properties.single.{Property, ReadableProperty}
 import scalatags.JsDom
 import scalatags.JsDom.all.{label => lab, _}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object LookupWidget {
   var remoteLookup:scala.collection.mutable.Map[String,Future[Seq[JSONLookup]]] = scala.collection.mutable.Map()
@@ -93,12 +93,11 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
-  private def fetchRemoteLookup(fieldLookup:JSONFieldLookupRemote)(q: JSONQuery):Future[Seq[JSONLookup]] = {
+  private def fetchRemoteLookup(fieldLookup:JSONFieldLookupRemote)(q: JSONQuery)(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {
     dataSyncRegistration.foreach(_.cancel())
     logger.debug(s"Fetching remote lookup $q")
 
     val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
-
 
 
 
@@ -134,7 +133,7 @@ trait LookupWidget extends Widget with HasData {
     }
   }
 
-  private def remoteLookup(fieldLookup:JSONFieldLookupRemote) = {
+  private def remoteLookup(fieldLookup:JSONFieldLookupRemote)(implicit ex:ExecutionContext) = {
 
 
     fieldLookup.lookupQuery.flatMap(JSONQuery.fromJson) match {
@@ -169,7 +168,10 @@ trait LookupWidget extends Widget with HasData {
   }
 
   fieldLookup match {
-    case r:JSONFieldLookupRemote => remoteLookup(r)
+    case r:JSONFieldLookupRemote => {
+      import ch.wsl.box.client.Context.Implicits._
+      remoteLookup(r)
+    }
     case JSONFieldLookupExtractor(extractor) => {
       autoRelease(allData.listen({ all =>
         logger.debug(s"Field ${field.name} extracting ${extractor.key} with ${extractor.map} from $all with data ${all.js(extractor.key)} and lookups ${extractor.map.get(all.js(extractor.key))}")
@@ -186,23 +188,37 @@ trait LookupWidget extends Widget with HasData {
   }
 
   private def extractUserData(data:Seq[JSONLookup])(json:Json) = data.find(_.id == json).map(x => Json.fromString(x.value)).getOrElse(Json.Null)
-  override def toUserReadableData(json: Json): Future[Json] = {
+  private def extractDataFromLabel(data:Seq[JSONLookup])(label:String) = data.find(_.value == label).map(x => x.id).getOrElse(Json.Null)
+
+
+  private def fetchLookups()(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {
     fieldLookup match {
       case r:JSONFieldLookupRemote => {
-        val lookups = r.lookupQuery.flatMap(JSONQuery.fromJson) match {
+        r.lookupQuery.flatMap(JSONQuery.fromJson) match {
           case Some(query) => {
             val newQuery = query.withData(allData.get,services.clientSession.lang())
-            fetchRemoteLookup(r)(newQuery)
+            fetchRemoteLookup(r)(newQuery)(ec)
 
           }
-          case None => fetchRemoteLookup(r)(JSONQuery.empty.limit(1000))
+          case None => fetchRemoteLookup(r)(JSONQuery.empty.limit(1000))(ec)
         }
-        lookups.map(d => extractUserData(d)(json))
       }
       case JSONFieldLookupExtractor(extractor) => Future.successful(
-        extractUserData(extractor.map.get(allData.get.js(extractor.key)).toList.flatten)(json)
+        extractor.map.get(allData.get.js(extractor.key)).toList.flatten
       )
-      case JSONFieldLookupData(data) => Future.successful(extractUserData(data)(json))
+      case JSONFieldLookupData(data) => Future.successful(data)
     }
+  }
+
+  override def valid()(implicit ec: ExecutionContext): Future[Boolean] = {
+    fetchLookups().map(_.exists(_.id == data.get))
+  }
+
+  override def fromLabel(str: String)(implicit ec: ExecutionContext): Future[Json] = {
+    fetchLookups().map(d => extractDataFromLabel(d)(str))
+  }
+
+  override def toUserReadableData(json: Json)(implicit ex:ExecutionContext): Future[Json] = {
+    fetchLookups().map(d => extractUserData(d)(json))
   }
 }

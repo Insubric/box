@@ -39,6 +39,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
   import ch.wsl.box.model.shared.GeoJson.Geometry._
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   val options: MapParams = MapWidgetUtils.options(field)
   val proj = new BoxMapProjections(options)

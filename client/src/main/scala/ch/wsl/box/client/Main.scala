@@ -14,6 +14,7 @@ import scala.scalajs.js.Object.keys
 
 object Main extends Logging {
   import Context._
+  import Context.Implicits._
 
   def main(args: Array[String]): Unit = {
 

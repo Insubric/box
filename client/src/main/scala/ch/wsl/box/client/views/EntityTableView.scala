@@ -114,6 +114,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
 
   private var filterUpdateHandler: Int = 0
@@ -504,7 +505,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
   import ch.wsl.box.shared.utils.JSONUtils._
-  import ch.wsl.box.client.Context.executionContext
+  import ch.wsl.box.client.Context.Implicits._
 
 
 

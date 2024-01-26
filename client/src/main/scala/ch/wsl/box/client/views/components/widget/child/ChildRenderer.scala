@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget.child
 
 import java.util.UUID
 import ch.wsl.box.client.Context._
+import ch.wsl.box.client.Context.Implicits._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, ClientSession, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks

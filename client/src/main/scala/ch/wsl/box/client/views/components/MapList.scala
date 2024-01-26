@@ -24,6 +24,7 @@ import scala.scalajs.js.|
 class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
 
   override def allData: ReadableProperty[Json] = Property(Json.Null)

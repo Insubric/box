@@ -39,7 +39,7 @@ object PopupWidget extends ComponentWidgetFactory  {
     import io.udash.css.CssView._
     import scalacss.ScalatagsCss._
     import scalatags.JsDom.all._
-    import ch.wsl.box.client.Context._
+    import ch.wsl.box.client.Context.Implicits._
 
     private def embeddedWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
 

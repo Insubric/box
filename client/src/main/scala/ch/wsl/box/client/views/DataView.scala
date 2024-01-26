@@ -54,6 +54,7 @@ object DataViewPresenter extends ViewFactory[DataState] {
 case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataState] with Logging {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   import io.circe.syntax._
   import ch.wsl.box.shared.utils.JSONUtils._

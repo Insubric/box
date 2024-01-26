@@ -27,10 +27,11 @@ trait Widget extends Logging {
 
   // conversion from and to label
 
-  def toUserReadableData(json:Json):Future[Json] = Future.successful(json)
+  def toUserReadableData(json:Json)(implicit ex:ExecutionContext):Future[Json] = Future.successful(json)
 
   def toLabel(json:Json):Future[String] = Future.successful(json.string)
-  def fromLabel(str:String):Future[Json] = Future.successful{ field.`type` match {
+  def valid()(implicit ec: ExecutionContext):Future[Boolean] = Future.successful(true)
+  def fromLabel(str:String)(implicit ec:ExecutionContext):Future[Json] = Future.successful{ field.`type` match {
     case JSONFieldTypes.STRING => Json.fromString(str)
     case JSONFieldTypes.NUMBER => str.toDoubleOption.flatMap(Json.fromDouble) match {
       case Some(v) => v

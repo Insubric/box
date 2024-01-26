@@ -27,6 +27,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
   import io.circe._
 
   import scalacss.ScalatagsCss._

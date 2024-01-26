@@ -46,7 +46,7 @@ object TranslationsViewPresenter extends ViewFactory[AdminTranslationsState]{
 class TranslationsPresenter(viewModel:ModelProperty[TranslationsViewModel]) extends Presenter[AdminTranslationsState] with Logging {
 
   import Context._
-
+  import ch.wsl.box.client.Context.Implicits._
   override def handleState(state: AdminTranslationsState): Unit = {
     for{
       source <- services.rest.translationsFields(state.from)

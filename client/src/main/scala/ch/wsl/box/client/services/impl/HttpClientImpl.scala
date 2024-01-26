@@ -1,14 +1,14 @@
 package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.services.HttpClient.Response
-import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Labels, Notification}
+import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Labels, Notification, RunNowExecutionContext}
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
 import io.circe.Decoder
 import org.scalajs.dom
 import org.scalajs.dom.{File, FormData, XMLHttpRequest}
 import scribe.Logging
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
 
 class HttpClientImpl extends HttpClient with Logging {
 
@@ -30,14 +30,19 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  private def httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit):Future[Response[Option[T]]] = {
+  private def httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit)(implicit ec:ExecutionContext):Future[Response[Option[T]]] = {
 
 
     val promise = Promise[Response[Option[T]]]()
     blocking {
       val xhr = new dom.XMLHttpRequest()
       logger.info(s"Calling HTTP service: $method $url ")
-      xhr.open(method, url, true)
+
+      val async = ec match {
+        case _: RunNowExecutionContext => false
+        case _ => true
+      }
+      xhr.open(method, url, async)
       //xhr.withCredentials = true
       xhr.setRequestHeader("Cache-Control","no-store")
       if (json) {
@@ -129,7 +134,7 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  private def httpCallWithNoticeInterceptor[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T]):Future[Option[T]] = httpCall(method,url,json,file,Some(decoder))(send).map{
+  private def httpCallWithNoticeInterceptor[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T],ec:ExecutionContext):Future[Option[T]] = httpCall(method,url,json,file,Some(decoder))(send).map{
     case Right(result) => result
     case Left(error) => {
       Notification.add(error.humanReadable(Labels.all))
@@ -137,18 +142,18 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  private def request[T](method:String,url:String)(implicit decoder:io.circe.Decoder[T]):Future[Option[T]] = httpCallWithNoticeInterceptor[T](method,url)( xhr => xhr.send())
+  private def request[T](method:String,url:String)(implicit decoder:io.circe.Decoder[T],ex:ExecutionContext):Future[Option[T]] = httpCallWithNoticeInterceptor[T](method,url)( xhr => xhr.send())
 
-  private def send[D,R](method:String,url:String,obj:D,json:Boolean = true)(implicit decoder:io.circe.Decoder[R],encoder: io.circe.Encoder[D]):Future[Option[R]] = {
+  private def send[D,R](method:String,url:String,obj:D,json:Boolean = true)(implicit decoder:io.circe.Decoder[R],encoder: io.circe.Encoder[D],ex:ExecutionContext):Future[Option[R]] = {
     httpCallWithNoticeInterceptor[R](method,url,json){ xhr =>
       xhr.send(obj.asJson.toString())
     }
   }
 
 
-  def post[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D]):Future[R] = send[D, R]("POST", url, obj).map(handle404)
+  def post[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D],ex:ExecutionContext):Future[R] = send[D, R]("POST", url, obj).map(handle404)
 
-  def postFileResponse[D](url: String, obj: D)(implicit  encoder: io.circe.Encoder[D]):Future[File] = httpCall[File]("POST",url){ xhr =>
+  def postFileResponse[D](url: String, obj: D)(implicit  encoder: io.circe.Encoder[D],executionContext: ExecutionContext):Future[File] = httpCall[File]("POST",url){ xhr =>
     xhr.responseType = "blob"
     xhr.send(obj.asJson.toString())
   }.map{
@@ -159,15 +164,15 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  def put[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D]):Future[R] = send[D, R]("PUT", url, obj).map(handle404)
+  def put[D, R](url: String, obj: D)(implicit decoder: io.circe.Decoder[R], encoder: io.circe.Encoder[D],ex:ExecutionContext):Future[R] = send[D, R]("PUT", url, obj).map(handle404)
 
-  def get[T](url: String)(implicit decoder: io.circe.Decoder[T]): Future[T] = request("GET", url).map(handle404)
+  def get[T](url: String)(implicit decoder: io.circe.Decoder[T],ex:ExecutionContext): Future[T] = request("GET", url).map(handle404)
 
-  override def maybeGet[T](url: String)(implicit decoder: Decoder[T]): Future[Option[T]] = request("GET", url)
+  override def maybeGet[T](url: String)(implicit decoder: Decoder[T],ex:ExecutionContext): Future[Option[T]] = request("GET", url)
 
-  def delete[T](url: String)(implicit decoder: io.circe.Decoder[T]): Future[T] = request("DELETE", url).map(handle404)
+  def delete[T](url: String)(implicit decoder: io.circe.Decoder[T],ex:ExecutionContext): Future[T] = request("DELETE", url).map(handle404)
 
-  def sendFile[T](url: String, file: File)(implicit decoder: io.circe.Decoder[T]): Future[T] = {
+  def sendFile[T](url: String, file: File)(implicit decoder: io.circe.Decoder[T],executionContext: ExecutionContext): Future[T] = {
 
     val formData = new FormData();
     formData.append("file", file)

@@ -1,9 +1,9 @@
 package ch.wsl.box.client.views.components.widget.child
 
 
-import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.services.{BrowserConsole, RunNow}
 import ch.wsl.box.client.views.components.widget.lookup.LookupWidget
-import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry, WidgetUtils}
+import ch.wsl.box.client.views.components.widget.{HasData, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONFieldLookupRemote, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata, JSONQuery, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -14,15 +14,17 @@ import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
-import typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions}
+import typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance}
 import typings.std
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters.JSRichIterableOnce
+import scala.scalajs.js.JSConverters.{JSRichFutureNonThenable, JSRichIterableOnce, iterableOnceConvertible2JSRichIterableOnce}
+import scala.scalajs.js.Thenable.Implicits._
 import scala.scalajs.js.|
-
+import scala.scalajs.js.JSConverters._
 
 object Spreadsheet extends ChildRendererFactory {
 
@@ -37,7 +39,7 @@ object Spreadsheet extends ChildRendererFactory {
 
     val parentMetadata = widgetParam.metadata
 
-    import ch.wsl.box.client.Context._
+    import ch.wsl.box.client.Context.Implicits._
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
@@ -105,8 +107,65 @@ object Spreadsheet extends ChildRendererFactory {
 
       import typings.jspreadsheetCe._
 
+      val tableFields = fields(metadata)
 
-      val columns: Seq[Column] = fields(metadata).map { c =>
+      def rowIndex(cell:HTMLTableCellElement):Int = cell.dataset.get("y").flatMap(_.toIntOption).getOrElse(0)
+      def rowData(cell:HTMLTableCellElement):Property[Json] = {
+        val i = rowIndex(cell)
+        widgetParam.prop.bitransform({rows:Json =>
+          rows.asArray.flatMap(_.lift(i)).getOrElse(Json.Null)
+
+        })({ row:Json =>
+          widgetParam.prop.get.asArray match {
+            case Some(value) => Json.fromValues(value.zipWithIndex.map{ case (js,j) =>
+              if(i == j) js.deepMerge(row) else js
+            })
+            case None => Seq(row).asJson
+          }
+
+        })
+      }
+
+
+      def cellData(cell:HTMLTableCellElement):Property[Json] = {
+        val colIndex = cell.dataset.get("x").flatMap(_.toIntOption).getOrElse(0)
+        val colName = tableFields.lift(colIndex).map(_.name).getOrElse("")
+        _cellData(cell,rowData(cell),colName)
+      }
+
+      def _cellData(cell:HTMLTableCellElement, row: Property[Json], colName:String):Property[Json] = {
+        row.bitransform(child => child.js(colName))(el => row.get.deepMerge(Json.obj(colName -> el)))
+      }
+
+      def getTableRow(jsTable:JspreadsheetInstance,row:Int):Json = {
+
+        val fields:Seq[(String,Json)] = jsTable.getRowData(row.toDouble).toOption match {
+          case Some(value) => value.toSeq.zipWithIndex.map{ case (x,i) =>
+            (tableFields(i).name,cellValueToJson(Some(x).orUndefined))
+          }
+          case None => Seq()
+        }
+
+
+        Json.fromFields(fields)
+      }
+
+      def checkCellValidity(jsTable:JspreadsheetInstance,rowNumber:Int)(field:JSONField):Future[(Boolean,JSONField)] = {
+        val row = getTableRow(jsTable, rowNumber)
+        colContentWidget(Property(row), Property(Json.Null), field, metadata) match {
+          case w:HasData => {
+            for{
+              value <- w.fromLabel(row.get(field.name))
+              _ = w.data.set(value)
+              valid <- w.valid()
+            } yield (valid,field)
+          }
+          case _ => Future.successful((true,field))
+        }
+      }
+
+
+      val columns: Seq[Column] = tableFields.map { c =>
         val typ:jspreadsheetCeStrings.text | jspreadsheetCeStrings.numeric | jspreadsheetCeStrings.hidden | jspreadsheetCeStrings.dropdown | jspreadsheetCeStrings.autocomplete | jspreadsheetCeStrings.checkbox | jspreadsheetCeStrings.radio | jspreadsheetCeStrings.calendar | jspreadsheetCeStrings.image | jspreadsheetCeStrings.color | jspreadsheetCeStrings.html = (c.`type`,c.lookup) match {
           case (_,Some(value)) => jspreadsheetCeStrings.dropdown
           case (JSONFieldTypes.STRING,_) => jspreadsheetCeStrings.text
@@ -116,22 +175,7 @@ object Spreadsheet extends ChildRendererFactory {
           case _ => jspreadsheetCeStrings.text
         }
 
-        def rowIndex(cell:HTMLTableCellElement):Int = cell.dataset.get("y").flatMap(_.toIntOption).getOrElse(0)
-        def rowData(cell:HTMLTableCellElement):Property[Json] = {
-          val i = rowIndex(cell)
-          widgetParam.prop.bitransform({rows:Json =>
-            rows.asArray.flatMap(_.lift(i)).getOrElse(Json.Null)
 
-          })({ row:Json =>
-            widgetParam.prop.get.asArray match {
-              case Some(value) => Json.fromValues(value.zipWithIndex.map{ case (js,j) =>
-                if(i == j) js.deepMerge(row) else js
-              })
-              case None => Seq(row).asJson
-            }
-
-          })
-        }
 
         val col = c.lookup match {
           case Some(fieldLookup:JSONFieldLookupRemote) => {
@@ -144,18 +188,20 @@ object Spreadsheet extends ChildRendererFactory {
                 BrowserConsole.log(s"Row: ${rowData(cell)}")
                 BrowserConsole.log(cell)
                 cell.innerHTML = ""
-                val row = rowData(cell)
-                val v = row.bitransform(child => child.js(c.name))(el => row.get.deepMerge(Json.obj(c.name -> el)))
+                val row = Property(rowData(cell).get) // copy the value, apply that only when we close the cell editor
+                val v = _cellData(cell,row,c.name)
                 widget = colContentWidget(row,v,c, metadata)
                 val w = div(widget.editOnTable(NestedInterceptor.Identity)).render
                 cell.appendChild(w)
               })
               .setCloseEditor((cell,save) => {
-                BrowserConsole.log("Close editor")
+                BrowserConsole.log(s"Close editor, save: $save")
                 if(save) {
-                  cell.innerHTML = ""
-                  cell.appendChild(div(widget.showOnTable(NestedInterceptor.Identity)).render)
-                  jsonToCellValue(widget.json().get)
+                  widget.toUserReadableData(widget.json().get).map{ label =>
+                    cell.innerHTML = label.string
+                    label.string //jsonToCellValue(widget.json().get)
+                  }.toJSPromise
+
                 } else {
                   js.undefined
                 }
@@ -165,15 +211,24 @@ object Spreadsheet extends ChildRendererFactory {
                 cell
               })
               .setUpdateCell((cell,value,force) => {
-                if(value != null && value.isDefined) {
-                  BrowserConsole.log(s"UpdateCell: ${value.toString}")
-                  Future {
-                    val w = colContentWidget(rowData(cell), Property(cellValueToJson(value)), c, metadata)
-                    cell.innerHTML = ""
-                    cell.appendChild(div(w.showOnTable(NestedInterceptor.Identity)).render)
-                  }
-                }
+//                if(value != null && value.isDefined) {
+//                  BrowserConsole.log(s"UpdateCell: ${value.toString}")
+//                  val json = cellValueToJson(value)
+//                  val w = colContentWidget(rowData(cell), Property(json), c, metadata)
+//                  w.toUserReadableData(json).map { l =>
+//                    BrowserConsole.log(s"UpdateCell - original: ${value.toString} label: ${l.string}")
+//                    cell.innerHTML = l.string
+//                    l.string
+//                  }.toJSPromise
+//
+//                } else {
+//                  value
+//                }
+//
+                cell.innerHTML = cellValueToJson(value).string
+
                 value
+
               })
 
 
@@ -207,7 +262,7 @@ object Spreadsheet extends ChildRendererFactory {
       }
 
       val futureData = Future.sequence(widgetParam.prop.get.asArray.get.map{ row =>
-        Future.sequence(fields(metadata).map{f =>
+        Future.sequence(tableFields.map{f =>
           val col = row.js(f.name)
           val w = colContentWidget(Property(row), Property(col), f, metadata)
           w.toUserReadableData(col).map(jsonToCellValue)
@@ -222,8 +277,75 @@ object Spreadsheet extends ChildRendererFactory {
 
         val table = jspreadsheet(_div,JSpreadsheetOptions()
           .setColumns(columns.toJSArray)
+          .setAllowDeleteColumn(false)
+          .setAllowInsertColumn(false)
+          .setAllowRenameColumn(false)
           .setData(data.toJSArray)
+          .setOnchange((jsTable,cell,colIndex,rowIndex,editorValue,wasSaved) => {
 
+            val f = tableFields(colIndex.toString.toInt)
+
+            val rowNumber = rowIndex.toString.toInt
+            val row = getTableRow(jsTable.jspreadsheet, rowNumber)
+            BrowserConsole.log(rowData(cell).get)
+            BrowserConsole.log(row)
+
+            colContentWidget(Property(row), Property(Json.Null), f, metadata) match {
+              case w:HasData => {
+                for{
+                  result <- w.fromLabel(cellValueToJson(editorValue).string)
+                  _ = w.data.set(result)
+                  valid <- w.valid()
+
+                } yield {
+                  BrowserConsole.log(s"OnChange with original: $editorValue value: $result valid:$valid")
+                  val prop = cellData(cell)
+                  if(valid) {
+                    prop.set(result)
+                  } else {
+                    prop.set(Json.Null)
+                    cell.innerHTML = ""
+                  }
+                  Future.sequence(f.dependencyFields(tableFields).map(checkCellValidity(jsTable.jspreadsheet,rowNumber))).foreach{ valids =>
+                    valids.filter(_._1).map(_._2).foreach{ f =>
+                      val colIndex = tableFields.indexOf(f)
+                      BrowserConsole.log(s"Deleting value from row: $rowNumber column:${f.name} i $colIndex")
+                      jsTable.jspreadsheet.setValueFromCoords(tableFields.indexOf(f).toDouble,rowNumber.toDouble,js.undefined.asInstanceOf[CellValue])
+                    }
+                  }
+                }
+              }
+              case _ => ()
+            }
+
+          })
+//          .setOnbeforepaste((cell,copiedText,colIndex,rowIndex) => {
+//            val data = copiedText.split("\n").map(_.split("\t"))
+//            BrowserConsole.log(s"OnBeforePaste")
+//            BrowserConsole.log(data.toJSArray)
+//            BrowserConsole.log(s"Col: $colIndex, row:$rowIndex")
+//            BrowserConsole.log(cell)
+//            copiedText
+////            val result = Future.sequence(data.toSeq.map { rowData =>
+////              val originalRow = widgetParam.prop.get.asArray.get.lift(rowIndex.toString.toInt).getOrElse(Json.Null)
+////              rowData.zipWithIndex.foldLeft(Future.successful(originalRow,List[String]())){ case (result,(fieldString, i)) =>
+////                val f = tableFields(colIndex.toString.toInt + i)
+////                result.flatMap { case (originalRow, acc) =>
+////                  val w = colContentWidget(Property(originalRow), Property(Json.Null), f, metadata)
+////                  w.fromLabel(fieldString).map { v =>
+////                    (originalRow.deepMerge(Json.fromFields(Map(f.name -> v))),
+////                      acc ++ Seq(v.string))
+////                  }
+////                }
+////              }
+////            })
+////            result.map { x =>
+////              BrowserConsole.log(x.map(_._2.toJSArray).toJSArray)
+////              val out = x.map(_._2.mkString("\t")).mkString("\n")
+////              BrowserConsole.log(s"Paste result:\n $out")
+////              out
+////            }.toJSPromise
+//          })
         )
         BrowserConsole.log(_div)
         BrowserConsole.log(table)

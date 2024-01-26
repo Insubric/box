@@ -41,6 +41,7 @@ class EntitiesPresenter(model:ModelProperty[Entities]) extends Presenter[Entitie
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: EntitiesState): Unit = {
     model.subProp(_.kind).set(Some(state.kind))

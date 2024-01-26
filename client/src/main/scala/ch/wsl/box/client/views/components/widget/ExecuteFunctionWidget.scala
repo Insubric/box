@@ -24,6 +24,7 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
   case class ExecuteFunctionWidgetImpl(params: WidgetParams) extends Widget {
 
     import ch.wsl.box.client.Context._
+    import ch.wsl.box.client.Context.Implicits._
 
     override def field: JSONField = params.field
 

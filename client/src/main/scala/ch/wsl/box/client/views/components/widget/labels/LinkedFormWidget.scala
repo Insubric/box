@@ -31,6 +31,7 @@ object LinkedFormWidget extends ComponentWidgetFactory {
   case class LinkedFormWidgetImpl(params: WidgetParams) extends Widget with Logging with Link {
 
     import ch.wsl.box.client.Context._
+    import ch.wsl.box.client.Context.Implicits._
     import io.udash.css.CssView._
     import scalacss.ScalatagsCss._
 

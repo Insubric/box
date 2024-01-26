@@ -24,6 +24,7 @@ case object LoginViewPresenter extends ViewFactory[LoginStateAbstract] {
 case class LoginPresenter() extends Presenter[LoginStateAbstract]  {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: LoginStateAbstract): Unit = {}
 
