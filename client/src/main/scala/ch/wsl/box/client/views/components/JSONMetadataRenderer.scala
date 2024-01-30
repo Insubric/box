@@ -34,6 +34,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
   import io.circe._
 
   import scalacss.ScalatagsCss._

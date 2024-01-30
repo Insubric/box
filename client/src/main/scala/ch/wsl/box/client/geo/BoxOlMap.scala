@@ -28,7 +28,7 @@ trait BoxOlMap {
   }
 
 
-  def loadBase(l: Option[MapParamsLayers]): Future[Boolean] = {
+  def loadBase(l: Option[MapParamsLayers])(implicit ex:ExecutionContext): Future[Boolean] = {
     l match {
       case None => {
         mapActions.setBaseLayer(BoxMapConstants.openStreetMapLayer)
@@ -46,11 +46,11 @@ trait BoxOlMap {
     }
   }
 
-  def loadMapLookups() = {
+  def loadMapLookups()(implicit ex:ExecutionContext) = {
     options.lookups.toList.flatten.foreach(mapActions.addLookupsLayer(allData.get))
   }
 
-  def onLoad() = {
+  def onLoad()(implicit ex:ExecutionContext) = {
 
 
 

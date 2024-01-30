@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.{Labels, REST}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONID, JSONLookup, JSONMetadata}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata}
 import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.shared.utils.JSONUtils._
@@ -25,7 +25,43 @@ trait Widget extends Logging {
 
   def field:JSONField
 
-  def toLabel(json:Json):Modifier = span(json.string)
+  // conversion from and to label
+
+  def toUserReadableData(json:Json)(implicit ex:ExecutionContext):Future[Json] = Future.successful(json)
+
+  def toLabel(json:Json):Future[String] = Future.successful(json.string)
+  def valid()(implicit ec: ExecutionContext):Future[Boolean] = Future.successful(true)
+  def fromLabel(str:String)(implicit ec:ExecutionContext):Future[Json] = Future.successful{ field.`type` match {
+    case JSONFieldTypes.STRING => Json.fromString(str)
+    case JSONFieldTypes.NUMBER => str.toDoubleOption.flatMap(Json.fromDouble) match {
+      case Some(v) => v
+      case None => {
+        logger.warn(s" $str not parsed as number")
+        Json.Null
+      }
+    }
+    case JSONFieldTypes.INTEGER => str.toIntOption.map(Json.fromInt) match {
+      case Some(v) => v
+      case None => {
+        logger.warn(s" $str not parsed as integer")
+        Json.Null
+      }
+    }
+    case JSONFieldTypes.BOOLEAN => str.toBooleanOption.map(Json.fromBoolean) match {
+      case Some(v) => v
+      case None => {
+        logger.warn(s" $str not parsed as boolean")
+        Json.Null
+      }
+    }
+    case _ => parser.parse(str).toOption match {
+      case Some(value) => value
+      case None => {
+        logger.warn(s" $str not parsed as json")
+        Json.Null
+      }
+    }
+  }}
 
   def jsonToString(json:Json):String = json.string
 
@@ -105,10 +141,13 @@ object Widget{
 trait HasData extends Widget {
   def data:Property[Json]
 
+
+
   override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(data.transform(_.string)))
 
 
   override def text(): ReadableProperty[String] = data.transform(_.string)
+  override def json(): ReadableProperty[Json] = data
 
 }
 

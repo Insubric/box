@@ -282,6 +282,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
     } else {
       (col.name,jsonQuery.operator) match {
+        case (_,Some(l)) if Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(l) => filter(col.nullable,Some(v))
         case ("String",_)  => filter(col.nullable,Some(v))
         case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
         case ("Int",_) => filter[Int](col.nullable,v.toIntOption)

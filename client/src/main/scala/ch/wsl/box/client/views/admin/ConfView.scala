@@ -39,7 +39,7 @@ object ConfViewPresenter extends ViewFactory[AdminConfState.type]{
 class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[AdminConfState.type] {
 
   import Context._
-
+  import ch.wsl.box.client.Context.Implicits._
   override def handleState(state: AdminConfState.type): Unit = {
     services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"conf",10000).map{ confs =>
       val entries = confs.flatMap(js => js.as[ConfEntry].toOption)

@@ -28,6 +28,7 @@ object AdminViewPresenter extends ViewFactory[AdminState.type]{
 class AdminPresenter(viewModel:ModelProperty[AdminViewModel]) extends Presenter[AdminState.type] {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: AdminState.type): Unit = {
     for{

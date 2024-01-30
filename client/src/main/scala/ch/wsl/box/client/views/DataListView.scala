@@ -47,6 +47,7 @@ class DataListPresenter(model:ModelProperty[DataList]) extends Presenter[DataLis
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: DataListState ): Unit = {
     val newKind = model.subProp(_.kind).get != state.kind

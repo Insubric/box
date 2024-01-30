@@ -69,6 +69,7 @@ case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
 class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json], val allData: ReadableProperty[Json], metadata:JSONMetadata) extends Widget with BoxOlMap with HasData with Logging {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
@@ -721,9 +722,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     }
   }
 
-  override def toLabel(json: Json): Modifier = {
-    val name = data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
-    span(name)
+  override def toLabel(json: Json): Future[String] = Future.successful {
+    data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
   }
 
   var selected:Option[featureMod.default[geomGeometryMod.default]] = None

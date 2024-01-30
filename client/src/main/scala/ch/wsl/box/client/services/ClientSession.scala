@@ -39,6 +39,7 @@ object ClientSession {
 class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   import Context._
+  import Context.Implicits._
   import io.circe._
   import io.circe.generic.auto._
   import io.circe.parser._

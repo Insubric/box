@@ -13,9 +13,12 @@ import io.udash._
 import io.udash.bootstrap.modal.UdashModal.BackdropType
 import io.udash.css.CssView._
 
+import scala.concurrent.ExecutionContext
+
 object LoginPopup {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   private val header = (x:NestedInterceptor) => div(
     Labels.error.session_expired

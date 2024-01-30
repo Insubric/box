@@ -51,6 +51,7 @@ object UiConfViewPresenter extends ViewFactory[AdminUiConfState.type]{
 class UiConfPresenter(viewModel:ModelProperty[UiConfViewModel]) extends Presenter[AdminUiConfState.type] {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   private def loadEntries() = services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"ui",10000).map{ confs =>
     confs.flatMap(js => js.as[UiConfEntry].toOption)

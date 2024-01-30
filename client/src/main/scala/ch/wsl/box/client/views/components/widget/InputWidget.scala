@@ -130,9 +130,6 @@ object InputWidget extends Logging {
   class Textarea(val field:JSONField, val data: Property[Json], metadata:JSONMetadata) extends Widget with HasData {
 
 
-    override def toLabel(json: Json): Modifier = {
-      span(Shorten(json.string))
-    }
 
     val modifiers:Seq[Modifier] = Seq()
 

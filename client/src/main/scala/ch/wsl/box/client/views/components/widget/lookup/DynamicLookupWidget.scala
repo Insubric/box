@@ -15,6 +15,7 @@ trait DynamicLookupWidget extends Widget {
   def params: WidgetParams
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def field: JSONField = params.field
 

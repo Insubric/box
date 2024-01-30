@@ -22,7 +22,6 @@ object SliderWidget extends ComponentWidgetFactory {
 
   import scalacss.ScalatagsCss._
   import io.udash.css.CssView._
-  import ch.wsl.box.client.Context._
   import Internationalization._
 
   override def name: String = WidgetsNames.slider
