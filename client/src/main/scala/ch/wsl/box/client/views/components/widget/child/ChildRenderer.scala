@@ -128,11 +128,18 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       props <- propsJs.asObject
     } yield props.toMap}.getOrElse(Map())
 
-    private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
-
-      val props:ReadableProperty[Json] = masterData.transform{js =>
-        (child.props.map(p => p -> js.js(p)).toMap ++ staticProps).asJson
+    val props:ReadableProperty[Json] = masterData.transform{js =>
+      val mapping = for {
+        m <- child.mapping
+      } yield {
+        //      println(s"local:$local sub:$sub")
+        m.child -> masterData.get.js(m.parent)
       }
+
+      (child.props.map(p => p -> js.js(p)).toMap ++ staticProps ++ mapping).asJson
+    }
+
+    private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
 
       val id = UUID.randomUUID()
       val propData = Property(data.deepMerge(props.get))
@@ -248,23 +255,14 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       addItem(child,metadata)
       e.preventDefault()
     }
+
+    def placeholder(metadata:JSONMetadata): Json = {
+      Json.fromFields(JSONMetadata.jsonPlaceholder(metadata, children))
+    }
     def addItem(child: Child, metadata: JSONMetadata) =  {
       logger.info("adding item")
 
-
-      val keys = for {
-        m <- child.mapping
-      } yield {
-        //      println(s"local:$local sub:$sub")
-        m.child -> masterData.get.js(m.parent)
-      }
-
-      val placeholder: Map[String, Json] = JSONMetadata.jsonPlaceholder(metadata, children) ++ keys.toMap
-
-      //    println(placeholder)
-
-
-      add(placeholder.asJson,true,true)
+      add(placeholder(metadata),true,true)
       checkChanges()
     }
 

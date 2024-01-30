@@ -109,6 +109,8 @@ object Spreadsheet extends ChildRendererFactory {
 
       val tableFields = fields(metadata)
 
+
+
       def rowIndex(cell:HTMLTableCellElement):Int = cell.dataset.get("y").flatMap(_.toIntOption).getOrElse(0)
       def rowData(cell:HTMLTableCellElement):Property[Json] = {
         val i = rowIndex(cell)
@@ -125,6 +127,22 @@ object Spreadsheet extends ChildRendererFactory {
 
         })
       }
+
+      def addRows(start:Int,count:Int) = {
+        widgetParam.prop.get.asArray.foreach{ rows =>
+          val newRow = placeholder(metadata).deepMerge(props.get)
+          val elements = rows.patch(start,List.fill(count)(newRow),0)
+          widgetParam.prop.set(Json.fromValues(elements))
+        }
+      }
+
+      def deleteRows(start:Int,count:Int) = {
+        widgetParam.prop.get.asArray.foreach{ rows =>
+          val elements = rows.patch(start,Nil,count)
+          widgetParam.prop.set(Json.fromValues(elements))
+        }
+      }
+
 
 
       def cellData(cell:HTMLTableCellElement):Property[Json] = {
@@ -165,6 +183,7 @@ object Spreadsheet extends ChildRendererFactory {
       }
 
 
+
       val columns: Seq[Column] = tableFields.map { c =>
         val typ:jspreadsheetCeStrings.text | jspreadsheetCeStrings.numeric | jspreadsheetCeStrings.hidden | jspreadsheetCeStrings.dropdown | jspreadsheetCeStrings.autocomplete | jspreadsheetCeStrings.checkbox | jspreadsheetCeStrings.radio | jspreadsheetCeStrings.calendar | jspreadsheetCeStrings.image | jspreadsheetCeStrings.color | jspreadsheetCeStrings.html = (c.`type`,c.lookup) match {
           case (_,Some(value)) => jspreadsheetCeStrings.dropdown
@@ -185,7 +204,7 @@ object Spreadsheet extends ChildRendererFactory {
               .setOpenEditor((cell,el,empty,e) => {
                 BrowserConsole.log("Open editor: " + cell.innerHTML)
                 BrowserConsole.log(s"Row: ${rowIndex(cell)}")
-                BrowserConsole.log(s"Row: ${rowData(cell)}")
+                BrowserConsole.log(rowData(cell).get)
                 BrowserConsole.log(cell)
                 cell.innerHTML = ""
                 val row = Property(rowData(cell).get) // copy the value, apply that only when we close the cell editor
@@ -261,17 +280,20 @@ object Spreadsheet extends ChildRendererFactory {
         col
       }
 
-      val futureData = Future.sequence(widgetParam.prop.get.asArray.get.map{ row =>
+      def toTableData: Future[js.Array[js.Array[CellValue] | std.Record[String, CellValue]]] = Future.sequence(widgetParam.prop.get.asArray.get.map{ row =>
         Future.sequence(tableFields.map{f =>
           val col = row.js(f.name)
           val w = colContentWidget(Property(row), Property(col), f, metadata)
           w.toUserReadableData(col).map(jsonToCellValue)
         })
-      })
-
-      futureData.foreach{ _data =>
-
+      }).map{_data =>
         val data:Seq[js.Array[CellValue] | std.Record[String,CellValue]] = _data.map(_.toJSArray)
+        data.toJSArray
+      }
+
+      toTableData.foreach{ data =>
+
+
 
         val jspreadsheet = typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
 
@@ -280,7 +302,13 @@ object Spreadsheet extends ChildRendererFactory {
           .setAllowDeleteColumn(false)
           .setAllowInsertColumn(false)
           .setAllowRenameColumn(false)
-          .setData(data.toJSArray)
+          .setData(data)
+          .setOninsertrow((element,rowIndex,numOfRows,addedCells,insertBefore) => {
+            addRows(rowIndex.toInt + (if(insertBefore) 0 else 1),numOfRows.toInt)
+          })
+          .setOndeleterow((element,rowIndex,numOfRows,deletedCells) => {
+            deleteRows(rowIndex.toInt,numOfRows.toInt)
+          })
           .setOnchange((jsTable,cell,colIndex,rowIndex,editorValue,wasSaved) => {
 
             val f = tableFields(colIndex.toString.toInt)
@@ -347,6 +375,15 @@ object Spreadsheet extends ChildRendererFactory {
 ////            }.toJSPromise
 //          })
         )
+
+
+        props.listen{ p =>
+          widgetParam.prop.get.asArray.foreach{ rows =>
+            widgetParam.prop.set(Json.fromValues(rows.map(_.deepMerge(p))))
+            toTableData.foreach(_data => table.setData(_data))
+          }
+        }
+
         BrowserConsole.log(_div)
         BrowserConsole.log(table)
         window.asInstanceOf[js.Dynamic].tableTest = table
