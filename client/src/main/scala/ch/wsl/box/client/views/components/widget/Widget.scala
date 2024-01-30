@@ -20,6 +20,7 @@ import org.scalajs.dom.{Element, window}
 import org.scalajs.dom
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 trait Widget extends Logging {
 
@@ -79,7 +80,10 @@ trait Widget extends Logging {
 
   def strToNumericArrayJson(str:String):Json = str match {
     case "" => Json.Null
-    case _ => str.asJson.asArray.map(_.map(s => strToNumericJson(s.string))).map(_.asJson).getOrElse(Json.Null)
+    case _ => parser.parse(str).toOption.flatMap(_.asArray) match {
+      case Some(value) => value.asJson
+      case None => Try(str.split(",").map(_.toDouble).asJson).toOption.getOrElse(Json.Null)
+    }
   }
 
   protected def show(nested:Binding.NestedInterceptor):Modifier

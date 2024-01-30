@@ -255,7 +255,7 @@ object InputWidget extends Logging {
       field.`type` match {
         case JSONFieldTypes.NUMBER => NumberInput(stringModel)((y ++ Seq(step := "any")):_*).render
         case JSONFieldTypes.INTEGER => NumberInput(stringModel)(y:_*).render
-        case JSONFieldTypes.ARRAY_NUMBER => NumberInput(stringModel)(y++modifiers:_*).render
+        case JSONFieldTypes.ARRAY_NUMBER => TextInput(stringModel)(y++modifiers:_*).render
         case _ => TextInput(stringModel)(y++modifiers:_*).render
       }
     })

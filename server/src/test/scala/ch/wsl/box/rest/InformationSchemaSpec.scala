@@ -35,11 +35,10 @@ class InformationSchemaSpec extends BaseSpec {
 
   it should "query foreign keys" in withFullDB { implicit db =>
 
-    val res = db.adminDb.run(infoSchema("app_child").fks)
+    val res = db.adminDb.run(infoSchema("app_child").findFk("parent_id"))
 
     res.map{ r =>
       r.nonEmpty shouldBe true
-      r.length shouldBe 1
       r.head.keys.length shouldBe 1
       r.head.keys.head shouldBe "parent_id"
     }

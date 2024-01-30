@@ -5,10 +5,6 @@ with box_usages as (select name, entity as entity
                     from form
                     union
                     distinct
-                    select name, view_table as entity
-                    from form
-                    union
-                    distinct
                     select form.name, form_i18n.view_table as name
                     from form_i18n
                              left join form on form_i18n.form_uuid = form.form_uuid
