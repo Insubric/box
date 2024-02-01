@@ -84,7 +84,9 @@ object MultiWidget extends ComponentWidgetFactory {
     override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       div(
         nested(repeatWithNested(data) { (d, n) =>
-          div(ClientConf.style.editableTableMulti, createWidget(d).editOnTable(n)).render
+          val widget = createWidget(d)
+          widget.load()
+          div(ClientConf.style.editableTableMulti, widget.editOnTable(n)).render
         }),
         if(showTotal) {
           nested(produce(data) { d =>
@@ -108,7 +110,7 @@ object MultiWidget extends ComponentWidgetFactory {
         tooltip(div(
           nested(repeat(data){d =>
             val widget = createWidget(d)
-            div(widget.render(true,Property(true),nested)).render
+            div(widget.render(true,nested)).render
           })
         ).render)._1,
       )

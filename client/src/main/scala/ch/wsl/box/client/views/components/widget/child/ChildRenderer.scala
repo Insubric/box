@@ -120,7 +120,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       }
     }
 
-    protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
+    protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
 
     private def staticProps:Map[String,Json] = {for{
       params <- field.params
@@ -324,9 +324,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     override def afterRender() = Future.sequence(childWidgets.map(_.widget.afterRender())).map(_.forall(x => x))
 
 
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderChild(false,nested)
 
-    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(true,nested)
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderChild(true,nested)
 
 
 

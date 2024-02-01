@@ -34,7 +34,7 @@ import typings.ol.interactionSelectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
 import typings.ol.viewMod.FitOptions
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.scalajs.js
 import scala.util.Try
 import scalacss.ScalatagsCss._
@@ -722,8 +722,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     }
   }
 
-  override def toLabel(json: Json): Future[String] = Future.successful {
-    data.get.as[GeoJson.Geometry].toOption.map(geomToString).getOrElse("")
+  override def toUserReadableData(json: Json)(implicit ex:ExecutionContext): Future[Json] = Future.successful {
+    data.get.as[GeoJson.Geometry].toOption.map(x => Json.fromString(geomToString(x))).getOrElse(Json.Null)
   }
 
   var selected:Option[featureMod.default[geomGeometryMod.default]] = None

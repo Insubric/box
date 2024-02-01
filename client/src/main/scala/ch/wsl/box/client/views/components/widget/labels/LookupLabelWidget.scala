@@ -43,7 +43,7 @@ object LookupLabelWidget extends ComponentWidgetFactory {
 
 
       div(
-        widget().render(false,Property(true),nested)
+        widget().render(false,nested)
       )
     }
 

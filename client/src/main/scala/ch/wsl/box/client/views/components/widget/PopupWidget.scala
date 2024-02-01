@@ -40,6 +40,7 @@ object PopupWidget extends ComponentWidgetFactory  {
     import scalacss.ScalatagsCss._
     import scalatags.JsDom.all._
     import ch.wsl.box.client.Context.Implicits._
+    import ch.wsl.box.shared.utils.JSONUtils._
 
     private def embeddedWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
 
@@ -47,7 +48,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
     private val widgetLabel:Property[String] = Property("")
 
-    autoRelease(params.prop.listen(js => widget.toLabel(js).foreach(widgetLabel.set(_))))
+    autoRelease(params.prop.listen(js => widget.toUserReadableData(js).foreach(x => widgetLabel.set(x.string))))
 
 
     def produceLabel = produce(widgetLabel){l => span(Shorten(l)).render }
@@ -80,7 +81,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
       val body = (x:NestedInterceptor) => div(
         div(
-          widget.render(write,Property(true),x)
+          widget.render(write,x)
         )
       ).render
 

@@ -32,7 +32,7 @@ object TrasparentChild extends ChildRendererFactory {
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
-    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       div(ClientConf.style.removeFieldMargin,
         metadata match {
@@ -45,7 +45,7 @@ object TrasparentChild extends ChildRendererFactory {
                     if(distribute) { ClientConf.style.distributionChild } else {},
                     if(childWidth.isDefined) { width := childWidth.get.px } else {},
                     div(display.flex,
-                      div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
+                      div(flexGrow := 1, widget.widget.render(write,nested)),
                       div( ClientConf.style.removeFlexChild,
                         removeButton(write,widget,f)
                       )

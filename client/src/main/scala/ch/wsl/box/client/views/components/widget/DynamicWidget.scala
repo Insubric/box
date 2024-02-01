@@ -41,11 +41,11 @@ object DynamicWidget extends ComponentWidgetFactory {
       }
     }
 
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(widgetProperty){ w => div(w.render(false,Property(true),nested)).render})
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(widgetProperty){ w => div(w.render(false,nested)).render})
 
 
     override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(params.prop.transform(_.string)))
 
-    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(true,Property(true),nested)).render}
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(true,nested)).render}
   }
 }

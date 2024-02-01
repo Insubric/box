@@ -710,7 +710,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
                   _maxWidth.map(mw => maxWidth := mw),
-                  presenter.loadWidgets(f).render(model.get.write,Property(true),nested)
+                  presenter.loadWidgets(f).render(model.get.write,nested)
                 ).render
                 presenter.setForm(mainForm)
                 mainForm

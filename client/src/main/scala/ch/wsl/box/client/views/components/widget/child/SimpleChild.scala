@@ -30,7 +30,7 @@ object SimpleChildFactory extends ChildRendererFactory {
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
 
-    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
       metadata match {
         case None => p("child not found")
@@ -42,7 +42,7 @@ object SimpleChildFactory extends ChildRendererFactory {
                 val widget = getWidget(e.get)._1
                 div(ClientConf.style.subform,backgroundColor := bgColor,
                   div(display.flex,
-                    div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
+                    div(flexGrow := 1, widget.widget.render(write,nested)),
                     div( ClientConf.style.removeFlexChild,
                       removeButton(write,widget,f)
                     )

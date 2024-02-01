@@ -28,10 +28,37 @@ trait Widget extends Logging {
 
   // conversion from and to label
 
+
+  var loaded = false
+
+  /**
+   * Prepare the widget to be used, i.e. load data for lookups. It get executed only the first time
+   */
+  final def load():Unit = if(!loaded) {
+    loaded = true
+    loadWidget()
+  }
+
+  protected def loadWidget():Unit = ()
+
+  /**
+   * Used to provide the user the human-readable representation of the data, mainly used for lookups
+   * @param json data as stored in the database
+   * @param ex
+   * @return user readable data
+   */
   def toUserReadableData(json:Json)(implicit ex:ExecutionContext):Future[Json] = Future.successful(json)
 
-  def toLabel(json:Json):Future[String] = Future.successful(json.string)
+
+  /** check if the current property is valid */
   def valid()(implicit ec: ExecutionContext):Future[Boolean] = Future.successful(true)
+
+  /**
+   * Tasform the label in data
+   * @param str
+   * @param ec
+   * @return
+   */
   def fromLabel(str:String)(implicit ec:ExecutionContext):Future[Json] = Future.successful{ field.`type` match {
     case JSONFieldTypes.STRING => Json.fromString(str)
     case JSONFieldTypes.NUMBER => str.toDoubleOption.flatMap(Json.fromDouble) match {
@@ -94,13 +121,15 @@ trait Widget extends Logging {
   def json():ReadableProperty[Json] = text().transform(Json.fromString)
   def editOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
 
-  def render(write:Boolean,conditional:ReadableProperty[Boolean],nested:Binding.NestedInterceptor):Modifier = showIf(conditional) {
+  final def render(write:Boolean,nested:Binding.NestedInterceptor):Modifier = {
+    load()
     if(write && !field.readOnly) {
-      div(edit(nested)).render
+      edit(nested)
     } else {
-      div(show(nested)).render
+      show(nested)
     }
   }
+
 
   def beforeSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
 

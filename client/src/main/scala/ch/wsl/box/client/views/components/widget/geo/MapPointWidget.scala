@@ -132,7 +132,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
       div(
         div(
-          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, Property(true), nested)
+          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, nested)
         )
       ).render
     }

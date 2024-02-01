@@ -68,7 +68,9 @@ object Spreadsheet extends ChildRendererFactory {
         actions = widgetParam.actions,
         public = widgetParam.public
       )
-      widgetFactory.create(params)
+      val w = widgetFactory.create(params)
+      w.load()
+      w
     }
 
     var widgets:ListBuffer[ListBuffer[Widget]] = ListBuffer()
@@ -76,7 +78,7 @@ object Spreadsheet extends ChildRendererFactory {
 
 
 
-    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
+    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
       div(overflowX.auto,
         //<link rel="stylesheet" href="@{basePath}assets/flatpickr/dist/flatpickr.min.css">
         link(rel := "stylesheet", href := "/assets/jspreadsheet-ce/dist/jspreadsheet.css"),

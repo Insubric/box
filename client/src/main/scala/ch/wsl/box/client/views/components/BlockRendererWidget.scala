@@ -9,7 +9,7 @@ import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.css.CssStyleName
-import io.udash.{Property, ReadableProperty}
+import io.udash._
 import scalatags.JsDom
 import scalatags.JsDom.all.{div, h3, minHeight, s}
 
@@ -172,11 +172,17 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   override def field: JSONField = JSONField("fieldsRenderer","fieldsRenderer",false)
 
-  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderBlock(false,nested)
 
-  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(true,nested)
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderBlock(true,nested)
 
 
+  private def renderIfVisible(widget:WidgetVisibility,write:Boolean,nested:Binding.NestedInterceptor) = {
+    nested(showIf(widget.visibility) {
+      widget.widget.load()
+      div(widget.widget.render(write,nested)).render
+    })
+  }
 
   def fixedWidth(widths:Stream[Int],write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = {
 
@@ -187,7 +193,7 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
         div(CssStyleName(s"block-el-$i"),BootstrapCol.md(width), ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
-          widget.widget.render(write,widget.visibility,nested)
+          renderIfVisible(widget,write,nested)
         )
       }
     )
@@ -196,13 +202,13 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
   def distribute(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
     widgets.map { case widget =>
       div(ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
-        widget.widget.render(write,widget.visibility,nested)
+        renderIfVisible(widget,write,nested)
       )
     }
   )
 
 
-  private def render(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+  private def renderBlock(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     logger.info(s"blockname: $titleSub horizontal: $horizontal")
 

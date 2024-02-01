@@ -167,24 +167,28 @@ trait LookupWidget extends Widget with HasData {
     ))
   }
 
-  fieldLookup match {
-    case r:JSONFieldLookupRemote => {
-      import ch.wsl.box.client.Context.Implicits._
-      remoteLookup(r)
-    }
-    case JSONFieldLookupExtractor(extractor) => {
-      autoRelease(allData.listen({ all =>
-        logger.debug(s"Field ${field.name} extracting ${extractor.key} with ${extractor.map} from $all with data ${all.js(extractor.key)} and lookups ${extractor.map.get(all.js(extractor.key))}")
-        extractor.map.get(all.js(extractor.key)) match {
-          case Some(newLookup) => setNewLookup(newLookup)
-          case None => {
-            logger.warn(s"Extractor for ${field.name} on ${extractor.key} with data ${all.js(extractor.key)} failed")
-            setNewLookup(Seq())
+  override protected def loadWidget(): Unit = {
+    super.loadWidget()
+
+    fieldLookup match {
+      case r: JSONFieldLookupRemote => {
+        import ch.wsl.box.client.Context.Implicits._
+        remoteLookup(r)
+      }
+      case JSONFieldLookupExtractor(extractor) => {
+        autoRelease(allData.listen({ all =>
+          logger.debug(s"Field ${field.name} extracting ${extractor.key} with ${extractor.map} from $all with data ${all.js(extractor.key)} and lookups ${extractor.map.get(all.js(extractor.key))}")
+          extractor.map.get(all.js(extractor.key)) match {
+            case Some(newLookup) => setNewLookup(newLookup)
+            case None => {
+              logger.warn(s"Extractor for ${field.name} on ${extractor.key} with data ${all.js(extractor.key)} failed")
+              setNewLookup(Seq())
+            }
           }
-        }
-      },true))
+        }, true))
+      }
+      case JSONFieldLookupData(data) => setNewLookup(data)
     }
-    case JSONFieldLookupData(data) => setNewLookup(data)
   }
 
   private def extractUserData(data:Seq[JSONLookup])(json:Json) = data.find(_.id == json).map(x => Json.fromString(x.value)).getOrElse(Json.Null)

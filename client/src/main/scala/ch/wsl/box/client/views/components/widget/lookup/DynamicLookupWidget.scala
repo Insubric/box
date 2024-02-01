@@ -33,45 +33,53 @@ trait DynamicLookupWidget extends Widget {
 
   val remoteField:Property[Json] = Property(Json.Null)
 
-  params.allData.listen({js =>
-    val ids:Seq[(String,Json)] = lookupLabel.localIds.zip(lookupLabel.remoteIds).map{ case (localId,remoteId) =>
-      remoteId -> js.js(localId)
-    }
-    monitoredFields.set(ids)
-  },true)
+  override protected def loadWidget(): Unit = {
+    super.loadWidget()
+    params.allData.listen({ js =>
+      val ids: Seq[(String, Json)] = lookupLabel.localIds.zip(lookupLabel.remoteIds).map { case (localId, remoteId) =>
+        remoteId -> js.js(localId)
+      }
+      monitoredFields.set(ids)
+    }, true)
 
-  monitoredFields.listen({localFields =>
-    if(localFields.exists( x => x._2 != Json.Null)) {
-      services.rest.maybeGet(
-        EntityKind.ENTITY.kind,
-        services.clientSession.lang(),
-        lookupLabel.remoteEntity,
-        JSONID.fromMap(localFields),
-        params.public
-      ).map{
-        case Some(remote) => {
-          val remoteValue = lookupLabel.remoteField.split(",").toList match {
-            case singleField :: Nil => remote.js(singleField)
-            case Nil => Json.Null
-            case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
+
+    monitoredFields.listen({ localFields =>
+      if (localFields.exists(x => x._2 != Json.Null)) {
+        services.rest.maybeGet(
+          EntityKind.ENTITY.kind,
+          services.clientSession.lang(),
+          lookupLabel.remoteEntity,
+          JSONID.fromMap(localFields),
+          params.public
+        ).map {
+          case Some(remote) => {
+            val remoteValue = lookupLabel.remoteField.split(",").toList match {
+              case singleField :: Nil => remote.js(singleField)
+              case Nil => Json.Null
+              case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
+            }
+
+            remoteField.set(remoteValue)
           }
-
-          remoteField.set(remoteValue)
+          case None => remoteField.set(Json.Null)
+        }.recover { case t: Exception =>
+          t.printStackTrace()
+          remoteField.set(Json.Null)
         }
-        case None => remoteField.set(Json.Null)
-      }.recover{ case t:Exception =>
-        t.printStackTrace()
+      } else {
         remoteField.set(Json.Null)
       }
-    } else {
-      remoteField.set(Json.Null)
-    }
-  },true)
+    }, true)
+  }
 
 
-  def widget() = WidgetRegistry
-    .forName(lookupLabel.widget)
-    .create(params.copy(prop = remoteField))
+  def widget() = {
+    val w = WidgetRegistry
+      .forName(lookupLabel.widget)
+      .create(params.copy(prop = remoteField))
+    w.load()
+    w
+  }
 
 
 }

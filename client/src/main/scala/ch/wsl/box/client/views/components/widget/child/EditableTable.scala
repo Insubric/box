@@ -209,7 +209,10 @@ object EditableTable extends ChildRendererFactory {
         actions = widgetParam.actions,
         public = widgetParam.public
       )
-      (params,widgetFactory.create(params))
+
+      val w = widgetFactory.create(params)
+      w.load()
+      (params,w)
     }
 
     var widgets:ListBuffer[ListBuffer[Widget]] = ListBuffer()
@@ -366,7 +369,7 @@ object EditableTable extends ChildRendererFactory {
 
 
 
-    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
+    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
       div(
         tableStyleElement,
         renderTable(write,nested)
