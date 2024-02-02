@@ -29,47 +29,50 @@ trait DynamicLookupWidget extends Widget {
     }
   }
 
-  val monitoredFields:Property[Seq[(String,Json)]] = Property(Seq())
-
   val remoteField:Property[Json] = Property(Json.Null)
 
   override protected def loadWidget(): Unit = {
+    println(s"AAAAAAAAAAA loadWidget ${params.metadata.name} ${field.name}")
     super.loadWidget()
+
+    var lookupId:Option[String] = None
+
     params.allData.listen({ js =>
       val ids: Seq[(String, Json)] = lookupLabel.localIds.zip(lookupLabel.remoteIds).map { case (localId, remoteId) =>
         remoteId -> js.js(localId)
       }
-      monitoredFields.set(ids)
-    }, true)
+      val newId = JSONID.fromMap(ids)
+      if(!lookupId.contains(newId.asString)) { // do only if relevant values have changed
+        if(newId.valid) {
+          lookupId = Some(newId.asString)
+          println(s"Listening: $newId ${params.metadata.name} ${field.name}")
 
+          services.rest.maybeGet(
+            EntityKind.ENTITY.kind,
+            services.clientSession.lang(),
+            lookupLabel.remoteEntity,
+            newId,
+            params.public
+          ).map {
+            case Some(remote) => {
+              val remoteValue = lookupLabel.remoteField.split(",").toList match {
+                case singleField :: Nil => remote.js(singleField)
+                case Nil => Json.Null
+                case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
+              }
 
-    monitoredFields.listen({ localFields =>
-      if (localFields.exists(x => x._2 != Json.Null)) {
-        services.rest.maybeGet(
-          EntityKind.ENTITY.kind,
-          services.clientSession.lang(),
-          lookupLabel.remoteEntity,
-          JSONID.fromMap(localFields),
-          params.public
-        ).map {
-          case Some(remote) => {
-            val remoteValue = lookupLabel.remoteField.split(",").toList match {
-              case singleField :: Nil => remote.js(singleField)
-              case Nil => Json.Null
-              case fields => Json.fromString(fields.flatMap(x => remote.getOpt(x)).filterNot(_.isEmpty).mkString(" - "))
+              remoteField.set(remoteValue)
             }
-
-            remoteField.set(remoteValue)
+            case None => remoteField.set(Json.Null)
+          }.recover { case t: Exception =>
+            t.printStackTrace()
+            remoteField.set(Json.Null)
           }
-          case None => remoteField.set(Json.Null)
-        }.recover { case t: Exception =>
-          t.printStackTrace()
-          remoteField.set(Json.Null)
-        }
-      } else {
-        remoteField.set(Json.Null)
+        } else remoteField.set(Json.Null)
       }
     }, true)
+
+
   }
 
 

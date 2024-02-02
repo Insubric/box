@@ -268,10 +268,16 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       result <- {
         val promise = Promise[Json]()
         reset()
-        model.subProp(_.data).set(resultSaved)
-        model.subProp(_.originalData).set(resultSaved)
+
+        model.set(model.get.copy(
+          data = resultSaved,
+          originalData = resultSaved,
+          id = Some(id.asString)
+        ))
+
         resetChanges()
-        model.subProp(_.id).set(Some(id.asString), true)
+
+
         enableGoAway("reload")
         widget.afterRender().foreach{ _ =>
           services.clientSession.loading.set(false)
