@@ -7,10 +7,11 @@ import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID, LookupLabel}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.properties.single.{Property, ReadableProperty}
+import scribe.{Logger, Logging}
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 
-trait DynamicLookupWidget extends Widget {
+trait DynamicLookupWidget extends Widget with Logging {
 
   def params: WidgetParams
 
@@ -32,7 +33,7 @@ trait DynamicLookupWidget extends Widget {
   val remoteField:Property[Json] = Property(Json.Null)
 
   override protected def loadWidget(): Unit = {
-    println(s"AAAAAAAAAAA loadWidget ${params.metadata.name} ${field.name}")
+    logger.debug(s"loadWidget ${params.metadata.name} ${field.name}")
     super.loadWidget()
 
     var lookupId:Option[String] = None
@@ -45,7 +46,7 @@ trait DynamicLookupWidget extends Widget {
       if(!lookupId.contains(newId.asString)) { // do only if relevant values have changed
         if(newId.valid) {
           lookupId = Some(newId.asString)
-          println(s"Listening: $newId ${params.metadata.name} ${field.name}")
+          logger.debug(s"Listening: $newId ${params.metadata.name} ${field.name}")
 
           services.rest.maybeGet(
             EntityKind.ENTITY.kind,
