@@ -201,6 +201,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     float.none,
     WidgetUtils.toNullable(field.nullable),
     onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
+    onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
     mod
   )
   private def yInput(mod:Modifier*) = NumberInput(y)(
@@ -209,6 +210,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     float.none,
     WidgetUtils.toNullable(field.nullable),
     onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
+    onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
     mod
   )
 

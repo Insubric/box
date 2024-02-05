@@ -22,7 +22,7 @@ import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.ModalEvent
 import io.udash.bootstrap.utils.BootstrapStyles.Size
 import io.udash.bootstrap.utils.UdashIcons
-import org.scalajs.dom.{Event, HTMLInputElement, HTMLTextAreaElement, Node, document}
+import org.scalajs.dom.{Event, HTMLInputElement, HTMLTextAreaElement, KeyboardEvent, Node, document}
 import scribe.Logging
 
 import java.util.UUID
@@ -276,10 +276,12 @@ object InputWidget extends Logging {
         case _ => Seq[Modifier](ClientConf.style.simpleInput)
       }
 
+
+
       val mod:Seq[Modifier] = inputStyle ++ WidgetUtils.toNullable(field.nullable) ++ ph
       field.`type` match {
-        case JSONFieldTypes.NUMBER => nested(NumberInput(stringModel)((mod ++ Seq(step := "any")):_*)).render
-        case JSONFieldTypes.INTEGER => nested(NumberInput(stringModel)(mod:_*)).render
+        case JSONFieldTypes.NUMBER => nested(NumberInput(stringModel)((mod ++ Seq(step := "any", onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler)):_*)).render
+        case JSONFieldTypes.INTEGER => nested(NumberInput(stringModel)((mod ++ Seq(step := "1", onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler):_*))).render
         case _ => nested(TextInput(stringModel)(mod:_*)).render
       }
     }

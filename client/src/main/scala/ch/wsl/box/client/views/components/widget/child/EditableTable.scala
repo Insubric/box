@@ -376,35 +376,40 @@ object EditableTable extends ChildRendererFactory {
       )
     }
 
-    def handleEnter(e:Event) = {
-      e match {
-        case ke:KeyboardEvent if ke.key == "Enter" => {
+    def handleKeys(e:Event) = {
 
-          val column = document.activeElement.closest("td") match {
-            case element: dom.HTMLElement => element.dataset.lift("column").flatMap(_.toIntOption)
-            case _ => None
+
+      def column = document.activeElement.closest("td") match {
+        case element: dom.HTMLElement => element.dataset.lift("column").flatMap(_.toIntOption)
+        case _ => None
+      }
+
+      def row = document.activeElement.closest("tr") match {
+        case element: dom.HTMLElement => element.dataset.lift("row").flatMap(_.toIntOption)
+        case _ => None
+      }
+
+      def select(offsetRow:Int,offsetCol:Int) = {
+        for{
+          c <- column
+          r <- row
+        } yield {
+          Seq("select","input").foreach { tagname =>
+            document
+              .querySelector(s"tr[data-row='${r + offsetRow}'] > td[data-column='${c + offsetCol}']")
+              .getElementsByTagName(tagname).headOption.foreach { case e: dom.HTMLElement => e.focus() }
           }
-          val row = document.activeElement.closest("tr") match {
-            case element: dom.HTMLElement => element.dataset.lift("row").flatMap(_.toIntOption)
-            case _ => None
-          }
-
-          for{
-            c <- column
-            r <- row
-          } yield {
-            Seq("select","input").foreach { tagname =>
-              document
-                .querySelector(s"tr[data-row='${r + 1}'] > td[data-column='$c']")
-                .getElementsByTagName(tagname).headOption.foreach { case e: dom.HTMLElement => e.focus() }
-            }
-
-          }
-
-
 
         }
-        case _ => ()
+        e.stopImmediatePropagation()
+        e.preventDefault()
+        false
+      }
+
+      e match {
+        case ke:KeyboardEvent if ke.key == "Enter" || ke.key == "ArrowDown" => select(1,0)
+        case ke:KeyboardEvent if ke.key == "ArrowUp" => select(-1,0)
+        case _ => true
       }
     }
 
@@ -424,7 +429,7 @@ object EditableTable extends ChildRendererFactory {
               val colWidth = (width := _colWidth(additionalColumns))
 
                 div(tableStyle.tableContainer,
-                table(onkeyup :+= handleEnter,tableStyle.table,
+                table(onkeyup :+= handleKeys,tableStyle.table,
                   thead(
                     for (field <- f) yield {
                       val name = colHeader(field)
