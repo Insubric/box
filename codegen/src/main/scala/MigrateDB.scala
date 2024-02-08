@@ -23,7 +23,7 @@ object MigrateDB {
       .defaultSchema(schema)
       .table("flyway_schema_history_box")
       .locations("box_migrations", "classpath:box_migrations")
-      .ignoreMissingMigrations(true)
+      .ignoreMigrationPatterns("*:missing")
       .dataSource(connection.dataSource("BOX Migration", schema))
       .load()
 
@@ -103,7 +103,7 @@ object MigrateDB {
       .defaultSchema(connection.dbSchema)
       .table("flyway_schema_history")
       .locations("migrations","classpath:migrations")
-      .ignoreMissingMigrations(true)
+      .ignoreMigrationPatterns("*:missing","*:future")
       .dataSource(connection.dataSource("App migration",connection.dbSchema))
       .load()
 

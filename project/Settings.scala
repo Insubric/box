@@ -58,6 +58,7 @@ object Settings {
     val postgres = "42.2.20"
     val slick = "3.4.1"
     val slickPg = "0.21.0"
+    val flyway = "10.7.1"
 
     //frontend
     val scalaCss = "1.0.0"
@@ -69,6 +70,7 @@ object Settings {
     val udashJQuery = "3.0.4"
 
     val scribe = "3.0.2"
+
 
     val scalaJsonSchema = "0.2.6"
 
@@ -103,7 +105,8 @@ object Settings {
     "com.github.tminglei"      %% "slick-pg_circe-json"     % versions.slickPg,
     "org.locationtech.jts" % "jts-core" % "1.16.1",
     "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion,
-    "org.flywaydb" % "flyway-core" % "7.9.1",
+    "org.flywaydb" % "flyway-core" % versions.flyway,
+    "org.flywaydb" % "flyway-database-postgresql" % versions.flyway,
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j18"           % versions.scribe,
   ))
