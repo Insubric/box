@@ -14,8 +14,8 @@ import org.scalajs.dom.html.Div
 import org.scalajs.dom.{Element, Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
-import typings.std.EventListener
-import typings.toolcoolRangeSlider.mod.RangeSlider
+import ch.wsl.typings.std.EventListener
+import ch.wsl.typings.toolcoolRangeSlider.mod.RangeSlider
 
 
 object SliderWidget extends ComponentWidgetFactory {

@@ -16,7 +16,7 @@ import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
 import org.scalajs.dom.html.Div
-import typings.monacoEditor.mod.editor.{IStandaloneCodeEditor, IStandaloneEditorConstructionOptions}
+import ch.wsl.typings.monacoEditor.mod.editor.{IStandaloneCodeEditor, IStandaloneEditorConstructionOptions}
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -56,7 +56,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
       logger.info(language)
 
 
-      editor = Some(typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
+      editor = Some(ch.wsl.typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
         .setLanguage(language)
       ))
 

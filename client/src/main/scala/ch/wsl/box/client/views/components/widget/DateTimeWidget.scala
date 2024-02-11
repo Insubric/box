@@ -22,10 +22,10 @@ import org.scalajs.dom.{Event, KeyboardEvent}
 import scalacss.internal.StyleA
 import scalatags.JsDom
 import scribe.Logging
-import typings.flatpickr.anon.kinkeyCustomLocaledefault
-import typings.flatpickr.distTypesLocaleMod.{CustomLocale, Locale}
-import typings.flatpickr.distTypesOptionsMod.Hook
-import typings.flatpickr.mod.flatpickr.Options.DateOption
+import ch.wsl.typings.flatpickr.anon.kinkeyCustomLocaledefault
+import ch.wsl.typings.flatpickr.distTypesLocaleMod.{CustomLocale, Locale}
+import ch.wsl.typings.flatpickr.distTypesOptionsMod.Hook
+import ch.wsl.typings.flatpickr.mod.flatpickr.Options.DateOption
 
 import java.util
 import scala.scalajs.js
@@ -62,10 +62,10 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
   private val locale: CustomLocale = {
     val l = Context.services.clientSession.lang() match {
-      case "it" => typings.flatpickr.distL10nItMod.default.it.get
-      case "fr" => typings.flatpickr.distL10nFrMod.default.fr.get
-      case "de" => typings.flatpickr.distL10nDeMod.default.de.get
-      case _ => typings.flatpickr.distL10nMod.default.default
+      case "it" => ch.wsl.typings.flatpickr.distL10nItMod.default.it.get
+      case "fr" => ch.wsl.typings.flatpickr.distL10nFrMod.default.fr.get
+      case "de" => ch.wsl.typings.flatpickr.distL10nDeMod.default.de.get
+      case _ => ch.wsl.typings.flatpickr.distL10nMod.default.default
     }
     l.setFirstDayOfWeek(1)
     l.setRangeSeparator(" → ")
@@ -173,7 +173,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    var flatpicker:typings.flatpickr.mod.flatpickr.Instance = null
+    var flatpicker:ch.wsl.typings.flatpickr.mod.flatpickr.Instance = null
 
     def handleDate(d:Json,force:Boolean = false): Unit = {
       if(range) {
@@ -226,7 +226,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    def setListener(immediate: Boolean, flatpicker:typings.flatpickr.distTypesInstanceMod.Instance) = {
+    def setListener(immediate: Boolean, flatpicker:ch.wsl.typings.flatpickr.distTypesInstanceMod.Instance) = {
       changeListener = data.listen({ d =>
         logger.info(s"Changed model to $d")
         handleDate(d)
@@ -235,11 +235,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    //scala.scalajs.js.Function4[scala.scalajs.js.Array[typings.flatpickr.globalsMod.global.Date],String,typings.flatpickr.instanceMod.Instance,Any | Unit,Unit]
+    //scala.scalajs.js.Function4[scala.scalajs.js.Array[ch.wsl.typings.flatpickr.globalsMod.global.Date],String,ch.wsl.typings.flatpickr.instanceMod.Instance,Any | Unit,Unit]
     val onChange:Hook = (
-                          selectedDates:js.Array[typings.flatpickr.distTypesGlobalsMod.global.Date],
+                          selectedDates:js.Array[ch.wsl.typings.flatpickr.distTypesGlobalsMod.global.Date],
                           dateStr:String,
-                          instance: typings.flatpickr.distTypesInstanceMod.Instance,
+                          instance: ch.wsl.typings.flatpickr.distTypesInstanceMod.Instance,
                           _data:js.UndefOr[Any]) => {
       changeListener.cancel()
       logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance ${_data}")
@@ -255,14 +255,14 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    val options = typings.flatpickr.distTypesOptionsMod.Options()
+    val options = ch.wsl.typings.flatpickr.distTypesOptionsMod.Options()
       .setAllowInput(true)
       .setDisableMobile(true)
       .setLocale(locale)
       .setOnChange(onChange)
 
     if(range) {
-      options.setMode(typings.flatpickr.flatpickrStrings.range)
+      options.setMode(ch.wsl.typings.flatpickr.flatpickrStrings.range)
     }
 
     fieldType match {
@@ -271,7 +271,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       case FieldTypes.Time => options.setEnableTime(true).setTime_24hr(true).setNoCalendar(true).setDateFormat("H:i")
     }
 
-    flatpicker = typings.flatpickr.mod.default(picker,options)
+    flatpicker = ch.wsl.typings.flatpickr.mod.default(picker,options)
 
     setListener(true,flatpicker)
 

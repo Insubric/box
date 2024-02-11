@@ -14,7 +14,7 @@ import scalacss.ScalatagsCss._
 import io.circe.generic.auto._
 import org.scalajs.dom.raw.MutationObserver
 import scribe.Logging
-import typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
+import ch.wsl.typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
 
 import scala.util.Try
 
@@ -156,7 +156,7 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
   val observer = new MutationObserver({(mutations,observer) =>
     if(document.contains(mapOptionsContainer)) {
       observer.disconnect()
-      val mapEditor = typings.monacoEditor.mod.editor.create(mapOptionsContainer, IStandaloneEditorConstructionOptions()
+      val mapEditor = ch.wsl.typings.monacoEditor.mod.editor.create(mapOptionsContainer, IStandaloneEditorConstructionOptions()
         .setLanguage("json")
         .setValue(viewModel.get.entries.find(_.key == "map.options").map(_.value).getOrElse(""))
 

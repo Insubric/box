@@ -14,7 +14,7 @@ import io.udash.properties.single.Property
 import org.scalablytyped.runtime.StringDictionary
 import scalatags.JsDom
 import scribe.Logging
-import typings.quill.mod.{DeltaStatic, Quill, QuillOptionsStatic, Sources}
+import ch.wsl.typings.quill.mod.{DeltaStatic, Quill, QuillOptionsStatic, Sources}
 
 import scala.collection.mutable
 import scala.scalajs.js
@@ -80,11 +80,11 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
 
 
 
-      val editor = new typings.quill.mod.default(container,options)
+      val editor = new ch.wsl.typings.quill.mod.default(container,options)
 
       editor.root.innerHTML = data.get.string
 
-      editor.on_textchange(typings.quill.quillStrings.`text-change`,
+      editor.on_textchange(ch.wsl.typings.quill.quillStrings.`text-change`,
         (delta:DeltaStatic,oldContent:DeltaStatic,source:Sources) => data.set(editor.root.innerHTML.asJson)
       )
 

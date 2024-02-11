@@ -14,7 +14,7 @@ import scalacss.ScalatagsCss._
 import io.circe.generic.auto._
 import org.scalajs.dom.raw.MutationObserver
 import scribe.Logging
-import typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
+import ch.wsl.typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
 
 import scala.util.Try
 
@@ -191,7 +191,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
         val observer = new MutationObserver({(mutations,observer) =>
           if(document.contains(container)) {
             observer.disconnect()
-            val editor = typings.monacoEditor.mod.editor.create(container, IStandaloneEditorConstructionOptions()
+            val editor = ch.wsl.typings.monacoEditor.mod.editor.create(container, IStandaloneEditorConstructionOptions()
               .setLanguage(language)
               .setValue(prop.get)
 

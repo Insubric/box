@@ -15,11 +15,11 @@ import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom.MutationObserver
 import scalatags.JsDom.{StringFrag, _}
 import scalatags.JsDom.all._
-import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mod, olStrings, sourceMod, sourceVectorMod, viewMod}
+import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mod, olStrings, sourceMod, sourceVectorMod, viewMod}
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
-import typings.ol.mapMod.MapOptions
-import typings.ol.viewMod.FitOptions
+import ch.wsl.typings.ol.mapMod.MapOptions
+import ch.wsl.typings.ol.viewMod.FitOptions
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -31,6 +31,7 @@ import scala.util.Try
 class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   val editable = metadata.db.exists(_.editable)
 
@@ -227,7 +228,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   def addFeaturesToLayer(db: DbVector, geoms:GeoData) = {
     sourceOf(db).map{s =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
-      s.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
+      s.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
     }
 
   }
@@ -264,7 +265,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
     val features = geoms.map(MapUtils.boxFeatureToOlFeature)
 
-    vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
+    vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
 
     val layer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)

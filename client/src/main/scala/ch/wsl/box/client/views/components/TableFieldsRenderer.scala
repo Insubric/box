@@ -33,7 +33,7 @@ object TableFieldsRenderer extends Logging{
 
   def renderLongText(string: String):Modifier = {
     val length = ClientConf.tableMaxTextLength
-    val noHTML = typings.striptags.mod.apply(string)
+    val noHTML = ch.wsl.typings.striptags.mod.apply(string)
     if(noHTML.length <= length) {
       p(noHTML)
     } else {

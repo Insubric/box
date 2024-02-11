@@ -20,7 +20,7 @@ import scalacss.ProdDefaults.{cssEnv, cssStringRenderer}
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logger
-import typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, geomMultiPointMod, interactionDrawMod, projMod}
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, geomMultiPointMod, interactionDrawMod, projMod}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt

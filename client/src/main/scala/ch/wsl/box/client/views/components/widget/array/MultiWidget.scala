@@ -17,8 +17,8 @@ import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
-import typings.std.EventListener
-import typings.toolcoolRangeSlider.mod.RangeSlider
+import ch.wsl.typings.std.EventListener
+import ch.wsl.typings.toolcoolRangeSlider.mod.RangeSlider
 
 
 object MultiWidget extends ComponentWidgetFactory {

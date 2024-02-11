@@ -14,8 +14,8 @@ import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
-import typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance}
-import typings.std
+import ch.wsl.typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance}
+import ch.wsl.typings.std
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -107,7 +107,7 @@ object Spreadsheet extends ChildRendererFactory {
 
     def loadTable(_div:Div,metadata: JSONMetadata) = {
 
-      import typings.jspreadsheetCe._
+      import ch.wsl.typings.jspreadsheetCe._
 
       val tableFields = fields(metadata)
 
@@ -297,7 +297,7 @@ object Spreadsheet extends ChildRendererFactory {
 
 
 
-        val jspreadsheet = typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
+        val jspreadsheet = ch.wsl.typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
 
         val table = jspreadsheet(_div,JSpreadsheetOptions()
           .setColumns(columns.toJSArray)

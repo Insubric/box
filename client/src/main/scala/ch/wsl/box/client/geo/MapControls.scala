@@ -25,9 +25,9 @@ import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom.{Event, HTMLDivElement, Node, document, window}
 import scalatags.JsDom.all._
 import scribe.Logging
-import typings.ol.interactionSelectMod.SelectEvent
-import typings.ol.mod.{MapBrowserEvent, Overlay}
-import typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod, sourceVectorEventTypeMod}
+import ch.wsl.typings.ol.interactionSelectMod.SelectEvent
+import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
+import ch.wsl.typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod, sourceVectorEventTypeMod}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -98,7 +98,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
   protected val insertCoordinateField = Property("")
   protected val insertCoordinateHandler = ((e: Event) => {
     MapUtils.parseCoordinates(projections,insertCoordinateField.get).foreach { p =>
-      val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p)).asInstanceOf[typings.ol.renderFeatureMod.default]
+      val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p)).asInstanceOf[ch.wsl.typings.ol.renderFeatureMod.default]
       sourceMap(_.addFeature(feature))
     }
     e.preventDefault()
@@ -155,7 +155,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
         }
 
         toInsert.foreach { f =>
-          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[typings.ol.renderFeatureMod.default]
+          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[ch.wsl.typings.ol.renderFeatureMod.default]
           sourceMap(_.addFeature(geom))
         }
 
@@ -428,9 +428,9 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vs))
 
     def lsFixTypes = ls.asInstanceOf[
-      typings.ol.layerLayerMod.default[
-        typings.ol.sourceSourceMod.default,
-        typings.ol.layerLayerMod.default[Any, /* ol.ol/layer/Layer.default<any> */ Any]
+      ch.wsl.typings.ol.layerLayerMod.default[
+        ch.wsl.typings.ol.sourceSourceMod.default,
+        ch.wsl.typings.ol.layerLayerMod.default[Any, /* ol.ol/layer/Layer.default<any> */ Any]
       ]
     ]
 

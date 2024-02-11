@@ -5,15 +5,15 @@ import ch.wsl.box.client.geo.BoxMapProjections.toExtent
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.geo.{Box2d, MapProjection}
 import scribe.Logging
-import typings.ol.anon.FnCall
-import typings.ol.extentMod.Extent
-import typings.ol.{layerBaseTileMod, layerMod, projMod, projProj4Mod, projProjectionMod, sourceMod}
+import ch.wsl.typings.ol.anon.FnCall
+import ch.wsl.typings.ol.extentMod.Extent
+import ch.wsl.typings.ol.{layerBaseTileMod, layerMod, projMod, projProj4Mod, projProjectionMod, sourceMod}
 
 import scala.scalajs.js
 
 class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:String,bbox:Box2d) extends Logging {
 
-  private val proj4 = typings.proj4.mod.^.asInstanceOf[js.Dynamic].default
+  private val proj4 = ch.wsl.typings.proj4.mod.^.asInstanceOf[js.Dynamic].default
 
 
   proj4.defs(

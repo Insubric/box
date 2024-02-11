@@ -10,7 +10,7 @@ import io.circe.syntax._
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
 import scribe.Level
-import typings.std.HTMLButtonElement
+import ch.wsl.typings.std.HTMLButtonElement
 
 import java.util.UUID
 import scala.concurrent.Future

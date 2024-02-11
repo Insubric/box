@@ -13,18 +13,23 @@ import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import io.udash.{Property, ReadableProperty}
 import org.scalajs.dom
-import org.scalajs.dom.{Event, MutationObserver, window}
-import typings.ol.mapMod.MapOptions
-import typings.ol.mod.MapBrowserEvent
-import typings.ol.objectMod.ObjectEvent
-import typings.ol.viewMod.FitOptions
-import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
+import org.scalajs.dom.{Event, HTMLInputElement, MutationObserver, window}
+import ch.wsl.typings.ol._
+import ch.wsl.typings.ol.geomMod.Point
+import ch.wsl.typings.ol.mapMod.MapOptions
+import ch.wsl.typings.ol.mod.MapBrowserEvent
+import ch.wsl.typings.ol.objectMod.ObjectEvent
+import ch.wsl.typings.ol.viewMod.FitOptions
+import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
+import ch.wsl.typings.std.PositionOptions
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.scalajs.js.|
+import scalatags.JsDom.all._
+import io.udash._
 
-class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
+class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
@@ -45,10 +50,70 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
   )
 
+
   val map = new mod.Map(MapOptions()
-    .setTarget(div)
+    .setTarget(_div)
     .setView(view)
   )
+
+  val positionOptions = PositionOptions().setEnableHighAccuracy(true)
+
+  val geolocation = new mod.Geolocation(
+    geolocationMod.Options()
+      .setProjection(view.getProjection())
+      .setTrackingOptions(positionOptions.asInstanceOf[org.scalajs.dom.PositionOptions])
+  )
+
+  val accuracyFeature = new mod.Feature[geomMod.Geometry]()
+  val positionFeature = new mod.Feature[Point]()
+
+  val gpsVectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
+  gpsVectorSource.addFeature(accuracyFeature.asInstanceOf[renderFeatureMod.default])
+  gpsVectorSource.addFeature(positionFeature.asInstanceOf[renderFeatureMod.default])
+  val gpsFeaturesLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+    .setSource(gpsVectorSource)
+  )
+
+  val circle = new styleMod.Circle()
+  val circleFill = new styleMod.Fill()
+  circleFill.setColor("#3399CC")
+  val circleStroke = new styleMod.Stroke()
+  circleStroke.setColor("#fff")
+  circleStroke.setWidth(2)
+  circle.setRadius(6)
+  circle.setFill(circleFill)
+  circle.setStroke(circleStroke)
+  val circleStyle = new styleMod.Style()
+  circleStyle.setImage(circle.asInstanceOf[imageMod.default])
+  positionFeature.setStyle(circleStyle)
+
+  geolocation.asInstanceOf[js.Dynamic].on("change:position", {() =>
+    accuracyFeature.setGeometry(geolocation.getAccuracyGeometry().asInstanceOf[geomMod.Geometry])
+  })
+
+  geolocation.asInstanceOf[js.Dynamic].on("change:accuracyGeometry", {() =>
+    geolocation.getPosition().foreach{ coords =>
+      positionFeature.setGeometry(new Point(coords))
+    }
+  })
+
+  val gpsControl = new controlMod.Control(controlControlMod.Options().setElement(div(`class` := "ol-control", style := "top: 10px; right:10px; padding: 1px 6px", input(
+    `type`:="checkbox",
+    onchange :+= {(e:Event) =>
+      if(e.target.asInstanceOf[HTMLInputElement].checked) {
+        geolocation.setTracking(true)
+        map.addLayer(gpsFeaturesLayer)
+      } else {
+        geolocation.setTracking(false)
+        map.removeLayer(gpsFeaturesLayer)
+      }
+
+
+    }
+  ).render ,"GPS").render))
+
+
+  map.addControl(gpsControl)
 
   override val mapActions: MapActions = new MapActions(map,options.crs)
 
@@ -66,6 +131,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
       .setStyle(MapStyle.vectorStyle())
     )
     map.addLayer(featuresLayer)
+
 
 
     val extentChange = Debounce(250.millis)((_: Unit) => {

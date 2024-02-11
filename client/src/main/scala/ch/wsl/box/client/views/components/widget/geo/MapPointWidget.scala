@@ -28,7 +28,7 @@ import scalacss.ScalatagsCss._
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logging
-import typings.ol.projMod
+import ch.wsl.typings.ol.projMod
 
 import java.util.UUID
 import scala.scalajs.js

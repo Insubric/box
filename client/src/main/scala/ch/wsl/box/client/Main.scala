@@ -66,8 +66,8 @@ object Main extends Logging {
         println(s"Setting logger level to ${ClientConf.loggerLevel}")
 
         //loads datetime picker
-        typings.bootstrap.bootstrapRequire
-        typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
+        ch.wsl.typings.bootstrap.bootstrapRequire
+        ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
 
 
 

@@ -9,8 +9,8 @@ import io.udash.bootstrap.utils.BootstrapStyles
 import io.udash._
 import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
-import typings.ol.renderFeatureMod
-import typings.ol.viewMod.FitOptions
+import ch.wsl.typings.ol.renderFeatureMod
+import ch.wsl.typings.ol.viewMod.FitOptions
 
 import scala.concurrent.ExecutionContext
 

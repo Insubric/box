@@ -19,7 +19,7 @@ import org.scalajs.dom.{BlobPropertyBag, Event, File, FileReader}
 import org.scalajs.dom.raw.Blob
 import scalacss.ScalatagsCss._
 import scribe.Logging
-import typings.fileSaver.mod.FileSaverOptions
+import ch.wsl.typings.fileSaver.mod.FileSaverOptions
 
 import scala.scalajs.js
 import scala.util.Try

@@ -24,9 +24,9 @@ import org.scalajs.dom.raw.{Blob, HTMLAnchorElement, HTMLElement, HTMLInputEleme
 import scalacss.internal.mutable.StyleSheet
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
-import typings.jspdf.mod.jsPDF
-import typings.jspdfAutotable.anon.PartialStyles
-import typings.jspdfAutotable.mod.{CellInput, RowInput, UserOptions}
+import ch.wsl.typings.jspdf.mod.jsPDF
+import ch.wsl.typings.jspdfAutotable.anon.PartialStyles
+import ch.wsl.typings.jspdfAutotable.mod.{CellInput, RowInput, UserOptions}
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
@@ -238,11 +238,11 @@ object EditableTable extends ChildRendererFactory {
       import js.JSConverters._
 
       val (title,header,rows) = currentTable(metadata)
-      val doc = new jsPDF(typings.jspdf.jspdfStrings.landscape)
+      val doc = new jsPDF(ch.wsl.typings.jspdf.jspdfStrings.landscape)
 
       val data = rows.map(_.map(_.string).toJSArray).toJSArray.asInstanceOf[js.Array[RowInput]]
 
-      typings.jspdfAutotable.mod.default(doc,UserOptions()
+      ch.wsl.typings.jspdfAutotable.mod.default(doc,UserOptions()
         .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
         .setBody(data)
         .setMargin(10)
@@ -263,7 +263,7 @@ object EditableTable extends ChildRendererFactory {
       import js.JSConverters._
 
       val (tit, header, rows) = currentTable(metadata)
-      val workbook = typings.xlsxJsStyle.mod.utils.book_new()
+      val workbook = ch.wsl.typings.xlsxJsStyle.mod.utils.book_new()
       val head =  Seq(header.map{ h =>
         io.circe.scalajs.convertJsonToJs(Map(
           "v" -> Json.fromString(h),
@@ -275,9 +275,9 @@ object EditableTable extends ChildRendererFactory {
         ).asJson)
       }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
       val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      val worksheet = typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
-      typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
-      typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
+      val worksheet = ch.wsl.typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
+      ch.wsl.typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
+      ch.wsl.typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
 
     }
 

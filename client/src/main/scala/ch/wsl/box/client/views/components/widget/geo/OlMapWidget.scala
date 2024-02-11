@@ -27,26 +27,26 @@ import org.scalajs.dom.html.Div
 import scalacss.internal.mutable.StyleSheet
 import scalatags.JsDom
 import scribe.Logging
-import typings.ol._
-import typings.ol.coordinateMod.{Coordinate, createStringXY}
-import typings.ol.interactionSelectMod.SelectEvent
-import typings.ol.sourceVectorMod.VectorSourceEvent
-import typings.ol.viewMod.FitOptions
+import ch.wsl.typings.ol._
+import ch.wsl.typings.ol.coordinateMod.{Coordinate, createStringXY}
+import ch.wsl.typings.ol.interactionSelectMod.SelectEvent
+import ch.wsl.typings.ol.sourceVectorMod.VectorSourceEvent
+import ch.wsl.typings.ol.viewMod.FitOptions
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.scalajs.js
 import scala.util.Try
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
-import typings.ol.formatMod.WKT
-import typings.ol.mod.{MapBrowserEvent, Overlay}
-import typings.ol.olStrings.singleclick
+import ch.wsl.typings.ol.formatMod.WKT
+import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
+import ch.wsl.typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
 import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
-import typings.ol.mapMod.MapOptions
-import typings.ol.objectMod.ObjectEvent
+import ch.wsl.typings.ol.mapMod.MapOptions
+import ch.wsl.typings.ol.objectMod.ObjectEvent
 
 import scala.scalajs.js.{URIUtils, |}
 
@@ -232,7 +232,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
   override def toUserReadableData(json: Json)(implicit ex:ExecutionContext): Future[Json] = Future.successful {
-    data.get.as[GeoJson.Geometry].toOption.map(x => Json.fromString(geomToString(x))).getOrElse(Json.Null)
+    data.get.as[GeoJson.Geometry].toOption.map(g => MapUtils.geomToString(g,options.precision,options.formatters)).map(x => Json.fromString(x)).getOrElse(Json.Null)
   }
 
 

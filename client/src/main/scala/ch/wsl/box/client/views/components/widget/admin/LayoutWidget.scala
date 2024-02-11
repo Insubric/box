@@ -22,9 +22,9 @@ import scalacss.ScalatagsCss._
 import io.udash.css._
 import org.scalajs.dom.{Event, HTMLDivElement, MutationObserver, MutationObserverInit, document}
 import scribe.Logging
-import typings.gridstack.mod._
-import typings.gridstack.distTypesMod._
-import typings.gridstack.gridstackStrings
+import ch.wsl.typings.gridstack.mod._
+import ch.wsl.typings.gridstack.distTypesMod._
+import ch.wsl.typings.gridstack.gridstackStrings
 
 import scala.scalajs.js
 import js.JSConverters._

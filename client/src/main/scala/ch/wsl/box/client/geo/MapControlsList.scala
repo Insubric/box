@@ -9,7 +9,7 @@ import io.udash.bindings.modifiers.Binding
 import io.udash._
 import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
-import typings.ol.projMod
+import ch.wsl.typings.ol.projMod
 
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js

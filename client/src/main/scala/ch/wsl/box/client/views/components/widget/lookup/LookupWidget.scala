@@ -97,7 +97,7 @@ trait LookupWidget extends Widget with HasData {
     dataSyncRegistration.foreach(_.cancel())
     logger.debug(s"Fetching remote lookup $q")
 
-    val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
+    val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
 
 

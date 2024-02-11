@@ -10,8 +10,8 @@ import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import scalatags.JsDom.all.s
 import scribe.Logging
-import typings.ol.mapBrowserEventMod.MapBrowserEvent
-import typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, sourceMod, sourceVectorMod}
+import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, sourceMod, sourceVectorMod}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -91,7 +91,7 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
     services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, query).foreach { geoms =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
 
-      vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[typings.ol.renderFeatureMod.default]])
+      vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
 
 
       map.getLayers().insertAt(1, featuresLayer)

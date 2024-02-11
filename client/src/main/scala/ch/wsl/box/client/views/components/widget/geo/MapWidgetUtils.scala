@@ -10,7 +10,7 @@ import io.circe.syntax._
 import io.circe.generic.auto._
 import scalatags.JsDom.all._
 import scribe.Logging
-import typings.ol.{layerBaseTileMod, layerMod, projProj4Mod, projProjectionMod, sourceMod}
+import ch.wsl.typings.ol.{layerBaseTileMod, layerMod, projProj4Mod, projProjectionMod, sourceMod}
 
 import scala.scalajs.js
 

@@ -185,6 +185,7 @@ lazy val client: Project = (project in file("client"))
     stIgnore += "@fortawesome/fontawesome-free",
     stIgnore += "stream-browserify",
     stTypescriptVersion := "4.2.4",
+    stOutputPackage := "ch.wsl.typings",
     // Use library mode for fastOptJS
     fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "dev.config.js"),
@@ -233,7 +234,7 @@ lazy val client: Project = (project in file("client"))
   .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
-    ScalablyTypedConverterPlugin,
+    ScalablyTypedConverterGenSourcePlugin,
     LocalesPlugin
   )
   .dependsOn(sharedJS)

@@ -33,8 +33,8 @@ import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
 import scalatags.generic
 import scribe.Logging
-import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.anon.PartialOptions
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -594,7 +594,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           .setRemoveItemButton(true)
           .setShouldSort(false)
           .setItemSelectText("")
-        val choicesJs = new typings.choicesJs.mod.default(el, options)
+        val choicesJs = new ch.wsl.typings.choicesJs.mod.default(el, options)
         el.addEventListener("change", (e: Event) => {
           (choicesJs.getValue(true): Any) match {
             case list: js.Array[String] => println(list)
@@ -607,7 +607,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           l.find(_.fieldName == field.get.name).foreach{ fl =>
             choicesJs.clearChoices()
             val c = choises(fl)
-            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
             if(filterValue.get.nonEmpty) {
               choicesJs.setChoiceByValue(filterValue.get)
             }

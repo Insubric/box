@@ -11,9 +11,9 @@ import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom
 import scalatags.JsDom.all.s
 import scribe.Logging
-import typings.ol.coordinateMod.Coordinate
-import typings.ol.mapBrowserEventMod.MapBrowserEvent
-import typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
+import ch.wsl.typings.ol.coordinateMod.Coordinate
+import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
 
 import java.util.UUID
 import scala.concurrent.Promise
@@ -115,9 +115,9 @@ object MapUtils extends Logging {
     GeoJson.Feature(GeoJson.Point(Coordinates(c(0), c(1)), crs))
   }
 
-  def getFeatures(map: mod.Map,e: MapBrowserEvent[_]): js.Array[typings.ol.featureMod.default[typings.ol.geomGeometryMod.default]] = {
+  def getFeatures(map: mod.Map,e: MapBrowserEvent[_]): js.Array[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default]] = {
     map.getFeaturesAtPixel(e.pixel).flatMap {
-      case x: typings.ol.featureMod.default[typings.ol.geomGeometryMod.default] => Some(x)
+      case x: ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default] => Some(x)
       case _ => None
     }
   }
@@ -141,7 +141,7 @@ object MapUtils extends Logging {
       case Some(value) => value.geomToString(_precision, services.clientSession.lang())(g)
       case None => {
         val center = Try {
-          val jtsGeom = new typings.jsts.mod.io.WKTReader().read(g.toString(_precision))
+          val jtsGeom = new ch.wsl.typings.jsts.mod.io.WKTReader().read(g.toString(_precision))
           val centroid = jtsGeom.getCentroid()
           s" (centroid: ${GeoJson.approx(_precision, centroid.getX())},${GeoJson.approx(_precision, centroid.getY())})"
         }.getOrElse("")

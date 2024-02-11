@@ -16,9 +16,9 @@ import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
-import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
-import typings.choicesJs.mod
+import ch.wsl.typings.choicesJs.anon.PartialOptions
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.mod
 
 import scala.scalajs.js
 import js.JSConverters._
