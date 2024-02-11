@@ -14,6 +14,7 @@ import typings.ol.mapBrowserEventMod.MapBrowserEvent
 import typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, sourceMod, sourceVectorMod}
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.scalajs.js.Any.jsArrayOps
@@ -78,7 +79,7 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
     }
 
   }
-  def addLookupsLayer(data:Json)(layer:MapLookup):Unit = {
+  def addLookupsLayer(data:Json)(layer:MapLookup)(implicit ex:ExecutionContext):Unit = {
 
     val (vectorSource,featuresLayer)  = createAndGetSource(layer)
 

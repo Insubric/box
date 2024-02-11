@@ -47,9 +47,6 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
     }
   },true)
 
-  override def toLabel(json: Json): Modifier = {
-    span(Shorten(json.string))
-  }
 
   def _afterRender(): Unit = {
     logger.info("Editor after render")

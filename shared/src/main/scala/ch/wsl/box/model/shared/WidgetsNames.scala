@@ -38,6 +38,7 @@ object WidgetsNames {
   val trasparentChild = "trasparentChild"
   val tableChild = "tableChild"
   val editableTable = "editableTable"
+  val spreadsheet = "spreadsheet"
   val h1 = "title_h1"
   val h2 = "title_h2"
   val h3 = "title_h3"
@@ -104,7 +105,8 @@ object WidgetsNames {
       lookupForm,
       trasparentChild,
       dynamicWidget,
-      popupWidget
+      popupWidget,
+      spreadsheet
     ),
     FILE -> Seq(
       simpleFile,
@@ -198,7 +200,8 @@ object WidgetsNames {
     editableTable,
     trasparentChild,
     dynamicWidget,
-    popupWidget
+    popupWidget,
+    spreadsheet
   )
 
 }

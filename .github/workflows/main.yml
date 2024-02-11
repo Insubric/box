@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # define Java options for both official sbt and sbt-extras
-      JAVA_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8 -XX:+CMSClassUnloadingEnabled
-      JVM_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8 -XX:+CMSClassUnloadingEnabled
+      JAVA_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
+      JVM_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
       NODE_OPTIONS: --max-old-space-size=2048
       SBT_NATIVE_CLIENT: true
       DEV_SERVER: true
@@ -40,9 +40,9 @@ jobs:
         with:
           domain: Insubric
       - name: Setup Scala
-        uses: olafurpg/setup-scala@v10
+        uses: coursier/setup-action@v1
         with:
-          java-version: "adopt@1.8"
+            jvm: adoptium:1.17
       - name: Run tests server
         run: |
           export PATH=./node_modules/.bin:$PATH
@@ -50,7 +50,7 @@ jobs:
           sbt server/clean
           sbt client/clean
           sbt server/slickTest
-          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m server/test
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-Xss10m server/test
       - name: Push server result to testspace
         run: testspace server/target/test-reports/*.xml
         if: ${{ needs.pre_job.outputs.should_skip != 'true' }}

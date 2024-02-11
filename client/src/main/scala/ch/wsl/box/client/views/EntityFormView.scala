@@ -63,6 +63,7 @@ object EntityFormViewPresenter extends ViewFactory[FormState] {
 case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Presenter[FormState] with Logging {
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: FormState): Unit = {
 
@@ -267,10 +268,16 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       result <- {
         val promise = Promise[Json]()
         reset()
-        model.subProp(_.data).set(resultSaved)
-        model.subProp(_.originalData).set(resultSaved)
+
+        model.set(model.get.copy(
+          data = resultSaved,
+          originalData = resultSaved,
+          id = Some(id.asString)
+        ))
+
         resetChanges()
-        model.subProp(_.id).set(Some(id.asString), true)
+
+
         enableGoAway("reload")
         widget.afterRender().foreach{ _ =>
           services.clientSession.loading.set(false)
@@ -716,7 +723,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
                   _maxWidth.map(mw => maxWidth := mw),
-                  presenter.loadWidgets(f).render(model.get.write,Property(true),nested)
+                  presenter.loadWidgets(f).render(model.get.write,nested)
                 ).render
                 presenter.setForm(mainForm)
                 mainForm

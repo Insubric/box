@@ -75,7 +75,7 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = jsonAction.distinctOn(field, query)
+  override def distinctOn(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = jsonAction.distinctOn(fields, query)
 
   override def findSimple(query:JSONQuery): DBIO[Seq[Json]] = {
 
@@ -152,6 +152,7 @@ case class FormActions(metadata:JSONMetadata,
     DBIO.sequence(lookupFields.map{ lf =>
       val localFields = lf.remoteLookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
       val foreignFields = lf.remoteLookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
+
 
       val data: Seq[Seq[String]] = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose.map(_.distinct)
       val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}

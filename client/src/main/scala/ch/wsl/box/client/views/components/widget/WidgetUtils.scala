@@ -10,7 +10,7 @@ import io.udash.bootstrap.tooltip.UdashTooltip
 import io.udash.{Property, ReadableProperty, produce}
 import io.udash.properties.single.Property
 import org.scalajs.dom
-import org.scalajs.dom.Element
+import org.scalajs.dom.{Element, Event, KeyboardEvent}
 import scalatags.JsDom.all.{Modifier, label}
 import scribe.{Logger, Logging}
 
@@ -90,6 +90,18 @@ object WidgetUtils extends Logging{
     sl.flatMap(_.as[I18n].toOption) match {
       case Some(value) => value.lang(services.clientSession.lang())
       case None => sl.flatMap(_.asString)
+    }
+  }
+
+  def stopEnterUpDownEventHandler(e:Event) = {
+    e match {
+      case ke:KeyboardEvent if  ke.key == "Enter" ||
+        ke.key == "ArrowDown" ||
+        ke.key == "ArrowUp" => {
+        println("Should block")
+        e.preventDefault()
+      }
+      case _ => ()
     }
   }
 

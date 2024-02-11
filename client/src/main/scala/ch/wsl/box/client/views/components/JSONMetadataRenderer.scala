@@ -34,6 +34,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
   import io.circe._
 
   import scalacss.ScalatagsCss._
@@ -147,9 +148,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   override def afterRender() = Future.sequence(blocks.map(_.widget.afterRender())).map(_.forall(x => x))
 
-  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(false,nested)
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderJsonMetadata(false,nested)
 
-  override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = render(true,nested)
+  override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderJsonMetadata(true,nested)
 
   import io.udash._
 
@@ -158,7 +159,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     def ofTab(block:LayoutBlock,widget:Widget) = WidgetBlock(block.copy(width = 12), widget)
   }
 
-  private def render(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+  private def renderJsonMetadata(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     def renderBlocks(b:Seq[WidgetBlock]) = b.map{ case WidgetBlock(block,widget) =>
       div(BootstrapCol.md(block.width), ClientConf.style.block)(
@@ -166,7 +167,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
           if(block.title.exists(_.nonEmpty)) {
             h3(block.title.map { title => Labels(title) })
           } else frag(), //renders title in blocks
-          widget.render(write, Property(true),nested)
+          widget.render(write, nested)
         )
       )
     }

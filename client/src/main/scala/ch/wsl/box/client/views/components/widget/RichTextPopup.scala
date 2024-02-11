@@ -71,7 +71,7 @@ object RichTextPopup extends ComponentWidgetFactory  {
 
       val body = (x:NestedInterceptor) => div(
         div(
-          widget.render(write,Property(true),x)
+          widget.render(write,x)
         )
       ).render
 

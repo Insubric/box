@@ -8,7 +8,7 @@ import io.udash.properties.HasModelPropertyCreator
 import org.scalajs.dom.Event
 import scribe.Logging
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Created by andre on 5/24/2017.
@@ -95,7 +95,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
     }
 
 
-    private def fetchIds(query:JSONQuery,head:Boolean) = {
+    private def fetchIds(query:JSONQuery,head:Boolean)(implicit ex:ExecutionContext) = {
       services.rest.ids(metadata.kind,session.lang(),metadata.name,query).map { ids =>
         session.setQueryFor(metadata.kind,metadata.name,session.getURLQuery(),query)
         session.setIDs(ids)
@@ -115,7 +115,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
 
     def hasPreviousPage(): Boolean = navigation().map(_.hasPreviousPage).getOrElse(false)
 
-    def next(): Future[Option[String]] = navigation.map{nav =>
+    def next()(implicit ex:ExecutionContext): Future[Option[String]] = navigation.map{nav =>
       logger.info(s"Next record - current record: ${nav.currentIndex}")
       (hasNext(), Navigation.indexInPage(nav,nav.currentIndex)) match {
         case (false, _) => Future.successful(None)
@@ -123,21 +123,21 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
         case (true, i) => Future.successful(nav.pageIDs.lift(i + 1 - 1))
       }}.getOrElse(Future.successful(None))
 
-    def previous(): Future[Option[String]] = navigation.map(nav =>
+    def previous()(implicit ex:ExecutionContext): Future[Option[String]] = navigation.map(nav =>
       (hasPrevious(), Navigation.indexInPage(nav,nav.currentIndex)) match {
         case (false, _) => Future.successful(None)
         case (true, 1) => prevPage(false)
         case (true, i) => Future.successful(nav.pageIDs.lift(i  -1 - 1))
       }).getOrElse(Future.successful(None))
 
-    def first(): Future[Option[String]] = navigation.map(nav =>
+    def first()(implicit ex:ExecutionContext): Future[Option[String]] = navigation.map(nav =>
       (hasPrevious(), hasPreviousPage()) match {
         case (false, _) => Future.successful(None)
         case (true, true) => firstPage()
         case (true, false) => Future.successful(session.getIDs().get.ids.lift(1 - 1))
       }).getOrElse(Future.successful(None))
 
-    def last(): Future[Option[String]] = navigation.map(nav =>
+    def last()(implicit ex:ExecutionContext): Future[Option[String]] = navigation.map(nav =>
       (hasNext(), hasNextPage()) match {
         case (false, _) => Future.successful(None)
         case (true, true) => {
@@ -148,7 +148,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
       }).getOrElse(Future.successful(None))
 
 
-    def firstPage(): Future[Option[String]] =
+    def firstPage()(implicit ex:ExecutionContext): Future[Option[String]] =
       if (!hasPreviousPage()) {
         Future.successful(None)
       } else {
@@ -156,7 +156,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
         fetchIds(newQuery,true)
       }
 
-    def lastPage(): Future[Option[String]] =
+    def lastPage()(implicit ex:ExecutionContext): Future[Option[String]] =
       if (!hasNextPage()) {
         Future.successful(None)
       } else {
@@ -164,7 +164,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
         fetchIds(newQuery,true)
       }
 
-    def prevPage(head:Boolean = true): Future[Option[String]] =
+    def prevPage(head:Boolean = true)(implicit ex:ExecutionContext): Future[Option[String]] =
       if (!hasPreviousPage()) {
         Future.successful(None)
       } else {
@@ -172,7 +172,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
         fetchIds(newQuery,head)
       }
 
-    def nextPage(): Future[Option[String]] =
+    def nextPage()(implicit ex:ExecutionContext): Future[Option[String]] =
       if (!hasNextPage()) {
         Future.successful(None)
       } else {

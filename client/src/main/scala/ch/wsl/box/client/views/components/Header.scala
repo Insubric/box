@@ -24,6 +24,7 @@ case class MenuLink(name:String, state:RoutingState)
 object Header {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   private def links(logged:Boolean):Seq[MenuLink] = if(logged) {
      Seq(MenuLink(Labels.header.home, IndexState)) ++ {

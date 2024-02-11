@@ -43,7 +43,7 @@ object TableChildFactory extends ChildRendererFactory {
 
 
 
-    override protected def render(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
+    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
 
       metadata match {
         case None => p("child not found")
@@ -86,6 +86,7 @@ object TableChildFactory extends ChildRendererFactory {
                         nested(produce(widget.data) { data => fields.map{x =>
                           val tableWidget = x.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(x.`type`))
                             .create(WidgetParams.simple(Property(data.js(x.name)),widget.data,x,f,widgetParam.public,widgetParam.actions))
+                          tableWidget.load()
                           td(ClientConf.style.childTableTd, tableWidget.showOnTable(nested))
 
                         }.render }),
@@ -95,7 +96,7 @@ object TableChildFactory extends ChildRendererFactory {
                           if (!o) frag().render else
                             td(ClientConf.style.childFormTableTd, colspan := fields.length + 1,
                               div(display.flex,
-                                div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),
+                                div(flexGrow := 1, widget.widget.render(write,nested)),
                                 div( ClientConf.style.removeFlexChild,
                                   removeButton(write,widget,f),
                                   if(sortable)

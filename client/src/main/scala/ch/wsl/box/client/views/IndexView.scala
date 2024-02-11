@@ -29,6 +29,7 @@ object IndexViewPresenter extends ViewFactory[IndexState.type ]{
 class IndexPresenter(viewModel:ModelProperty[IndexViewModel]) extends Presenter[IndexState.type ] {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
 
   override def handleState(state: IndexState.type ): Unit = {

@@ -42,6 +42,7 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   private val child: Element = div().render
 

@@ -11,7 +11,7 @@ import org.scalajs.dom.document
 import org.scalajs.dom.raw.{Event, HTMLElement, HTMLInputElement}
 import scribe.Level
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class InsertMultilevelChildTest extends TestBase {
 
@@ -21,7 +21,7 @@ class InsertMultilevelChildTest extends TestBase {
   //override def loggerLevel: Level = Level.Debug
 
   class ExpectingMock extends RestMock(values) {
-    override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[Json] = {
+    override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean)(implicit ex:ExecutionContext): Future[Json] = {
 
       logger.info(data.toString())
 

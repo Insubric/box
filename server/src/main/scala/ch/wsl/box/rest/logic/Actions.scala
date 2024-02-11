@@ -20,7 +20,7 @@ trait ViewActions[T] {
 
   def fetchFields(fields:Seq[String],query:JSONQuery):DBIO[Seq[Json]]
 
-  def distinctOn(field:String,query:JSONQuery): DBIO[Seq[Json]]
+  def distinctOn(fields: Seq[String],query:JSONQuery): DBIO[Seq[Json]]
 
   def getById(id: JSONID=JSONID.empty):DBIO[Option[T]]
 

@@ -51,6 +51,11 @@ case class JSONField(
     case _ => None
   }
 
+  def dependsTo(field:JSONField):Boolean =
+    query.toSeq.flatMap(_.filter).exists(_.fieldValue.contains(field.name)) ||
+    condition.exists(_.conditionFieldId == field.name)
+  def dependencyFields(fields: Seq[JSONField]):Seq[JSONField] = fields.filter(_.dependsTo(this))
+
 }
 
 object JSONField{

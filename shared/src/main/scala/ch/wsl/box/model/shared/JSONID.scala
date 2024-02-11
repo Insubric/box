@@ -25,6 +25,8 @@ case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
 
   def toFields:Map[String,Json] = id.map(v => v.key -> v.value).toMap
 
+  def valid:Boolean = id.forall(_.value != Json.Null)
+
 }
 
 object JSONID {

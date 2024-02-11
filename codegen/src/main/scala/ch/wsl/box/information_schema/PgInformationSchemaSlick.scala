@@ -74,6 +74,8 @@ class PgColumns(tag: Tag) extends Table[PgColumn](tag,  Some("information_schema
 
 case class PgConstraint(
   table_name:String,
+  table_schema:String,
+  constraint_schema:String,
   constraint_name:String,
   constraint_type:String
 )
@@ -81,11 +83,13 @@ case class PgConstraint(
 class PgConstraints(tag: Tag) extends Table[PgConstraint](tag,  Some("information_schema"), "table_constraints") {
 
   def table_name = column[String]("table_name")
+  def table_schema = column[String]("table_schema")
+  def constraint_schema = column[String]("constraint_schema")
   def constraint_name = column[String]("constraint_name")
   def constraint_type = column[String]("constraint_type")
 
     
-  def * = (table_name, constraint_name, constraint_type) <> (PgConstraint.tupled, PgConstraint.unapply)
+  def * = (table_name, table_schema, constraint_schema, constraint_name, constraint_type) <> (PgConstraint.tupled, PgConstraint.unapply)
 }
 
 case class PgTrigger(
@@ -113,21 +117,24 @@ class PgTriggers(tag: Tag) extends Table[PgTrigger](tag,  Some("information_sche
 }
 
 case class PgConstraintReference(
+  constraint_schema:String,
   constraint_name:String,
   referencing_constraint_name:String
 )
 
 class PgConstraintReferences(tag: Tag) extends Table[PgConstraintReference](tag,  Some("information_schema"), "referential_constraints") {
 
+  def constraint_schema = column[String]("constraint_schema")
   def constraint_name = column[String]("constraint_name")
   def referencing_constraint_name = column[String]("unique_constraint_name")
 
     
-  def * = (constraint_name, referencing_constraint_name) <> (PgConstraintReference.tupled, PgConstraintReference.unapply)
+  def * = (constraint_schema,constraint_name, referencing_constraint_name) <> (PgConstraintReference.tupled, PgConstraintReference.unapply)
 }
 
 case class PgConstraintUsage(
   constraint_name:String,
+  table_schema:String,
   table_name:String,
   column_name:String
 )
@@ -135,27 +142,32 @@ case class PgConstraintUsage(
 class PgConstraintUsages(tag: Tag) extends Table[PgConstraintUsage](tag,  Some("information_schema"), "constraint_column_usage") {
 
   def constraint_name = column[String]("constraint_name")
+  def table_schema = column[String]("table_schema")
   def table_name = column[String]("table_name")
   def column_name = column[String]("column_name")
 
     
-  def * = (constraint_name, table_name, column_name) <> (PgConstraintUsage.tupled, PgConstraintUsage.unapply)
+  def * = (constraint_name, table_schema, table_name, column_name) <> (PgConstraintUsage.tupled, PgConstraintUsage.unapply)
 }
 
 case class PgKeyUsage(
+  constraint_schema:String,
   constraint_name:String,
+  table_schema:String,
   table_name:String,
   column_name:String
 )
 
 class PgKeyUsages(tag: Tag) extends Table[PgKeyUsage](tag,  Some("information_schema"), "key_column_usage") {
 
+  def constraint_schema = column[String]("constraint_schema")
   def constraint_name = column[String]("constraint_name")
+  def table_schema = column[String]("table_schema")
   def table_name = column[String]("table_name")
   def column_name = column[String]("column_name")
 
     
-  def * = (constraint_name, table_name, column_name) <> (PgKeyUsage.tupled, PgKeyUsage.unapply)
+  def * = (constraint_schema, constraint_name, table_schema, table_name, column_name) <> (PgKeyUsage.tupled, PgKeyUsage.unapply)
 }
 
 

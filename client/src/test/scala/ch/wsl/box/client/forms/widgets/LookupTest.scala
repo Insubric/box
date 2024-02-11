@@ -13,6 +13,7 @@ class LookupTest extends TestBase {
 
   val factory = WidgetRegistry.forName(WidgetsNames.select)
 
+
   val field = JSONField.lookup("test_lookup",Seq(Json.fromString("a"),Json.fromString("b")))
 
   class RTValues extends Values(loggerLevel){
@@ -39,7 +40,7 @@ class LookupTest extends TestBase {
   )
 
   "Lookup widget" should "be unitary" in {
-    val el = div(factory.create(params).render(true,Property(true),NestedInterceptor.Identity)).render
+    val el = div(factory.create(params).render(true,NestedInterceptor.Identity)).render
     el.innerHTML.contains("select") shouldBe true
   }
 

@@ -23,13 +23,14 @@ import io.udash.bootstrap.utils.BootstrapStyles.Size
 import io.udash.css.CssView._
 import io.udash.properties.single.Property
 import org.scalajs.dom
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, HTMLInputElement, document, window}
 import scalacss.ScalatagsCss._
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logging
 import typings.ol.projMod
 
+import java.util.UUID
 import scala.scalajs.js
 
 
@@ -39,6 +40,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
   import ch.wsl.box.model.shared.GeoJson.Geometry._
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   val options: MapParams = MapWidgetUtils.options(field)
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
@@ -68,31 +70,56 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
   autoRelease(data.sync(geometry)(js => js.as[Geometry].toOption,point => point.asJson))
 
+  val xId = s"x-field-${UUID.randomUUID()}"
+  val yId = s"y-field-${UUID.randomUUID()}"
+
+  def xHtmlElement = document.getElementById(xId).asInstanceOf[HTMLInputElement]
+  def yHtmlElement = document.getElementById(yId).asInstanceOf[HTMLInputElement]
+
+  def checkValidity(x:String,y:String):Unit = {
+    (x.toDoubleOption,y.toDoubleOption) match {
+      case (Some(x),None) => { //show Y error
+        xHtmlElement.setCustomValidity("")
+        yHtmlElement.setCustomValidity("Y not valid")
+      }
+      case (None,Some(y)) => { // show X error
+        xHtmlElement.setCustomValidity("X not valid")
+        yHtmlElement.setCustomValidity("")
+      }
+      case _ => {
+        xHtmlElement.setCustomValidity("")
+        yHtmlElement.setCustomValidity("")
+      } // all good
+    }
+    window.setTimeout(() => { // wait for the focus to be correctly set
+      if(document.activeElement.id != xId) // only check if is not the current field
+        xHtmlElement.checkValidity()
+      if(document.activeElement.id != yId)
+        yHtmlElement.checkValidity()
+    },0)
+  }
+
   autoRelease(geometry.sync(x)(
     {
       case Some(Point(coordinates,crs)) => coordinates.x.toString
-      case _ => ""
+      case _ => x.get
     },
     { txt =>
-      txt.toDoubleOption.map{ x =>
-        geometry.get match {
-          case Some(Point(coordinates,crs)) => Point(Coordinates(x,coordinates.y),options.crs)
-          case _ => Point(Coordinates(x,0),options.crs)
-        }
+      (txt.toDoubleOption,y.get.toDoubleOption) match {
+        case (Some(x),Some(y)) => Some(Point(Coordinates(x,y),options.crs))
+        case _ => None
       }
     }
   ))
   autoRelease(geometry.sync(y)(
     {
       case Some(Point(coordinates,crs)) => coordinates.y.toString
-      case _ => ""
+      case _ => y.get
     },
     { txt =>
-      txt.toDoubleOption.map{ y =>
-        geometry.get match {
-          case Some(Point(coordinates,crs)) => Point(Coordinates(coordinates.x,y),options.crs)
-          case _ => Point(Coordinates(0,y),options.crs)
-        }
+      (txt.toDoubleOption,x.get.toDoubleOption) match {
+        case (Some(y),Some(x)) => Some(Point(Coordinates(x,y),options.crs))
+        case _ => None
       }
     }
   ))
@@ -131,7 +158,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
       div(
         div(
-          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, Property(true), nested)
+          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, nested)
         )
       ).render
     }
@@ -168,8 +195,24 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
   }
 
-  private def xInput(mod:Modifier*) = NumberInput(x)(step := 0.00000000001, float.none, WidgetUtils.toNullable(field.nullable),mod)
-  private def yInput(mod:Modifier*) = NumberInput(y)(step := 0.00000000001, float.none, WidgetUtils.toNullable(field.nullable),mod)
+  private def xInput(mod:Modifier*) = NumberInput(x)(
+    id := xId,
+    step := 0.00000000001,
+    float.none,
+    WidgetUtils.toNullable(field.nullable),
+    onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
+    onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
+    mod
+  )
+  private def yInput(mod:Modifier*) = NumberInput(y)(
+    id := yId,
+    step := 0.00000000001,
+    float.none,
+    WidgetUtils.toNullable(field.nullable),
+    onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
+    onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
+    mod
+  )
 
   private def gpsButton(mod:Modifier*) = WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(a(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px)(
     onclick :+= { (e: Event) =>

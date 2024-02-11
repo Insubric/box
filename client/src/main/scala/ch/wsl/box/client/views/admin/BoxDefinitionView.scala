@@ -48,6 +48,7 @@ object BoxDefinitionViewPresenter extends ViewFactory[AdminBoxDefinitionState.ty
 class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) extends Presenter[AdminBoxDefinitionState.type] with Logging {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: AdminBoxDefinitionState.type): Unit = {
     for{

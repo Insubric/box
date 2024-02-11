@@ -73,9 +73,6 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
 
-  override def toLabel(json: Json): Modifier = {
-    span(Shorten(json.string))
-  }
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(raw(p.string)).render

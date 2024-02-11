@@ -10,29 +10,29 @@ import io.circe.syntax._
 import org.scalajs.dom.File
 import scribe.Logging
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class RestMock(values:Values) extends REST with Logging {
-  override def version(): Future[String] = Future.successful("version")
+  override def version()(implicit ec:ExecutionContext): Future[String] = Future.successful("version")
 
-  override def appVersion(): Future[String] = Future.successful("appVersion")
+  override def appVersion()(implicit ec:ExecutionContext): Future[String] = Future.successful("appVersion")
 
-  override def validSession(): Future[Boolean] = Future.successful{
+  override def validSession()(implicit ec:ExecutionContext): Future[Boolean] = Future.successful{
     true
   }
 
 
-  override def me(): Future[CurrentUser] = values.loggedUser match {
+  override def me()(implicit ec:ExecutionContext): Future[CurrentUser] = values.loggedUser match {
     case Some(value) => Future.successful(CurrentUser(value,Seq()))
     case None => Future.failed(new Exception("Not logged in"))
   }
 
-  override def cacheReset(): Future[String] = {
+  override def cacheReset()(implicit ec:ExecutionContext): Future[String] = {
     println("cacheReset not implemented")
     ???
   }
 
-  override def entities(kind: String): Future[Seq[String]] = {
+  override def entities(kind: String)(implicit ec:ExecutionContext): Future[Seq[String]] = {
     kind match {
       case "form" => Future.successful(values.formEntities)
       case _ => {
@@ -42,107 +42,107 @@ class RestMock(values:Values) extends REST with Logging {
     }
   }
 
-  override def specificKind(kind: String, lang: String, entity: String): Future[String] = {
+  override def specificKind(kind: String, lang: String, entity: String)(implicit ec:ExecutionContext): Future[String] = {
     println("specificKind not implemented")
     ???
   }
 
-  override def list(kind: String, lang: String, entity: String, limit: Int): Future[Seq[Json]] = {
+  override def list(kind: String, lang: String, entity: String, limit: Int)(implicit ec:ExecutionContext): Future[Seq[Json]] = {
     println("list1 not implemented")
     ???
   }
 
-  override def list(kind: String, lang: String, entity: String, query: JSONQuery): Future[Seq[Json]] = {
+  override def list(kind: String, lang: String, entity: String, query: JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Json]] = {
     println("list2 not implemented")
     ???
   }
 
 
-  override def geoData(kind:String, lang:String, entity:String, field:String, query:JSONQuery): Future[GeoTypes.GeoData] = ???
+  override def geoData(kind:String, lang:String, entity:String, field:String, query:JSONQuery)(implicit ec:ExecutionContext): Future[GeoTypes.GeoData] = ???
 
-  override def csv(kind: String, lang: String, entity: String, q: JSONQuery): Future[Seq[Seq[String]]] = {
+  override def csv(kind: String, lang: String, entity: String, q: JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
     println("csv not implemented")
     ???
   }
 
-  override def count(kind: String, lang: String, entity: String): Future[Int] = {
+  override def count(kind: String, lang: String, entity: String)(implicit ec:ExecutionContext): Future[Int] = {
     println("count not implemented")
     ???
   }
 
-  override def keys(kind: String, lang: String, entity: String): Future[Seq[String]] = {
+  override def keys(kind: String, lang: String, entity: String)(implicit ec:ExecutionContext): Future[Seq[String]] = {
     println("keys not implemented")
     ???
   }
 
-  override def ids(kind: String, lang: String, entity: String, q: JSONQuery): Future[IDs] = {
+  override def ids(kind: String, lang: String, entity: String, q: JSONQuery)(implicit ec:ExecutionContext): Future[IDs] = {
     println("ids not implemented")
     ???
   }
 
-  override def metadata(kind: String, lang: String, entity: String, public:Boolean): Future[JSONMetadata] = Future.successful{
+  override def metadata(kind: String, lang: String, entity: String, public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata] = Future.successful{
     values.metadata
   }
 
-  override def tabularMetadata(kind: String, lang: String, entity: String): Future[JSONMetadata] = {
+  override def tabularMetadata(kind: String, lang: String, entity: String)(implicit ec:ExecutionContext): Future[JSONMetadata] = {
     println("tabularMetadata not implemented")
     ???
   }
 
-  override def children(kind: String, entity: String, lang: String, public:Boolean): Future[Seq[JSONMetadata]] = Future.successful{
+  override def children(kind: String, entity: String, lang: String, public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONMetadata]] = Future.successful{
     values.children(entity)
   }
 
-  override def lookup(kind:String, lang:String,entity:String,  field:String, query: JSONQuery,public:Boolean): Future[Seq[JSONLookup]] = {
+  override def lookup(kind:String, lang:String,entity:String,  field:String, query: JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONLookup]] = {
     println("lookup not implemented")
     ???
   }
 
 
-  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest): Future[Seq[JSONLookups]] = ???
+  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]] = ???
 
-  override def get(kind: String, lang: String, entity: String, id: JSONID, public:Boolean): Future[Json] = Future.successful{
+  override def get(kind: String, lang: String, entity: String, id: JSONID, public:Boolean)(implicit ec:ExecutionContext): Future[Json] = Future.successful{
     values.get(id)
   }
 
 
-  override def maybeGet(kind: String, lang: String, entity: String, id: JSONID, public: Boolean): Future[Option[Json]] = Future.successful {
+  override def maybeGet(kind: String, lang: String, entity: String, id: JSONID, public: Boolean)(implicit ec:ExecutionContext): Future[Option[Json]] = Future.successful {
     Some(values.get(id))
   }
 
-  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean): Future[Json] = {
+  override def update(kind: String, lang: String, entity: String, id: JSONID, data: Json, public:Boolean)(implicit ec:ExecutionContext): Future[Json] = {
     Future.successful(values.update(id,data))
   }
 
-  override def updateMany(kind: String, lang: String, entity: String, ids: Seq[JSONID], data: Seq[Json]): Future[Seq[Json]] = ???
+  override def updateMany(kind: String, lang: String, entity: String, ids: Seq[JSONID], data: Seq[Json])(implicit ec:ExecutionContext): Future[Seq[Json]] = ???
 
-  override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean): Future[Json] = Future.successful{
+  override def insert(kind: String, lang: String, entity: String, data: Json, public:Boolean)(implicit ec:ExecutionContext): Future[Json] = Future.successful{
     values.insert(data)
   }
 
-  override def delete(kind: String, lang: String, entity: String, id: JSONID): Future[JSONCount] = {
+  override def delete(kind: String, lang: String, entity: String, id: JSONID)(implicit ec:ExecutionContext): Future[JSONCount] = {
     println("delete not implemented")
     ???
   }
 
 
-  override def deleteMany(kind: String, lang: String, entity: String, ids: Seq[JSONID]): Future[JSONCount] = ???
+  override def deleteMany(kind: String, lang: String, entity: String, ids: Seq[JSONID])(implicit ec:ExecutionContext): Future[JSONCount] = ???
 
-  override def sendFile(file: File, id: JSONID, entity: String): Future[Int] = {
+  override def sendFile(file: File, id: JSONID, entity: String)(implicit ec:ExecutionContext): Future[Int] = {
     println("sendFile not implemented")
     ???
   }
 
-  override def login(request: LoginRequest): Future[Json] = Future.successful{
+  override def login(request: LoginRequest)(implicit ec:ExecutionContext): Future[Json] = Future.successful{
     Json.True
   }
 
-  override def logout(): Future[String] = {
+  override def logout()(implicit ec:ExecutionContext): Future[String] = {
     println("logout not implemented")
     ???
   }
 
-  override def labels(lang: String): Future[Map[String, String]] = {
+  override def labels(lang: String)(implicit ec:ExecutionContext): Future[Map[String, String]] = {
     Future.successful(lang match {
       case "en" => Map(
         SharedLabels.header.lang -> values.headerLangEn
@@ -153,64 +153,64 @@ class RestMock(values:Values) extends REST with Logging {
     })
   }
 
-  override def conf(): Future[Map[String, String]] = Future.successful{
+  override def conf()(implicit ec:ExecutionContext): Future[Map[String, String]] = Future.successful{
     values.conf
   }
 
-  override def ui(): Future[Map[String, String]] = Future.successful{
+  override def ui()(implicit ec:ExecutionContext): Future[Map[String, String]] = Future.successful{
     values.uiConf
   }
 
-  override def news(lang: String): Future[Seq[NewsEntry]] = {
+  override def news(lang: String)(implicit ec:ExecutionContext): Future[Seq[NewsEntry]] = {
     println("news not implemented")
     ???
   }
 
-  override def dataMetadata(kind: String, name: String, lang: String): Future[JSONMetadata] = {
+  override def dataMetadata(kind: String, name: String, lang: String)(implicit ec:ExecutionContext): Future[JSONMetadata] = {
     println("dataMetadata not implemented")
     ???
   }
 
-  override def dataDef(kind: String, name: String, lang: String): Future[ExportDef] = {
+  override def dataDef(kind: String, name: String, lang: String)(implicit ec:ExecutionContext): Future[ExportDef] = {
     println("dataDef not implemented")
     ???
   }
 
-  override def dataList(kind: String, lang: String): Future[Seq[ExportDef]] = {
+  override def dataList(kind: String, lang: String)(implicit ec:ExecutionContext): Future[Seq[ExportDef]] = {
     println("dataList not implemented")
     ???
   }
 
-  override def data(kind: String, name: String, params: Json, lang: String): Future[Seq[Seq[String]]] = {
+  override def data(kind: String, name: String, params: Json, lang: String)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
     println("data not implemented")
     ???
   }
 
-  override def tableAccess(table: String, kind: String): Future[TableAccess] = {
+  override def tableAccess(table: String, kind: String)(implicit ec:ExecutionContext): Future[TableAccess] = {
     println("table Access not implemented")
     ???
   }
 
 
-  override def renderTable(table: PDFTable): Future[String] = ???
-  override def exportCSV(table: CSVTable): Future[File] = ???
-  override def exportXLS(table: XLSTable): Future[File] = ???
+  override def renderTable(table: PDFTable)(implicit ec:ExecutionContext): Future[String] = ???
+  override def exportCSV(table: CSVTable)(implicit ec:ExecutionContext): Future[File] = ???
+  override def exportXLS(table: XLSTable)(implicit ec:ExecutionContext): Future[File] = ???
 
-  override def generateStub(entity: String): Future[Boolean] = {
+  override def generateStub(entity: String)(implicit ec:ExecutionContext): Future[Boolean] = {
     println("generateStub not implemented")
     ???
   }
 
-  override def definition(): Future[BoxDefinition] = ???
+  override def definition()(implicit ec:ExecutionContext): Future[BoxDefinition] = ???
 
-  override def definitionDiff(definition: BoxDefinition): Future[BoxDefinitionMerge] = ???
+  override def definitionDiff(definition: BoxDefinition)(implicit ec:ExecutionContext): Future[BoxDefinitionMerge] = ???
 
-  override def definitionCommit(merge: BoxDefinitionMerge): Future[Boolean] = ???
+  override def definitionCommit(merge: BoxDefinitionMerge)(implicit ec:ExecutionContext): Future[Boolean] = ???
 
 
-  override def translationsFields(lang: String): Future[Seq[Field]] = ???
+  override def translationsFields(lang: String)(implicit ec:ExecutionContext): Future[Seq[Field]] = ???
 
-  override def translationsFieldsCommit(merge: BoxTranslationsFields): Future[Int] = ???
+  override def translationsFieldsCommit(merge: BoxTranslationsFields)(implicit ec:ExecutionContext): Future[Int] = ???
 
-  override def execute(functionName: String, lang: String, data:Json) = ???
+  override def execute(functionName: String, lang: String, data:Json)(implicit ec:ExecutionContext) = ???
 }

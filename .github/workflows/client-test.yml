@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # define Java options for both official sbt and sbt-extras
-      JAVA_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8 -XX:+CMSClassUnloadingEnabled
-      JVM_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8 -XX:+CMSClassUnloadingEnabled
+      JAVA_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
+      JVM_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
       NODE_OPTIONS: --max-old-space-size=2048
       SBT_NATIVE_CLIENT: true
 
@@ -38,9 +38,9 @@ jobs:
         with:
           domain: Insubric
       - name: Setup Scala
-        uses: olafurpg/setup-scala@v10
+        uses: coursier/setup-action@v1
         with:
-          java-version: "adopt@1.8"
+          jvm: adoptium:1.17
       - name: Node 14.x
         uses: actions/setup-node@v3
         with:
@@ -53,7 +53,7 @@ jobs:
           AUTOMATE_ACCESS_KEY: ${{secrets.AUTOMATE_ACCESS_KEY}}
         run: |
           export PATH=./node_modules/.bin:$PATH
-          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss10m client/test
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/test
       - name: Push server result to testspace
         run: testspace client/target/test-reports/*.xml
         if: ${{ needs.pre_job.outputs.should_skip != 'true' }}

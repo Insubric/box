@@ -10,6 +10,7 @@ import ch.wsl.box.model.shared.{Filter, JSONID, JSONMetadata, JSONQuery, JSONQue
 import ch.wsl.box.model.utils.Geo
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
@@ -24,15 +25,30 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
 
-  private def doFetch(fields: Seq[String], where: SQLActionBuilder) = {
-    if(fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
+  private def jsonbBuilder(fields: Seq[String]):SQLActionBuilder = {
     val head = sql"""select jsonb_build_object( """
-    val body = fields.zipWithIndex.foldLeft(head){ case (q,(field,i)) =>
-      val q2 = if(i > 0) concat(q,sql""" , """) else q
+    val body = fields.zipWithIndex.foldLeft(head) { case (q, (field, i)) =>
+      val q2 = if (i > 0) concat(q, sql""" , """) else q
       concat(q2, sql""" '#$field', "#$field" """)
     }
-    val complete = concat(body, concat(sql""" ) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
+    concat(body,sql""" ) """ )
+  }
+
+  private def checkFields[S](fields: Seq[String])(f: => S): Either[Throwable,S] = {
+    if(fields.map(f => registry.fields.field(t.tableName, f)).forall(_.nonEmpty)) {
+      Right(f)
+    } else {
+      Left(new Exception(s"Fields ${fields.mkString(",")} not exists in table ${t.tableName}"))
+    }
+  }
+
+  private def doFetch(fields: Seq[String], where: SQLActionBuilder) = checkFields(fields) {
+    if (fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
+    val complete = concat(jsonbBuilder(fields), concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
     complete.as[Json]
+  } match {
+    case Left(value) => DBIO.failed(value)
+    case Right(value) => value
   }
 
   def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
@@ -78,18 +94,17 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     result
   }
 
-  def distinctOn(field:String,query:JSONQuery):DBIO[Seq[Json]] = {
-    registry.fields.field(t.tableName, field) match {
-      case Some(value) => {
-        val q =concat(concat(
-          sql"""select to_jsonb(f) from (select distinct "#$field" from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
-          whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
-        ),sql""" )  as t(f)  """).as[Json]
-        q
-      }
-      case None => DBIO.failed(new Exception(s"Field $field not exists in table ${t.tableName}"))
-    }
+  def distinctOn(fields:Seq[String],query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[Json]] = checkFields(fields) {
+    val selector = fields.map(f => "\"" + f + "\"").mkString(",")
 
+    val q = concat(concat(
+      concat(jsonbBuilder(fields), sql""" from (select distinct #$selector from #${t.schemaName.getOrElse("public")}.#${t.tableName} """),
+      whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
+    ), sql""" )  as t(#$selector)  """).as[Json]
+    q
+  } match {
+    case Left(value) => DBIO.failed(value)
+    case Right(value) => value
   }
 
   def count(query: Option[JSONQuery]): DBIO[Int] = {
@@ -186,6 +201,22 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   }
 
 
+  private def jsonToSql[A](js:Json)(implicit decoder: Decoder[A],sp:SetParameter[A]) = {
+    js.as[A].toOption.map{v => sql"$v" }.get
+  }
+
+  private def toRecord(values: Seq[SQLActionBuilder]):SQLActionBuilder = {
+    if (values.length == 1) {
+      concat(sql"(", concat(values.head, sql")"))
+    } else {
+      val composingRecord = values.zipWithIndex.foldRight(sql"(") { case ((v, i), r) =>
+        val r2 = concat(r, v)
+        if (values.length == i + 1) concat(r2, sql",") else r2
+      }
+      concat(composingRecord, sql")")
+    }
+  }
+
 
   protected def jsonQueryComposer(table:Table[_]): (JSONQueryFilter) => Option[SQLActionBuilder] = { jsonQuery =>
 
@@ -202,36 +233,29 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
     }
 
-    def filter[T](value:Option[T],cast:Option[String] = None)(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+    def filter[T](nullable:Boolean, value:Option[T],cast:Option[String] = None)(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
 
       val base = sql""" "#$key"#${cast.getOrElse("")} """
 
 
-      value match {
-        case Some(v) => {
-          val result = jsonQuery.operator.getOrElse(Filter.EQUALS) match {
-            case Filter.EQUALS => concat(base, sql"""= $v """)
-            case Filter.LIKE => concat(base, sql"""  ilike '%#$v%' """)
-            case Filter.CUSTOM_LIKE => concat(base, sql"""  ilike '#$v' """)
-            case Filter.< => concat(base, sql""" < $v """)
-            case Filter.NOT=> concat(base, sql""" <> $v """)
-            case Filter.> => concat(base, sql""" > $v """)
-            case Filter.<= => concat(base, sql""" <= $v """)
-            case Filter.>= => concat(base, sql""" >= $v """)
-            case Filter.DISLIKE => concat(base, sql""" not ilike '%#$v%' """)
-            case Filter.IS_NOT_NULL => concat(base, sql""" is not null """)
-            case Filter.IS_NULL => concat(base, sql""" is null """)
-            case Filter.INTERSECT => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
-          }
-          Some(result)
-        }
-        case None => jsonQuery.operator.getOrElse(Filter.EQUALS) match {
-          case Filter.EQUALS | Filter.LIKE | Filter.CUSTOM_LIKE | Filter.INTERSECT => Some(concat(base,sql""" is null """))
-          case Filter.NOT | Filter.DISLIKE => Some(concat(base,sql""" is not null """))
-          case _ => None
-
-        }
+      val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
+        case (Filter.EQUALS,true,None) => concat(base,sql""" is null """)
+        case (Filter.LIKE,true,None) => concat(base,sql""" is null """)
+        case (Filter.CUSTOM_LIKE,true,None) => concat(base,sql""" is null """)
+        case (Filter.EQUALS,_,Some(v)) => concat(base,sql"""= $v """)
+        case (Filter.LIKE,_,Some(v)) => concat(base,sql"""  ilike '%#$v%' """)
+        case (Filter.CUSTOM_LIKE,_,Some(v)) => concat(base,sql"""  ilike '#$v' """)
+        case (Filter.<,_,Some(v)) => concat(base,sql""" < $v """)
+        case (Filter.NOT,_,Some(v)) => concat(base,sql""" <> $v """)
+        case (Filter.>,_,Some(v)) => concat(base,sql""" > $v """)
+        case (Filter.<=,_,Some(v)) => concat(base,sql""" <= $v """)
+        case (Filter.>=,_,Some(v)) => concat(base,sql""" >= $v """)
+        case (Filter.DISLIKE,_,Some(v)) => concat(base,sql""" not ilike '%#$v%' """)
+        case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
+        case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
+        case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
       }
+      Some(result)
 
     }
 
@@ -240,6 +264,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     val v = jsonQuery.getValue
 
     def splitAndTrim(s:String):Seq[String] = s.split(",").toSeq.map(_.trim).filter(_.nonEmpty)
+
 
     if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
       col.name match {
@@ -256,39 +281,40 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       }
     } else {
       (col.name,jsonQuery.operator) match {
-        case ("String",_)  => filter(Some(v))
-        case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](v.toIntOption,Some("::text"))
-        case ("Int",_) => filter[Int](v.toIntOption)
-        case ("Long",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Long](v.toLongOption,Some("::text"))
-        case ("Long",_) => filter[Long](v.toLongOption)
-        case ("Short",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Short](v.toShortOption,Some("::text"))
-        case ("Short",_) => filter[Short](v.toShortOption)
-        case ("Float",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Float](v.toFloatOption,Some("::text"))
-        case ("Float",_) => filter[Float](v.toFloatOption)
-        case ("Double",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Double](v.toDoubleOption,Some("::text"))
-        case ("Double",_) => filter[Double](v.toDoubleOption)
-        case ("BigDecimal" | "scala.math.BigDecimal",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[BigDecimal](Try(BigDecimal(v)).toOption,Some("::text"))
-        case ("BigDecimal" | "scala.math.BigDecimal",_) => filter[BigDecimal](Try(BigDecimal(v)).toOption)
+        case (_,Some(l)) if Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(l) => filter(col.nullable,Some(v))
+        case ("String",_)  => filter(col.nullable,Some(v))
+        case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
+        case ("Int",_) => filter[Int](col.nullable,v.toIntOption)
+        case ("Long",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Long](col.nullable,v.toLongOption,Some("::text"))
+        case ("Long",_) => filter[Long](col.nullable,v.toLongOption)
+        case ("Short",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Short](col.nullable,v.toShortOption,Some("::text"))
+        case ("Short",_) => filter[Short](col.nullable,v.toShortOption)
+        case ("Float",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Float](col.nullable,v.toFloatOption,Some("::text"))
+        case ("Float",_) => filter[Float](col.nullable,v.toFloatOption)
+        case ("Double",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Double](col.nullable,v.toDoubleOption,Some("::text"))
+        case ("Double",_) => filter[Double](col.nullable,v.toDoubleOption)
+        case ("BigDecimal" | "scala.math.BigDecimal",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption,Some("::text"))
+        case ("BigDecimal" | "scala.math.BigDecimal",_) => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
         case ("java.time.LocalDate",_) => {
           DateTimeFormatters.toDate(v) match {
-            case head :: Nil => filter[java.time.LocalDate](Some(head))
+            case head :: Nil => filter[java.time.LocalDate](col.nullable,Some(head))
             case from :: (to :: Nil) =>  Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }
         }
-        case ("java.time.LocalTime",_) => filter[java.time.LocalTime](DateTimeFormatters.time.parse(v))
+        case ("java.time.LocalTime",_) => filter[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
         case ("java.time.LocalDateTime",_) => {
           DateTimeFormatters.toTimestamp(v) match {
-            case head :: Nil => filter[java.time.LocalDateTime]( Some(head))
+            case head :: Nil => filter[java.time.LocalDateTime](col.nullable, Some(head))
             case from :: (to :: Nil) => Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }
         }
-        case ("io.circe.Json",_) => filter[Json](parser.parse(v).toOption)
-        case ("Array[Byte]",_) => filter[Array[Byte]](Try(Base64.getDecoder.decode(v)).toOption)
-        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](Geo.fromEWKT(v))
-        case ("java.util.UUID",_) => filter[java.util.UUID](Try(UUID.fromString(v)).toOption)
-        case ("Boolean",_) => filter[Boolean](Some(v == "true"))
+        case ("io.circe.Json",_) => filter[Json](col.nullable,parser.parse(v).toOption)
+        case ("Array[Byte]",_) => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
+        case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Geo.fromEWKT(v))
+        case ("java.util.UUID",_) => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
+        case ("Boolean",_) => filter[Boolean](col.nullable,Some(v == "true"))
         case t => throw new Exception(s"$t is not supported for simple query")
       }
     }

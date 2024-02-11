@@ -45,9 +45,6 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
     )
   }
 
-  override def toLabel(json: Json): Modifier = {
-    span(Shorten(json.string))
-  }
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(raw(p.string)).render

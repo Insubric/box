@@ -30,6 +30,7 @@ import scala.util.Try
 class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json],allData: ReadableProperty[Json],metadata:JSONMetadata) extends OlMapWidget(id,field,data,allData,metadata) {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
   import ch.wsl.box.shared.utils.JSONUtils._

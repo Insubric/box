@@ -33,7 +33,7 @@ import typings.ol.interactionSelectMod.SelectEvent
 import typings.ol.sourceVectorMod.VectorSourceEvent
 import typings.ol.viewMod.FitOptions
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.scalajs.js
 import scala.util.Try
 import scalacss.ScalatagsCss._
@@ -70,6 +70,7 @@ case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
 class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json], val allData: ReadableProperty[Json], metadata:JSONMetadata) extends Widget with BoxOlMap with HasData with Logging {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
@@ -230,9 +231,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   }
 
 
-  override def toLabel(json: Json): Modifier = {
-    val name = data.get.as[GeoJson.Geometry].toOption.map(g => MapUtils.geomToString(g,options.precision,options.formatters)).getOrElse("")
-    span(name)
+  override def toUserReadableData(json: Json)(implicit ex:ExecutionContext): Future[Json] = Future.successful {
+    data.get.as[GeoJson.Geometry].toOption.map(x => Json.fromString(geomToString(x))).getOrElse(Json.Null)
   }
 
 
