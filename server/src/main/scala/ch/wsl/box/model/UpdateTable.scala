@@ -12,13 +12,14 @@ import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
+import scribe.Logging
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
 import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 
-trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
+trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
   private def postgisSchema = registry.postgisSchema
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
@@ -254,6 +255,10 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
         case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
         case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
+        case _ => {
+          logger.warn(s" ${jsonQuery.operator} not defined for ${tableName} $key with value $value")
+          sql" false "
+        }
       }
       Some(result)
 
