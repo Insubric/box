@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components
 
-import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapParams, MapStyle, MapUtils}
+import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapGeolocation, MapParams, MapStyle, MapUtils}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
@@ -56,64 +56,9 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     .setView(view)
   )
 
-  val positionOptions = PositionOptions().setEnableHighAccuracy(true)
+  val geolocation = new MapGeolocation(map)
 
-  val geolocation = new mod.Geolocation(
-    geolocationMod.Options()
-      .setProjection(view.getProjection())
-      .setTrackingOptions(positionOptions.asInstanceOf[org.scalajs.dom.PositionOptions])
-  )
-
-  val accuracyFeature = new mod.Feature[geomMod.Geometry]()
-  val positionFeature = new mod.Feature[Point]()
-
-  val gpsVectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
-  gpsVectorSource.addFeature(accuracyFeature.asInstanceOf[renderFeatureMod.default])
-  gpsVectorSource.addFeature(positionFeature.asInstanceOf[renderFeatureMod.default])
-  val gpsFeaturesLayer = new layerMod.Vector(layerBaseVectorMod.Options()
-    .setSource(gpsVectorSource)
-  )
-
-  val circle = new styleMod.Circle()
-  val circleFill = new styleMod.Fill()
-  circleFill.setColor("#3399CC")
-  val circleStroke = new styleMod.Stroke()
-  circleStroke.setColor("#fff")
-  circleStroke.setWidth(2)
-  circle.setRadius(6)
-  circle.setFill(circleFill)
-  circle.setStroke(circleStroke)
-  val circleStyle = new styleMod.Style()
-  circleStyle.setImage(circle.asInstanceOf[imageMod.default])
-  positionFeature.setStyle(circleStyle)
-
-  geolocation.asInstanceOf[js.Dynamic].on("change:position", {() =>
-    accuracyFeature.setGeometry(geolocation.getAccuracyGeometry().asInstanceOf[geomMod.Geometry])
-  })
-
-  geolocation.asInstanceOf[js.Dynamic].on("change:accuracyGeometry", {() =>
-    geolocation.getPosition().foreach{ coords =>
-      positionFeature.setGeometry(new Point(coords))
-    }
-  })
-
-  val gpsControl = new controlMod.Control(controlControlMod.Options().setElement(div(`class` := "ol-control", style := "top: 10px; right:10px; padding: 1px 6px", input(
-    `type`:="checkbox",
-    onchange :+= {(e:Event) =>
-      if(e.target.asInstanceOf[HTMLInputElement].checked) {
-        geolocation.setTracking(true)
-        map.addLayer(gpsFeaturesLayer)
-      } else {
-        geolocation.setTracking(false)
-        map.removeLayer(gpsFeaturesLayer)
-      }
-
-
-    }
-  ).render ,"GPS").render))
-
-
-  map.addControl(gpsControl)
+  map.addControl(geolocation.control)
 
   override val mapActions: MapActions = new MapActions(map,options.crs)
 
