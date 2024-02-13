@@ -123,6 +123,7 @@ object TwoPanelResize {
       if(leftSide.getBoundingClientRect().width < 10) {
         if(window.innerWidth < 600) {
           leftSide.style.width =  "100%"
+          rightSide.style.display =  "none"
         } else {
           leftSide.style.width = leftDefaultWidth + "%"
         }
@@ -131,6 +132,7 @@ object TwoPanelResize {
         document.getElementById(closeId).classList.remove(style.hide.htmlClass)
         window.dispatchEvent(new Event("resize"))
       } else {
+        rightSide.style.display =  "block"
         leftSide.style.width =  "0%"
         document.getElementById(openId).classList.remove(style.hide.htmlClass)
         document.getElementById(closeId).classList.add(style.hide.htmlClass)

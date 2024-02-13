@@ -41,4 +41,13 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
   override def clientConf: Map[String, String] = throw new ConfigNotAvailableException
 
   override def refresh(): Unit = throw new ConfigNotAvailableException
+
+
+  override def mainColor: String = throw new ConfigNotAvailableException
+
+  override def name: String = throw new ConfigNotAvailableException
+
+  override def shortName: String = throw new ConfigNotAvailableException
+
+  override def initials: String = throw new ConfigNotAvailableException
 }

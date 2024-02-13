@@ -24,4 +24,9 @@ trait FullConfig extends Config {
 
   def refresh():Unit
 
+  def mainColor:String
+  def name:String
+  def shortName:String
+  def initials:String
+
 }

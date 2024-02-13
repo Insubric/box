@@ -2,8 +2,9 @@ package ch.wsl.box.client.views
 
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.views.components.ui.PWAInstallButton
 import ch.wsl.box.client.views.components.{LoginData, LoginForm}
-import ch.wsl.box.client.{IndexState, LoginState, LoginStateAbstract}
+import ch.wsl.box.client.{Context, IndexState, LoginState, LoginStateAbstract}
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.form.UdashForm
@@ -59,7 +60,8 @@ case class LoginView(presenter:LoginPresenter) extends View {
           div(BootstrapStyles.Card.body)(
             LoginForm(presenter.login).render
           )
-        )
+        ),
+        Context.pwa.render
       )
     )
   )

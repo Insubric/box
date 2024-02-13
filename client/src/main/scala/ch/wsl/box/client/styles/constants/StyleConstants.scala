@@ -1,4 +1,5 @@
 package ch.wsl.box.client.styles.constants
+import ch.wsl.box.client.styles.utils.MediaQueries
 import scalacss.Defaults._
 import scalacss.internal.AV
 import scalacss.internal.Macros.Color
@@ -8,7 +9,12 @@ object StyleConstants extends StyleSheet.Inline{
 
   val mapHoverClass = "mapOver"
 
-  val defaultFontSize = fontSize(14.px)
+  val defaultFontSize = style(
+    MediaQueries.phone(
+      style(fontSize(16.px))
+    ),
+    fontSize(14.px)
+  )
 
   /**
     * SIZES

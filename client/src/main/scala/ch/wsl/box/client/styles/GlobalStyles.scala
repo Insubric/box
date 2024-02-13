@@ -77,6 +77,10 @@ object GlobalStyleFactory{
         Font.regular
       ),
 
+      unsafeRoot("html, body") (
+        touchAction := "pan-x pan-y"
+      ),
+
       unsafeRoot("h3") (
         marginTop(18 px)
       ),
@@ -689,7 +693,7 @@ object GlobalStyleFactory{
       height :=! "calc(100vh - 150px)",
       media.maxWidth(600 px)(
         height :=! "calc(100vh - 110px)",
-        paddingBottom(70 px)
+        //paddingBottom(70 px)
       ),
       overflow.auto
     )

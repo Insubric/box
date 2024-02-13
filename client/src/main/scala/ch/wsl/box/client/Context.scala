@@ -1,6 +1,7 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.services.ServiceModule
+import ch.wsl.box.client.views.components.ui.PWAInstallButton
 import io.udash.Application
 import io.udash.routing.{BoxUrlChangeProvider, WindowUrlPathChangeProvider}
 import wvlet.airframe.Design
@@ -11,6 +12,8 @@ object Context {
   object Implicits {
     implicit var executionContext: ExecutionContext = null
   }
+
+  val pwa = new PWAInstallButton()
 
   val routingRegistry = new RoutingRegistryDef
   private val viewPresenterRegistry = new StatesToViewPresenterDef

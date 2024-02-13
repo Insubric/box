@@ -41,4 +41,13 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def clientConf: Map[String, String] = Map()
 
   override def refresh(): Unit = {}
+
+
+  override def mainColor: String = "#000000"
+
+  override def name: String = "Box"
+
+  override def shortName: String = "Box"
+
+  override def initials: String = "B"
 }
