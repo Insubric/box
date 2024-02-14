@@ -89,7 +89,6 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
 
-
   private def saveAll(data:Json,widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
     // start to empty and populate
 
@@ -97,8 +96,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
     val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
       widgetAction(b.widget)(data,metadata).map { intermediateResult =>
+        val fields:Seq[String] = b.layoutBlock.toList.flatMap(_.extractFields(metadata))
         logger.debug(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n ${b.fields}")
-        Json.fromFields(b.fields.flatMap{k =>
+        Json.fromFields(fields.flatMap{k =>
           intermediateResult.jsOpt(k).map(v => k -> v)
         })
       }

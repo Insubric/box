@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget.child
 
 
-import ch.wsl.box.client.services.{BrowserConsole, RunNow}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, RunNow}
 import ch.wsl.box.client.views.components.widget.lookup.LookupWidget
 import ch.wsl.box.client.views.components.widget.{HasData, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONFieldLookupRemote, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata, JSONQuery, WidgetsNames}
@@ -14,7 +14,7 @@ import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
-import ch.wsl.typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance}
+import ch.wsl.typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance, ToolbarIconItem, ToolbarItem}
 import ch.wsl.typings.std
 
 import scala.collection.mutable.ListBuffer
@@ -25,6 +25,10 @@ import scala.scalajs.js.JSConverters.{JSRichFutureNonThenable, JSRichIterableOnc
 import scala.scalajs.js.Thenable.Implicits._
 import scala.scalajs.js.|
 import scala.scalajs.js.JSConverters._
+import scalatags.JsDom.all._
+import io.udash._
+import scalacss.ScalatagsCss._
+import io.udash.css.CssView._
 
 object Spreadsheet extends ChildRendererFactory {
 
@@ -73,6 +77,9 @@ object Spreadsheet extends ChildRendererFactory {
       w
     }
 
+
+    var jspreadsheetInstance: Option[JspreadsheetInstance] = None
+
     var widgets:ListBuffer[ListBuffer[Widget]] = ListBuffer()
 
 
@@ -80,9 +87,8 @@ object Spreadsheet extends ChildRendererFactory {
 
     override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
       div(overflowX.auto,
-        //<link rel="stylesheet" href="@{basePath}assets/flatpickr/dist/flatpickr.min.css">
-        link(rel := "stylesheet", href := "/assets/jspreadsheet-ce/dist/jspreadsheet.css"),
-        link(rel := "stylesheet", href := "/assets/jsuites/dist/jsuites.css"),
+        link(rel := "stylesheet", href := s"${ClientConf.frontendUrl}/assets/jspreadsheet-ce/dist/jspreadsheet.css"),
+        link(rel := "stylesheet", href := s"${ClientConf.frontendUrl}/assets/jsuites/dist/jsuites.css"),
         renderTable(write,nested)
       )
     }
@@ -114,8 +120,9 @@ object Spreadsheet extends ChildRendererFactory {
 
 
       def rowIndex(cell:HTMLTableCellElement):Int = cell.dataset.get("y").flatMap(_.toIntOption).getOrElse(0)
-      def rowData(cell:HTMLTableCellElement):Property[Json] = {
-        val i = rowIndex(cell)
+
+      def rowDataCell(cell:HTMLTableCellElement):Property[Json] = rowData(rowIndex(cell))
+      def rowData(i:Int):Property[Json] = {
         widgetParam.prop.bitransform({rows:Json =>
           rows.asArray.flatMap(_.lift(i)).getOrElse(Json.Null)
 
@@ -150,7 +157,7 @@ object Spreadsheet extends ChildRendererFactory {
       def cellData(cell:HTMLTableCellElement):Property[Json] = {
         val colIndex = cell.dataset.get("x").flatMap(_.toIntOption).getOrElse(0)
         val colName = tableFields.lift(colIndex).map(_.name).getOrElse("")
-        _cellData(cell,rowData(cell),colName)
+        _cellData(cell,rowDataCell(cell),colName)
       }
 
       def _cellData(cell:HTMLTableCellElement, row: Property[Json], colName:String):Property[Json] = {
@@ -167,7 +174,8 @@ object Spreadsheet extends ChildRendererFactory {
         }
 
 
-        Json.fromFields(fields)
+
+        rowData(row).get.deepMerge(Json.fromFields(fields))
       }
 
       def checkCellValidity(jsTable:JspreadsheetInstance,rowNumber:Int)(field:JSONField):Future[(Boolean,JSONField)] = {
@@ -204,19 +212,26 @@ object Spreadsheet extends ChildRendererFactory {
             var widget:Widget = null
             val editor = CustomEditor()
               .setOpenEditor((cell,el,empty,e) => {
-                BrowserConsole.log("Open editor: " + cell.innerHTML)
-                BrowserConsole.log(s"Row: ${rowIndex(cell)}")
-                BrowserConsole.log(rowData(cell).get)
-                BrowserConsole.log(cell)
+                logger.debug("Open editor: " + cell.innerHTML)
+
                 cell.innerHTML = ""
-                val row = Property(rowData(cell).get) // copy the value, apply that only when we close the cell editor
+                val row = Property(rowDataCell(cell).get) // copy the value, apply that only when we close the cell editor
                 val v = _cellData(cell,row,c.name)
                 widget = colContentWidget(row,v,c, metadata)
                 val w = div(widget.editOnTable(NestedInterceptor.Identity)).render
                 cell.appendChild(w)
+
+
+                window.setTimeout(() => {
+                  cell.getElementsByTagName("select").headOption.map { e =>
+                    BrowserConsole.log(e)
+                    e.asInstanceOf[HTMLSelectElement].focus()
+                  }
+                },0)
+
               })
               .setCloseEditor((cell,save) => {
-                BrowserConsole.log(s"Close editor, save: $save")
+                logger.debug(s"Close editor, save: $save value: ${widget.json()}")
                 if(save) {
                   widget.toUserReadableData(widget.json().get).map{ label =>
                     cell.innerHTML = label.string
@@ -299,11 +314,12 @@ object Spreadsheet extends ChildRendererFactory {
 
         val jspreadsheet = ch.wsl.typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
 
-        val table = jspreadsheet(_div,JSpreadsheetOptions()
+        val table: JspreadsheetInstance = jspreadsheet(_div,JSpreadsheetOptions()
           .setColumns(columns.toJSArray)
           .setAllowDeleteColumn(false)
           .setAllowInsertColumn(false)
           .setAllowRenameColumn(false)
+          .setColumnResize(true)
           .setData(data)
           .setOninsertrow((element,rowIndex,numOfRows,addedCells,insertBefore) => {
             addRows(rowIndex.toInt + (if(insertBefore) 0 else 1),numOfRows.toInt)
@@ -317,7 +333,6 @@ object Spreadsheet extends ChildRendererFactory {
 
             val rowNumber = rowIndex.toString.toInt
             val row = getTableRow(jsTable.jspreadsheet, rowNumber)
-            BrowserConsole.log(rowData(cell).get)
             BrowserConsole.log(row)
 
             colContentWidget(Property(row), Property(Json.Null), f, metadata) match {
@@ -386,9 +401,9 @@ object Spreadsheet extends ChildRendererFactory {
           }
         }
 
-        BrowserConsole.log(_div)
-        BrowserConsole.log(table)
-        window.asInstanceOf[js.Dynamic].tableTest = table
+        jspreadsheetInstance = Some(table)
+
+
       }
 
       //
