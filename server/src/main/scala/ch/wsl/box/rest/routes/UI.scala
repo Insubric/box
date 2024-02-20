@@ -23,16 +23,10 @@ object UI {
   import Directives._
 
 
-  def clientFiles(implicit system:ActorSystem,services:Services):Route =
-    pathPrefix("devServer") {
-      get {
-        extractUnmatchedPath { path =>
-          val req = HttpRequest(uri = s"http://localhost:8888$path")
-          complete{
-            Http().singleRequest(req)
-          }
-        }
-      }
+  def clientFiles(implicit system:ActorSystem,services:Services):Route = {
+
+    pathPrefix("dev") {
+      getFromBrowseableDirectories("./client/target/scala-2.13/scalajs-bundler/main")
     } ~
     pathPrefix("icon") {
       pathPrefix("icon.png") {
@@ -103,4 +97,5 @@ object UI {
         ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor)
       }
     }
+  }
 }

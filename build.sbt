@@ -1,6 +1,7 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
+import scalajsbundler.util.JSON
 
 val publishSettings = List(
   Global / scalaJSStage := FullOptStage,
@@ -187,7 +188,8 @@ lazy val client: Project = (project in file("client"))
     stTypescriptVersion := "4.2.4",
     stOutputPackage := "ch.wsl.typings",
     // Use library mode for fastOptJS
-    fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
+    //Compile / additionalNpmConfig := Map("sideEffects" -> JSON.bool(false)),
+    fastOptJS / webpackBundlingMode := BundlingMode.Application,
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "dev.config.js"),
     // Use application model mode for fullOptJS
     fullOptJS / webpackBundlingMode := BundlingMode.Application,
@@ -202,12 +204,10 @@ lazy val client: Project = (project in file("client"))
       "monaco-editor-webpack-plugin" -> "7.0.1",
       "file-loader" -> "6.2.0",
     ),
-    // https://scalacenter.github.io/scalajs-bundler/cookbook.html#webpack-dev-server
-    webpackDevServerPort := 8888,
+
     webpack / version := "5.89.0",
     webpackCliVersion := "5.1.4",
     installJsdom / version := "20.0.0",
-    startWebpackDevServer / version  := "4.11.1",
 
     //To use jsdom headless browser uncomment the following lines
     Test / requireJsDomEnv := true,
@@ -270,12 +270,6 @@ lazy val sharedJS: Project = shared.js.settings(
 
 lazy val migrate = taskKey[Unit]("migrate")
 
-lazy val restartClient = taskKey[Unit]("Restart client")
-lazy val restartClientTask = Def.sequential(
-    (client / Compile / fastOptJS / stopWebpackDevServer),
-    (client / Compile / fastOptJS / startWebpackDevServer),
-  )
-
 
 // code generation task that calls the customized code generator
 lazy val slick = taskKey[Seq[File]]("gen-tables")
@@ -325,7 +319,6 @@ lazy val deleteSlickTask = Def.task{
 
 lazy val box = (project in file("."))
   .settings(
-    restartClient := restartClientTask.value,
     publishAll := publishAllTask.value,
     publishAllLocal := publishAllLocalTask.value,
     installBox := installBoxTask.value,

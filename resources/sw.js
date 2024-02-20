@@ -10,13 +10,11 @@ self.addEventListener('install', event => {
 
 const resetCheck = [
     "/bundle/box-app.js",
-    "/devServer/client-fastopt-library.js"
 ]
 
 const cachedResources = [
     "/",
     "/bundle/box-app.js",
-    "/devServer/client-fastopt-library.js",
     "/assets/bootstrap/dist/css/bootstrap.min.css",
     "/assets/@fortawesome/fontawesome-free/js/all.min.js",
     "/assets/flatpickr/dist/flatpickr.min.css",
