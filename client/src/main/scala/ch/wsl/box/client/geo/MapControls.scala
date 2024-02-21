@@ -376,7 +376,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
   }
 
-  layerSource.listen({
+  layer.listen({
     case None => {
       finishDrawing()
       activeControl.set(Control.VIEW)
@@ -389,11 +389,23 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
       vs.asInstanceOf[js.Dynamic].un(olStrings.addfeature, changedFeatures)
     }
 
-    val vs = MapControlsParams.toVectorSource(ls)
+    val vs = MapControlsParams.toVectorSource(ls.olLayer)
     oldVectorSource = Some(vs)
 
     finishDrawing()
-    activeControl.set(Control.VIEW)
+    if(ls.features.polygon || ls.features.multiPolygon) {
+      activeControl.set(Control.POLYGON)
+    } else if(ls.features.point) {
+      if(vs.getFeatures().nonEmpty) {
+        activeControl.set(Control.VIEW)
+      } else {
+        activeControl.set(Control.POINT)
+      }
+    } else if(ls.features.multiPoint) {
+      activeControl.set(Control.POINT)
+    } else {
+      activeControl.set(Control.VIEW)
+    }
 
     dynamicInteraction.filterNot(_ == null).foreach { c =>
       c.setActive(false)
@@ -427,7 +439,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
     snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vs))
 
-    def lsFixTypes = ls.asInstanceOf[
+    def lsFixTypes = ls.olLayer.asInstanceOf[
       ch.wsl.typings.ol.layerLayerMod.default[
         ch.wsl.typings.ol.sourceSourceMod.default,
         ch.wsl.typings.ol.layerLayerMod.default[Any, /* ol.ol/layer/Layer.default<any> */ Any]

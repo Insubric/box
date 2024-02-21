@@ -137,5 +137,31 @@ object BoxMap {
   lazy val Map_layer_wmts = new TableQuery(tag => new Map_layer_wmts(tag))
 
 
+  case class Map_layer_i18n_row(layer_id: java.util.UUID, lang: String, label: String)
+
+
+
+
+  /** GetResult implicit for fetching Map_layer_i18n_row objects using plain SQL queries */
+
+  /** Table description of table map_layer_i18n. Objects of this class serve as prototypes for rows in queries. */
+  class Map_layer_i18n(_tableTag: Tag) extends Table[Map_layer_i18n_row](_tableTag, schema, "map_layer_i18n") {
+
+
+    def * = (layer_id, lang, label).<>(Map_layer_i18n_row.tupled, Map_layer_i18n_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+
+    /** Database column layer_id SqlType(uuid) */
+    val layer_id: Rep[java.util.UUID] = column[java.util.UUID]("layer_id")
+    /** Database column lang SqlType(text) */
+    val lang: Rep[String] = column[String]("lang")
+    /** Database column label SqlType(text) */
+    val label: Rep[String] = column[String]("label")
+
+
+  }
+  /** Collection-like TableQuery object for table Map_layer_i18n */
+  lazy val Map_layer_i18n = new TableQuery(tag => new Map_layer_i18n(tag))
+
 
 }

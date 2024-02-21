@@ -21,6 +21,7 @@ sealed trait MapLayerMetadata {
 case class DbVectorProperties(id:JSONID,field:String,entity:String)
 case class DbVector(
            id: UUID,
+           name:String,
            entity: String,
            field: String,
            entityPrimaryKey:Seq[String],
@@ -39,22 +40,20 @@ case class DbVector(
     Feature(geometry,DbVectorProperties(id, field, entity).asJson.asObject)
   }
 
-  def name = field
 }
 
 
 
 case class WMTS(
                  id: UUID,
+                 name:String,
                  capabilitiesUrl: String,
                  layerId: String,
                  srid: MapProjection,
                  extra: Json,
                  order:Int,
                  zIndex:Int
-               ) extends MapLayerMetadata {
-  def name = layerId
-}
+               ) extends MapLayerMetadata
 
 sealed trait GeometryType
 case object POINT extends GeometryType

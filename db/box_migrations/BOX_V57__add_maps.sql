@@ -38,7 +38,13 @@ create table map_layer_wmts (
               extra jsonb
 );
 
+create table map_layer_i18n (
+                                layer_id uuid not null,
+                                lang text not null,
+                                label text not null
+);
 
+alter table map_layer_i18n add primary key (layer_id,lang);
 
 alter table field add column map_uuid uuid;
 

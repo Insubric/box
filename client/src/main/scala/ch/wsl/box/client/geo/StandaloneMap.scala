@@ -1,6 +1,7 @@
 package ch.wsl.box.client.geo
 
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection}
 import ch.wsl.box.model.shared.GeoTypes.GeoData
@@ -20,6 +21,7 @@ import org.scalajs.dom._
 import org.scalajs.dom.html.Div
 import ch.wsl.typings.ol.mapMod.MapOptions
 import ch.wsl.typings.ol.viewMod.FitOptions
+import io.udash.bootstrap.utils.BootstrapStyles
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -27,6 +29,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.JSRichIterableOnce
 import scala.util.Try
+import io.udash.css.CssView._
+import scalacss.ScalatagsCss._
 
 class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) {
 
@@ -49,14 +53,13 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   val fullscreen = Property(false)
 
 
-  val layersSelection = div(`class`.bindIf(Property(ClientConf.style.mapLayerSelectFullscreen.className.value),fullscreen) ).render
+  val layersSelection = div(ClientConf.style.mapLayerSelectFullscreen ).render
 
   ready.listenOnce(_ => {
     layersSelection.appendChild(div(
-      (metadata.db.filterNot(_.editable) ++ metadata.wmts).groupBy(_.zIndex).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
-        div(
-          input(`type` := "checkbox", checked := "checked", onchange :+= { (e: Event) => map.getLayers().getArray().filter(_.getZIndex().getOrElse(-1) == i).map(_.setVisible(e.currentTarget.asInstanceOf[HTMLInputElement].checked)) }),
-          if (alternativeLayers.length == 1) alternativeLayers.head.name else {
+      (metadata.db.filterNot(_.editable) ++ metadata.wmts).filter(_.zIndex > 0).groupBy(_.zIndex).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
+        div(display.flex,
+          if (alternativeLayers.length == 1) div(flexGrow := 1, alternativeLayers.head.name) else {
             val sortedLayers = alternativeLayers.sortBy(_.order)
             val selected: Property[MapLayerMetadata] = Property(sortedLayers.head)
             selected.listen(layer => {
@@ -64,35 +67,38 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
               layerOf(layer.id).foreach(_.setVisible(true))
             },true)
             Select[MapLayerMetadata](selected, SeqProperty(alternativeLayers))(x => StringFrag(x.name))
-          }
+          },
+          input(margin := 5.px, `type` := "checkbox", checked := "checked", onchange :+= { (e: Event) => map.getLayers().getArray().filter(_.getZIndex().getOrElse(-1) == i).map(_.setVisible(e.currentTarget.asInstanceOf[HTMLInputElement].checked)) })
         ).render
       }
     ).render)
   })
 
 
+  def layerSelector:Modifier = Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)), Labels("ui.map.perform-operation-on"))(x => x.name)
+
   val mapDiv:Div = if (editable) {
 
 
 
-    val _mapDiv = div(height := (_div.clientHeight - 24).px).render
+    val _mapDiv = div(height := (_div.clientHeight - 62).px).render
 
     fullscreen.listen{fs =>
       if(fs) {
-        _mapDiv.style.height = (window.innerHeight - 24 - 105 - 50).px
+        _mapDiv.style.height = (window.innerHeight - 105 - 62).px
       } else {
-        _mapDiv.style.height = (_div.clientHeight - 24).px
+        _mapDiv.style.height = (_div.clientHeight - 62).px
       }
       map.render()
     }
 
+
+
     val wrapper = div( `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
-      showIf(ready) { div(height := 24.px,
-        Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)),"---")(x => x.field)
-      ).render },
       controlsDiv,
+      layersSelection,
       _mapDiv,
-      layersSelection
+
     ).render
 
     _div.appendChild(wrapper)
@@ -172,10 +178,18 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     data.set(result.asJson)
   }
 
-  val control = new MapControlsIcons(MapControlsParams(map,selectedLayer,proj,Seq(),None,None,true,_data => {
+
+  val control = new MapControlStandalone(MapControlsParams(map,selectedLayer,proj,metadata.baseLayers.map(_.name),None,None,true,_data => {
     save()
     redrawControl()
-  }, None,fullscreen))
+  }, None,fullscreen),layerSelector)
+
+  control.baseLayer.listen(layer => {
+    metadata.baseLayers.flatMap(l => layerOf(l.id)).foreach(_.setVisible(false))
+    metadata.baseLayers.find(_.name == layer).foreach { l =>
+      layerOf(l.id).foreach(_.setVisible(true))
+    }
+  },true)
 
   def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
   def layerOf(id:UUID):Option[layerBaseMod.default] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(id.toString))
@@ -249,7 +263,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   def dbVectorLayer(vector:DbVector,d:Json,extent:Option[Box2d]): Future[(DbVector,GeoData)] = {
 
-    val baseQuery = vector.query.map(_.withData(d,services.clientSession.lang())).getOrElse(JSONQuery.empty)
+    val baseQuery = vector.query.map(_.withData(d,services.clientSession.lang(),!vector.editable)).getOrElse(JSONQuery.empty)
 
     val query = extent match {
       case Some(value) => baseQuery.withExtent(vector.field,value.toPolygon(metadata.srid.crs))
@@ -291,11 +305,8 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       extent = fit()
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, d, Some(extent))))
     } yield {
-      if (selectedLayerForEdit.get.isEmpty) {
-        selectedLayerForEdit.set(metadata.db.find(_.editable))
-      } else {
-        selectedLayerForEdit.set(selectedLayerForEdit.get, true) // retrigger layer listener
-      }
+
+      selectedLayerForEdit.set(selectedLayerForEdit.get, true) // retrigger layer listener
       addLayers(extraLayers.map(x => geomsToLayer(x._1, x._2)))
       redrawControl()
       ready.set(true)

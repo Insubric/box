@@ -444,7 +444,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         linked <- linkedForms(field, fieldI18n)
         subform <- subform(field)
         mapMetadata <- field.map_uuid match {
-          case Some(value) => MapMetadataFactory.of(value).map(Some(_))
+          case Some(value) => MapMetadataFactory.of(value,lang).map(Some(_))
           case None => DBIO.successful(None)
         }
       } yield {

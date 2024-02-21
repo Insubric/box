@@ -27,8 +27,8 @@ case class JSONQuery(
   def currentPage = paging.map(_.currentPage).getOrElse(1)
   def pageLength(n:Int) = paging.map(_.pageLength).getOrElse(n)
   def limit(limit:Int) = copy(paging= Some(paging.getOrElse(JSONQueryPaging(1,1)).copy(pageLength = limit)))
-  def withData(json:Json,lang:String) = this.copy(
-    filter = filter.map(_.withData(json)).map{f =>
+  def withData(json:Json,lang:String,ignoreNulls:Boolean = false) = this.copy(
+    filter = filter.map(_.withData(json)).filter(f => !ignoreNulls || f.value.isDefined).map{f =>
       if(f.value.contains("##lang")) f.copy(value = Some(lang)) else f
     },
     sort = sort.map{ s =>

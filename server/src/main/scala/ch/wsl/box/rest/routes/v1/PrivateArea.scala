@@ -114,7 +114,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
   def map(implicit s: BoxSession) = pathPrefix("map") {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        new MapRoute(name).route
+        new MapRoute(name,lang).route
       }
     }
   }

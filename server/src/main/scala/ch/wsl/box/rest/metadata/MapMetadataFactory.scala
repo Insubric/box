@@ -4,6 +4,7 @@ import ch.wsl.box.model.boxentities.BoxMap
 import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GEOMETRYCOLLECTION, LINESTRING, MULTILINESTRING, MULTIPOINT, MULTIPOLYGON, MapLayerMetadata, MapMetadata, MapProjection, POINT, POLYGON, WMTS}
 import slick.dbio.DBIO
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.boxentities.BoxMap.Map_layer_i18n_row
 import ch.wsl.box.model.shared.GeoJson.CRS
 import ch.wsl.box.model.shared.JSONQuery
 import ch.wsl.box.rest.runtime.Registry
@@ -27,27 +28,28 @@ object MapMetadataFactory {
   }
 
   def map2bbox(map:BoxMap.Map_row):Box2d =  Box2d(map.x_min, map.y_min, map.x_max, map.y_max)
-  def of(uuid:UUID)(implicit ex: ExecutionContext,services:Services): DBIO[MapMetadata] = {
+  def of(uuid:UUID,lang:String)(implicit ex: ExecutionContext,services:Services): DBIO[MapMetadata] = {
     for {
       map <- BoxMap.Maps.filter(_.map_id === uuid).result.head
-      result <- metadata(map)
+      result <- metadata(map,lang)
     } yield result
   }
-  def of(name:String)(implicit ex:ExecutionContext,services:Services):DBIO[MapMetadata] = {
+  def of(name:String,lang:String)(implicit ex:ExecutionContext,services:Services):DBIO[MapMetadata] = {
     for{
       map <- BoxMap.Maps.filter(_.name === name).result.head
-      result <- metadata(map)
+      result <- metadata(map,lang)
     } yield result
 
   }
 
-  private def metadata(map:BoxMap.Map_row)(implicit ex: ExecutionContext,services:Services): DBIO[MapMetadata] = {
+  private def metadata(map:BoxMap.Map_row,lang:String)(implicit ex: ExecutionContext,services:Services): DBIO[MapMetadata] = {
 
     for {
       vectorLayers <- BoxMap.Map_layer_vector_db.filter(_.map_id === map.map_id).result
-      vectors <- DBIO.sequence(vectorLayers.map(toLayer))
       wmtsLayers <- BoxMap.Map_layer_wmts.filter(_.map_id === map.map_id).result
-      wmts <- DBIO.sequence(wmtsLayers.map(toLayer))
+      layerI18n <- BoxMap.Map_layer_i18n.filter(x => x.lang === lang &&  x.layer_id.inSet( vectorLayers.flatMap(_.layer_id) ++ wmtsLayers.flatMap(_.layer_id) )).result
+      vectors <- DBIO.sequence(vectorLayers.map(toLayerDbVector(layerI18n)))
+      wmts <- DBIO.sequence(wmtsLayers.map(toLayerWMTS(layerI18n)))
       srid <- getSrid(map.srid)
     } yield {
 
@@ -62,7 +64,7 @@ object MapMetadataFactory {
   }
 
 
-  def toLayer(l: BoxMap.Map_layer_vector_db_row)(implicit ex:ExecutionContext,services:Services): DBIO[DbVector] = {
+  def toLayerDbVector(i18n:Seq[Map_layer_i18n_row])(l: BoxMap.Map_layer_vector_db_row)(implicit ex:ExecutionContext, services:Services): DBIO[DbVector] = {
 
     val geom = l.geometry_type match {
       case "POINT" => POINT
@@ -81,6 +83,7 @@ object MapMetadataFactory {
 
       DbVector(
         l.layer_id.get,
+        i18n.find(_.layer_id == l.layer_id.get).map(_.label).getOrElse(l.entity),
         l.entity,
         l.field,
         keys,
@@ -100,9 +103,10 @@ object MapMetadataFactory {
 
   }
 
-  def toLayer(l: BoxMap.Map_layer_wmts_row)(implicit ex:ExecutionContext): DBIO[WMTS] =  getSrid(l.srid).map { srid =>
+  def toLayerWMTS(i18n:Seq[Map_layer_i18n_row])(l: BoxMap.Map_layer_wmts_row)(implicit ex:ExecutionContext): DBIO[WMTS] =  getSrid(l.srid).map { srid =>
     WMTS(
       l.layer_id.get,
+      i18n.find(_.layer_id == l.layer_id.get).map(_.label).getOrElse(l.wmts_layer_id),
       l.capabilities_url,
       l.wmts_layer_id,
       srid,

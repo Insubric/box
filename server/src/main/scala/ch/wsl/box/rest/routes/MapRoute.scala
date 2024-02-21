@@ -10,7 +10,7 @@ import ch.wsl.box.services.Services
 
 import scala.concurrent.ExecutionContext
 
-class MapRoute(name:String)(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) {
+class MapRoute(name:String,lang:String)(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) {
 
   import JSONSupport._
   import Light._
@@ -28,7 +28,7 @@ class MapRoute(name:String)(implicit session:BoxSession, val ec: ExecutionContex
   def route:Route = path("metadata") {
     get {
       complete {
-        boxDb.adminDb.run(MapMetadataFactory.of(name))
+        boxDb.adminDb.run(MapMetadataFactory.of(name,lang))
       }
     }
   }

@@ -44,6 +44,38 @@ object Icons {
        |""".stripMargin
   )
 
+
+  val polygon_add:Icon = raw(
+    s"""
+       |<svg
+       |   width="16"
+       |   height="16"
+       |   fill="currentColor"
+       |   class="bi bi-pentagon"
+       |   viewBox="0 0 16 16"
+       |   version="1.1"
+       |   xmlns="http://www.w3.org/2000/svg"
+       |   xmlns:svg="http://www.w3.org/2000/svg">
+       |  <defs
+       |     id="defs1" />
+       |  <path
+       |     d="m 5.5614661,1.0076362 a 0.36526734,0.35075971 0 0 1 0.4602369,0 l 4.575338,3.5693308 a 0.36526734,0.35075971 0 0 1 0.117617,0.378119 L 8.9891342,10.20175 A 0.36526734,0.35075971 0 0 1 8.6413996,10.44658 H 2.9417687 A 0.36526734,0.35075971 0 0 1 2.5940341,10.201048 L 0.86778072,4.9557875 A 0.36526734,0.35075971 0 0 1 0.98539683,4.576967 L 5.5607355,1.0083377 Z M 11.561347,4.7116588 A 0.36526734,0.35075971 0 0 0 11.443001,4.3328383 L 6.0224333,0.10407919 a 0.36526734,0.35075971 0 0 0 -0.4609672,0 L 0.14016815,4.3335397 A 0.36526734,0.35075971 0 0 0 0.02182148,4.7109572 L 2.0585523,10.903268 a 0.36526734,0.35075971 0 0 0 0.3477344,0.244831 H 9.1768822 A 0.36526734,0.35075971 0 0 0 9.5246168,10.902567 L 11.561347,4.7109572 Z"
+       |      />
+       |  <text
+       |     xml:space="preserve"
+       |     style="font-size:14.4182px;font-family:'Open Sans';-inkscape-font-specification:sans-serif;"
+       |     x="8.9982672"
+       |     y="17.031038"
+       |     transform="scale(0.96486893,1.0364102)"><tspan
+       |       x="8.9982672"
+       |       y="17.031038"
+       |       style="font-size:14.4182px;">+</tspan></text>
+       |</svg>
+       |
+       |
+       |""".stripMargin
+  )
+
   //https://icons.getbootstrap.com/icons/fullscreen/
   val enterFullscreen: Icon = raw(
     s"""
@@ -62,7 +94,6 @@ object Icons {
        |""".stripMargin
   )
 
-  //https://icons.getbootstrap.com/icons/egg-fried/
   val hole:Icon = raw(
     s"""
        |<svg

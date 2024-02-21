@@ -42,4 +42,7 @@ case class MapMetadata(
                         maxZoom: Double,
                         wmts: Seq[WMTS],
                         db: Seq[DbVector]
-                      )
+                      ) {
+  def layers:Seq[MapLayerMetadata] = wmts ++ db
+  lazy val baseLayers: Seq[MapLayerMetadata] = layers.filter(_.zIndex == 0).sortBy(_.order)
+}

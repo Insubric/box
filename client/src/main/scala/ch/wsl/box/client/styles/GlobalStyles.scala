@@ -1095,6 +1095,25 @@ object GlobalStyleFactory{
       ),
     )
 
+    val controlInputs = style(
+      display.flex,
+      flexWrap.wrap,
+      alignItems.center,
+      width(100.%%),
+      backgroundColor(Colors.GreyExtra),
+      unsafeChild("input") (
+        margin.horizontal(5 px),
+        width.auto,
+        flexGrow(1),
+        alignItems.center
+      ),
+      unsafeChild("select") (
+        margin.horizontal(5 px),
+        flexGrow(1),
+        alignItems.center
+      ),
+    )
+
     val mapPopup = style(
       backgroundColor.white,
       borderStyle.solid,
@@ -1149,12 +1168,15 @@ object GlobalStyleFactory{
       unsafeRoot(".active")(
         backgroundColor(conf.colors.main),
         color(conf.colors.mainText)
+      ),
+      &.attrExists("disabled") (
+        color(gray),
+        backgroundColor(Colors.GreyExtra),
       )
     )
 
     val mapLayerSelect = style(
       marginLeft(10 px),
-      width.auto,
       backgroundColor.transparent,
       &.hover(
         backgroundColor.transparent
@@ -1168,14 +1190,15 @@ object GlobalStyleFactory{
     )
 
     val mapLayerSelectFullscreen = style(
-      position.fixed,
+      position.absolute,
       right.`0`,
-      bottom(95 px),
+      bottom(30 px),
       backgroundColor.white,
       padding(10 px),
       unsafeChild("select") {
         width(90 %%)
-      }
+      },
+      zIndex(1)
     )
 
     val mapFullscreen = style(
