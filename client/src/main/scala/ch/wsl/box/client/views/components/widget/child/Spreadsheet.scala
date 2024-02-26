@@ -80,12 +80,11 @@ object Spreadsheet extends ChildRendererFactory {
 
     var jspreadsheetInstance: Option[JspreadsheetInstance] = None
 
-    var widgets:ListBuffer[ListBuffer[Widget]] = ListBuffer()
+    var widgets:scala.collection.mutable.Map[Int,scala.collection.mutable.Map[Int,Widget]] = scala.collection.mutable.Map()
 
 
 
-
-    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
+    override protected def renderChild(write: Boolean, nested:Binding.NestedInterceptor): Modifier = {
       div(overflowX.auto,
         link(rel := "stylesheet", href := s"${ClientConf.frontendUrl}/assets/jspreadsheet-ce/dist/jspreadsheet.css"),
         link(rel := "stylesheet", href := s"${ClientConf.frontendUrl}/assets/jsuites/dist/jsuites.css"),
@@ -109,6 +108,34 @@ object Spreadsheet extends ChildRendererFactory {
         case b: Boolean => Json.fromBoolean(b)
         case n:Double => Json.fromDoubleOrNull(n)
       }
+    }
+
+
+    override def beforeSave(data: Json, m: JSONMetadata): Future[Json] = {
+
+      val tableFields = fields(metadata.get)
+
+      val result = Future.sequence(jspreadsheetInstance.get.getData().toSeq.map { r =>
+        val row = r.zipWithIndex.map { case (x, i) =>
+          (tableFields(i).name, cellValueToJson(Some(x).orUndefined))
+        }
+        Future.sequence(tableFields.zip(r).map { case (f, d) =>
+          colContentWidget(Property(Json.fromFields(row)), Property(Json.Null), f, metadata.get) match {
+            case w: HasData => {
+              for {
+                result <- w.fromLabel(cellValueToJson(d).string)
+              } yield f.name -> result
+            }
+          }
+        })
+      }).map { table =>
+        val r = Json.fromValues(table.map(x => Json.fromFields(x)))
+        data.deepMerge(Json.fromFields(Map(field.name -> r)))
+      }
+
+
+
+      result
     }
 
     def loadTable(_div:Div,metadata: JSONMetadata) = {
@@ -321,9 +348,10 @@ object Spreadsheet extends ChildRendererFactory {
           .setAllowRenameColumn(false)
           .setColumnResize(true)
           .setData(data)
-          .setOninsertrow((element,rowIndex,numOfRows,addedCells,insertBefore) => {
-            addRows(rowIndex.toInt + (if(insertBefore) 0 else 1),numOfRows.toInt)
-          })
+//          .setOninsertrow((element,rowIndex,numOfRows,addedCells,insertBefore) => {
+//            println(s"Added rows $numOfRows")
+//            //addRows(rowIndex.toInt + (if(insertBefore) 0 else 1),numOfRows.toInt)
+//          })
           .setOndeleterow((element,rowIndex,numOfRows,deletedCells) => {
             deleteRows(rowIndex.toInt,numOfRows.toInt)
           })
@@ -343,12 +371,12 @@ object Spreadsheet extends ChildRendererFactory {
                   valid <- w.valid()
 
                 } yield {
-                  BrowserConsole.log(s"OnChange with original: $editorValue value: $result valid:$valid")
-                  val prop = cellData(cell)
+//                  val prop = cellData(cell)
                   if(valid) {
-                    prop.set(result)
+                    //prop.set(result)
+
                   } else {
-                    prop.set(Json.Null)
+                    //prop.set(Json.Null)
                     cell.innerHTML = ""
                   }
                   Future.sequence(f.dependencyFields(tableFields).map(checkCellValidity(jsTable.jspreadsheet,rowNumber))).foreach{ valids =>
@@ -394,12 +422,12 @@ object Spreadsheet extends ChildRendererFactory {
         )
 
 
-        props.listen{ p =>
-          widgetParam.prop.get.asArray.foreach{ rows =>
-            widgetParam.prop.set(Json.fromValues(rows.map(_.deepMerge(p))))
-            toTableData.foreach(_data => table.setData(_data))
-          }
-        }
+//        props.listen{ p =>
+//          widgetParam.prop.get.asArray.foreach{ rows =>
+//            widgetParam.prop.set(Json.fromValues(rows.map(_.deepMerge(p))))
+//            toTableData.foreach(_data => table.setData(_data))
+//          }
+//        }
 
         jspreadsheetInstance = Some(table)
 
