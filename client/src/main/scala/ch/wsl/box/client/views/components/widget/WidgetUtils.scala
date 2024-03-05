@@ -60,7 +60,7 @@ object WidgetUtils extends Logging{
       labelStyle,
       field.title,
       (skipRequiredInfo, field.nullable, field.title.length > 0, field.default) match{
-        case (false, false, true, None) => small(ClientConf.style.smallLabelRequired ," - " + Labels.form.required)
+        case (false, false, true, None) if Labels.form.required.trim.nonEmpty => small(ClientConf.style.smallLabelRequired ," - " + Labels.form.required)
         case _ => {}//logger.warn(field.title +": "+ Seq(field.nullable, field.label.getOrElse("").length>0, field.default, Conf.manualEditKeyFields).mkString("\n"))}
       }
     ).render

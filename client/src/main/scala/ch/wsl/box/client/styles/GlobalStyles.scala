@@ -18,7 +18,7 @@ import scalatags.generic.Attr
 import scala.concurrent.duration.DurationInt
 
 
-case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int)
+case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int, inputPercentage:Double)
 
 object GlobalStyleFactory{
   val CssSettings = scalacss.devOrProdDefaults; import CssSettings._
@@ -30,7 +30,7 @@ object GlobalStyleFactory{
 
     import dsl._
 
-    val inputDefaultWidth = width(50 %%)
+    val inputDefaultWidth = width(conf.inputPercentage %%)
 
     val inputHighlight = style(
       borderWidth(0 px,0 px,1 px,0 px),
@@ -1075,7 +1075,7 @@ object GlobalStyleFactory{
     )
 
     val editor = style(
-      width(50.%%),
+      inputDefaultWidth,
       float.right,
       borderStyle.solid,
       borderWidth(1 px),
@@ -1282,12 +1282,12 @@ object GlobalStyleFactory{
     )
 
     val label50 = style(
-      width(50 %%),
+      width((100-conf.inputPercentage) %%),
       display.inlineBlock
     )
 
     val inputRightLabel = style(
-      width(50 %%),
+      width((100-conf.inputPercentage) %%),
       padding.horizontal(10 px),
       textAlign.right
     )
