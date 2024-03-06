@@ -29,13 +29,12 @@ object SliderWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = SliderWidgetImpl(params)
 
-  case class SliderWidgetImpl(params: WidgetParams) extends Widget {
+  case class SliderWidgetImpl(params: WidgetParams) extends Widget with HasData {
 
     override def field: JSONField = params.field
 
 
-
-
+    override def data: Property[Json] = params.prop
 
     def secondaryLabel:String = WidgetUtils.i18nLabel(params.field.params,"secondaryLabel").getOrElse("")
     def unit = params.field.params.flatMap(_.getOpt("unit")).getOrElse("")

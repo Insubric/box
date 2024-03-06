@@ -185,7 +185,7 @@ trait HasData extends Widget {
 }
 
 
-trait IsCheckBoxWithData extends Widget {
+trait IsCheckBoxWithData extends Widget with HasData {
   def data:Property[Json]
 
   private def checkbox2string(p: Json):JsDom.all.Modifier = {

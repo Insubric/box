@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget.array
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import scalatags.JsDom
@@ -35,7 +35,9 @@ object ChoicesWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = ChoicesWidgetImpl(params)
 
-  case class ChoicesWidgetImpl(params: WidgetParams) extends Widget {
+  case class ChoicesWidgetImpl(params: WidgetParams) extends Widget with HasData {
+
+    override def data: Property[Json] = params.prop
 
     override def field: JSONField = params.field
 

@@ -19,11 +19,12 @@
 
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-        <script>
-            const swUrl = '@{basePath}sw.js?basePath=' + encodeURIComponent('@{basePath}');
-            navigator.serviceWorker.register(swUrl)
-        </script>
-
+        @if(!devServer) {
+            <script>
+                    const swUrl = '@{basePath}sw.js?basePath=' + encodeURIComponent('@{basePath}');
+                    navigator.serviceWorker.register(swUrl)
+            </script>
+        }
         <!-- remove hash -->
         <script>
                 if(window.location.hash.startsWith("#/")) {

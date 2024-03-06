@@ -139,7 +139,6 @@ trait LookupWidget extends Widget with HasData {
     fieldLookup.lookupQuery.flatMap(JSONQuery.fromJson) match {
       case Some(query) => {
         autoRelease(allData.listen({ allJs =>
-          println("TTTT")
           BrowserConsole.log(allJs)
           val newQuery = query.withData(allJs,services.clientSession.lang())
           fetchRemoteLookup(fieldLookup)(newQuery)

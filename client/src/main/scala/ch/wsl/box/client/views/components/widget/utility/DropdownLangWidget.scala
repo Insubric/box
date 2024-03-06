@@ -4,7 +4,7 @@ package ch.wsl.box.client.views.components.widget.utility
 
 import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, JSONLookup, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
@@ -26,7 +26,9 @@ object DropdownLangWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = DropdownLangWidgetImpl(params)
 
-  case class DropdownLangWidgetImpl(params: WidgetParams) extends Widget {
+  case class DropdownLangWidgetImpl(params: WidgetParams) extends Widget with HasData {
+
+    override def data = params.prop
 
     import ch.wsl.box.client.Context._
 

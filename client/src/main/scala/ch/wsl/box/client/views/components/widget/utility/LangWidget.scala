@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget.utility
 
 
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
@@ -18,7 +18,9 @@ object LangWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = LangWidgetImpl(params)
 
-  case class LangWidgetImpl(params: WidgetParams) extends Widget {
+  case class LangWidgetImpl(params: WidgetParams) extends Widget with HasData {
+
+    override def data = params.prop
 
     import ch.wsl.box.client.Context._
 

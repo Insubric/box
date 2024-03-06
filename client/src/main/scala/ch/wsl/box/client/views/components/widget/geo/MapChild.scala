@@ -17,8 +17,10 @@ import scalatags.JsDom.all._
 
 import scala.concurrent.Future
 
-case class MapChild(params: WidgetParams) extends Widget { // with BoxOlMap with HasData with Logging {
+case class MapChild(params: WidgetParams) extends Widget with HasData { // with BoxOlMap with HasData with Logging {
   override def field: JSONField = params.field
+
+  override def data: Property[Json] = params.prop
 
   val parameters = params._allData.transform (js => Json.fromFields(field.map.toList.flatMap(_.parameters).map(f => f -> js.js(f))))
 
