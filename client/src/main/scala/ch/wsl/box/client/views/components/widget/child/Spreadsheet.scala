@@ -364,6 +364,7 @@ object Spreadsheet extends ComponentWidgetFactory {
                     valid <- w.valid()
 
                   } yield {
+                    logger.debug(s"On change col $colIndex row $rowIndex value: $result is valid: $valid")
                     if(!valid && editorValue != js.undefined) {
                       jsTable.jspreadsheet.setValue(cell,js.undefined.asInstanceOf[CellValue])
                       cell.innerHTML = ""

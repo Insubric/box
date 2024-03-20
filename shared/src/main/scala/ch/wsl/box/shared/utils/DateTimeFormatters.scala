@@ -126,6 +126,7 @@ object DateTimeFormatters {
       "yyyy-MM-dd",
       "yyyy-MM",
       "yyyy",
+      "dd.MM.yyyy"
     )
 
 

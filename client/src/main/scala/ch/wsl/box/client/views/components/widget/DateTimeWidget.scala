@@ -28,6 +28,7 @@ import ch.wsl.typings.flatpickr.distTypesOptionsMod.Hook
 import ch.wsl.typings.flatpickr.mod.flatpickr.Options.DateOption
 
 import java.util
+import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.util.Try
 import scala.scalajs.js.JSConverters._
@@ -53,6 +54,17 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   val id:ReadableProperty[Option[String]]
   val range:Boolean
   val allData:ReadableProperty[Json]
+
+  /**
+   * Tasform the label in data
+   *
+   * @param str
+   * @param ec
+   * @return
+   */
+  override def fromLabel(str: String)(implicit ec: ExecutionContext): Future[Json] = Future.successful{
+   dateTimeFormatters.parse(str).map(x => dateTimeFormatters.format(x).asJson).getOrElse(Json.Null)
+  }
 
   val format = field.params.flatMap(_.getOpt("format"))
 
