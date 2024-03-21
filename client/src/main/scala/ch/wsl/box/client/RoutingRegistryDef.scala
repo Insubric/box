@@ -6,6 +6,8 @@ import io.udash._
 import org.scalajs.dom
 import scribe.Logging
 
+import scala.scalajs.js
+
 class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   import Context._
   def matchUrl(url: Url): RoutingState = {
@@ -13,7 +15,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
       .takeWhile(_ != '?')
       .stripSuffix("/")
 
-    val localUrl = if(_localUrl.isEmpty) "/" else _localUrl
+    val localUrl = if(_localUrl == null || js.isUndefined(_localUrl) || _localUrl.isEmpty) "/" else _localUrl
 
 
     logger.info(s"match URL $localUrl logged: ${services.clientSession.isSet(ClientSession.USER)}")
