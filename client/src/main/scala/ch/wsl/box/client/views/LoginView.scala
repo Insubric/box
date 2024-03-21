@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views
 
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{ClientConf, Labels, UI}
 import ch.wsl.box.client.views.components.{LoginData, LoginForm}
 import ch.wsl.box.client.{IndexState, LoginState, LoginStateAbstract}
 import io.udash._
@@ -44,6 +44,7 @@ case class LoginView(presenter:LoginPresenter) extends View {
 
 
   override def getTemplate = div(
+    div(BootstrapStyles.container)(raw(UI.loginTopHtml)),
     div(BootstrapStyles.container, height := 400.px)(
       div(BootstrapStyles.Grid.row,
           BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Center),
@@ -61,6 +62,7 @@ case class LoginView(presenter:LoginPresenter) extends View {
           )
         )
       )
-    )
+    ),
+    div(BootstrapStyles.container)(raw(UI.loginBottomHtml)),
   )
 }
