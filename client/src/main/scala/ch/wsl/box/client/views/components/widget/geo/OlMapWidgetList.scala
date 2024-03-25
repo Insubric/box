@@ -40,7 +40,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
 
   override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
-    mapControls.finishDrawing()
+    mapControls.foreach(_.finishDrawing())
     Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> this.data.get))))
   }
 
@@ -91,11 +91,11 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       div(
         div(
           ClientConf.style.mapSearch,
-          mapControls.searchBox,
+          mapControls.map(_.searchBox).toSeq,
           div(
             BootstrapStyles.Button.group,
             BootstrapStyles.Button.groupSize(BootstrapStyles.Size.Small),
-            mapControls.gpsButtonGoTo
+            mapControls.map(_.gpsButtonGoTo).toSeq
           )
         )
       ),
@@ -112,7 +112,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         import ch.wsl.box.model.shared.GeoJson.Geometry._
         import ch.wsl.box.model.shared.GeoJson._
 
-        mapControls.renderControls(nested)
+        mapControls.toSeq.flatMap(_.renderControls(nested))
 
 
 

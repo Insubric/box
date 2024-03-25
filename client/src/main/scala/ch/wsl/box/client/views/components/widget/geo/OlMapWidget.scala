@@ -139,7 +139,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     data.set(newData.asJson)
   }
 
-  var mapControls:MapControls = null
+  var mapControls = Option.empty[MapControls]
 
   private var _mapDiv:Option[Div] = None
   private var originalHeight:Option[String] = None
@@ -195,9 +195,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
     val controlParams = MapControlsParams(map,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
-    mapControls = controlFactory(controlParams)
-    baseLayer.get.foreach( l => mapControls.baseLayer.set(l.name))
-    autoRelease(mapControls.baseLayer.listen{ bs =>
+    val _mapControls = controlFactory(controlParams)
+    mapControls = Some(_mapControls)
+    baseLayer.get.foreach( l => _mapControls.baseLayer.set(l.name))
+    autoRelease(_mapControls.baseLayer.listen{ bs =>
       baseLayer.set(options.baseLayers.toSeq.flatten.find(_.name == bs))
     })
 
@@ -265,7 +266,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
       TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       nested(produce(data) { geo =>
-        mapControls.renderControls(nested)
+        mapControls.toSeq.flatMap(_.renderControls(nested))
       }),
       mapDiv
     )
