@@ -80,8 +80,8 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
       div(fontSize := 18.px, color := ClientConf.styleConf.colors.main.value,
         services.clientSession.lang() match {
           case "de" => a("Übersicht zum Gebrauch der Karte",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_de.pdf", target := "_blank")
-          case "it" => a("Aperçu de l'utilisation de la carte ",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_fr.pdf", target := "_blank")
-          case "fr" => a("Istruzioni d'uso mappa",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_it.pdf", target := "_blank")
+          case "fr" => a("Aperçu de l'utilisation de la carte ",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_fr.pdf", target := "_blank")
+          case "it" => a("Istruzioni d'uso mappa",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_it.pdf", target := "_blank")
           case _ => span()
         }
       ),
