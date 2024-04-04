@@ -330,6 +330,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   var reloadCount = 0 // avoid out of order
 
+
+  def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
+  def loadGeoms(extent:Option[Polygon] = None) = {
+    Future.sequence(model.get.metadata.toList.flatMap(_.geomFields).map{ f =>
+      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, f.name, query(extent).limit(10000000))
+    }).foreach{ geoms =>
+      model.subProp(_.geoms).set(geoms.flatten)
+    }
+  }
+
   def reloadRows(page:Int,extent:Option[Polygon] = None): Future[Unit] = {
 
     reloadCount = reloadCount + 1
@@ -347,12 +357,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     //start request in parallel
     val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
-    if(hasGeometry()) {
-      Future.sequence(model.get.metadata.toList.flatMap(_.geomFields).map{ f =>
-          services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, f.name, q.limit(10000000))
-      }).foreach{ geoms =>
-        model.subProp(_.geoms).set(geoms.flatten)
-      }
+    if(hasGeometry() && !defaultClose) {
+      loadGeoms(extent)
     }
 
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
@@ -635,8 +641,11 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   var map:Option[Div] = None
 
-  def showMap(metadata:JSONMetadata) = {
+  def showMap(metadata:JSONMetadata) = (show:ReadableProperty[Boolean]) => showIf(show){
     if(presenter.hasGeometry()) {
+
+      if(model.subProp(_.geoms).get.isEmpty)
+        presenter.loadGeoms(model.subProp(_.extent).get)
 
       if(window.innerWidth < 600)  { // is mobile
         map = Some(div(height := (window.innerHeight - 50).px).render)
@@ -667,7 +676,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   override def getTemplate: generic.Modifier[Element] = div(
     produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
       if (presenter.hasGeometry()) {
-        div(TwoPanelResize(showMap(metadata.getOrElse(JSONMetadata.stub)),mainTable(metadata,nested))).render
+
+        div(new TwoPanelResize(presenter.defaultClose)(showMap(metadata.getOrElse(JSONMetadata.stub)),mainTable(metadata,nested))).render
       } else {
         div(mainTable(metadata,nested)).render
       }

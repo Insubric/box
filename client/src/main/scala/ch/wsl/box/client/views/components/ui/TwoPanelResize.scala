@@ -5,6 +5,7 @@ import ch.wsl.box.client.styles.{Icons, StyleConf}
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.UdashIcons
 import org.scalajs.dom._
 import scalatags.generic.Attr
@@ -13,7 +14,7 @@ import scala.util.Random
 
 
 //  Ref https://phuoc.ng/collection/html-dom/create-resizable-split-views/
-object TwoPanelResize {
+class TwoPanelResize(defaultClose:Boolean) {
 
   val leftDefaultWidth = 40
 
@@ -29,9 +30,9 @@ object TwoPanelResize {
 
     val containerLeft = style(
       width(leftDefaultWidth %%),
-      media.maxWidth(600 px)(
+      if(defaultClose) width.`0` else { media.maxWidth(600 px)(
         width.`0` //:= "calc(100% - 15px)"
-      ),
+      )},
       flexShrink(0),
       backgroundColor.white,
       zIndex(2)
@@ -88,7 +89,9 @@ object TwoPanelResize {
 
 
 
-  def apply(leftPanel:Modifier,rightPanel:Modifier):Modifier = {
+  def apply(leftPanel:ReadableProperty[Boolean] => Binding,rightPanel:Modifier):Modifier = {
+
+    val open = Property(true)
 
     val style = Style(ClientConf.styleConf)
     val styleElement = document.createElement("style")
@@ -99,8 +102,9 @@ object TwoPanelResize {
     val closeId = s"close-${Random.alphanumeric.take(8)}"
     val openLabel = i(UdashIcons.FontAwesome.Solid.caretRight, id := openId).render
     val closeLabel = i(UdashIcons.FontAwesome.Solid.caretLeft, id := closeId).render
-    if(window.innerWidth < 600) { // on mobile default not showing map
+    if(window.innerWidth < 600 || defaultClose) { // on mobile default not showing map
       closeLabel.classList.add(style.hide.htmlClass)
+      open.set(false)
     } else {
       openLabel.classList.add(style.hide.htmlClass)
     }
@@ -131,11 +135,13 @@ object TwoPanelResize {
         document.getElementById(openId).classList.add(style.hide.htmlClass)
         document.getElementById(closeId).classList.remove(style.hide.htmlClass)
         window.dispatchEvent(new Event("resize"))
+        open.set(true)
       } else {
         rightSide.style.display =  "block"
         leftSide.style.width =  "0%"
         document.getElementById(openId).classList.remove(style.hide.htmlClass)
         document.getElementById(closeId).classList.add(style.hide.htmlClass)
+        open.set(false)
       }
     })
 
@@ -211,7 +217,7 @@ object TwoPanelResize {
     Seq[Modifier](
       styleElement,
       div(style.container,
-        div(style.containerLeft,leftPanel),
+        div(style.containerLeft,leftPanel(open)),
         resizer,
         div(style.containerRight,
           rightPanel
