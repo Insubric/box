@@ -15,6 +15,7 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{FullDatabase, Managed, TypeMapping}
 import ch.wsl.box.rest.runtime.{ColType, RegistryInstance}
 import ch.wsl.box.services.Services
+import io.circe.Json
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
@@ -157,7 +158,8 @@ object EntityMetadataFactory extends Logging {
             None,
             fieldList,
             None,
-            FormActionsMetadata.default
+            FormActionsMetadata.default,
+            params = Some(Json.fromFields(Map("maxWidth" -> Json.fromInt(800), "hideFooter" -> Json.True)))
           )
         }
 

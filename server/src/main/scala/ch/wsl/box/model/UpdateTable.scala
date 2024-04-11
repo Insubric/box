@@ -99,7 +99,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     val selector = fields.map(f => "\"" + f + "\"").mkString(",")
 
     val q = concat(concat(
-      concat(jsonbBuilder(fields), sql""" from (select distinct #$selector from #${t.schemaName.getOrElse("public")}.#${t.tableName} """),
+      concat(jsonbBuilder(fields), sql""" from (select distinct #$selector from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """),
       whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
     ), sql""" )  as t(#$selector)  """).as[Json]
     q
@@ -117,7 +117,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
 
         val q = concat(
-          sql"""select count(*) from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
+          sql"""select count(*) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """,
           where
         ).as[Int].head
         q

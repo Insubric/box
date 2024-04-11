@@ -72,7 +72,7 @@ object Layout extends Logging {
   }
 
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
-    LayoutBlock(None,6,None,fields.map(x => Left(x.name)))
+    LayoutBlock(None,12,None,fields.map(x => Left(x.name)))
   ))
 }
 
