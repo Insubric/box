@@ -448,7 +448,19 @@ object EditableTable extends ChildRendererFactory {
                       widgets.addOne(rowWidgets)
                       val (childWidget,rowIdx) = getWidget(row.get)
 
-                      tr(tableStyle.tr,data("row") := rowIdx,
+                      val color = for {
+                        colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
+                        color <- childWidget.data.get.getOpt(colorField)
+                      } yield backgroundColor := color
+
+
+                      val borderColor = for {
+                        colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
+                        color <- childWidget.data.get.getOpt(colorField)
+                      } yield Seq(borderLeftColor := color,borderRightColor := color)
+
+
+                      tr(tableStyle.tr,color,data("row") := rowIdx,
                         for ((field,columnIdx) <- f.zipWithIndex) yield {
                           val (params, widget) = colContentWidget(childWidget, field, m)
                           rowWidgets.addOne(widget)
@@ -460,7 +472,7 @@ object EditableTable extends ChildRendererFactory {
                                 field.readOnly ||
                                   WidgetUtils.isKeyNotEditable(m, field, params.id.get)
                               ) widget.showOnTable(nested) else widget.editOnTable(nested))
-                            }, tableStyle.td, colWidth)
+                            }, tableStyle.td,borderColor, colWidth)
                           }
                         },
                         if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
