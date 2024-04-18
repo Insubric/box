@@ -27,7 +27,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
 
   private def jsonbBuilder(fields: Seq[String]):SQLActionBuilder = {
-    val head = sql"""select jsonb_build_object( """
+    val head = sql"""jsonb_build_object( """
     val body = fields.zipWithIndex.foldLeft(head) { case (q, (field, i)) =>
       val q2 = if (i > 0) concat(q, sql""" , """) else q
       concat(q2, sql""" '#$field', "#$field" """)
@@ -45,7 +45,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
   private def doFetch(fields: Seq[String], where: SQLActionBuilder) = checkFields(fields) {
     if (fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
-    val complete = concat(jsonbBuilder(fields), concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
+    val complete = concat(concat(sql"select ",jsonbBuilder(fields)), concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
     complete.as[Json]
   } match {
     case Left(value) => DBIO.failed(value)
@@ -53,6 +53,17 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
   }
 
   def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
+
+  def fetchGeom(properties:Seq[String],field:String,query: JSONQuery):DBIO[Seq[(Geometry,Json)]] = checkFields(properties ++ Seq(field)) {
+
+    val notNullQ = query.copy(filter = query.filter ++ Seq(JSONQueryFilter(field,Some(Filter.IS_NOT_NULL),Some(" "),None)))
+
+    val complete = concat(sql""" select "#$field", """, concat(jsonbBuilder(properties),concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, whereBuilder(notNullQ))))
+    complete.as[(Geometry,Json)]
+  } match {
+    case Left(value) => DBIO.failed(value)
+    case Right(value) => value
+  }
 
   def ids(keys:Seq[String],query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[JSONID]] = doFetch(keys,whereBuilder(query)).map{ rows =>
     rows.map(row => JSONID.fromData(row,keys))
@@ -99,7 +110,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     val selector = fields.map(f => "\"" + f + "\"").mkString(",")
 
     val q = concat(concat(
-      concat(jsonbBuilder(fields), sql""" from (select distinct #$selector from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """),
+      concat(concat(sql"select ",jsonbBuilder(fields)), sql""" from (select distinct #$selector from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """),
       whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
     ), sql""" )  as t(#$selector)  """).as[Json]
     q

@@ -5,6 +5,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, CurrentUser, DataResultTable, EntityKind, ExportDef, Field, GeoJson, GeoTypes, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
@@ -38,8 +39,8 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def csv(kind:String, lang:String, entity:String, q:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = httpClient.post[JSONQuery,String](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/csv"),q).map{ result =>
     result.asUnsafeCsvReader[Seq[String]](rfc).toSeq
   }
-  override def geoData(kind:String, lang:String, entity:String, field:String, query:JSONQuery)(implicit ec:ExecutionContext): Future[GeoTypes.GeoData] = {
-    httpClient.post[JSONQuery,GeoTypes.GeoData](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data/$field"),query)
+  override def geoData(kind:String, lang:String, entity:String, field:String, request:GeoDataRequest)(implicit ec:ExecutionContext): Future[GeoTypes.GeoData] = {
+    httpClient.post[GeoDataRequest,GeoTypes.GeoData](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data/$field"),request)
   }
 
   def count(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Int] = httpClient.get[Int](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/count"))

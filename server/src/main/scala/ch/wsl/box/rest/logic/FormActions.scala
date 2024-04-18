@@ -90,7 +90,12 @@ case class FormActions(metadata:JSONMetadata,
 
   override def fetchFields(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = for{
     q <- queryForm(query)
-    result <- jsonAction.fetchFields(fields,query)
+    result <- jsonAction.fetchFields(fields,q)
+  } yield result
+
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]] = for {
+    q <- queryForm(query)
+    result <- jsonAction.fetchGeom(properties,field, q)
   } yield result
 
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {

@@ -308,7 +308,7 @@ case class Form(
         shp ~
         geoPkg
     } ~
-    GeoData(db,actions, metadata) ~
+    GeoData(db,actions) ~
     lookups(actions) ~
     pathEnd {
         post {

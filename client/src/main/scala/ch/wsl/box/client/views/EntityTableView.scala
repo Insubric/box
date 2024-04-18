@@ -11,6 +11,7 @@ import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.GeoJson.Polygon
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{JSONQuery, _}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -333,10 +334,15 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
   def loadGeoms(extent:Option[Polygon] = None) = {
-    Future.sequence(model.get.metadata.toList.flatMap(_.geomFields).map{ f =>
-      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, f.name, query(extent).limit(10000000))
-    }).foreach{ geoms =>
-      model.subProp(_.geoms).set(geoms.flatten)
+    model.get.metadata.foreach{ m =>
+      Future.sequence(m.geomFields.map{ f =>
+        val tableEntity = m.view.getOrElse(m.entity)
+        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys))
+
+      }).foreach{ geoms =>
+        model.subProp(_.geoms).set(geoms.flatten)
+      }
+
     }
   }
 

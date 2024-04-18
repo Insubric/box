@@ -6,7 +6,7 @@ import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection}
 import ch.wsl.box.model.shared.GeoTypes.GeoData
 import ch.wsl.box.model.shared.JSONQuery
-import ch.wsl.box.model.shared.geo.{Box2d, DbVector, MapLayerMetadata, MapMetadata, WMTS}
+import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GeoDataRequest, MapLayerMetadata, MapMetadata, WMTS}
 import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
@@ -270,7 +270,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       case None => baseQuery
     }
 
-    services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.field,query).map(x => (vector,x))
+    services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.field,GeoDataRequest(query,Seq())).map(x => (vector,x))
   }
 
 

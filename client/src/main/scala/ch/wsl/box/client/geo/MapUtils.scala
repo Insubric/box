@@ -122,17 +122,15 @@ object MapUtils extends Logging {
     }
   }
 
-  def toJsonId(map: mod.Map,e: MapBrowserEvent[_]): Option[JSONID] = {
+  def toJsonId(map: mod.Map,keys:Seq[String],e: MapBrowserEvent[_]): Option[JSONID] = {
     val features = MapUtils.getFeatures(map, e)
 
     import io.circe.generic.auto._
 
     for {
       clicked <- features.headOption
-      id <- clicked.getProperties().get("jsonid")
-      js <- convertJsToJson(id.asInstanceOf[js.Any]).toOption
-      jsonid <- js.as[JSONID].toOption
-    } yield jsonid
+      js <- convertJsToJson(clicked.getProperties().asInstanceOf[js.Any]).toOption
+    } yield JSONID.fromData(js,keys)
   }
 
   def geomToString(g: Geometry,precision:Option[Double],formatters:Option[MapFormatters]): String = {

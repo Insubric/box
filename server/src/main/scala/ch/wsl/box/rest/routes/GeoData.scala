@@ -4,6 +4,7 @@ import akka.http.scaladsl.server.Directives.pathPrefix
 import akka.http.scaladsl.server.Route
 import ch.wsl.box.jdbc.UserDatabase
 import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{Filter, GeoJson, GeoTypes, JSONID, JSONMetadata, JSONQuery, JSONQueryFilter}
 import ch.wsl.box.rest.logic.ViewActions
 import ch.wsl.box.rest.utils.JSONSupport
@@ -29,20 +30,27 @@ object GeoData {
   import ch.wsl.box.shared.utils.Formatters._ //need to be after circe generic auto or it will be overridden
   import ch.wsl.box.shared.utils.JSONUtils._
 
-  def apply(db: UserDatabase, actions:ViewActions[_],metadata:JSONMetadata)(implicit ex:ExecutionContext): Route = pathPrefix("geo-data") {
+  def apply(db: UserDatabase, actions:ViewActions[_])(implicit ex:ExecutionContext): Route = pathPrefix("geo-data") {
     path(Segment) { field =>
       post {
-        entity(as[JSONQuery]) { query =>
+        entity(as[GeoDataRequest]) { gdr =>
           complete {
             for {
-              data <- db.run(actions.fetchFields(metadata.keys ++ Seq(field), query.copy(filter = query.filter ++ Seq(JSONQueryFilter(field,Some(Filter.IS_NOT_NULL),Some(" "),None)))))
+              data <- db.run(actions.fetchGeom(gdr.properties,field, gdr.query))
             } yield {
-              val result: GeoTypes.GeoData = data.flatMap { d =>
-                for {
-                  geom <- d.js(field).as[Geometry].toOption
-                } yield {
-                  val id = JSONID.fromData(d, metadata.keys)
-                  GeoJson.Feature(geom, Some(JsonObject("jsonid" -> id.asJson)))
+              val result: GeoTypes.GeoData = data.map { d =>
+
+                  GeoJson.Feature(d._2, d._1.asObject)
+
+              }
+              val t = result.foreach{f =>
+                f.asJson.as[GeoJson.Feature] match {
+                  case Left(value) => {
+                    println(value)
+                    println(f.asJson)
+                    println(f)
+                  }
+                  case Right(value) => ()
                 }
               }
               result

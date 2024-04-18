@@ -128,7 +128,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     map.asInstanceOf[js.Dynamic].on(olStrings.pointermove, (e: MapBrowserEvent[_]) => {
       dom.document.getElementsByClassName(StyleConstants.mapHoverClass).foreach(_.classList.remove(StyleConstants.mapHoverClass))
       for {
-        id <- MapUtils.toJsonId(map,e)
+        id <- MapUtils.toJsonId(map,metadata.keys,e)
       } yield {
         val el = dom.document.getElementById(ElementId.tableRow(id.asString))
         if (el != null) {
@@ -139,7 +139,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
     map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
       for {
-        id <- MapUtils.toJsonId(map,e)
+        id <- MapUtils.toJsonId(map,metadata.keys,e)
       } yield edit(id.asString)
     })
 

@@ -316,7 +316,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       csv ~
       shp ~
       geoPkg ~
-      GeoData(db,dbActions, jsonMetadata) ~
+      GeoData(db,dbActions) ~
       lookups(dbActions) ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~

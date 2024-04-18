@@ -4,6 +4,7 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{CRS, Coordinates, Polygon}
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{JSONMetadata, JSONQuery}
 import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
@@ -88,7 +89,7 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
 
     val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent(crs))
 
-    services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, query).foreach { geoms =>
+    services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, GeoDataRequest(query,Seq())).foreach { geoms =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
 
       vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
