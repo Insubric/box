@@ -3,6 +3,8 @@ package ch.wsl.box.client.mocks
 import ch.wsl.box.client.services.REST
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
+import ch.wsl.box.model.shared.GeoTypes.GeoData
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, Child, CurrentUser, ExportDef, Field, FormActionsMetadata, GeoJson, GeoTypes, IDs, JSONCount, JSONField, JSONFieldMap, JSONFieldTypes, JSONID, JSONKeyValue, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, Layout, LayoutBlock, LoginRequest, NewsEntry, PDFTable, SharedLabels, TableAccess, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
@@ -58,7 +60,7 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def geoData(kind:String, lang:String, entity:String, query:JSONQuery)(implicit ec:ExecutionContext): Future[GeoTypes.GeoData] = ???
+  override def geoData(kind: String, lang: String, entity: String, field: String, request: GeoDataRequest)(implicit ec: ExecutionContext): Future[GeoData] = ???
 
   override def csv(kind: String, lang: String, entity: String, q: JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
     println("csv not implemented")

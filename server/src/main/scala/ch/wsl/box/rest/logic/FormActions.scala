@@ -16,7 +16,7 @@ import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection, Geometry}
 import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
@@ -90,7 +90,12 @@ case class FormActions(metadata:JSONMetadata,
 
   override def fetchFields(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = for{
     q <- queryForm(query)
-    result <- jsonAction.fetchFields(fields,query)
+    result <- jsonAction.fetchFields(fields,q)
+  } yield result
+
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]] = for {
+    q <- queryForm(query)
+    result <- jsonAction.fetchGeom(properties,field, q)
   } yield result
 
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
@@ -363,9 +368,14 @@ case class FormActions(metadata:JSONMetadata,
   }
 
   def update(id:JSONID, e:Json):DBIO[Json] = {
+
+    val _mapData = e.filterFields(metadata.fields.filter(_.map.isDefined))
+    val mapData =  _mapData.asObject.toList.flatMap(_.values).flatMap(_.as[FeatureCollection].toOption)
+
     for{
       result <- updateOneLevel(id,insertNullForMissingFields(e))
       childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
+      _ <- DBIO.sequence(mapData.flatMap(_.features).map(MapActions.save))
     } yield result
       .filterFields(metadata.fields) // don't expose data not contained in the current form
       .deepMerge(Json.fromFields(childs))

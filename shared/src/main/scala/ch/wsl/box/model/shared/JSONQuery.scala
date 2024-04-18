@@ -27,8 +27,8 @@ case class JSONQuery(
   def currentPage = paging.map(_.currentPage).getOrElse(1)
   def pageLength(n:Int) = paging.map(_.pageLength).getOrElse(n)
   def limit(limit:Int) = copy(paging= Some(paging.getOrElse(JSONQueryPaging(1,1)).copy(pageLength = limit)))
-  def withData(json:Json,lang:String) = this.copy(
-    filter = filter.map(_.withData(json)).map{f =>
+  def withData(json:Json,lang:String,ignoreNulls:Boolean = false) = this.copy(
+    filter = filter.map(_.withData(json)).filter(f => !ignoreNulls || f.value.isDefined).map{f =>
       if(f.value.contains("##lang")) f.copy(value = Some(lang)) else f
     },
     sort = sort.map{ s =>
@@ -162,10 +162,11 @@ object JSONQuery extends Logging {
     }
   }
 
-  def fromJson(js:Json): Option[JSONQuery] = js.as[JSONQuery] match {
+
+  def fromJson(j:Json): Option[JSONQuery] =  j.as[JSONQuery] match {
     case Right(value) => Some(value)
     case Left(value) => {
-      logger.warn(s"Unable to parse JSONQuery: ${value.message} of $js")
+      logger.warn(s"Unable to parse JSONQuery: ${value.message} of $j")
       None
     }
   }

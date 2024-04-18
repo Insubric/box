@@ -1,6 +1,7 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
+import scalajsbundler.util.JSON
 
 val publishSettings = List(
   Global / scalaJSStage := FullOptStage,
@@ -142,11 +143,11 @@ lazy val client: Project = (project in file("client"))
     scalaJSUseMainModuleInitializer := true,
     scalaJSStage := FullOptStage,
     Compile / npmDependencies ++= Seq(
-      "ol" -> "6.3.1",
-      "@types/ol" -> "6.3.1",
-      "proj4" -> "2.8.0",
-      "@types/proj4" -> "2.5.2",
-      "ol-ext" -> "3.1.14",
+      "ol" -> "8.1.0",
+      "proj4" -> "2.9.1",
+      "@types/proj4" -> "2.5.3",
+      "ol-ext" -> "4.0.11",
+      //"@siedlerchr/types-ol-ext" -> "3.2.4",
       "jsts" -> "2.7.1",
       "@types/jsts" -> "0.17.13",
       "jquery" -> "3.4.1",
@@ -176,7 +177,7 @@ lazy val client: Project = (project in file("client"))
       "jspdf" -> "2.5.1",
       "jspdf-autotable" -> "3.5.28",
       "gridstack" -> "8.3.0",
-      "jspreadsheet-ce" -> "git+https://github.com/minettiandrea/jspreadsheet-ce.git#c35aa1194f1309af81f2862f911408c6fce5812e"
+      "jspreadsheet-ce" -> "4.13.4"//"git+https://github.com/minettiandrea/jspreadsheet-ce.git#c35aa1194f1309af81f2862f911408c6fce5812e"
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",
@@ -185,8 +186,10 @@ lazy val client: Project = (project in file("client"))
     stIgnore += "@fortawesome/fontawesome-free",
     stIgnore += "stream-browserify",
     stTypescriptVersion := "4.2.4",
+    stOutputPackage := "ch.wsl.typings",
     // Use library mode for fastOptJS
-    fastOptJS / webpackBundlingMode := BundlingMode.LibraryOnly(),
+    //Compile / additionalNpmConfig := Map("sideEffects" -> JSON.bool(false)),
+    fastOptJS / webpackBundlingMode := BundlingMode.Application,
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / ".." / "dev.config.js"),
     // Use application model mode for fullOptJS
     fullOptJS / webpackBundlingMode := BundlingMode.Application,
@@ -201,12 +204,10 @@ lazy val client: Project = (project in file("client"))
       "monaco-editor-webpack-plugin" -> "7.0.1",
       "file-loader" -> "6.2.0",
     ),
-    // https://scalacenter.github.io/scalajs-bundler/cookbook.html#webpack-dev-server
-    webpackDevServerPort := 8888,
-    webpack / version := "5.74.0",
-    webpackCliVersion := "4.10.0",
+
+    webpack / version := "5.89.0",
+    webpackCliVersion := "5.1.4",
     installJsdom / version := "20.0.0",
-    startWebpackDevServer / version  := "4.11.1",
 
     //To use jsdom headless browser uncomment the following lines
     Test / requireJsDomEnv := true,
@@ -233,7 +234,7 @@ lazy val client: Project = (project in file("client"))
   .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
-    ScalablyTypedConverterPlugin,
+    ScalablyTypedConverterGenSourcePlugin,
     LocalesPlugin
   )
   .dependsOn(sharedJS)

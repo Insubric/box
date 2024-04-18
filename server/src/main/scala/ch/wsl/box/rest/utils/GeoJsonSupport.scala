@@ -82,6 +82,13 @@ object GeoJsonSupport {
     }
   }
 
+  def fromJTS(a: org.locationtech.jts.geom.Geometry) = {
+    a match {
+      case collection: org.locationtech.jts.geom.GeometryCollection => multiGeometries(collection)
+      case _ => simpleGeometry(a)
+    }
+  }
+
   def toJTSCoordinate(coord:Coordinates):org.locationtech.jts.geom.Coordinate = new org.locationtech.jts.geom.Coordinate(coord.x,coord.y)
 
 
@@ -89,11 +96,7 @@ object GeoJsonSupport {
   implicit val GeoJSON: Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] = new Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] {
 
     override def apply(a: org.locationtech.jts.geom.Geometry): Json = {
-      val geometry: Geometry = a match {
-        case collection: org.locationtech.jts.geom.GeometryCollection => multiGeometries(collection)
-        case _ => simpleGeometry(a)
-      }
-      geometry.asJson
+      fromJTS(a).asJson
     }
 
 

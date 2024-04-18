@@ -3,6 +3,7 @@ package ch.wsl.box.client.services
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared._
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import io.circe.Json
 import org.scalajs.dom
 import org.scalajs.dom.File
@@ -24,7 +25,7 @@ trait REST{
   def list(kind:String, lang:String, entity:String, limit:Int)(implicit ec:ExecutionContext): Future[Seq[Json]]
   def list(kind:String, lang:String, entity:String, query:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Json]]
 
-  def geoData(kind:String, lang:String, entity:String, query:JSONQuery)(implicit ec:ExecutionContext):Future[GeoTypes.GeoData]
+  def geoData(kind:String, lang:String, entity:String, field:String, request:GeoDataRequest)(implicit ec:ExecutionContext):Future[GeoTypes.GeoData]
   def csv(kind:String, lang:String, entity:String, q:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]]
   def count(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Int]
   def keys(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Seq[String]]

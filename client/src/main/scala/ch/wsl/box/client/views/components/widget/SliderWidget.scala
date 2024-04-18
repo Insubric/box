@@ -14,8 +14,8 @@ import org.scalajs.dom.html.Div
 import org.scalajs.dom.{Element, Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
-import typings.std.EventListener
-import typings.toolcoolRangeSlider.mod.RangeSlider
+import ch.wsl.typings.std.EventListener
+import ch.wsl.typings.toolcoolRangeSlider.mod.RangeSlider
 
 
 object SliderWidget extends ComponentWidgetFactory {
@@ -29,13 +29,12 @@ object SliderWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = SliderWidgetImpl(params)
 
-  case class SliderWidgetImpl(params: WidgetParams) extends Widget {
+  case class SliderWidgetImpl(params: WidgetParams) extends Widget with HasData {
 
     override def field: JSONField = params.field
 
 
-
-
+    override def data: Property[Json] = params.prop
 
     def secondaryLabel:String = WidgetUtils.i18nLabel(params.field.params,"secondaryLabel").getOrElse("")
     def unit = params.field.params.flatMap(_.getOpt("unit")).getOrElse("")

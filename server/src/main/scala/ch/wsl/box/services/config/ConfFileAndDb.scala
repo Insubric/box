@@ -79,6 +79,11 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
   def port = Try(_conf("port").toInt).getOrElse(8080)
   def origins = Try(_conf("origins")).map(_.split(",").toSeq.map(_.trim)).getOrElse(Seq[String]())
 
+  override def mainColor: String = _conf("color.main")
+  override def name: String = _conf.getOrElse("name","Box framework")
+  override def shortName: String = _conf.getOrElse("name.short", "Box")
+  override def initials: String = _conf.getOrElse("initials",shortName.split(" ").map(_.take(1)).mkString("").toUpperCase)
+
   def loggerLevel = Try(_conf("logger.level")).getOrElse("warn").toLowerCase match {
     case "trace" => Level.Trace
     case "debug" => Level.Debug

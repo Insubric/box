@@ -55,6 +55,8 @@ object GeoJson {
   implicit val encoderCoordinates: Encoder[Coordinates] = Encoder.instance( e => Json.arr(e.x.asJson,e.y.asJson) )
   implicit val featureEncoder: Encoder[Feature] = deriveEncoder[Feature]
   implicit val featureDecoder: Decoder[Feature] = deriveDecoder[Feature]
+  implicit val featureCollectionEncoder: Encoder[FeatureCollection] = deriveEncoder[FeatureCollection]
+  implicit val featureCollectionDecoder: Decoder[FeatureCollection] = deriveDecoder[FeatureCollection]
 
 
 
@@ -247,7 +249,7 @@ object GeoJson {
         case "multilinestring" => c.downField("coordinates").as[Seq[Seq[Coordinates]]].map{ coords => MultiLineString(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
         case "polygon" => c.downField("coordinates").as[Seq[Seq[Coordinates]]].map{ coords => Polygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
         case "multipolygon" => c.downField("coordinates").as[Seq[Seq[Seq[Coordinates]]]].map{ coords => MultiPolygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
-        case "geometrycollection" => c.downField("coordinates").as[Seq[Geometry]].map{ geoms => GeometryCollection(geoms,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "geometrycollection" => c.downField("geometries").as[Seq[Geometry]].map{ geoms => GeometryCollection(geoms,c.downField("crs").as[CRS].getOrElse(CRS.default))}
       }
     }
   }

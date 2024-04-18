@@ -132,32 +132,12 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
           complete {
             for {
               data <- PSQLImpl.table(name, query)
-              shapefile <- GeoPackageWriter.write(name,data.get)
+              shapefile <- GeoPackageWriter.write(name, data.get)
             } yield {
               HttpResponse(entity = HttpEntity(MediaTypes.`application/octet-stream`, shapefile))
             }
           }
         }
-      }
-    }
-  }
-
-  def geoData:Route = path("geo-data") {
-    post {
-        entity(as[JSONQuery]) { query =>
-          complete {
-            for {
-              data <- PSQLImpl.table(name, query)
-            } yield {
-              val result: GeoTypes.GeoData = data.map{d=>
-                val innerResult = d.geometry.map { geom =>
-                  geom._1 -> d.idString.zip(geom._2).flatMap{ case (id,geo) => geo.map(g => GeoJson.Feature(g,Some(JsonObject("jsonid" -> id.asJson))))}
-                }
-                innerResult
-              }.getOrElse(Map())
-              result
-            }
-          }
       }
     }
   }
@@ -336,7 +316,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       csv ~
       shp ~
       geoPkg ~
-      geoData ~
+      GeoData(db,dbActions) ~
       lookups(dbActions) ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~

@@ -18,7 +18,7 @@ import scalatags.generic.Attr
 import scala.concurrent.duration.DurationInt
 
 
-case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int)
+case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int, inputPercentage:Double)
 
 object GlobalStyleFactory{
   val CssSettings = scalacss.devOrProdDefaults; import CssSettings._
@@ -30,7 +30,7 @@ object GlobalStyleFactory{
 
     import dsl._
 
-    val inputDefaultWidth = width(50 %%)
+    val inputDefaultWidth = width(conf.inputPercentage %%)
 
     val inputHighlight = style(
       borderWidth(0 px,0 px,1 px,0 px),
@@ -75,6 +75,10 @@ object GlobalStyleFactory{
         StyleConstants.defaultFontSize,
         backgroundColor.white,
         Font.regular
+      ),
+
+      unsafeRoot("html, body") (
+        touchAction := "pan-x pan-y"
       ),
 
       unsafeRoot("h3") (
@@ -689,7 +693,7 @@ object GlobalStyleFactory{
       height :=! "calc(100vh - 150px)",
       media.maxWidth(600 px)(
         height :=! "calc(100vh - 110px)",
-        paddingBottom(70 px)
+        //paddingBottom(70 px)
       ),
       overflow.auto
     )
@@ -1071,7 +1075,7 @@ object GlobalStyleFactory{
     )
 
     val editor = style(
-      width(50.%%),
+      inputDefaultWidth,
       float.right,
       borderStyle.solid,
       borderWidth(1 px),
@@ -1088,6 +1092,25 @@ object GlobalStyleFactory{
       backgroundColor(Colors.GreyExtra),
       unsafeRoot("svg") (
         marginTop(-2.px)
+      ),
+    )
+
+    val controlInputs = style(
+      display.flex,
+      flexWrap.wrap,
+      alignItems.center,
+      width(100.%%),
+      backgroundColor(Colors.GreyExtra),
+      unsafeChild("input") (
+        margin.horizontal(5 px),
+        width.auto,
+        flexGrow(1),
+        alignItems.center
+      ),
+      unsafeChild("select") (
+        margin.horizontal(5 px),
+        flexGrow(1),
+        alignItems.center
       ),
     )
 
@@ -1145,12 +1168,15 @@ object GlobalStyleFactory{
       unsafeRoot(".active")(
         backgroundColor(conf.colors.main),
         color(conf.colors.mainText)
+      ),
+      &.attrExists("disabled") (
+        color(gray),
+        backgroundColor(Colors.GreyExtra),
       )
     )
 
     val mapLayerSelect = style(
       marginLeft(10 px),
-      width.auto,
       backgroundColor.transparent,
       &.hover(
         backgroundColor.transparent
@@ -1161,6 +1187,28 @@ object GlobalStyleFactory{
       unsafeChild("option") (
         color.black
       )
+    )
+
+    val mapLayerSelectFullscreen = style(
+      position.absolute,
+      right.`0`,
+      bottom(30 px),
+      backgroundColor.white,
+      padding(10 px),
+      unsafeChild("select") {
+        width(90 %%)
+      },
+      zIndex(1)
+    )
+
+    val mapFullscreen = style(
+      position.fixed,
+      top(50 px),
+      left.`0`,
+      width(100 %%),
+      backgroundColor.white,
+      zIndex(10),
+      height :=! "calc(100vh - 105px)"
     )
 
     val simpleInputBottomBorder = style(
@@ -1234,12 +1282,12 @@ object GlobalStyleFactory{
     )
 
     val label50 = style(
-      width(50 %%),
+      width((100-conf.inputPercentage) %%),
       display.inlineBlock
     )
 
     val inputRightLabel = style(
-      width(50 %%),
+      width((100-conf.inputPercentage) %%),
       padding.horizontal(10 px),
       textAlign.right
     )

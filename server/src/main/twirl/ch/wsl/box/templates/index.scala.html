@@ -1,14 +1,30 @@
 @import org.webjars.WebJarAssetLocator
 @import scala.util.Try
 @import scala.util.Random
-@(version:String,enableRedactor:Boolean,devServer:Boolean,basePath:String)
+@(version:String,enableRedactor:Boolean,devServer:Boolean,basePath:String,color:String)
 
 <!DOCTYPE html>
 <html>
     <head lang="en">
         <meta charset="UTF-8">
+        <link rel="manifest" href="@{basePath}manifest.webmanifest" />
+
+
+        <link rel="apple-touch-icon" sizes="180x180" href="@{basePath}apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="@{basePath}favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="@{basePath}favicon-16x16.png">
+        <meta name="msapplication-TileColor" content="@color">
+
+
+
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+@*        NOT READY @if(!devServer) {*@
+@*            <script>*@
+@*                    const swUrl = '@{basePath}sw.js?basePath=' + encodeURIComponent('@{basePath}');*@
+@*                    navigator.serviceWorker.register(swUrl)*@
+@*            </script>*@
+@*        }*@
         <!-- remove hash -->
         <script>
                 if(window.location.hash.startsWith("#/")) {
@@ -28,7 +44,6 @@
 
         <base href="@basePath">
 
-        <link href="data:image/x-icon;base64,AAABAAEAEBAAAAAAAABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" rel="icon" type="image/x-icon" />
 
             <!-- Latest compiled and minified CSS -->
         <link rel="stylesheet" href="@{basePath}assets/bootstrap/dist/css/bootstrap.min.css">
@@ -64,9 +79,9 @@
 
         @if(devServer) {
 
-            <script defer src="@{basePath}devServer/client-fastopt-library.js?r=@{Random.alphanumeric.take(10).mkString}" type="text/javascript"></script>
+            <script defer src="@{basePath}dev/client-fastopt-library.js" type="text/javascript"></script>
         } else {
-            <script src="@{basePath}bundle/box-app.js?version=@version" type="text/javascript"></script>
+            <script src="@{basePath}bundle/box-app.js" type="text/javascript"></script>
         }
 
 

@@ -5,6 +5,8 @@ package ch.wsl.box.model.boxentities
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
+import slick.collection.heterogeneous._
+import slick.collection.heterogeneous.syntax._
 
 
 /**
@@ -14,33 +16,11 @@ object BoxField {
 
   private val schema = Some(Registry.box().schema)
 
-  case class BoxField_row(
-                           field_uuid: Option[java.util.UUID] = None,
-                           form_uuid: java.util.UUID,
-                           `type`: String,
-                           name: String,
-                           widget: Option[String],
-                           lookupEntity: Option[String] = None,
-                           lookupValueField: Option[String] = None,
-                           lookupQuery:Option[Json] = None,
-                           child_form_uuid: Option[java.util.UUID] = None,
-                           masterFields:Option[String] = None,
-                           childFields:Option[String] = None,
-                           childQuery:Option[Json] = None,
-                           default:Option[String] = None,
-                           conditionFieldId:Option[String] = None,
-                           conditionValues:Option[String] = None,
-                           params:Option[Json] = None,
-                           read_only:Boolean = false,
-                           required:Option[Boolean] = Some(false),
-                           function:Option[String] = None,
-                           min: Option[Double] = None,
-                           max: Option[Double] = None,
-                           roles: Option[List[String]] = None
-                         )
+  case class BoxField_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, masterFields: Option[String] = None, childFields: Option[String] = None, childQuery: Option[Json] = None, default: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, lookupQuery: Option[Json] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None)
+
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,schema, "field") {
-    def * = (Rep.Some(field_uuid), form_uuid, `type`, name, widget, lookupEntity, lookupValueField,lookupQuery, child_form_uuid,masterFields,childFields,childQuery,default,conditionFieldId,conditionValues,params,read_only,required,function,min,max,roles) <> (BoxField_row.tupled, BoxField_row.unapply)
+    def * = (`type` :: name :: widget :: lookupEntity :: lookupValueField :: masterFields :: childFields :: childQuery :: default :: min :: max :: conditionFieldId :: conditionValues :: lookupQuery :: params :: read_only :: required :: Rep.Some(field_uuid) :: form_uuid :: child_form_uuid :: function :: roles :: map_uuid :: HNil).mapTo[BoxField_row]
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
@@ -60,6 +40,7 @@ object BoxField {
     val lookupValueField: Rep[Option[String]] = column[Option[String]]("lookupValueField", O.Default(None))
     /** Database column subform SqlType(int4), Default(None) */
     val child_form_uuid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("child_form_uuid", O.Default(None))
+    val map_uuid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("map_uuid", O.Default(None))
     val masterFields: Rep[Option[String]] = column[Option[String]]("masterFields", O.Default(None))
     val childFields: Rep[Option[String]] = column[Option[String]]("childFields", O.Default(None))
     val childQuery: Rep[Option[Json]] = column[Option[Json]]("childQuery", O.Default(None))

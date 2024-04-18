@@ -18,7 +18,7 @@ import org.scalajs.dom.{BlobPropertyBag, Event, File, FileReader}
 import org.scalajs.dom.raw.Blob
 import scalacss.ScalatagsCss._
 import scribe.Logging
-import typings.fileSaver.mod.FileSaverOptions
+import ch.wsl.typings.fileSaver.mod.FileSaverOptions
 
 import scala.scalajs.js
 import scala.util.Try
@@ -61,7 +61,7 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
   val downloadDefinition = (e:Event) => {
     val out = viewModel.get.currentDefinition.asJson.printWith(Printer.noSpaces)
     val blob = new Blob(js.Array(out),BlobPropertyBag("application/json"))
-    typings.fileSaver.mod.saveAs(blob,"box-definition.json")
+    ch.wsl.typings.fileSaver.mod.saveAs(blob,"box-definition.json")
     e.preventDefault()
   }
 

@@ -1,5 +1,6 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.model.shared.geo.MapMetadata
 import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 
@@ -31,7 +32,8 @@ case class JSONField(
                       query: Option[JSONQuery] = None,
                       function:Option[String] = None,
                       minMax:Option[MinMax] = None,
-                      roles:Seq[String] = Seq()
+                      roles:Seq[String] = Seq(),
+                      map:Option[MapMetadata] = None
                     ) {
   def title = label.getOrElse(name)
 

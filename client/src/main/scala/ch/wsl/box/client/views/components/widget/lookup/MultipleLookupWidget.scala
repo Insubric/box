@@ -16,9 +16,9 @@ import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
-import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
-import typings.choicesJs.mod
+import ch.wsl.typings.choicesJs.anon.PartialOptions
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.mod
 
 import scala.scalajs.js
 import js.JSConverters._
@@ -74,7 +74,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           })
 
           lookup.listen(values => {
-            val choices = values.toSeq.map(x => Choice(x.value,x.id.string)).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]]
+            val choices = values.toSeq.map(x => Choice(x.value,x.id.string)).toJSArray.asInstanceOf[js.Array[Choice | ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]]
             choicesJs.setChoices(choices)
           },true)
         }

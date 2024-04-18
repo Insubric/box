@@ -5,6 +5,7 @@ import ch.wsl.box.client.services.BrowserConsole
 import io.circe.Json
 import io.udash.{Property, ReadableProperty}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 trait BoxOlMap {
@@ -35,6 +36,7 @@ trait BoxOlMap {
         Future.successful(true)
       }
       case Some(layer) => MapUtils.loadWmtsLayer(
+        UUID.randomUUID(),
         layer.capabilitiesUrl,
         layer.layerId,
         layer.time

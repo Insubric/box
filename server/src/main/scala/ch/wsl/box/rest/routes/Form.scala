@@ -208,26 +208,6 @@ case class Form(
     }
   }
 
-  def geoData: Route = path("geo-data") {
-    post {
-      entity(as[JSONQuery]) { query =>
-
-        complete {
-          for {
-            data <- PSQLImpl.table(metadata.view.getOrElse(metadata.entity), query,Some(metadata.keys))
-          } yield {
-            val result: GeoTypes.GeoData = data.map { d =>
-              d.geometry.map { geom =>
-                geom._1 -> d.idString.zip(geom._2).flatMap { case (id, geo) => geo.map(g => GeoJson.Feature(g, Some(JsonObject("jsonid" -> id.asJson)))) }
-              }
-            }.getOrElse(Map())
-            result
-          }
-        }
-      }
-    }
-  }
-
 
   def route = pathPrefix("id") {
       path(Segment) { strId =>
@@ -328,7 +308,7 @@ case class Form(
         shp ~
         geoPkg
     } ~
-    geoData ~
+    GeoData(db,actions) ~
     lookups(actions) ~
     pathEnd {
         post {

@@ -28,7 +28,7 @@ import scalacss.ScalatagsCss._
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logging
-import typings.ol.projMod
+import ch.wsl.typings.ol.projMod
 
 import java.util.UUID
 import scala.scalajs.js
@@ -43,7 +43,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
   import ch.wsl.box.client.Context.Implicits._
 
   val options: MapParams = MapWidgetUtils.options(field)
-  val proj = new BoxMapProjections(options)
+  val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
   override def field: JSONField = params.field
 

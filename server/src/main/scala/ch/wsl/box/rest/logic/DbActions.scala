@@ -23,7 +23,7 @@ import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport._
-import ch.wsl.box.rest.utils.{Auth, UserProfile}
+import ch.wsl.box.rest.utils.{Auth, GeoJsonSupport, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.file.FileId
 import io.circe._
@@ -115,7 +115,8 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   override def fetchFields(fields: Seq[String], query: JSONQuery) = entity.baseTableRow.fetch(fields,query)
 
-
+  override def fetchGeom(fields:Seq[String],field: String, query: JSONQuery):DBIO[Seq[(Json,GeoJson.Geometry)]] =
+    entity.baseTableRow.fetchGeom(fields,field,query).map(_.map{ case (geom,fields) =>  (fields,GeoJsonSupport.fromJTS(geom)) })
 
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 

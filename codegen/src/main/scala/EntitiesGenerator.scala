@@ -107,19 +107,6 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       deriveConfiguredEncoder[$name]
     }
 
-    object ${TableClass.elementType}{
-
-      type ${TableClass.elementType}HList = ${columns.map(_.exposedType).mkString(" :: ")} :: HNil
-
-      def factoryHList(hlist:${TableClass.elementType}HList):${TableClass.elementType} = {
-        val x = hlist.toList
-        ${TableClass.elementType}("""+columns.zipWithIndex.map(x => "x("+x._2+").asInstanceOf["+x._1.exposedType+"]").mkString(",")+s""");
-      }
-
-      def toHList(e:${TableClass.elementType}):Option[${TableClass.elementType}HList] = {
-        Option(( """+columns.map(c => "e."+ c.name + " :: ").mkString("")+s""" HNil))
-      }
-    }
                  """
         }
 

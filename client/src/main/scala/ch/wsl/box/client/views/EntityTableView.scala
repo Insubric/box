@@ -11,6 +11,7 @@ import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.GeoJson.Polygon
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{JSONQuery, _}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -33,8 +34,8 @@ import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
 import scalatags.generic
 import scribe.Logging
-import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.anon.PartialOptions
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -74,7 +75,7 @@ case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery]
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Map(),None)
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None)
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -207,7 +208,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         access = access,
         lookups = Seq(),
         query = Some(query),
-        geoms = Map(),
+        geoms = Seq(),
         extent = None
       )
 
@@ -330,6 +331,21 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   var reloadCount = 0 // avoid out of order
 
+
+  def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
+  def loadGeoms(extent:Option[Polygon] = None) = {
+    model.get.metadata.foreach{ m =>
+      Future.sequence(m.geomFields.map{ f =>
+        val tableEntity = m.view.getOrElse(m.entity)
+        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys))
+
+      }).foreach{ geoms =>
+        model.subProp(_.geoms).set(geoms.flatten)
+      }
+
+    }
+  }
+
   def reloadRows(page:Int,extent:Option[Polygon] = None): Future[Unit] = {
 
     reloadCount = reloadCount + 1
@@ -347,10 +363,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     //start request in parallel
     val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
-    if(hasGeometry()) {
-      services.rest.geoData(model.get.kind, services.clientSession.lang(), model.get.name, q.limit(10000000)).foreach{ geoms =>
-        model.subProp(_.geoms).set(geoms)
-      }
+    if(hasGeometry() && !defaultClose) {
+      loadGeoms(extent)
     }
 
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
@@ -592,7 +606,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           .setRemoveItemButton(true)
           .setShouldSort(false)
           .setItemSelectText("")
-        val choicesJs = new typings.choicesJs.mod.default(el, options)
+        val choicesJs = new ch.wsl.typings.choicesJs.mod.default(el, options)
         el.addEventListener("change", (e: Event) => {
           (choicesJs.getValue(true): Any) match {
             case list: js.Array[String] => println(list)
@@ -605,7 +619,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           l.find(_.fieldName == field.get.name).foreach{ fl =>
             choicesJs.clearChoices()
             val c = choises(fl)
-            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
             if(filterValue.get.nonEmpty) {
               choicesJs.setChoiceByValue(filterValue.get)
             }
@@ -633,9 +647,19 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   var map:Option[Div] = None
 
-  def showMap(metadata:JSONMetadata) = {
+  def showMap(metadata:JSONMetadata) = (show:ReadableProperty[Boolean]) => showIf(show){
     if(presenter.hasGeometry()) {
-      map = Some(div(height := (window.innerHeight - 105).px).render)
+
+      if(model.subProp(_.geoms).get.isEmpty)
+        presenter.loadGeoms(model.subProp(_.extent).get)
+
+      if(window.innerWidth < 600)  { // is mobile
+        map = Some(div(height := (window.innerHeight - 50).px).render)
+      } else {
+        map = Some(div(height := (window.innerHeight - 105).px).render)
+      }
+
+
       val observer = new MutationObserver({ (mutations, observer) =>
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
@@ -658,7 +682,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   override def getTemplate: generic.Modifier[Element] = div(
     produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
       if (presenter.hasGeometry()) {
-        div(TwoPanelResize(showMap(metadata.getOrElse(JSONMetadata.stub)),mainTable(metadata,nested))).render
+
+        div(new TwoPanelResize(presenter.defaultClose)(showMap(metadata.getOrElse(JSONMetadata.stub)),mainTable(metadata,nested))).render
       } else {
         div(mainTable(metadata,nested)).render
       }

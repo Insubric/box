@@ -2,7 +2,7 @@ package ch.wsl.box.client.views.components.widget.array
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import scalatags.JsDom
@@ -16,9 +16,9 @@ import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
-import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
-import typings.choicesJs.mod
+import ch.wsl.typings.choicesJs.anon.PartialOptions
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.mod
 
 import scala.scalajs.js
 import js.JSConverters._
@@ -35,7 +35,9 @@ object ChoicesWidget extends ComponentWidgetFactory {
 
   override def create(params: WidgetParams): Widget = ChoicesWidgetImpl(params)
 
-  case class ChoicesWidgetImpl(params: WidgetParams) extends Widget {
+  case class ChoicesWidgetImpl(params: WidgetParams) extends Widget with HasData {
+
+    override def data: Property[Json] = params.prop
 
     override def field: JSONField = params.field
 

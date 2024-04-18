@@ -1,11 +1,11 @@
 package ch.wsl.box.client.views.components
 
-import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapParams, MapStyle}
+import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapGeolocation, MapParams, MapStyle, MapUtils}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
 import ch.wsl.box.model.shared.GeoJson.{Coordinates, Polygon}
-import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONMetadata}
+import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONID, JSONMetadata}
 import io.circe.Json
 import org.scalajs.dom.html.Div
 import io.circe.generic.auto._
@@ -13,15 +13,23 @@ import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import io.udash.{Property, ReadableProperty}
 import org.scalajs.dom
-import org.scalajs.dom.{Event, MutationObserver, window}
-import typings.ol.viewMod.FitOptions
-import typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, pluggableMapMod, sourceMod, sourceVectorMod, viewMod}
+import org.scalajs.dom.{Event, HTMLInputElement, MutationObserver, window}
+import ch.wsl.typings.ol._
+import ch.wsl.typings.ol.geomMod.Point
+import ch.wsl.typings.ol.mapMod.MapOptions
+import ch.wsl.typings.ol.mod.MapBrowserEvent
+import ch.wsl.typings.ol.objectMod.ObjectEvent
+import ch.wsl.typings.ol.viewMod.FitOptions
+import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
+import ch.wsl.typings.std.PositionOptions
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.scalajs.js.|
+import scalatags.JsDom.all._
+import io.udash._
 
-class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
+class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
@@ -33,7 +41,7 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
   override def id: ReadableProperty[Option[String]] = Property(None)
 
   override val options: MapParams = ClientConf.mapOptions.as[MapParams].getOrElse(BoxMapConstants.defaultParams)
-  val proj = new BoxMapProjections(options)
+  val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
 
   val view = new viewMod.default(viewMod.ViewOptions()
@@ -42,12 +50,17 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
   )
 
-  val map = new mod.Map(pluggableMapMod.MapOptions()
-    .setTarget(div)
+
+  val map = new mod.Map(MapOptions()
+    .setTarget(_div)
     .setView(view)
   )
 
-  override val mapActions: MapActions = new MapActions(map,options,metadata)
+  val geolocation = new MapGeolocation(map)
+
+  map.addControl(geolocation.control)
+
+  override val mapActions: MapActions = new MapActions(map,options.crs)
 
 
 
@@ -65,8 +78,9 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
     map.addLayer(featuresLayer)
 
 
+
     val extentChange = Debounce(250.millis)((_: Unit) => {
-      extent.set(Some(mapActions.calculateExtent()))
+      extent.set(Some(mapActions.calculateExtent(proj.default.crs)))
     })
 
     var extentListenerInitialized = false
@@ -77,26 +91,26 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
       map.removeLayer(featuresLayer)
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
-      layers.values.flatten.foreach { g =>
-        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(g.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-        vectorSource.addFeature(geom)
+      layers.foreach { g =>
+        val geom = MapUtils.boxFeatureToOlFeature(g)
+        vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
       }
 
       map.addLayer(featuresLayer)
 
-      if (extent.get.isEmpty && layers.values.flatten.size > 0) {
+      if (extent.get.isEmpty && layers.nonEmpty) {
 
         val sourceExtent = vectorSource.getExtent()
         map.getView().fit(sourceExtent,FitOptions().setPadding(js.Array(20.0,20.0,20.0,20.0)))
 
         if (!extentListenerInitialized) {
           extentListenerInitialized = true
-          map.getView().on_changeresolution(olStrings.changeColonresolution, event => {
+          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
             if(extentChangeListenerActive)
               extentChange()
           })
 
-          map.getView().on_changecenter(olStrings.changeColoncenter, event => {
+          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
             if(extentChangeListenerActive)
               extentChange()
           })
@@ -111,29 +125,22 @@ class MapList(div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoD
 
 
 
-
-    map.on_pointermove(olStrings.pointermove, (e: mapBrowserEventMod.default) => {
-      val features = mapActions.getFeatures(e)
+    map.asInstanceOf[js.Dynamic].on(olStrings.pointermove, (e: MapBrowserEvent[_]) => {
       dom.document.getElementsByClassName(StyleConstants.mapHoverClass).foreach(_.classList.remove(StyleConstants.mapHoverClass))
       for {
-        clicked <- features.headOption
-        id <- clicked.getProperties().get("jsonid")
+        id <- MapUtils.toJsonId(map,metadata.keys,e)
       } yield {
-        val el = dom.document.getElementById(ElementId.tableRow(id.toString))
+        val el = dom.document.getElementById(ElementId.tableRow(id.asString))
         if (el != null) {
           el.classList.add(StyleConstants.mapHoverClass)
         }
       }
     })
 
-    map.on_singleclick(olStrings.singleclick, (e: mapBrowserEventMod.default) => {
-      val features = mapActions.getFeatures(e)
-
+    map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
       for {
-        clicked <- features.headOption
-        id <- clicked.getProperties().get("jsonid")
-      } yield edit(id.toString)
-
+        id <- MapUtils.toJsonId(map,metadata.keys,e)
+      } yield edit(id.asString)
     })
 
   }

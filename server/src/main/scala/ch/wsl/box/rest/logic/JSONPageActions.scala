@@ -4,7 +4,8 @@ import ch.wsl
 import ch.wsl.box
 import ch.wsl.box.jdbc
 import ch.wsl.box.jdbc.PostgresProfile
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONLookups, JSONLookupsRequest, JSONQuery, JSONQueryFilter}
+import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.{GeoJson, IDs, JSONCount, JSONDiff, JSONID, JSONKeyValue, JSONLookups, JSONLookupsRequest, JSONQuery, JSONQueryFilter}
 import io.circe.Json
 import slick.dbio.DBIO
 
@@ -21,6 +22,7 @@ object JSONPageActions extends TableActions[Json] {
 
   override def findSimple(q:JSONQuery): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]] = DBIO.successful(Seq())
 
   override def fetchFields(fields: Seq[String], query: JSONQuery): _root_.ch.wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 

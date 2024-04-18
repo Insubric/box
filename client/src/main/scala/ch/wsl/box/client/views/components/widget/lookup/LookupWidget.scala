@@ -97,7 +97,7 @@ trait LookupWidget extends Widget with HasData {
     dataSyncRegistration.foreach(_.cancel())
     logger.debug(s"Fetching remote lookup $q")
 
-    val cacheKey = metadata.name + typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
+    val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
 
 
@@ -139,6 +139,7 @@ trait LookupWidget extends Widget with HasData {
     fieldLookup.lookupQuery.flatMap(JSONQuery.fromJson) match {
       case Some(query) => {
         autoRelease(allData.listen({ allJs =>
+          BrowserConsole.log(allJs)
           val newQuery = query.withData(allJs,services.clientSession.lang())
           fetchRemoteLookup(fieldLookup)(newQuery)
 

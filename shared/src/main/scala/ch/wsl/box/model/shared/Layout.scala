@@ -72,7 +72,7 @@ object Layout extends Logging {
   }
 
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
-    LayoutBlock(None,6,None,fields.map(x => Left(x.name)))
+    LayoutBlock(None,12,None,fields.map(x => Left(x.name)))
   ))
 }
 
@@ -89,7 +89,13 @@ case class LayoutBlock(
                    fields:Seq[Either[String,SubLayoutBlock]],
                    tab: Option[String] = None,
                    tabGroup:Option[String] = None
-                 )
+                 ) {
+  def extractFields(metadata: JSONMetadata): Seq[String] = fields.flatMap {
+    case Left(value) if metadata.fields.exists(_.name == value) => Seq(value)
+    case Left(_) => Seq()
+    case Right(value) => value.extractFields(metadata)
+  }
+}
 
 
 
@@ -97,4 +103,10 @@ case class SubLayoutBlock(
                          title: Option[String],
                          fieldsWidth:Seq[Int],
                          fields:Seq[Either[String,SubLayoutBlock]]
-                         )
+                         ) {
+  def extractFields(metadata:JSONMetadata): Seq[String] = fields.flatMap {
+    case Left(value) if metadata.fields.exists(_.name == value) => Seq(value)
+    case Left(_) => Seq()
+    case Right(value) => value.extractFields(metadata)
+  }
+}

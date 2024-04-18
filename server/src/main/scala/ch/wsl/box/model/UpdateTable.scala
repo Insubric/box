@@ -12,13 +12,14 @@ import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import org.locationtech.jts.geom.{Geometry, GeometryFactory}
+import scribe.Logging
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
 import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 
-trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
+trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
   private def postgisSchema = registry.postgisSchema
   protected def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[T]]
@@ -26,7 +27,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
 
   private def jsonbBuilder(fields: Seq[String]):SQLActionBuilder = {
-    val head = sql"""select jsonb_build_object( """
+    val head = sql"""jsonb_build_object( """
     val body = fields.zipWithIndex.foldLeft(head) { case (q, (field, i)) =>
       val q2 = if (i > 0) concat(q, sql""" , """) else q
       concat(q2, sql""" '#$field', "#$field" """)
@@ -44,7 +45,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
   private def doFetch(fields: Seq[String], where: SQLActionBuilder) = checkFields(fields) {
     if (fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
-    val complete = concat(jsonbBuilder(fields), concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
+    val complete = concat(concat(sql"select ",jsonbBuilder(fields)), concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
     complete.as[Json]
   } match {
     case Left(value) => DBIO.failed(value)
@@ -53,23 +54,34 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
   def fetch(fields:Seq[String],query: JSONQuery) = doFetch(fields,whereBuilder(query))
 
+  def fetchGeom(properties:Seq[String],field:String,query: JSONQuery):DBIO[Seq[(Geometry,Json)]] = checkFields(properties ++ Seq(field)) {
+
+    val notNullQ = query.copy(filter = query.filter ++ Seq(JSONQueryFilter(field,Some(Filter.IS_NOT_NULL),Some(" "),None)))
+
+    val complete = concat(sql""" select "#$field", """, concat(jsonbBuilder(properties),concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, whereBuilder(notNullQ))))
+    complete.as[(Geometry,Json)]
+  } match {
+    case Left(value) => DBIO.failed(value)
+    case Right(value) => value
+  }
+
   def ids(keys:Seq[String],query:JSONQuery)(implicit ex:ExecutionContext):DBIO[Seq[JSONID]] = doFetch(keys,whereBuilder(query)).map{ rows =>
     rows.map(row => JSONID.fromData(row,keys))
   }
 
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
-  private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
-    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.nonEmpty) ||
-    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.split(",").exists(_.nonEmpty)) ||
-    f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
-  }
+//  private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
+//    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.nonEmpty) ||
+//    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.getValue.split(",").exists(_.nonEmpty)) ||
+//    f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
+//  }
 
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
-    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
-    val where = if(nonEmptyFilters.nonEmpty) {
-      val filters = nonEmptyFilters.flatMap(kv)
+//    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
+    val filters = query.filter.flatMap(kv)
+    val where = if(filters.nonEmpty) {
       filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
     } else sql""
 
@@ -98,7 +110,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     val selector = fields.map(f => "\"" + f + "\"").mkString(",")
 
     val q = concat(concat(
-      concat(jsonbBuilder(fields), sql""" from (select distinct #$selector from #${t.schemaName.getOrElse("public")}.#${t.tableName} """),
+      concat(concat(sql"select ",jsonbBuilder(fields)), sql""" from (select distinct #$selector from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """),
       whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
     ), sql""" )  as t(#$selector)  """).as[Json]
     q
@@ -116,7 +128,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
 
         val q = concat(
-          sql"""select count(*) from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
+          sql"""select count(*) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """,
           where
         ).as[Int].head
         q
@@ -222,7 +234,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     val key = jsonQuery.column
 
-    def filterMany[T](nullable:Boolean, value:Option[Seq[T]])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
+    def filterMany[T](value:Option[Seq[T]])(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
       val values = value.toSeq.flatten
       val list = if(values.nonEmpty) values.tail.foldLeft(sql" ${values.head} ")((a,b) => concat(a, sql" , $b ") )
       else sql" "
@@ -236,7 +248,6 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     def filter[T](nullable:Boolean, value:Option[T],cast:Option[String] = None)(implicit sp:SetParameter[T]):Option[SQLActionBuilder] = {
 
       val base = sql""" "#$key"#${cast.getOrElse("")} """
-
 
 
       val result = (jsonQuery.operator.getOrElse(Filter.EQUALS),nullable,value) match {
@@ -255,6 +266,10 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case (Filter.IS_NOT_NULL,_,Some(v)) => concat(base,sql""" is not null """)
         case (Filter.IS_NULL,_,Some(v)) => concat(base,sql""" is null """)
         case (Filter.INTERSECT,_,Some(v)) => sql""" #$postgisSchema.ST_Intersects("#$key",$v) """
+        case _ => {
+          logger.warn(s" ${jsonQuery.operator} not defined for ${tableName} $key with value $value")
+          sql" false "
+        }
       }
       Some(result)
 
@@ -269,15 +284,15 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
     if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
       col.name match {
-        case "String"  => filterMany(col.nullable,Some(splitAndTrim(v)))
-        case "Int" => filterMany[Int](col.nullable,Some(splitAndTrim(v).flatMap(_.toIntOption)))
-        case "Long" => filterMany[Long](col.nullable,Some(splitAndTrim(v).flatMap(_.toLongOption)))
-        case "Short" => filterMany[Short](col.nullable,Some(splitAndTrim(v).flatMap(_.toShortOption)))
-        case "Double" => filterMany[Double](col.nullable,Some(splitAndTrim(v).flatMap(_.toDoubleOption)))
-        case "Float" => filterMany[Float](col.nullable,Some(splitAndTrim(v).flatMap(_.toFloatOption)))
-        case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
-        case "io.circe.Json" => filterMany[Json](col.nullable,Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
-        case "java.util.UUID" => filterMany[java.util.UUID](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
+        case "String"  => filterMany(Some(splitAndTrim(v)))
+        case "Int" => filterMany[Int](Some(splitAndTrim(v).flatMap(_.toIntOption)))
+        case "Long" => filterMany[Long](Some(splitAndTrim(v).flatMap(_.toLongOption)))
+        case "Short" => filterMany[Short](Some(splitAndTrim(v).flatMap(_.toShortOption)))
+        case "Double" => filterMany[Double](Some(splitAndTrim(v).flatMap(_.toDoubleOption)))
+        case "Float" => filterMany[Float](Some(splitAndTrim(v).flatMap(_.toFloatOption)))
+        case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
+        case "io.circe.Json" => filterMany[Json](Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
+        case "java.util.UUID" => filterMany[java.util.UUID](Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
         case t => throw new Exception(s"$t is not supported for simple multi query")
       }
     } else {

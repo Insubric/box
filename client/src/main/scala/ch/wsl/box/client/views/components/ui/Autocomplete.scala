@@ -12,8 +12,8 @@ import org.scalajs.dom.html.Div
 import org.scalajs.dom.{Event, HTMLDivElement, HTMLInputElement, MutationObserver, MutationObserverInit, document}
 import scalatags.JsDom.all._
 import scribe.Logging
-import typings.autocompleter
-import typings.autocompleter.{autocompleterBooleans, mod}
+import ch.wsl.typings.autocompleter
+import ch.wsl.typings.autocompleter.{autocompleterBooleans, mod}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js

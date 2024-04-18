@@ -14,9 +14,8 @@ const WebApp = merge(ScalaJS, {
     output: {
         filename: "client-fastopt-library.js"
     },
-    stats: {
-        warningsFilter: (warning) => true,
-    },
+    devtool: 'source-map',
+    ignoreWarnings: [(warning) => true],
     resolve: {
         fallback: {
             "stream": require.resolve("stream-browserify"),
@@ -39,18 +38,13 @@ const WebApp = merge(ScalaJS, {
     plugins: [
         new HtmlWebpackPlugin(),
         new MonacoWebpackPlugin({
-            publicPath: "devServer"
+            publicPath: "dev"
         })
     ],
-    devServer: {
-        client: {
-            reconnect: false,
-            overlay: {
-                errors: true,
-                warnings: false,
-            },
-        },
-    }
+    optimization: {
+        usedExports: true,
+        sideEffects: true,
+    },
 });
 
 module.exports = WebApp;

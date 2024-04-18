@@ -81,7 +81,7 @@ object MigrateDB {
 
           INSERT INTO #$schema.flyway_schema_history_box (installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success)
           select (select count(*)+1 from #$schema.flyway_schema_history_box), '34', 'roles function permission', 'SQL', 'BOX_V34__roles_function_permission.sql', 938281884, 'postgres', now(), 4, true from (
-              select * from (values ('34')) as t except (select version from #$schema.flyway_schema_history_box where version ='34')
+              select * from (values ('34')) as t  where (select true from #$schema.flyway_schema_history_box where version = '2') except (select version from #$schema.flyway_schema_history_box where version ='34')
           ) as t;
 
           """.transactionally

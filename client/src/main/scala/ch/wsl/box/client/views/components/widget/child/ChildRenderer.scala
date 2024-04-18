@@ -40,7 +40,7 @@ object ChildRenderer{
 trait ChildRendererFactory extends ComponentWidgetFactory {
 
 
-  trait ChildRenderer extends Widget with Logging {
+  trait ChildRenderer extends Widget with ChildUtils with Logging {
 
     override def subForm: Boolean = true
 
@@ -53,10 +53,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def widgetParam:WidgetParams
 
 
-    def child:Child = field.child match {
-      case Some(value) => value
-      case None => throw new Exception(s" ${field.name} does not have a child")
-    }
+
 
     def children:Seq[JSONMetadata] = widgetParam.children
     def masterData:ReadableProperty[Json] = widgetParam.allData
@@ -122,30 +119,14 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
 
-    private def staticProps:Map[String,Json] = {for{
-      params <- field.params
-      propsJs <- params.jsOpt("props")
-      props <- propsJs.asObject
-    } yield props.toMap}.getOrElse(Map())
-
-    val props:ReadableProperty[Json] = masterData.transform{js =>
-      val mapping = for {
-        m <- child.mapping
-      } yield {
-        //      println(s"local:$local sub:$sub")
-        m.child -> masterData.get.js(m.parent)
-      }
-
-      (child.props.map(p => p -> js.js(p)).toMap ++ staticProps ++ mapping).asJson
-    }
 
     private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
 
       val id = UUID.randomUUID()
-      val propData = Property(data.deepMerge(props.get))
+      val propData = Property(data.deepMerge(propagatedFields.get))
       val childId = Property(data.ID(metadata.get.keyFields).map(_.asString))
 
-      props.listen(p => propData.set(propData.get.deepMerge(p)))
+      propagatedFields.listen(p => propData.set(propData.get.deepMerge(p)))
 
       propData.listen{data =>
         val newData = prop.get.as[Seq[Json]].toSeq.flatten.map{x =>
