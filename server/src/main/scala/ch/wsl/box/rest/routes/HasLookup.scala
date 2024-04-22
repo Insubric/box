@@ -30,7 +30,7 @@ trait HasLookup[T] {
   implicit def mat:Materializer
   implicit def services:Services
 
-  def lookup(futMetadata:Future[JSONMetadata]): Route = pathPrefix("lookup") {
+  def lookup(futMetadata: => Future[JSONMetadata]): Route = pathPrefix("lookup") {
     path(Segment) { field =>
       post {
         entity(as[JSONQuery]) { query =>

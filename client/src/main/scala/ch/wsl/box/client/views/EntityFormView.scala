@@ -254,10 +254,12 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         data = newData,
         originalData = newData,
         id = Some(newId.asString),
-        insert = false
+        insert = false,
+        changed = false
       ))
+      childChanged.set(false)
+      resetChanges()
 
-      model.subProp(_.insert).set(false)
       services.clientSession.loading.set(false)
 
       (newId,resultAfterAction)
@@ -358,9 +360,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div()
   }
 
-  private val changed:Property[Boolean] = Property(false)
+  private val childChanged:Property[Boolean] = Property(false)
 
-  val changesListener = changed.listen { hasChanges =>
+  val changesListener = childChanged.listen { hasChanges =>
     if(hasChanges) {
       avoidGoAway
     } else {
@@ -370,7 +372,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def loadWidgets(f:JSONMetadata) = {
     val actions = WidgetCallbackActions(() => save(),reload)
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,changed,model.subProp(_.public).get)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,childChanged,model.subProp(_.public).get)
     widget
   }
 
