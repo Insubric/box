@@ -246,6 +246,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
                  """)
 
       enableGoAway("save")
+      val currentState = model.get
+
+      val newData = currentState.data.deepMerge(resultAfterAction)
+
+      model.set(currentState.copy(
+        data = newData,
+        originalData = newData,
+        id = Some(newId.asString),
+        insert = false
+      ))
+
       model.subProp(_.insert).set(false)
       services.clientSession.loading.set(false)
 

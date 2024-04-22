@@ -33,6 +33,7 @@ class Values(val loggerLevel:Level) {
   val testFormTitle = "test form"
 
   val stringField = "string_field"
+  val stringField2 = "string_field2"
   val conditionerField = "test_conditioner"
   val conditionalField = "test_conditional"
   val conditionalValue = "active"
@@ -75,6 +76,11 @@ class Values(val loggerLevel:Level) {
       ),
       JSONField(
         JSONFieldTypes.STRING,
+        name = stringField2,
+        nullable = true
+      ),
+      JSONField(
+        JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
         condition = Some(ConditionalField(conditionerField,Seq(conditionalValue).asJson))
@@ -101,6 +107,7 @@ class Values(val loggerLevel:Level) {
       Left(conditionerField),
       Left(conditionalField),
       Left(stringField),
+      Left(stringField2),
     )))),
     entity = "test",
     lang = "it",
