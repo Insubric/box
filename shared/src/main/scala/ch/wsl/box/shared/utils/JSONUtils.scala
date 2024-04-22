@@ -81,6 +81,7 @@ object JSONUtils extends Logging {
     def js(field:String):Json = jsOpt(field).getOrElse(Json.Null)
     def jsOrDefault(field:JSONField):Json = {
       jsOpt(field.name).orElse{
+        if(field.default.contains("arrayIndex")) None else
         field.default.flatMap(d => JSONUtils.toJs(d,field.`type`))
       }.getOrElse(Json.Null)
     }

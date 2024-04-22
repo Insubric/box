@@ -26,8 +26,8 @@ object GeoData {
 
   implicit val customConfig: Configuration = Configuration.default.withDefaults
 
-  import io.circe.syntax._
-  import ch.wsl.box.shared.utils.Formatters._ //need to be after circe generic auto or it will be overridden
+  //import io.circe.syntax._
+  //import ch.wsl.box.shared.utils.Formatters._ //need to be after circe generic auto or it will be overridden
   import ch.wsl.box.shared.utils.JSONUtils._
 
   def apply(db: UserDatabase, actions:ViewActions[_])(implicit ex:ExecutionContext): Route = pathPrefix("geo-data") {
@@ -42,16 +42,6 @@ object GeoData {
 
                   GeoJson.Feature(d._2, d._1.asObject)
 
-              }
-              val t = result.foreach{f =>
-                f.asJson.as[GeoJson.Feature] match {
-                  case Left(value) => {
-                    println(value)
-                    println(f.asJson)
-                    println(f)
-                  }
-                  case Right(value) => ()
-                }
               }
               result
             }
