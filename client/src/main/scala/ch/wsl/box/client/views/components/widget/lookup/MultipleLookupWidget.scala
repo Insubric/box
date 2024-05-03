@@ -48,10 +48,30 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
     override def field: JSONField = params.field
 
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {}
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+      nested(produce(params.prop.combine(lookup)((x, y) => (x, y))) { case (d, lookups) =>
+        d.asArray match {
+          case Some(value) => {
+            val items: Seq[Modifier] = value.map { id =>
+              val label: String = lookups.find(_.id == id).map(_.value).getOrElse(id.string)
+              div(label)
+            }
+            span(items).render
+          }
+          case None => span().render
+        }
 
-    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+      })
+    }
 
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
+
+    override def editOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = {
+      multipleSelect
+    }
+
+    // TODO still buggy
+    def multipleSelect = {
       val el = select().render
 
 
@@ -81,14 +101,19 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
       })
 
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+      el
+    }
 
+
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
+
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
-        tooltip(el)._1,
+        tooltip(multipleSelect)._1,
       )
 
     }
