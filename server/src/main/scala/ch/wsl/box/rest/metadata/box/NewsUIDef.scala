@@ -27,7 +27,7 @@ object NewsUIDef {
     layout = Layout(
       blocks = Seq(
         LayoutBlock(None,4, None, Seq("datetime","author").map(Left(_))),
-        LayoutBlock(Some("Translations"),8, None,Seq("news_i18n").map(Left(_)))
+        LayoutBlock(Some(Left("Translations")),8, None,Seq("news_i18n").map(Left(_)))
       )
     ),
 //    layout = parse("""

@@ -10,6 +10,11 @@ object Internationalization {
     def lang(lang:String):Option[String] = langs.find(_.lang == lang).orElse(langs.headOption).map(_.label)
   }
 
+  def either(lang:String)(e:Either[String,I18n]) = e match {
+    case Left(value) => Some(value)
+    case Right(value) => value.lang(lang)
+  }
+
   implicit def enc = deriveEncoder[LangLabel]
   implicit def dec = deriveDecoder[LangLabel]
 }

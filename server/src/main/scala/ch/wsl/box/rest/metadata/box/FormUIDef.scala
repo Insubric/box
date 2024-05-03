@@ -101,14 +101,14 @@ object FormUIDef {
             Left("")
           ))
         ).map(Right(_))),
-        LayoutBlock(Some("Actions"),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
-        LayoutBlock(Some("I18n"),4,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some("Table Info"),12,None,Seq("tabularFields","exportfields").map(Left(_))),
-        LayoutBlock(Some("Fields"),12,None,Seq("fields").map(Left(_))),
-        LayoutBlock(Some("Not DB fields"),12,None,Seq("fields_no_db").map(Left(_))),
-        LayoutBlock(Some("Linked forms"),12,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some("Static elements"),12,None,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some("Layout"),12,None,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("Actions")),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,None,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Table Info")),12,None,Seq("tabularFields","exportfields").map(Left(_))),
+        LayoutBlock(Some(Left("Fields")),12,None,Seq("fields").map(Left(_))),
+        LayoutBlock(Some(Left("Not DB fields")),12,None,Seq("fields_no_db").map(Left(_))),
+        LayoutBlock(Some(Left("Linked forms")),12,None,Seq("fields_child").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,None,Seq("fields_static").map(Left(_))),
+        LayoutBlock(Some(Left("Layout")),12,None,Seq("layout").map(Left(_))),
       )
     ),
     entity = "form",
@@ -165,10 +165,10 @@ object FormUIDef {
             ),
           ))
         ).map(Right(_))),
-        LayoutBlock(Some("I18n"),4,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some("Linked forms"),12,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some("Static elements"),12,None,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some("Layout"),12,None,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,None,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Linked forms")),12,None,Seq("fields_child").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,None,Seq("fields_static").map(Left(_))),
+        LayoutBlock(Some(Left("Layout")),12,None,Seq("layout").map(Left(_))),
       )
     ),
     entity = "form",
