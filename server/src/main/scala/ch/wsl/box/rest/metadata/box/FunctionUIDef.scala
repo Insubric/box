@@ -63,8 +63,8 @@ object FunctionUIDef {
           SubLayoutBlock(Some("Function"),Seq(12),Seq("function").map(Left(_))),
           SubLayoutBlock(Some("Presenter"),Seq(12),Seq("presenter").map(Left(_))),
         ).map(Right(_))),
-        LayoutBlock(Some("I18n"),4,None,Seq("function_i18n").map(Left(_))),
-        LayoutBlock(Some("Fields"),12,None,Seq("function_field").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,None,Seq("function_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Fields")),12,None,Seq("function_field").map(Left(_))),
       )
     ),
     entity = "function",

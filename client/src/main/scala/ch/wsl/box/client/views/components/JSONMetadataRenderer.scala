@@ -164,9 +164,10 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     def renderBlocks(b:Seq[WidgetBlock]) = b.map{ case WidgetBlock(block,widget) =>
       div(BootstrapCol.md(block.width), ClientConf.style.block)(
         div(
-          if(block.title.exists(_.nonEmpty)) {
-            h3(block.title.map { title => Labels(title) })
-          } else frag(), //renders title in blocks
+          block.title.flatMap(Internationalization.either(services.clientSession.lang())) match {
+            case Some(value) => h3(Labels(value))
+            case None => frag()
+          }, //renders title in blocks
           widget.render(write, nested)
         )
       )
@@ -181,15 +182,16 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
             val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
             div(BootstrapCol.md(blks.map(_.layoutBlock.get.width).max),
               ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
-                tabs.map { name =>
-                  val title = name.getOrElse("No title")
+                tabs.map { tabId =>
+                  val title:String = blocks.find(_.layoutBlock.exists(_.tab == tabId))
+                    .flatMap(_.layoutBlock.flatMap(_.title).flatMap(Internationalization.either(services.clientSession.lang()))).orElse(tabId).getOrElse("")
 
                   li(BootstrapStyles.Navigation.item,
                     a(BootstrapStyles.Navigation.link,
-                      BootstrapStyles.active.styleIf(selectedTab.transform(_ == name)),
+                      BootstrapStyles.active.styleIf(selectedTab.transform(_ == tabId)),
                       onclick :+= { (e: Event) =>
-                        selectedTab.set(name);
-                        name.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
+                        selectedTab.set(tabId);
+                        tabId.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
                         e.preventDefault() },
                       title
                     ).render

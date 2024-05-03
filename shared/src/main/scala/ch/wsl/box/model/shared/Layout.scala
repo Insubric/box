@@ -1,5 +1,6 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.model.shared.Internationalization.{I18n, LangLabel}
 import io.circe.Decoder.Result
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser.parse
@@ -16,6 +17,24 @@ case class Layout(blocks: Seq[LayoutBlock])
 
 object Layout extends Logging {
 
+  import Internationalization._
+
+
+  implicit val encodeEitherI18n: Encoder[Either[String,I18n]] = new Encoder[Either[String, I18n]] {
+    override def apply(a: Either[String, I18n]): Json = a match {
+      case Right(str) => str.asJson
+      case Left(obj) => obj.asJson
+    }
+  }
+  implicit val decodeEitherI18n: Decoder[Either[String,I18n]] = new Decoder[Either[String, I18n]] {
+    override def apply(c: HCursor): Result[Either[String, I18n]] = c.value.asString match {
+      case Some(str) => c.as[String].map(Left(_))
+      case None => c.as[I18n].map(Right(_))
+    }
+  }
+
+  implicit def enc = deriveEncoder[LangLabel]
+  implicit def dec = deriveDecoder[LangLabel]
 
   implicit val subDecoder: Decoder[SubLayoutBlock] = deriveDecoder[SubLayoutBlock]
   implicit val subEncoder: Encoder[SubLayoutBlock] = deriveEncoder[SubLayoutBlock]
@@ -83,7 +102,7 @@ object Layout extends Logging {
   * @param fields list of field to display in that block, with format <table>.<field>
   */
 case class LayoutBlock(
-                   title: Option[String],
+                   title: Option[Either[String,I18n]],
                    width:Int,
                    distribute: Option[Boolean],
                    fields:Seq[Either[String,SubLayoutBlock]],
