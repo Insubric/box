@@ -117,6 +117,7 @@ object Labels {
     def select = get(SharedLabels.exports.select)
     def load = get(SharedLabels.exports.load)
     def csv = get(SharedLabels.exports.csv)
+    def xls = get(SharedLabels.exports.xls)
     def pdf = get(SharedLabels.exports.pdf)
     def html = get(SharedLabels.exports.html)
     def shp = get(SharedLabels.exports.shp)

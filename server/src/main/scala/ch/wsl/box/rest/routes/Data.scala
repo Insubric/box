@@ -25,6 +25,7 @@ import ch.wsl.box.model.shared.{DataResult, DataResultObject, DataResultTable}
 import ch.wsl.box.rest.io.geotools.ShapeFileWriter
 import ch.wsl.box.rest.metadata.DataMetadataFactory
 import ch.wsl.box.rest.io.pdf.Pdf
+import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,17 +58,26 @@ trait Data extends Logging with HasLookup[Json] {
 
   def data(function: String, params: Json, lang: String): Future[Option[DataContainer]]
 
+  private def xls(function:String,dc:DataContainer) = {
+      val table = XLSTable(function,dc.asTable.headers,dc.asTable.rows.map(_.map(_.string)))
+      XLS.route(table)
+  }
+
   def render(function: String, params: Json, lang: String) = {
 
     onSuccess(data(function, params, lang)) {
       case Some(dc) if dc.mode == FunctionKind.Modes.TABLE =>
-        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.csv"))) {
-          {
-            import kantan.csv._
-            import kantan.csv.ops._
+        parameter("format".optional) {
+            case Some("xls") => xls(function,dc)
+            case _ => respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.csv"))) {
+              {
+                import kantan.csv._
+                import kantan.csv.ops._
 
-            val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows.map(_.map(_.string))).asCsv(rfc)
-            complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`, ByteString(csv)))
+                val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows.map(_.map(_.string))).asCsv(rfc)
+                complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`, ByteString(csv)))
+              }
+
           }
         }
       case Some(dc) if dc.mode == FunctionKind.Modes.HTML => {

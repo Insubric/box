@@ -95,6 +95,16 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
     e.preventDefault()
   }
 
+  val xls = (e:Event) => {
+    logger.info()
+    val url = Routes.apiV1(
+      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}?format=xls&q=${URIUtils.encodeURI(args.noSpaces)}".replaceAll("\n","")
+    )
+    logger.info(s"downloading: $url")
+    dom.window.open(url)
+    e.preventDefault()
+  }
+
   val query = (e:Event) => {
     services.clientSession.loading.set(true)
     for{
@@ -138,6 +148,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
     JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keyFields).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(nested),
     showIf(table) { button(Labels.exports.load,onclick :+= presenter.query,ClientConf.style.boxButton).render },
     showIf(table) { button(Labels.exports.csv,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
+    showIf(table) { button(Labels.exports.xls,onclick :+= presenter.xls,ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(html) { button(Labels.exports.html,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(shp) { button(Labels.exports.shp,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
