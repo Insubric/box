@@ -187,6 +187,7 @@ object SharedLabels extends LabelsCollection {
     def select = "exports.select"
     def load = "exports.load"
     def csv = "exports.csv"
+    def xls = "exports.xls"
     def pdf = "exports.pdf"
     def html = "exports.html"
     def shp = "exports.shp"
@@ -196,6 +197,7 @@ object SharedLabels extends LabelsCollection {
       select,
       load,
       csv,
+      xls,
       pdf,
       html,
       shp
