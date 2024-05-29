@@ -19,7 +19,9 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     val baseQuery:JSONQuery = lookup.lookupQuery.flatMap(q => JSONQuery.fromJson(q)).getOrElse(JSONQuery.empty)
     for{
       values <- registry.actions(table).distinctOn(Seq(field),query)
-      query = baseQuery.copy(filter = WHERE.in(lookup.map.valueProperty,values.map(_.get(field))) :: baseQuery.filter)
+      allValues = values.flatMap(_.getOpt(field))
+      baseFilter = if(allValues.nonEmpty) List(WHERE.in(lookup.map.valueProperty,allValues)) else baseQuery.filter
+      query = baseQuery.copy(filter =  baseFilter)
       rows <- registry.actions(lookup.lookupEntity).fetchFields(Seq(lookup.map.valueProperty) ++ remoteLabels,query)
     } yield JSONLookups(
         field,
