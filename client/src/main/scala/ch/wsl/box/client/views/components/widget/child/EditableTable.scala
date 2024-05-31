@@ -428,91 +428,95 @@ object EditableTable extends ChildRendererFactory {
               val additionalColumns = if (write && !disableRemove) 1 else 0
               val colWidth = (width := _colWidth(additionalColumns))
 
-                div(tableStyle.tableContainer,
-                table(onkeyup :+= handleKeys,tableStyle.table,
-                  thead(
-                    for (field <- f) yield {
-                      val name = colHeader(field)
-                      showIfCondition(field,nested) {
-                        th(nested(bind(name)), tableStyle.th, colWidth)
-                      }
+              val tab = table(tableStyle.table,
+                thead(
+                  for (field <- f) yield {
+                    val name = colHeader(field)
+                    showIfCondition(field, nested) {
+                      th(nested(bind(name)), tableStyle.th, colWidth)
+                    }
 
-                    },
-                    if (write && !disableRemove) th(actionHeader, tableStyle.th) else frag()
-                  ),
-
-
-                  tbody(
-                    nested(repeatWithNested(entity) { (row,nested) =>
-                      val rowWidgets = ListBuffer[Widget]()
-                      widgets.addOne(rowWidgets)
-                      val (childWidget,rowIdx) = getWidget(row.get)
-
-                      val color = for {
-                        colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
-                        color <- childWidget.data.get.getOpt(colorField)
-                      } yield backgroundColor := color
+                  },
+                  if (write && !disableRemove) th(actionHeader, tableStyle.th) else frag()
+                ),
 
 
-                      val borderColor = for {
-                        colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
-                        color <- childWidget.data.get.getOpt(colorField)
-                      } yield Seq(borderLeftColor := color,borderRightColor := color)
+                tbody(
+                  nested(repeatWithNested(entity) { (row, nested) =>
+                    val rowWidgets = ListBuffer[Widget]()
+                    widgets.addOne(rowWidgets)
+                    val (childWidget, rowIdx) = getWidget(row.get)
+
+                    val color = for {
+                      colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
+                      color <- childWidget.data.get.getOpt(colorField)
+                    } yield backgroundColor := color
 
 
-                      tr(tableStyle.tr,color,data("row") := rowIdx,
-                        for ((field,columnIdx) <- f.zipWithIndex) yield {
-                          val (params, widget) = colContentWidget(childWidget, field, m)
-                          rowWidgets.addOne(widget)
+                    val borderColor = for {
+                      colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
+                      color <- childWidget.data.get.getOpt(colorField)
+                    } yield Seq(borderLeftColor := color, borderRightColor := color)
 
-                          showIfCondition(field,nested) {
-                            td(data("column") := columnIdx,
-                            showIfConditionRow(field, childWidget.data,nested) {
+
+                    tr(tableStyle.tr, color, data("row") := rowIdx,
+                      for ((field, columnIdx) <- f.zipWithIndex) yield {
+                        val (params, widget) = colContentWidget(childWidget, field, m)
+                        rowWidgets.addOne(widget)
+
+                        showIfCondition(field, nested) {
+                          td(data("column") := columnIdx,
+                            showIfConditionRow(field, childWidget.data, nested) {
                               div(if (
                                 field.readOnly ||
                                   WidgetUtils.isKeyNotEditable(m, field, params.id.get)
                               ) widget.showOnTable(nested) else widget.editOnTable(nested))
-                            }, tableStyle.td,borderColor, colWidth)
-                          }
-                        },
-                        if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
-                          if(!disableDuplicate) {
+                            }, tableStyle.td, borderColor, colWidth)
+                        }
+                      },
+                      if (write && (!disableRemove || !disableDuplicate)) td(tableStyle.td, colWidth,
+                        if (!disableDuplicate) {
 
-                              a(ClientConf.style.childDuplicateButton,tabindex := 0,
-                              onclick :+= duplicateItem(childWidget),
-                              onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e)},
-                                duplicateIcon)
-                            } else frag()
-                          ," ",
-                          if(!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
-                            showIf(entity.transform(_.length > min)) {
-                              a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
-                                onclick :+= removeItem(childWidget),
-                                onkeyup :+= { (e: Event) =>
-                                  if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
-                                    removeItem(childWidget)(e)
-                                },
-                                Icons.minusFill).render
-                            }
-                          }else frag()
-                        ) else frag()
-                      ).render
-                    }),
-                    if (write && !disableAdd) {
-                      tr(tableStyle.tr,
-                        td(tableStyle.td, colspan := countColumns(additionalColumns),
-                          a(id := TestHooks.addChildId(m.objId),
-                            tabindex := 0,
-                            ClientConf.style.childAddButton,
-                            BootstrapStyles.Float.right(),
-                            onclick :+= addItemHandler(child, m),
-                            onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) addItemHandler(child, m)(e)},
-                            Icons.plusFill)
-                        ),
-                      )
-                    } else frag()
-                  ).render
-                ),
+                          a(ClientConf.style.childDuplicateButton, tabindex := 0,
+                            onclick :+= duplicateItem(childWidget),
+                            onkeyup :+= { (e: Event) => if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e) },
+                            duplicateIcon)
+                        } else frag()
+                        , " ",
+                        if (!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
+                          showIf(entity.transform(_.length > min)) {
+                            a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
+                              onclick :+= removeItem(childWidget),
+                              onkeyup :+= { (e: Event) =>
+                                if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
+                                  removeItem(childWidget)(e)
+                              },
+                              Icons.minusFill).render
+                          }
+                        } else frag()
+                      ) else frag()
+                    ).render
+                  }),
+                  if (write && !disableAdd) {
+                    tr(tableStyle.tr,
+                      td(tableStyle.td, colspan := countColumns(additionalColumns),
+                        a(id := TestHooks.addChildId(m.objId),
+                          tabindex := 0,
+                          ClientConf.style.childAddButton,
+                          BootstrapStyles.Float.right(),
+                          onclick :+= addItemHandler(child, m),
+                          onkeyup :+= { (e: Event) => if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key)) addItemHandler(child, m)(e) },
+                          Icons.plusFill)
+                      ),
+                    )
+                  } else frag()
+                ).render
+              ).render
+
+              tab.addEventListener("keydown",handleKeys)
+
+                div(tableStyle.tableContainer,
+                  tab,
                 if (!hideExporters) {
                   Seq(
                     button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= printTable(m)),
