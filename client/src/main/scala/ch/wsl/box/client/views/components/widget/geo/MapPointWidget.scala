@@ -200,6 +200,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     step := 0.00000000001,
     float.none,
     WidgetUtils.toNullable(field.nullable),
+    ClientConf.style.xyButtonOnTable, // show on mobile
     onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
     onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
     mod
@@ -209,6 +210,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     step := 0.00000000001,
     float.none,
     WidgetUtils.toNullable(field.nullable),
+    ClientConf.style.xyButtonOnTable, // show on mobile
     onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
     onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
     mod
