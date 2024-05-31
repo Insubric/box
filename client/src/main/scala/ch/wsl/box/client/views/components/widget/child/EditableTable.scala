@@ -30,6 +30,7 @@ import ch.wsl.typings.jspdfAutotable.mod.{CellInput, RowInput, UserOptions}
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.WrappedArray
 import scala.scalajs.js.typedarray.Uint8Array
@@ -236,20 +237,28 @@ object EditableTable extends ChildRendererFactory {
     def printTable(metadata: => JSONMetadata) = (e:Event) => {
 
       import js.JSConverters._
+      import ch.wsl.box.client.Context.Implicits._
 
       val (title,header,rows) = currentTable(metadata)
       val doc = new jsPDF(ch.wsl.typings.jspdf.jspdfStrings.landscape)
 
       val data = rows.map(_.map(_.string).toJSArray).toJSArray.asInstanceOf[js.Array[RowInput]]
 
-      ch.wsl.typings.jspdfAutotable.mod.default(doc,UserOptions()
-        .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
-        .setBody(data)
-        .setMargin(10)
-        .setStyles(PartialStyles().setCellPadding(0.5).setFontSize(9))
-      )
+      Future.sequence(rows.zip(widgets).map{ case (cells,cellsWidget) =>
+        Future.sequence(cells.zip(cellsWidget).map{ case (js,widget) =>
+          widget.toUserReadableData(js).map(_.string)
+        }).map(_.toJSArray)
+      }).map(_.toJSArray.asInstanceOf[js.Array[RowInput]]).foreach{ data =>
+        ch.wsl.typings.jspdfAutotable.mod.default(doc,UserOptions()
+          .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
+          .setBody(data)
+          .setMargin(10)
+          .setStyles(PartialStyles().setCellPadding(0.5).setFontSize(9))
+        )
 
-      doc.save(s"$title.pdf")
+        doc.save(s"$title.pdf")
+      }
+
 
       e.preventDefault()
     }
@@ -261,6 +270,7 @@ object EditableTable extends ChildRendererFactory {
 
     def export(metadata: => JSONMetadata,filetype: String) = {
       import js.JSConverters._
+      import ch.wsl.box.client.Context.Implicits._
 
       val (tit, header, rows) = currentTable(metadata)
       val workbook = ch.wsl.typings.xlsxJsStyle.mod.utils.book_new()
@@ -274,10 +284,17 @@ object EditableTable extends ChildRendererFactory {
           ).asJson
         ).asJson)
       }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      val worksheet = ch.wsl.typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
-      ch.wsl.typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
-      ch.wsl.typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
+      Future.sequence(rows.zip(widgets).map{ case (cells,cellsWidget) =>
+        Future.sequence(cells.zip(cellsWidget).map{ case (js,widget) =>
+          widget.toUserReadableData(js).map(io.circe.scalajs.convertJsonToJs)
+        }).map(_.toJSArray)
+      }).map(_.toJSArray.asInstanceOf[js.Array[js.Array[Any]]]).foreach{ data =>
+        val worksheet = ch.wsl.typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
+        ch.wsl.typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
+        ch.wsl.typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
+      }
+
+
 
     }
 
