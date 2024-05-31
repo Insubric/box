@@ -30,6 +30,7 @@ import ch.wsl.typings.jspdfAutotable.mod.{CellInput, RowInput, UserOptions}
 
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.WrappedArray
 import scala.scalajs.js.typedarray.Uint8Array
@@ -236,20 +237,28 @@ object EditableTable extends ChildRendererFactory {
     def printTable(metadata: => JSONMetadata) = (e:Event) => {
 
       import js.JSConverters._
+      import ch.wsl.box.client.Context.Implicits._
 
       val (title,header,rows) = currentTable(metadata)
       val doc = new jsPDF(ch.wsl.typings.jspdf.jspdfStrings.landscape)
 
       val data = rows.map(_.map(_.string).toJSArray).toJSArray.asInstanceOf[js.Array[RowInput]]
 
-      ch.wsl.typings.jspdfAutotable.mod.default(doc,UserOptions()
-        .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
-        .setBody(data)
-        .setMargin(10)
-        .setStyles(PartialStyles().setCellPadding(0.5).setFontSize(9))
-      )
+      Future.sequence(rows.zip(widgets).map{ case (cells,cellsWidget) =>
+        Future.sequence(cells.zip(cellsWidget).map{ case (js,widget) =>
+          widget.toUserReadableData(js).map(_.string)
+        }).map(_.toJSArray)
+      }).map(_.toJSArray.asInstanceOf[js.Array[RowInput]]).foreach{ data =>
+        ch.wsl.typings.jspdfAutotable.mod.default(doc,UserOptions()
+          .setHead(js.Array(header.toJSArray).asInstanceOf[js.Array[RowInput]])
+          .setBody(data)
+          .setMargin(10)
+          .setStyles(PartialStyles().setCellPadding(0.5).setFontSize(9))
+        )
 
-      doc.save(s"$title.pdf")
+        doc.save(s"$title.pdf")
+      }
+
 
       e.preventDefault()
     }
@@ -261,6 +270,7 @@ object EditableTable extends ChildRendererFactory {
 
     def export(metadata: => JSONMetadata,filetype: String) = {
       import js.JSConverters._
+      import ch.wsl.box.client.Context.Implicits._
 
       val (tit, header, rows) = currentTable(metadata)
       val workbook = ch.wsl.typings.xlsxJsStyle.mod.utils.book_new()
@@ -274,10 +284,17 @@ object EditableTable extends ChildRendererFactory {
           ).asJson
         ).asJson)
       }.toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      val data =  rows.map(_.map(js => io.circe.scalajs.convertJsonToJs(js)).toJSArray).toJSArray.asInstanceOf[js.Array[js.Array[Any]]]
-      val worksheet = ch.wsl.typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
-      ch.wsl.typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
-      ch.wsl.typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
+      Future.sequence(rows.zip(widgets).map{ case (cells,cellsWidget) =>
+        Future.sequence(cells.zip(cellsWidget).map{ case (js,widget) =>
+          widget.toUserReadableData(js).map(io.circe.scalajs.convertJsonToJs)
+        }).map(_.toJSArray)
+      }).map(_.toJSArray.asInstanceOf[js.Array[js.Array[Any]]]).foreach{ data =>
+        val worksheet = ch.wsl.typings.xlsxJsStyle.mod.utils.aoa_to_sheet(head ++ data)
+        ch.wsl.typings.xlsxJsStyle.mod.utils.book_append_sheet(workbook, worksheet,tit.take(31))
+        ch.wsl.typings.xlsxJsStyle.mod.writeFile(workbook, s"$tit.$filetype")
+      }
+
+
 
     }
 
@@ -428,91 +445,95 @@ object EditableTable extends ChildRendererFactory {
               val additionalColumns = if (write && !disableRemove) 1 else 0
               val colWidth = (width := _colWidth(additionalColumns))
 
-                div(tableStyle.tableContainer,
-                table(onkeyup :+= handleKeys,tableStyle.table,
-                  thead(
-                    for (field <- f) yield {
-                      val name = colHeader(field)
-                      showIfCondition(field,nested) {
-                        th(nested(bind(name)), tableStyle.th, colWidth)
-                      }
+              val tab = table(tableStyle.table,
+                thead(
+                  for (field <- f) yield {
+                    val name = colHeader(field)
+                    showIfCondition(field, nested) {
+                      th(nested(bind(name)), tableStyle.th, colWidth)
+                    }
 
-                    },
-                    if (write && !disableRemove) th(actionHeader, tableStyle.th) else frag()
-                  ),
-
-
-                  tbody(
-                    nested(repeatWithNested(entity) { (row,nested) =>
-                      val rowWidgets = ListBuffer[Widget]()
-                      widgets.addOne(rowWidgets)
-                      val (childWidget,rowIdx) = getWidget(row.get)
-
-                      val color = for {
-                        colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
-                        color <- childWidget.data.get.getOpt(colorField)
-                      } yield backgroundColor := color
+                  },
+                  if (write && !disableRemove) th(actionHeader, tableStyle.th) else frag()
+                ),
 
 
-                      val borderColor = for {
-                        colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
-                        color <- childWidget.data.get.getOpt(colorField)
-                      } yield Seq(borderLeftColor := color,borderRightColor := color)
+                tbody(
+                  nested(repeatWithNested(entity) { (row, nested) =>
+                    val rowWidgets = ListBuffer[Widget]()
+                    widgets.addOne(rowWidgets)
+                    val (childWidget, rowIdx) = getWidget(row.get)
+
+                    val color = for {
+                      colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
+                      color <- childWidget.data.get.getOpt(colorField)
+                    } yield backgroundColor := color
 
 
-                      tr(tableStyle.tr,color,data("row") := rowIdx,
-                        for ((field,columnIdx) <- f.zipWithIndex) yield {
-                          val (params, widget) = colContentWidget(childWidget, field, m)
-                          rowWidgets.addOne(widget)
+                    val borderColor = for {
+                      colorField <- widgetParam.field.params.flatMap(_.getOpt("colorField"))
+                      color <- childWidget.data.get.getOpt(colorField)
+                    } yield Seq(borderLeftColor := color, borderRightColor := color)
 
-                          showIfCondition(field,nested) {
-                            td(data("column") := columnIdx,
-                            showIfConditionRow(field, childWidget.data,nested) {
+
+                    tr(tableStyle.tr, color, data("row") := rowIdx,
+                      for ((field, columnIdx) <- f.zipWithIndex) yield {
+                        val (params, widget) = colContentWidget(childWidget, field, m)
+                        rowWidgets.addOne(widget)
+
+                        showIfCondition(field, nested) {
+                          td(data("column") := columnIdx,
+                            showIfConditionRow(field, childWidget.data, nested) {
                               div(if (
                                 field.readOnly ||
                                   WidgetUtils.isKeyNotEditable(m, field, params.id.get)
                               ) widget.showOnTable(nested) else widget.editOnTable(nested))
-                            }, tableStyle.td,borderColor, colWidth)
-                          }
-                        },
-                        if (write && (!disableRemove || !disableDuplicate) ) td(tableStyle.td, colWidth,
-                          if(!disableDuplicate) {
+                            }, tableStyle.td, borderColor, colWidth)
+                        }
+                      },
+                      if (write && (!disableRemove || !disableDuplicate)) td(tableStyle.td, colWidth,
+                        if (!disableDuplicate) {
 
-                              a(ClientConf.style.childDuplicateButton,tabindex := 0,
-                              onclick :+= duplicateItem(childWidget),
-                              onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e)},
-                                duplicateIcon)
-                            } else frag()
-                          ," ",
-                          if(!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
-                            showIf(entity.transform(_.length > min)) {
-                              a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
-                                onclick :+= removeItem(childWidget),
-                                onkeyup :+= { (e: Event) =>
-                                  if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
-                                    removeItem(childWidget)(e)
-                                },
-                                Icons.minusFill).render
-                            }
-                          }else frag()
-                        ) else frag()
-                      ).render
-                    }),
-                    if (write && !disableAdd) {
-                      tr(tableStyle.tr,
-                        td(tableStyle.td, colspan := countColumns(additionalColumns),
-                          a(id := TestHooks.addChildId(m.objId),
-                            tabindex := 0,
-                            ClientConf.style.childAddButton,
-                            BootstrapStyles.Float.right(),
-                            onclick :+= addItemHandler(child, m),
-                            onkeyup :+= {(e:Event) => if(Seq("Enter"," ").contains(e.asInstanceOf[KeyboardEvent].key)) addItemHandler(child, m)(e)},
-                            Icons.plusFill)
-                        ),
-                      )
-                    } else frag()
-                  ).render
-                ),
+                          a(ClientConf.style.childDuplicateButton, tabindex := 0,
+                            onclick :+= duplicateItem(childWidget),
+                            onkeyup :+= { (e: Event) => if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e) },
+                            duplicateIcon)
+                        } else frag()
+                        , " ",
+                        if (!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
+                          showIf(entity.transform(_.length > min)) {
+                            a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
+                              onclick :+= removeItem(childWidget),
+                              onkeyup :+= { (e: Event) =>
+                                if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
+                                  removeItem(childWidget)(e)
+                              },
+                              Icons.minusFill).render
+                          }
+                        } else frag()
+                      ) else frag()
+                    ).render
+                  }),
+                  if (write && !disableAdd) {
+                    tr(tableStyle.tr,
+                      td(tableStyle.td, colspan := countColumns(additionalColumns),
+                        a(id := TestHooks.addChildId(m.objId),
+                          tabindex := 0,
+                          ClientConf.style.childAddButton,
+                          BootstrapStyles.Float.right(),
+                          onclick :+= addItemHandler(child, m),
+                          onkeyup :+= { (e: Event) => if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key)) addItemHandler(child, m)(e) },
+                          Icons.plusFill)
+                      ),
+                    )
+                  } else frag()
+                ).render
+              ).render
+
+              tab.addEventListener("keydown",handleKeys)
+
+                div(tableStyle.tableContainer,
+                  tab,
                 if (!hideExporters) {
                   Seq(
                     button(ClientConf.style.boxButtonImportant, Labels.form.print, onclick :+= printTable(m)),

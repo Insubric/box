@@ -1398,6 +1398,12 @@ object GlobalStyleFactory{
       padding(5 px)
     )
 
+    val xyButtonOnTable = style(
+      media.maxWidth(600 px)(
+        width(100.px)
+      )
+    )
+
 
   //  val fixedHeader = style(
   //    unsafeRoot("tbody")(

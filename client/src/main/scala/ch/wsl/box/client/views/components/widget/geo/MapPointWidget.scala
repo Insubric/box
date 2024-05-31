@@ -7,7 +7,7 @@ import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.GPS
 import ch.wsl.box.model.shared.GeoJson.{Coordinates, Geometry, Point}
 import ch.wsl.box.client.views.components.widget._
-import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import ch.wsl.box.model.shared.{GeoJson, JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.generic.auto._
@@ -31,6 +31,7 @@ import scribe.Logging
 import ch.wsl.typings.ol.projMod
 
 import java.util.UUID
+import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 
 
@@ -200,6 +201,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     step := 0.00000000001,
     float.none,
     WidgetUtils.toNullable(field.nullable),
+    ClientConf.style.xyButtonOnTable, // show on mobile
     onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
     onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
     mod
@@ -209,6 +211,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     step := 0.00000000001,
     float.none,
     WidgetUtils.toNullable(field.nullable),
+    ClientConf.style.xyButtonOnTable, // show on mobile
     onblur :+= ((e:Event) => checkValidity(x.get,y.get)),
     onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler,
     mod
@@ -282,6 +285,26 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
       ),
       div(BootstrapStyles.Visibility.clearfix)
     )
+  }
+
+  /**
+   * Used to provide the user the human-readable representation of the data, mainly used for lookups
+   *
+   * @param json data as stored in the database
+   * @param ex
+   * @return user readable data
+   */
+  override def toUserReadableData(json: Json)(implicit ex: ExecutionContext): Future[Json] = Future.successful{
+    json.as[Geometry].toOption match {
+      case Some(value) => value match {
+        case geometry: GeoJson.SingleGeometry => geometry match {
+          case Point(coordinates, crs) => Json.fromString(s"x: ${coordinates.xApprox(1)} y:${coordinates.yApprox(1)}")
+          case _ => Json.Null
+        }
+        case _ => Json.Null
+      }
+      case None => Json.Null
+    }
   }
 }
 
