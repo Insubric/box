@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.services.{ClientConf, Notification}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Notification}
 import ch.wsl.box.model.shared.Internationalization.I18n
 import ch.wsl.box.model.shared.{JSONField, JSONID, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -53,7 +53,7 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
       def exec(id:Option[JSONID],allData:Json) = {
         services.clientSession.loading.set(true)
         logger.info(s"Exec with params $allData")
-        services.rest.execute(field.function.get, services.clientSession.lang(), allData).foreach { result =>
+        services.rest.execute(field.function.get, services.clientSession.lang(), allData).map { result =>
           services.clientSession.loading.set(false)
           result.errorMessage.foreach(Notification.add)
           if(!noReload)
@@ -61,7 +61,9 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
         }
       }
       def action() = saveBefore match {
-        case true => params.actions.save().map{ case (id,data) =>
+
+        case true => params.actions.save{ (id,data) =>
+          logger.debug(s"Action id $id")
           exec(Some(id),data)
         }
         case false => exec(params.id.get.flatMap(id => JSONID.fromString(id,params.metadata)),params.allData.get)
