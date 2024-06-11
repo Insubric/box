@@ -213,10 +213,10 @@ trait IsCheckBoxWithData extends Widget with HasData {
 
 
 
-case class WidgetCallbackActions(save: () => Future[(JSONID,Json)], reload: JSONID => Future[Json])
+case class WidgetCallbackActions(save: (((JSONID,Json) => Future[Unit]) => Unit), reload: JSONID => Future[Json])
 
 object WidgetCallbackActions{
-  def noAction = new WidgetCallbackActions(() => Future.successful((JSONID.empty,Json.Null)), _ => Future.successful(Json.Null))
+  def noAction = new WidgetCallbackActions(_ => (), _ => Future.successful(Json.Null))
 }
 
 case class WidgetParams(

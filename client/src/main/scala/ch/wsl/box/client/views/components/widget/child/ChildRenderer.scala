@@ -134,16 +134,20 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
             x.deepMerge(data)
           } else x
         }
-        if(propListener != null)
-          propListener.cancel()
-        prop.set(newData.asJson)
-        registerListener(false)
+        modNoListener { () =>
+          prop.set(newData.asJson)
+        }
       }
 
       val changed = Property(false)
-      val actions = widgetParam.actions.copy(save = () => widgetParam.actions.save().map{case (parentId,parentData) =>
-        (parentId,parentData.seq(field.name).lift(entity.get.indexOf(id)).getOrElse(Json.Null))
-      } )
+        logger.info(s"Setting new action with entityId = $id on field ${field.name}")
+
+      def save(f:(JSONID,Json) => Future[Unit]) = widgetParam.actions.save{ (parentId,parentData) =>
+        val data = parentData.seq(field.name).lift(entity.get.indexOf(id)).getOrElse(Json.Null)
+        f(parentId,data)
+      }
+
+      val actions = widgetParam.actions.copy(save = save)
 
       val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,actions,changed,widgetParam.public)
 
@@ -313,6 +317,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     var propListener:Registration = null
 
+    def modNoListener(f: () => Unit): Unit = {
+      if(propListener != null)
+        propListener.cancel()
+      f()
+      registerListener(false)
+    }
     def registerListener(immediate:Boolean) {
       propListener = prop.listen(propData => {
         childWidgets.foreach(_.widget.killWidget())

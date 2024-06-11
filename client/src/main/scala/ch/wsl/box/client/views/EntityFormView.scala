@@ -159,7 +159,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   val saveKey:KeyHandler = (event:KeyboardEvent,handler:HotkeysEvent) => {
     event.preventDefault()
-    save()
+    save().map{ case (id,d) => afterSave(id,d)}
     false
   }
 
@@ -250,19 +250,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       val newData = currentState.data.deepMerge(resultAfterAction)
 
-      model.set(currentState.copy(
-        data = newData,
-        originalData = newData,
-        id = Some(newId.asString),
-        insert = false,
-        changed = false
-      ))
-      childChanged.set(false)
-      resetChanges()
 
-      services.clientSession.loading.set(false)
 
-      (newId,resultAfterAction)
+      (newId,newData)
 
 
     }}.recover{ case e =>
@@ -272,6 +262,21 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       throw e
     }
 
+  }
+
+  def afterSave(id:JSONID,data:Json) = {
+    val currentState = model.get
+    model.set(currentState.copy(
+      data = data,
+      originalData = data,
+      id = Some(id.asString),
+      insert = false,
+      changed = false
+    ))
+    childChanged.set(false)
+    resetChanges()
+
+    services.clientSession.loading.set(false)
   }
 
   def reload(id:JSONID): Future[Json] = {
@@ -371,7 +376,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    val actions = WidgetCallbackActions(() => save(),reload)
+    val actions = WidgetCallbackActions((f:(JSONID,Json) => Future[Unit]) => save().foreach{ case (id,data) =>
+      f(id,data).foreach{ _ =>
+        afterSave(id,data)
+      }
+    },reload)
     widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,childChanged,model.subProp(_.public).get)
     widget
   }
@@ -466,10 +475,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     def callBack() = action.action match {
       case SaveAction =>  save(action.html5check).map{ case (_id,data) =>
 
-        def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
-          logger.warn(s"Navigating to $url")
-          //reset()
-          afterGoto(url)
+        def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write) match {
+          case Some(url) => {
+            logger.warn(s"Navigating to $url")
+            //reset()
+            afterGoto(url)
+          }
+          case None => afterSave(_id,data)
         }
 
         executeFunction().map {
@@ -480,7 +492,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
             onSuccess
           }
           case None => onSuccess
-          case Some(false) => ()
+          case Some(false) => afterSave(_id,data)
 
         }
       }
