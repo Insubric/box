@@ -27,7 +27,7 @@ val publishSettings = List(
   },
   publishMavenStyle := true,
   dynverSonatypeSnapshots := true,
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeCredentialHost := "oss.sonatype.org",
   credentials += Credentials(
     "Sonatype Nexus Repository Manager",
     "s01.oss.sonatype.org",
