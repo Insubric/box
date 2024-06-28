@@ -9,7 +9,7 @@ import io.circe.syntax._
 import io.circe.generic.auto._
 import scalatags.JsDom.all._
 import scribe.Logging
-import typings.ol.{baseTileMod, layerMod, proj4Mod, projectionMod, sourceMod}
+import typings.ol.{layerBaseTileMod, layerMod, projProj4Mod, projProjectionMod, sourceMod}
 
 import scala.scalajs.js
 
@@ -120,7 +120,7 @@ trait MapWidget extends Logging {
     unit = "m"
   )
 
-  val openStreetMapLayer = new layerMod.Tile(baseTileMod.Options().setSource(new sourceMod.OSM()))
+  val openStreetMapLayer = new layerMod.Tile(layerBaseTileMod.Options().setSource(new sourceMod.OSM()))
 
   val jsonOption:Json = ClientConf.mapOptions.deepMerge(field.params.getOrElse(JsonObject().asJson))
   val options:MapParams = jsonOption.as[MapParams] match {
@@ -146,10 +146,10 @@ trait MapWidget extends Logging {
     )
   }
 
-  proj4Mod.register(typings.proj4.mod.^.asInstanceOf[js.Dynamic].default)
+  projProj4Mod.register(typings.proj4.mod.^.asInstanceOf[js.Dynamic].default)
 
   def toOlProj(projection: MapParamsProjection) = {
-    new projectionMod.default(projectionMod.Options(projection.name)
+    new projProjectionMod.default(projProjectionMod.Options(projection.name)
       .setUnits(projection.unit)
       .setExtent(js.Tuple4(
         projection.extent.lift(0).getOrElse(0),

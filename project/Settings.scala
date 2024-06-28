@@ -40,8 +40,8 @@ object Settings {
 
     //HTTP actors
     val akka = "2.6.4"
-    val akkaHttp = "10.1.11"
-    val akkaHttpJson = "1.32.0"
+    val akkaHttp = "10.2.7"
+    val akkaHttpJson = "1.39.2"
 
     //Testing
     val specs2 = "4.3.4"
@@ -52,12 +52,12 @@ object Settings {
 
 
     //json parsers
-    val circe = "0.14.1"
+    val circe = "0.14.3"
 
     //database
     val postgres = "42.2.20"
-    val slick = "3.3.3"
-    val slickPg = "0.19.3"
+    val slick = "3.4.1"
+    val slickPg = "0.21.0"
 
     //frontend
     val scalaCss = "1.0.0"
@@ -147,8 +147,8 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.3",
-    "com.norbitltd" %% "spoiwo" % "1.7.0",
+    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.7.0" exclude("org.scala-lang.modules", "scala-parser-combinators") exclude("org.scala-lang.modules","scala-xml"),
+    "com.norbitltd" %% "spoiwo" % "2.2.1",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
@@ -164,7 +164,11 @@ object Settings {
     "org.geotools" % "gt-shapefile" % "27.2",
     "com.google.zxing" % "core" % "3.5.0",
     "com.google.zxing" % "javase" % "3.5.0",
+    "com.typesafe" %% "ssl-config-core" % "0.6.1",
+    "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
+    "org.apache.xmlgraphics" % "batik-codec" % "1.16",
 
+    //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"
     //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
 //    "com.github.andyglow" %% "scala-jsonschema-circe-json" % versions.scalaJsonSchema
   ))
@@ -178,7 +182,7 @@ object Settings {
     "com.github.japgolly.scalacss" %%% "core" % versions.scalaCss,
     "com.github.japgolly.scalacss" %%% "ext-scalatags" % versions.scalaCss,
     "io.circe" %%% "circe-scalajs" % versions.circe,
-    "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+    "org.scala-js" %%% "scalajs-dom" % "2.4.0",
     "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.scalatest" %%% "scalatest" % "3.2.5" % Test,

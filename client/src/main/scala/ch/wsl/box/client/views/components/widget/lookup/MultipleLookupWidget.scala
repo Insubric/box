@@ -17,8 +17,7 @@ import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, doc
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import typings.choicesJs.anon.PartialOptions
-import typings.choicesJs.choiceMod.Choice
-import typings.choicesJs.itemMod.Item
+import typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
 import typings.choicesJs.mod
 
 import scala.scalajs.js
@@ -75,7 +74,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           })
 
           lookup.listen(values => {
-            val choices = values.toSeq.map(x => Choice(x.value,x.id)).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.groupMod.Group]]
+            val choices = values.toSeq.map(x => Choice(x.value,x.id)).toJSArray.asInstanceOf[js.Array[Choice | typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]]
             choicesJs.setChoices(choices)
           },true)
         }
@@ -88,7 +87,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
-        WidgetUtils.toLabel(field),
+        WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip(el)._1,
       )
 

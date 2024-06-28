@@ -25,6 +25,7 @@ import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.services.Services
+import ch.wsl.box.services.file.FileId
 import io.circe._
 import io.circe.syntax._
 import org.locationtech.jts.geom.Geometry
@@ -90,10 +91,15 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   }
 
+
+  override def distinctOn(field: String, query: JSONQuery): DBIO[Seq[Json]] = {
+    entity.baseTableRow.distinctOn(field, query)
+  }
+
   override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
     for{
       m <- metadata
-      result <- DBIO.sequence(request.fields.map(fkFilters.singleLookup(m)))
+      result <- DBIO.sequence(request.fields.map(f => fkFilters.singleLookup(m,f,request.query)))
     } yield result
   }
 
@@ -204,18 +210,34 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
   }
 
 
+  private def resetFileCache(fields:Seq[(String,Json)],id:JSONID) = Future.sequence {
+    fields.map(_._1).filter { x =>
+      Registry().fields.field(entity.baseTableRow.tableName, x) match {
+        case Some(value) => value.jsonType == JSONFieldTypes.FILE
+        case None => false
+      }
+    }.map { fieldsField =>
+      services.imageCacher.clear(FileId(id, s"${entity.baseTableRow.tableName}.$fieldsField"))
+    }
+  }.recover{ case _ => Seq()}
+
   def update(id:JSONID, e:M):DBIO[M] = {
     logger.info(s"UPDATE BY ID $id")
     implicit def enc = encoder.full()
     for{
       current <- getById(id)
-      currentJs = current.map(_.asJson)
+      newRow <- current match {
+        case Some(value) => DBIO.successful(current)
+        case None => insert(e).map(Some(_))
+      }
+      currentJs = newRow.map(_.asJson)
       met <- metadata
       diff = currentJs.map(c => c.diff(met,Seq())(e.asJson))
       fields:Seq[(String,Json)] = diff.flatMap(_.models.find(_.model == entity.baseTableRow.tableName)) match {
         case Some(m) => m.fields.map(f => (f.field,f.value.getOrElse(Json.Null)))
         case None => Seq()
       }
+      _ <- DBIO.from(resetFileCache(fields, id))
       result <- entity.baseTableRow.updateReturning(fields.toMap,id.toFields)
     } yield result.orElse(current).getOrElse(e)
   }

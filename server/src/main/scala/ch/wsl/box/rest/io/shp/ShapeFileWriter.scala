@@ -204,7 +204,13 @@ object ShapeFileWriter extends Logging {
 
       val allData: Seq[ShapeFileRow] = myData.rows.map{ row =>
         row.zip(myData.headerType).map{ case (value,typ) => ShapeFileAttributes(typ, value)}
-      }.zip(myData.geometry(geomCol)).map{ case (attributes,geom) => ShapeFileRow(geom,attributes)}
+      }.zip(myData.geometry(geomCol)).flatMap{ case (attributes,geom) =>
+        geom match {
+          case GeoJson.GeometryCollection(geometries) => geometries.map(g => ShapeFileRow(g,attributes))
+          case _ => Seq(ShapeFileRow(geom,attributes))
+        }
+
+      }
 
 
       allData.groupBy{ g => g.geometry.geomName}.map{ case (geomType,data) =>

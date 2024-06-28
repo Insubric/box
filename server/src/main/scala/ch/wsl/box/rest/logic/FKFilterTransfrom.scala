@@ -1,6 +1,6 @@
 package ch.wsl.box.rest.logic
 
-import ch.wsl.box.model.shared.{Filter, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookup, JSONLookups, JSONLookupsFieldRequest, JSONMetadata, JSONQuery, JSONQueryFilter}
+import ch.wsl.box.model.shared.{Filter, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookup, JSONLookups, JSONMetadata, JSONQuery, JSONQueryFilter}
 import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.rest.runtime.RegistryInstance
 import io.circe.Json
@@ -14,23 +14,25 @@ case class PreFiltered(filters: Seq[JSONQueryFilter])
 
 class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext, services: Services) {
 
-  private def singleLookupRemote(field: JSONLookupsFieldRequest,lookup:JSONFieldLookupRemote):DBIO[JSONLookups] = {
+  private def singleLookupRemote(table:String, field: String, query:JSONQuery,lookup:JSONFieldLookupRemote):DBIO[JSONLookups] = {
     val remoteLabels = lookup.map.textProperty.split(",").toSeq
-    val query = JSONQuery.filterWith(WHERE.in(lookup.map.valueProperty,field.values.map(_.string)))
-    registry.actions(lookup.lookupEntity).findSimple(query).map{ rows =>
-      JSONLookups(
-        field.fieldName,
+    for{
+      values <- registry.actions(table).distinctOn(field,query)
+      query = JSONQuery.filterWith(WHERE.in(lookup.map.valueProperty,values.map(_.string)))
+      rows <- registry.actions(lookup.lookupEntity).findSimple(query)
+    } yield JSONLookups(
+        field,
         rows.map(row => JSONLookup(row.js(lookup.map.valueProperty),remoteLabels.map(row.get)))
       )
-    }
+
   }
 
-  def singleLookup(metadata:JSONMetadata)(field: JSONLookupsFieldRequest):DBIO[JSONLookups] = {
-    val jsonField = metadata.fields.find(_.name == field.fieldName).get
+  def singleLookup(metadata:JSONMetadata,field: String, query:JSONQuery):DBIO[JSONLookups] = {
+    val jsonField = metadata.fields.find(_.name == field).get
     jsonField.lookup.get match {
-      case lookup:JSONFieldLookupRemote => singleLookupRemote(field, lookup)
-      case JSONFieldLookupExtractor(extractor) => DBIO.successful(JSONLookups(field.fieldName,extractor.results.flatten))
-      case JSONFieldLookupData(data) => DBIO.successful(JSONLookups(field.fieldName,data))
+      case lookup:JSONFieldLookupRemote => singleLookupRemote(metadata.view.getOrElse(metadata.entity), field, query, lookup)
+      case JSONFieldLookupExtractor(extractor) => DBIO.successful(JSONLookups(field,extractor.results.flatten))
+      case JSONFieldLookupData(data) => DBIO.successful(JSONLookups(field,data))
     }
 
   }

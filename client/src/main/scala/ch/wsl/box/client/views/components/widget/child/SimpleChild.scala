@@ -39,7 +39,7 @@ object SimpleChildFactory extends ChildRendererFactory {
           div(
             div(
               nested(repeat(entity) { e =>
-                val widget = getWidget(e.get)
+                val widget = getWidget(e.get)._1
                 div(ClientConf.style.subform,backgroundColor := bgColor,
                   div(display.flex,
                     div(flexGrow := 1, widget.widget.render(write, Property(true),nested)),

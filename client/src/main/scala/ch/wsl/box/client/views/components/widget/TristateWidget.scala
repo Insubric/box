@@ -74,7 +74,7 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
 
 
     div(
-      div(ClientConf.style.label50,if(!noLabel) { WidgetUtils.toLabel(field) } else frag()),
+      div(ClientConf.style.label50,if(!noLabel) { WidgetUtils.toLabel(field,WidgetUtils.LabelRight) } else frag()),
       tooltip(tristateCheckbox(booleanModel).render)._1
     )
   }

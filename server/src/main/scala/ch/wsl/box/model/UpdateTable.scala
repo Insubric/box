@@ -22,11 +22,17 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
 
   private def orderBlock(order:JSONSort):SQLActionBuilder = sql""" "#${order.column}" #${order.order} """
 
+  private def isNonEmptyFilter(f:JSONQueryFilter):Boolean = {
+    (!f.operator.exists(op => Filter.multiEl.contains(op)) && f.value.nonEmpty) ||
+    (f.operator.exists(op => Filter.multiEl.contains(op)) && f.value.split(",").exists(_.nonEmpty)) ||
+    f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op))
+  }
+
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
-    val nonEmpltyFilters = query.filter.filter(f => f.value.nonEmpty || f.operator.exists(op => Seq(Filter.IS_NULL,Filter.IS_NOT_NULL).contains(op)))
-    val where = if(nonEmpltyFilters.nonEmpty) {
-      val filters = nonEmpltyFilters.flatMap(kv)
+    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
+    val where = if(nonEmptyFilters.nonEmpty) {
+      val filters = nonEmptyFilters.flatMap(kv)
       filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
     } else sql""
 
@@ -48,6 +54,20 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
     val chunks = where.flatMap(kv)
     val result = chunks.tail.foldLeft(concat(sql" where ",chunks.head)){ case (builder, chunk) => concat(builder, concat(sql" and ",chunk)) }
     result
+  }
+
+  def distinctOn(field:String,query:JSONQuery):DBIO[Seq[Json]] = {
+    registry.fields.field(t.tableName, field) match {
+      case Some(value) => {
+        val q = concat(
+          sql"""select distinct to_jsonb("#$field") from #${t.schemaName.getOrElse("public")}.#${t.tableName} """,
+          whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
+        ).as[Json]
+        q
+      }
+      case None => DBIO.failed(new Exception(s"Field $field not exists in table ${t.tableName}"))
+    }
+
   }
 
 
@@ -107,6 +127,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
       case "Long" => update[Long](col)
       case "Short" => update[Short](col)
       case "Double" => update[Double](col)
+      case "Float" => update[Float](col)
       case "BigDecimal" | "scala.math.BigDecimal" => update[BigDecimal](col)
       case "java.time.LocalDate" => update[java.time.LocalDate](col)
       case "java.time.LocalTime" => update[java.time.LocalTime](col)
@@ -175,6 +196,7 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case "Long" => filterMany[Long](col.nullable,Some(splitAndTrim(v).flatMap(_.toLongOption)))
         case "Short" => filterMany[Short](col.nullable,Some(splitAndTrim(v).flatMap(_.toShortOption)))
         case "Double" => filterMany[Double](col.nullable,Some(splitAndTrim(v).flatMap(_.toDoubleOption)))
+        case "Float" => filterMany[Float](col.nullable,Some(splitAndTrim(v).flatMap(_.toFloatOption)))
         case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
         case "io.circe.Json" => filterMany[Json](col.nullable,Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
         case "java.util.UUID" => filterMany[java.util.UUID](col.nullable,Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
@@ -186,11 +208,24 @@ trait UpdateTable[T] extends BoxTable[T] { t:Table[T] =>
         case "Int" => filter[Int](col.nullable,v.toIntOption)
         case "Long" => filter[Long](col.nullable,v.toLongOption)
         case "Short" => filter[Short](col.nullable,v.toShortOption)
+        case "Float" => filter[Float](col.nullable,v.toFloatOption)
         case "Double" => filter[Double](col.nullable,v.toDoubleOption)
         case "BigDecimal" | "scala.math.BigDecimal" => filter[BigDecimal](col.nullable,Try(BigDecimal(v)).toOption)
-        case "java.time.LocalDate" => filter[java.time.LocalDate](col.nullable,DateTimeFormatters.toDate(v).headOption)
+        case "java.time.LocalDate" => {
+          DateTimeFormatters.toDate(v) match {
+            case head :: Nil => filter[java.time.LocalDate](col.nullable,Some(head))
+            case from :: (to :: Nil) =>  Some(sql""" "#$key" between $from and $to """)
+            case Nil => None
+          }
+        }
         case "java.time.LocalTime" => filter[java.time.LocalTime](col.nullable,DateTimeFormatters.time.parse(v))
-        case "java.time.LocalDateTime" => filter[java.time.LocalDateTime](col.nullable,DateTimeFormatters.toTimestamp(v).headOption)
+        case "java.time.LocalDateTime" => {
+          DateTimeFormatters.toTimestamp(v) match {
+            case head :: Nil => filter[java.time.LocalDateTime](col.nullable, Some(head))
+            case from :: (to :: Nil) => Some(sql""" "#$key" between $from and $to """)
+            case Nil => None
+          }
+        }
         case "io.circe.Json" => filter[Json](col.nullable,parser.parse(v).toOption)
         case "Array[Byte]" => filter[Array[Byte]](col.nullable,Try(Base64.getDecoder.decode(v)).toOption)
         case "org.locationtech.jts.geom.Geometry" => filter[Geometry](col.nullable,Try(new org.locationtech.jts.io.WKTReader().read(v)).toOption)

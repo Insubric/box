@@ -212,7 +212,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               confirmText = a.confirm_text,
               executeFunction = a.execute_function,
               condition = a.condition.map(toConditions),
-              html5check = a.html_check
+              html5check = a.html_check,
+              target = a.target.map(Target.fromString).getOrElse(Self)
             )
           },
           navigationActions = navigationActions.map{a =>

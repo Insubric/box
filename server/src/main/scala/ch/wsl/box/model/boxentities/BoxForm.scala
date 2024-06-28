@@ -115,11 +115,12 @@ object BoxForm {
                               confirm_text:Option[String],
                                  execute_function:Option[String],
                                  condition:Option[Json] = None,
-                                 html_check:Boolean = true
+                                 html_check:Boolean = true,
+                                target:Option[String] = None
                                 )
 
   class BoxForm_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_actions_row](_tableTag,schema, "form_actions") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check,target) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
@@ -132,6 +133,7 @@ object BoxForm {
     val reload: Rep[Boolean] = column[Boolean]("reload", O.Default(false))
     val confirm_text: Rep[Option[String]] = column[Option[String]]("confirm_text", O.Default(None))
     val execute_function: Rep[Option[String]] = column[Option[String]]("execute_function", O.Default(None))
+    val target: Rep[Option[String]] = column[Option[String]]("target", O.Default(None))
     val action_order: Rep[Double] = column[Double]("action_order")
     val condition: Rep[Option[Json]] = column[Option[Json]]("condition")
     val html_check: Rep[Boolean] = column[Boolean]("html_check")

@@ -49,6 +49,10 @@ object ClientConf {
   def displayIndexNews: Boolean = Try(conf("display.index.news").toBoolean).getOrElse(false)
   def displayIndexHtml: Boolean = Try(conf("display.index.html").toBoolean).getOrElse(false)
 
+  def menuHamburger: Boolean = Try(conf("menu.hamburger").toBoolean).getOrElse(true)
+
+  def labelAlign: String = Try(conf("label.align")).getOrElse("left")
+
   def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
   def frontendUrl: String = Try(conf("frontendUrl")).getOrElse("http://localhost:8080")
 

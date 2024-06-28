@@ -37,11 +37,12 @@ object BoxMail {
                          html:Option[String],
                          text:String,
                          params:Option[Json],
-                         created:LocalDateTime
+                         created:LocalDateTime,
+                         reply_to:Option[String]
                         )
 
   class BoxMail(_tableTag: Tag) extends profile.api.Table[BoxMail_row](_tableTag,schema, "mails") {
-    def * = (Rep.Some(id),send_at,sent_at,mail_from,mail_to,mail_cc,mail_bcc,subject,html,text,params,created) <> (BoxMail_row.tupled, BoxMail_row.unapply)
+    def * = (Rep.Some(id),send_at,sent_at,mail_from,mail_to,mail_cc,mail_bcc,subject,html,text,params,created,reply_to) <> (BoxMail_row.tupled, BoxMail_row.unapply)
 
     val id: Rep[UUID] = column[UUID]("id", O.PrimaryKey,O.AutoInc)
     val send_at: Rep[LocalDateTime] = column[LocalDateTime]("send_at")
@@ -54,6 +55,7 @@ object BoxMail {
     val html: Rep[Option[String]] = column[Option[String]]("html")
     val text: Rep[String] = column[String]("text")
     val params: Rep[Option[Json]] = column[Option[Json] ]("params")
+    val reply_to: Rep[Option[String]] = column[Option[String] ]("reply_to")
     val created: Rep[LocalDateTime] = column[LocalDateTime]("created")
 
   }

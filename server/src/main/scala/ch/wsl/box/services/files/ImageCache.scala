@@ -1,7 +1,6 @@
 package ch.wsl.box.services.files
 
 import java.io.{ByteArrayInputStream, InputStream}
-
 import ch.wsl.box.services.file.{Cover, FileCacheKey, FileId, Fit, ImageCacheStorage, Thumbnail, Width}
 import com.sksamuel.scrimage.ImmutableImage
 import com.sksamuel.scrimage.color.{Color, RGBColor, X11Colorlist}
@@ -13,7 +12,7 @@ import scribe.Logging
 import wvlet.airframe.bind
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 
 
@@ -24,10 +23,17 @@ trait ImageCache extends Logging {
 
   private def createThumbnail(width:Int,height:Int)(data:Array[Byte])(implicit ec:ExecutionContext):Future[Array[Byte]] = {
     Future {
-
         val thumbnailer = new Thumbnailer(new PDFThumbnailer, new TextThumbnailer, new ImageThumbnailer, new DOCXThumbnailer)
         thumbnailer.setSize(width, height)
+      Try {
         thumbnailer.generateThumbnail(new ByteArrayInputStream(data), mime(data))
+      } match {
+        case Failure(exception) => {
+          logger.info(exception.getMessage)
+          Utils.placeholderOk
+        }
+        case Success(value) => value
+      }
     }
   }
 

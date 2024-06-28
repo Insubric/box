@@ -27,6 +27,7 @@ import scalacss.ScalatagsCss._
 import scalatags.generic.Modifier
 import scalatags.generic
 
+import scala.scalajs.js.URIUtils
 import scala.util.Try
 
 
@@ -86,7 +87,7 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
   val csv = (e:Event) => {
     logger.info()
     val url = Routes.apiV1(
-      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}?q=${args.toString()}".replaceAll("\n","")
+      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}?q=${URIUtils.encodeURI(args.noSpaces)}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)

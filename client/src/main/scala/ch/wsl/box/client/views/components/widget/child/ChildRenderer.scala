@@ -83,7 +83,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
-    def getWidget(id:String):ChildRow = childWidgets.find(_.id == id) match {
+    def getWidget(id:String):(ChildRow,Int) = childWidgets.zipWithIndex.find(_._1.id == id) match {
       case Some(value) => value
       case None => throw new Exception(s"Widget not found $id")
     }
@@ -114,11 +114,16 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     protected def render(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
 
+    private def staticProps:Map[String,Json] = {for{
+      params <- field.params
+      propsJs <- params.jsOpt("props")
+      props <- propsJs.asObject
+    } yield props.toMap}.getOrElse(Map())
 
     private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
 
       val props:ReadableProperty[Json] = masterData.transform{js =>
-        child.props.map(p => p -> js.js(p)).toMap.asJson
+        (child.props.map(p => p -> js.js(p)).toMap ++ staticProps).asJson
       }
 
       val id = UUID.randomUUID().toString
@@ -362,7 +367,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       if (write && !disableAdd) {
         autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
           a(id := TestHooks.addChildId(m.objId),
-            ClientConf.style.childAddButton, BootstrapStyles.Float.right(),
+            ClientConf.style.childAddButton,
             onclick :+= addItemHandler(child,m),
             name,span(ClientConf.style.field,Icons.plusFill)
           ).render

@@ -64,6 +64,8 @@ object StyleConstants extends StyleSheet.Inline{
     val Yellow = c"#ffd600"
 
     val Cyan = c"#eef4f7"
+
+    val Trasparent = Color("rgba(0,0,0,0)")
   }
 
   /**

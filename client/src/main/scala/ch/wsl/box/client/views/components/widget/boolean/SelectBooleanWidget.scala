@@ -59,7 +59,7 @@ case class SelectBooleanWidget(field:JSONField, data: Property[Json]) extends Wi
 
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
-      WidgetUtils.toLabel(field),
+      WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
       tooltip(Select.optional[Boolean](booleanModel, SeqProperty(true,false),StringFrag("---"))((s: Boolean) => StringFrag(boolToString(s)), m: _*).render)._1,
       div(BootstrapStyles.Visibility.clearfix)
     )

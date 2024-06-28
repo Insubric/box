@@ -49,7 +49,7 @@ object DropdownLangWidget extends ComponentWidgetFactory {
       autoRelease(params.prop.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
-        WidgetUtils.toLabel(field),
+        WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip(Select[String](stringModel,SeqProperty(ClientConf.langs))((s:String) => StringFrag(s),m:_*).render)._1,
         div(BootstrapStyles.Visibility.clearfix)
       )

@@ -90,13 +90,28 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
           }
           services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
         }
-        case None => Future.successful{
-          Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*)
-        }
+        case None => Future.successful(Json.Null)
       }
     } yield {
 
-      val dataWithQueryParams = data.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
+      BrowserConsole.log(data)
+      println(data == Json.Null)
+
+      var insert = false
+
+      //check if data is already present for the given id
+      val dataWithId = if(data == Json.Null) { // if not we are going to do an insert
+        insert = true
+        val d = Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*) // taking the defaults
+        state.id.flatMap(JSONID.fromString(_, metadata)) match {
+          case Some(id) => d.deepMerge(Json.fromFields(id.toFields))
+          case None => d
+        }
+      } else {
+        data
+      }
+
+      val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
 
       val stateModel = EntityFormModel(
         name = state.entity,
@@ -110,7 +125,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         false,
         state.writeable,
         state.public,
-        state.id.isEmpty,
+        insert,
         false
       )
 
@@ -397,6 +412,16 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
 
+    def afterGoto(url:String) = {
+      action.target match {
+        case Self => Navigate.toUrl(url)
+        case NewWindow => {
+          println(url)
+          window.open(url)
+        }
+      }
+    }
+
     def executeFuntion():Future[Boolean] = action.executeFunction match {
       case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
         result.errorMessage match {
@@ -421,7 +446,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
             action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
               logger.warn(s"Navigating to $url")
               //reset()
-              Navigate.toUrl(url)
+              afterGoto(url)
 
             }
           }
@@ -431,7 +456,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         executeFuntion().map { functionOk =>
           if(functionOk) {
             reset()
-            Navigate.toUrl(url)
+            afterGoto(url)
           }
         }
       }
@@ -494,7 +519,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       }
 
 
-    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
+    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && model.subProp(_.insert).get) || (!action.insertOnly && !action.updateOnly)) {
       val actionButton = button(
         id := TestHooks.actionButton(action.label),
         importance,

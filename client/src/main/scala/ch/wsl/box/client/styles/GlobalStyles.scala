@@ -53,6 +53,11 @@ object GlobalStyleFactory{
         Font.bold
       ),
 
+      unsafeRoot("h5")(
+        Font.bold,
+        fontSize(14 px)
+      ),
+
       unsafeRoot("body") (
         StyleConstants.defaultFontSize,
         backgroundColor.white,
@@ -61,6 +66,10 @@ object GlobalStyleFactory{
 
       unsafeRoot("h3") (
         marginTop(18 px)
+      ),
+
+      unsafeRoot("*:focus")(
+        outline.none
       ),
 
       unsafeRoot("select")(
@@ -285,6 +294,15 @@ object GlobalStyleFactory{
 
       unsafeRoot(".ql-editor p")(
         marginBottom.`0`
+      ),
+
+      unsafeRoot (".field")(
+        width(100 %%)
+      ),
+
+      unsafeRoot(".grid-stack > .grid-stack-item.grid-stack-sub-grid > .grid-stack-item-content") (
+        backgroundColor.rgba(0,0,0,0.1),
+        marginRight(2.px)
       )
 
 
@@ -538,12 +556,28 @@ object GlobalStyleFactory{
     val field = style(
       paddingRight(10 px),
       paddingLeft(10 px),
-      minHeight.`0`
+      minHeight.`0`,
+      unsafeChild("div") (
+        unsafeChild("h3") (
+          marginLeft((-10-conf.paddingBlocks) px)
+        )
+      ),
+      unsafeExt(_ + ":focus-within")(
+        unsafeChild("label")(
+          color(conf.colors.main),
+        )
+      )
     )
 
     val removeFieldMargin = style(
       marginRight(-10 px),
       marginLeft(-10 px),
+      minHeight.`0`
+    )
+
+    val removeFieldAndBlockMargin = style(
+      marginRight((-10-conf.paddingBlocks) px),
+      marginLeft((-10-conf.paddingBlocks) px),
       minHeight.`0`
     )
 
@@ -1174,8 +1208,15 @@ object GlobalStyleFactory{
       display.inlineBlock
     )
 
+    val inputRightLabel = style(
+      width(50 %%),
+      padding.horizontal(10 px),
+      textAlign.right
+    )
+
     val childAddButton = style(
       lineHeight(40 px),
+      marginLeft(10 px),
       fontSize(14 px),
       display.inlineBlock,
       unsafeChild("svg")(
@@ -1222,9 +1263,14 @@ object GlobalStyleFactory{
     val dropFileZone = style(
       minHeight(50 px),
       width(100 %%),
-      borderStyle.dashed,
-      borderColor(Colors.Grey),
+      borderColor(Colors.Trasparent),
+      borderStyle.solid,
       borderWidth(1 px),
+      &.hover(
+        borderStyle.dashed,
+        borderColor(Colors.Grey),
+        borderWidth(1 px),
+      ),
       display.flex,
       flexDirection.column,
       justifyContent.center,

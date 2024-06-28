@@ -30,6 +30,7 @@ object WidgetsNames {
   val code = "code"
   val richTextEditor = "richTextEditor"
   val richTextEditorFull = "richTextEditorFull"
+  val richTextEditorPopup = "richTextEditorPopup"
   val redactor = "redactor"
   val simpleFile = "simpleFile"
   val simpleChild = "simpleChild"
@@ -50,6 +51,7 @@ object WidgetsNames {
   val langWidget = "langWidget"
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
+  val adminLayoutWidget = "adminLayoutWidget"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -81,6 +83,7 @@ object WidgetsNames {
       textarea,
       richTextEditor,
       richTextEditorFull,
+      richTextEditorPopup,
       redactor,
       code,
       select,

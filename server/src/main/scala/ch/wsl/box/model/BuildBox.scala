@@ -6,6 +6,7 @@ import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.DefaultModule
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.ServicesWithoutGeneration
 import ch.wsl.box.services.config.ConfigFileImpl
 
@@ -23,8 +24,10 @@ object BuildBox {
     println("Installing BOX")
 
     DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { services =>
-      install(services.connection,services.config.boxSchemaName)
 
+      Registry.boxSchemaOnly(services.config.boxSchemaName)
+
+      install(services.connection,services.config.boxSchemaName)
 
       println("Box schema ready")
     }

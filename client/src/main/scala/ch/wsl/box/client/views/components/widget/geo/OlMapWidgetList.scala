@@ -19,8 +19,7 @@ import scalacss.ProdDefaults.{cssEnv, cssStringRenderer}
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scribe.Logger
-import typings.ol.viewMod.FitOptions
-import typings.ol.{drawMod, geoJSONMod, geomMod, geometryMod, multiPointMod, olFeatureMod, projMod}
+import typings.ol.{interactionDrawMod, formatGeoJSONMod, geomMod, geomGeometryMod, geomMultiPointMod, featureMod, projMod}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -53,7 +52,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
   override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
     dynamicInteraction.foreach{
-      case d:drawMod.default => d.finishDrawing()
+      case d:interactionDrawMod.default => d.finishDrawing()
       case _ => ()
     }
     Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> this.data.get))))
@@ -62,7 +61,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
   def deleteGeometry(geom:SingleGeometry) = if (window.confirm(Labels.form.removeMap)) {
 
 
-    val geoJson = new geoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
     convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).foreach { collection =>
       import ch.wsl.box.model.shared.GeoJson.Geometry._
       import ch.wsl.box.model.shared.GeoJson._
@@ -81,7 +80,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         }
 
         toInsert.foreach{ f =>
-          val geom = new geoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[olFeatureMod.default[geometryMod.default]]
+          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
           vectorSource.addFeature(geom)
         }
 
@@ -114,7 +113,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
     val insertCoordinateField = Property("")
     val insertCoordinateHandler = ((e: Event) => {
       parseCoordinates(insertCoordinateField.get).foreach { p =>
-        val feature = new olFeatureMod.default[geometryMod.default](new geomMod.Point(p))
+        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p))
         vectorSource.addFeature(feature)
       }
       e.preventDefault()
@@ -160,7 +159,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     div(
       mapStyleElement,
-      WidgetUtils.toLabel(field),
+      WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),
       div(fontSize := 18.px, color := ClientConf.styleConf.colors.main.value,
         services.clientSession.lang() match {
           case "de" => a("Übersicht zum Gebrauch der Karte",href := "https://dms-media.wavein.ch/wi-dms/map_user_guide_de.pdf", target := "_blank")

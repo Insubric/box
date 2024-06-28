@@ -66,13 +66,9 @@ object LookupFormWidget extends ComponentWidgetFactory {
       linkRenderer(lab.render(false,Property(true),nested),field.params,navigate(_.edit(id.asString))).render
     })
 
-    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier =  nested(produce(linkedData) { case id =>
-      a(onclick :+= navigate(_.show(id.asString)),lab.render(false,Property(true),nested)).render
-    })
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier =  div(textAlign.center,show(nested))
 
-    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier =  nested(produce(linkedData) { case id =>
-      a(onclick :+= navigate(_.edit(id.asString)),lab.render(false,Property(true),nested)).render
-    })
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier =  div(textAlign.center,edit(nested))
   }
 
 }

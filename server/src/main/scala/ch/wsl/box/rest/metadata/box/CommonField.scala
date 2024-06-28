@@ -95,7 +95,7 @@ object CommonField {
   val formName = JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.input))
   val formProps = JSONField(JSONFieldTypes.STRING,"props",true,label = Some("Props"), tooltip = Some("Comma separed list of fields that are extracted from parent form, it may be useful for conditional fields"), widget = Some(WidgetsNames.input))
   val formDescription =JSONField(JSONFieldTypes.STRING,"description",true,widget = Some(WidgetsNames.twoLines))
-  val formLayout = JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.code),label = Some(""),
+  val formLayout = JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.adminLayoutWidget),label = Some(""),
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 600.asJson))
   )
 

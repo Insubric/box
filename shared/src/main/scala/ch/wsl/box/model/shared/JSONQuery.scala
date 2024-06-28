@@ -186,7 +186,7 @@ object Filter extends Logging {
     val nullFilters = if(field.nullable) Seq(Filter.IS_NULL, Filter.IS_NOT_NULL) else Seq()
     field.lookup match {
       case None => basicOptions(field.`type`) ++ nullFilters
-      case Some(lookup) => Seq(Filter.FK_LIKE, Filter.FK_DISLIKE, Filter.FK_EQUALS, Filter.FK_NOT) ++ nullFilters // ++ lookup.lookup.values.toSeq
+      case Some(lookup) => Seq(Filter.EQUALS, Filter.NOT, Filter.FK_EQUALS, Filter.FK_NOT) ++ nullFilters // ++ lookup.lookup.values.toSeq
     }
   }
 

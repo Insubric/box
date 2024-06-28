@@ -24,9 +24,7 @@ object DefaultModule extends Module {
 
   val injectorWithoutGeneration = newDesign
     .bind[ExecutionContext].toInstance {
-      ExecutionContext.fromExecutor(
-        new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
-      )
+      scala.concurrent.ExecutionContext.global
     }
     .bind[Connection].to[ConnectionConfImpl]
     .bind[FullConfig].to[FullConfigFileOnlyImpl]
@@ -37,9 +35,7 @@ object DefaultModule extends Module {
 
   val injector = newDesign
     .bind[ExecutionContext].toInstance{
-      ExecutionContext.fromExecutor(
-        new java.util.concurrent.ForkJoinPool(Runtime.getRuntime.availableProcessors())
-      )
+      scala.concurrent.ExecutionContext.global
     }
     .bind[ActorSystem].toInstance{
       ActorSystem()

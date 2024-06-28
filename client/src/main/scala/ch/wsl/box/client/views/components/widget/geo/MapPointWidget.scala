@@ -166,7 +166,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
   private def xInput(mod:Modifier*) = NumberInput(x)(step := 0.00000000001, float.none, WidgetUtils.toNullable(field.nullable),mod)
   private def yInput(mod:Modifier*) = NumberInput(y)(step := 0.00000000001, float.none, WidgetUtils.toNullable(field.nullable),mod)
 
-  private def gpsButton(mod:Modifier*) = WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(button(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px)(
+  private def gpsButton(mod:Modifier*) = WidgetUtils.addTooltip(Some("Get current coordinate with GPS"))(a(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px)(
     onclick :+= { (e: Event) =>
       GPS.coordinates().map { coords =>
         val point = coords.map { c =>
@@ -180,7 +180,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
   )(Icons.target).render)._1
 
   private def showMap(modalStatus:Property[String],mod:Modifier*) = {
-    WidgetUtils.addTooltip(Some("Show on map"))(button(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e: Event) => {
+    WidgetUtils.addTooltip(Some("Show on map"))(a(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e: Event) => {
       modalStatus.set(Status.Open)
       e.preventDefault()
     }), Icons.map).render)._1
@@ -215,7 +215,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with MapWidget wi
     val yIn = yInput(width := 70.px)
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      div(ClientConf.style.label50,if(noLabel) frag() else WidgetUtils.toLabel(field)),
+      div(ClientConf.style.label50,if(noLabel) frag() else WidgetUtils.toLabel(field,WidgetUtils.LabelRight)),
       div(
         display.`inline-block`,
         useXY match {

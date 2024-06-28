@@ -60,7 +60,7 @@ object TableChildFactory extends ChildRendererFactory {
               tbody(
                 nested(produce(entity) { ent => //cannot use repeat because we have two childs for each iteration so frag is not working
                   ent.map { e =>
-                    val widget = getWidget(e)
+                    val widget = getWidget(e)._1
 
                     val toggleRow = (e:Event) => {
                       val tableChildElement = ClientSession.TableChildElement(field.name,f.objId,widget.rowId.get)

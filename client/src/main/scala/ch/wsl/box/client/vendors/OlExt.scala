@@ -1,11 +1,11 @@
 package ch.wsl.box.client.vendors
 
 
-import typings.ol.conditionMod.Condition
-import typings.ol.drawMod.SketchCoordType
-import typings.ol.geometryTypeMod.GeometryType
-import typings.ol.olFeatureMod.FeatureLike
-import typings.ol.selectMod.FilterFunction
+import typings.ol.eventsConditionMod.Condition
+import typings.ol.interactionDrawMod.SketchCoordType
+import typings.ol.geomGeometryTypeMod.GeometryType
+import typings.ol.featureMod.FeatureLike
+import typings.ol.interactionSelectMod.FilterFunction
 import typings.ol.styleStyleMod.{Style, StyleLike}
 
 import scala.scalajs.js
@@ -23,7 +23,7 @@ trait DrawHoleOptions extends js.Object {
   var addCondition: js.UndefOr[Condition] = js.native
   var condition: js.UndefOr[Condition] = js.native
   var features: js.UndefOr[
-    typings.ol.collectionMod.default[typings.ol.olFeatureMod.default[typings.ol.geometryMod.default]]
+    typings.ol.collectionMod.default[typings.ol.featureMod.default[typings.ol.geomGeometryMod.default]]
   ] = js.native
   var filter: js.UndefOr[FilterFunction] = js.native
   var hitTolerance: js.UndefOr[Double] = js.native
@@ -72,7 +72,7 @@ object DrawHoleOptions{
       def deleteDragVertexDelay: Self = this.set("dragVertexDelay", js.undefined)
       @scala.inline
       def setFeatures(
-                       value: typings.ol.collectionMod.default[typings.ol.olFeatureMod.default[typings.ol.geometryMod.default]]
+                       value: typings.ol.collectionMod.default[typings.ol.featureMod.default[typings.ol.geomGeometryMod.default]]
                      ): Self = this.set("features", value.asInstanceOf[js.Any])
       @scala.inline
       def deleteFeatures: Self = this.set("features", js.undefined)
@@ -90,7 +90,7 @@ object DrawHoleOptions{
       def deleteFreehandCondition: Self = this.set("freehandCondition", js.undefined)
       @scala.inline
       def setGeometryFunction(
-                               value: (/* p0 */ SketchCoordType, /* p1 */ js.UndefOr[typings.ol.simpleGeometryMod.default], /* p2 */ js.UndefOr[typings.ol.projectionMod.default]) => typings.ol.simpleGeometryMod.default
+                               value: (/* p0 */ SketchCoordType, /* p1 */ js.UndefOr[typings.ol.geomSimpleGeometryMod.default], /* p2 */ js.UndefOr[typings.ol.projProjectionMod.default]) => typings.ol.geomSimpleGeometryMod.default
                              ): Self = this.set("geometryFunction", js.Any.fromFunction3(value))
       @scala.inline
       def deleteGeometryFunction: Self = this.set("geometryFunction", js.undefined)
@@ -111,7 +111,7 @@ object DrawHoleOptions{
       @scala.inline
       def deleteSnapTolerance: Self = this.set("snapTolerance", js.undefined)
       @scala.inline
-      def setSource(value: typings.ol.sourceVectorMod.default[typings.ol.geometryMod.default]): Self = this.set("source", value.asInstanceOf[js.Any])
+      def setSource(value: typings.ol.sourceVectorMod.default[typings.ol.geomGeometryMod.default]): Self = this.set("source", value.asInstanceOf[js.Any])
       @scala.inline
       def deleteSource: Self = this.set("source", js.undefined)
       @scala.inline

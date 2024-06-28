@@ -3,6 +3,7 @@ package ch.wsl.box.client.views.components.widget
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.{Shorten, TestHooks}
+import ch.wsl.box.client.views.components.widget.WidgetUtils.LabelAlign
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
@@ -66,7 +67,7 @@ object InputWidget extends Logging {
 
 
   //used in read-only mode
-  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean,nested:Binding.NestedInterceptor, modifiers:Seq[Modifier] = Seq()):Binding = nested(WidgetUtils.showNotNull(prop,nested){ p =>
+  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean,nested:Binding.NestedInterceptor, labelAlign: LabelAlign, modifiers:Seq[Modifier] = Seq()):Binding = nested(WidgetUtils.showNotNull(prop,nested){ p =>
 
     val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
 
@@ -80,14 +81,14 @@ object InputWidget extends Logging {
 
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if(reallyWithLabel) label(field.title) else {},
+      if(reallyWithLabel) label(WidgetUtils.labelAlignment(labelAlign),field.title) else {},
       div(`class` := TestHooks.readOnlyField(field.name) ,mods, bind(prop.transform(_.string))),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
 
   })
 
-  private def editMe(field:JSONField, withLabel:Boolean, skipRequiredInfo:Boolean=false, modifiers:Seq[Modifier] = Seq())(inputRenderer:(Seq[Modifier]) => Node):Modifier = {
+  private def editMe(field:JSONField, withLabel:Boolean, labelAlign: LabelAlign, skipRequiredInfo:Boolean=false, modifiers:Seq[Modifier] = Seq())(inputRenderer:(Seq[Modifier]) => Node):Modifier = {
 
     val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
 
@@ -108,7 +109,7 @@ object InputWidget extends Logging {
                         modifiers
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if(reallyWithLabel) WidgetUtils.toLabel(field, skipRequiredInfo) else {},
+      if(reallyWithLabel) WidgetUtils.toLabel(field,labelAlign,skipRequiredInfo) else {},
       if(reallyWithLabel)
         tooltip(inputRenderer(allModifiers))._1
       else
@@ -135,7 +136,7 @@ object InputWidget extends Logging {
 
     val modifiers:Seq[Modifier] = Seq()
 
-    override def edit(nested:Binding.NestedInterceptor) = editMe(field,true, false, modifiers){ case y =>
+    override def edit(nested:Binding.NestedInterceptor) = editMe(field,true, WidgetUtils.LabelLeft, false, modifiers){ case y =>
       val stringModel = Property("")
       val textAreaId = UUID.randomUUID().toString
       stringModel.listen{_ =>
@@ -148,7 +149,7 @@ object InputWidget extends Logging {
       val mod = y ++ WidgetUtils.toNullable(field.nullable) ++ Seq(id := textAreaId)
       TextArea(stringModel)(mod:_*).render
     }
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(data,field,true,nested,modifiers)
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(data,field,true,nested,WidgetUtils.LabelLeft,modifiers)
 
     object Status{
       val Closed = "closed"
@@ -229,7 +230,7 @@ object InputWidget extends Logging {
 
   class TwoLines(field:JSONField, prop: Property[Json], metadata:JSONMetadata) extends Textarea(field,prop,metadata) {
 
-    override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2)
+    override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2, width := 50.pct)
   }
 
 
@@ -245,7 +246,7 @@ object InputWidget extends Logging {
       case _ => strToJson(field.nullable)(s)
     }
 
-    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, WidgetUtils.LabelRight,false){ case y =>
       val stringModel = Property("")
 
       data.sync[String](stringModel)(jsonToString _,fromString _)
@@ -261,7 +262,7 @@ object InputWidget extends Logging {
         case _ => TextInput(stringModel)(y++modifiers:_*).render
       }
     })
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showMe(data, field, !noLabel,nested))
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showMe(data, field, !noLabel,nested,WidgetUtils.LabelRight))
 
 
     override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
@@ -313,7 +314,7 @@ object InputWidget extends Logging {
       }
     }
 
-    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, WidgetUtils.LabelRight,false){ case y =>
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(toString _,fromString _))
       nested(NumberInput(stringModel)((y ++ Seq(step := "0.01")):_*)).render
@@ -323,7 +324,7 @@ object InputWidget extends Logging {
       if(js.isNumber) {
         js.as[Double].toOption.map(x => "%.2f".format(x / 100.0).asJson).getOrElse(Json.Null)
       } else js
-    }, field, !noLabel,nested)
+    }, field, !noLabel,nested,WidgetUtils.LabelRight)
 
 
     override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
