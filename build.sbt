@@ -177,7 +177,8 @@ lazy val client: Project = (project in file("client"))
       "jspdf" -> "2.5.1",
       "jspdf-autotable" -> "3.5.28",
       "gridstack" -> "8.3.0",
-      "jspreadsheet-ce" -> "4.13.4"//"git+https://github.com/minettiandrea/jspreadsheet-ce.git#c35aa1194f1309af81f2862f911408c6fce5812e"
+      "jspreadsheet-ce" -> "4.13.4",//"git+https://github.com/minettiandrea/jspreadsheet-ce.git#c35aa1194f1309af81f2862f911408c6fce5812e"
+      "jsuites" -> "5.4.6"
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",

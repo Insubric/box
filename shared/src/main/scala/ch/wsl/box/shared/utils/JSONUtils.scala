@@ -18,6 +18,8 @@ object JSONUtils extends Logging {
   val LANG = "::lang"
   val FIRST = "::first"
 
+  def toJs(value:String,field:JSONField):Option[Json] = toJs(value,field.`type`)
+
   def toJs(value:String,typ:String):Option[Json] = {
     Try {
       val json:Json = typ match {

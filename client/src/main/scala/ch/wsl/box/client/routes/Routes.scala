@@ -1,9 +1,9 @@
 package ch.wsl.box.client.routes
 
 import ch.wsl.box.client.services.ClientConf
-import ch.wsl.box.client.utils.MustacheUtils
+import ch.wsl.box.client.utils.{Base64, MustacheUtils}
 import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
-import ch.wsl.box.model.shared.{FormAction, JSONQuery}
+import ch.wsl.box.model.shared.{FormAction, JSONFieldLookupRemote, JSONQuery}
 import org.scalajs.dom
 import org.scalajs.dom.{URLSearchParams, window}
 import scribe.Logging
@@ -11,6 +11,7 @@ import yamusca.imports.mustache
 
 import scala.scalajs.js
 import scala.scalajs.js.URIUtils
+import ch.wsl.box.client.utils.Base64._
 
 /**
   * Created by andre on 6/6/2017.
@@ -58,6 +59,11 @@ object Routes extends Logging {
 
   def apiV1(path:String = ""):String = {
     baseUri + "api/v1"+path
+  }
+
+  def spreadsheetLookupUrl(lang:String,entity:String,fieldName:String,query:Option[Json]):String = {
+    val q = query.map(x => "?q=" + Base64.Encoder(x.noSpaces.getBytes).toBase64).getOrElse("")
+    apiV1(s"/form/$lang/$entity/lookup/$fieldName" + q)
   }
 
   def wsV1(topic:String):String = {

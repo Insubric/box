@@ -82,7 +82,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         } yield form
 
         for {
-          metadata <- getForm(formQuery, lang)
+          metadata <- getForm(formQuery, lang,id.toString)
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormId.put(cacheKey,metadata)
@@ -106,7 +106,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         } yield form
 
         for {
-          metadata <- getForm(formQuery, lang)
+          metadata <- getForm(formQuery, lang, name)
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormName.put(cacheKey,metadata)
@@ -147,7 +147,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     }
   }
 
-  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String)(implicit ec:ExecutionContext,services:Services) = {
+  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String,id:String)(implicit ec:ExecutionContext,services:Services) = {
 
     import io.circe.generic.auto._
 
@@ -159,7 +159,10 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
 
     val result = for{
-      (form,formI18n) <- fQuery.result.map(_.head)
+      (form,formI18n) <- fQuery.result.map{_.headOption match {
+        case Some(f) => f
+        case None => throw new Exception(s"Form not found: $id")
+      }}
       fields <- fieldQuery(form.form_uuid.get).result
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
