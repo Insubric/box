@@ -42,7 +42,7 @@ trait HasLookup[T] {
         metadata <- futMetadata
         lookups <- {
           metadata.fields.find(_.name == field).flatMap(_.remoteLookup) match {
-            case Some(l) => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query)).map{ x =>
+            case Some(l) => db.run(Lookup.values(l.lookupEntity, l.map.foreign, query)).map{ x =>
               x.map(mapper).asJson
             }
             case None => throw new Exception(s"$field has no lookup")
@@ -66,7 +66,7 @@ trait HasLookup[T] {
             query <- json.as[JSONQuery].toOption
           } yield query
           _lookup(futMetadata,field,query.getOrElse(JSONQuery.empty)){ x =>
-            JSSpreadsheetLookupEntry(x.id.string,x.value)
+            JSSpreadsheetLookupEntry(x.id.asJson,x.value)
           }
         }
       }

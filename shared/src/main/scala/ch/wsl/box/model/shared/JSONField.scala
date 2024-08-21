@@ -70,7 +70,7 @@ object JSONField{
   def lookup(name:String, data:Seq[Json], nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input),lookup = Some(JSONFieldLookup.prefilled(data.map(x => JSONLookup(x,Seq(x.string))))))
   def json(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.JSON,name,nullable,widget = Some(WidgetsNames.code))
   def array_number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.ARRAY_NUMBER,name,nullable,widget = Some(WidgetsNames.input))
-  def child(name:String, childId:UUID, parentKey:String,childFields:String) = JSONField(
+  def child(name:String, childId:UUID, parentKey:Seq[String],childFields:Seq[String]) = JSONField(
     JSONFieldTypes.CHILD,
     name,
     true,
@@ -108,9 +108,9 @@ case class JSONLookupExtractor(key:String, values:Seq[Json], results:Seq[Seq[JSO
 object JSONFieldLookup {
   val empty: JSONFieldLookup = JSONFieldLookupData(Seq())
 
-  def toJsonLookup(mapping:JSONFieldMap)(lookupRow:Json):JSONLookup = {
-    val label = mapping.textProperty.split(",").map(_.trim).flatMap(k => lookupRow.getOpt(k)).filterNot(_.isEmpty)
-    JSONLookup(lookupRow.js(mapping.valueProperty),label)
+  def toJsonLookup(mapping:JSONFieldMapForeign)(lookupRow:Json):JSONLookup = {
+    val label = mapping.labelColumns.flatMap(k => lookupRow.getOpt(k)).filterNot(_.isEmpty)
+    JSONLookup(lookupRow.js(mapping.valueColumn),label)
   }
 
   def fromDB(lookupEntity:String, mapping:JSONFieldMap, lookupQuery:Option[Json] = None):JSONFieldLookup = {
@@ -138,19 +138,15 @@ case class JSONLookup(id:Json, values:Seq[String]) {
   }
 }
 
-case class FileReference(name_field:String, file_field:String, thumbnail_field:Option[String])
-
-case class JSONFieldMap(valueProperty:String, textProperty:String, localValueProperty:String)
+case class JSONFieldMap(foreign:JSONFieldMapForeign, localKeysColumn:Seq[String])
+case class JSONFieldMapForeign(valueColumn:String,keyColumns:Seq[String],labelColumns:Seq[String])
 
 case class ChildMapping(parent:String,child:String)
 
 case class Child(objId:UUID, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String], hasData:Boolean)
 
 object Child{
-  def apply(objId: UUID, key: String, masterFields: String, childFields: String, childQuery: Option[JSONQuery], props:String, hasData:Boolean): Child = {
-    val parent = masterFields.split(",").map(_.trim)
-    val child = childFields.split(",").map(_.trim)
-
+  def apply(objId: UUID, key: String, parent: Seq[String], child: Seq[String], childQuery: Option[JSONQuery], props:String, hasData:Boolean): Child = {
     val mapping = parent.zip(child).filterNot(x => x._1 == "#all" || x._2 == "#all").map{ case (p,c) => ChildMapping(p,c)}
     new Child(objId, key, mapping, childQuery,props.split(",").map(_.trim),hasData)
   }

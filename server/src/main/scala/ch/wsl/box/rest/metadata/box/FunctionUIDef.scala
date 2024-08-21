@@ -45,8 +45,8 @@ object FunctionUIDef {
       ))),
       JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.textarea),label = Some("")),
       JSONField(JSONFieldTypes.NUMBER,"order",true),
-      JSONField(JSONFieldTypes.CHILD,"function_field",true,child = Some(Child(FUNCTION_FIELD,"function_field","function_uuid","function_uuid",None,"",true))),
-      JSONField(JSONFieldTypes.CHILD,"function_i18n",true,child = Some(Child(FUNCTION_I18N,"function_i18n","function_uuid","function_uuid",None,"",true)))
+      JSONField(JSONFieldTypes.CHILD,"function_field",true,child = Some(Child(FUNCTION_FIELD,"function_field",Seq("function_uuid"),Seq("function_uuid"),None,"",true))),
+      JSONField(JSONFieldTypes.CHILD,"function_i18n",true,child = Some(Child(FUNCTION_I18N,"function_i18n",Seq("function_uuid"),Seq("function_uuid"),None,"",true)))
     ),
     layout = Layout(
       blocks = Seq(
@@ -90,7 +90,7 @@ object FunctionUIDef {
       CommonField.name,
       CommonField.widget,
       CommonField.typ(child = false),
-      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n","field_uuid","field_uuid",None,"widget",true))),
+      JSONField(JSONFieldTypes.CHILD,"function_field_i18n",true,child = Some(Child(FUNCTION_FIELD_I18N,"function_field_i18n",Seq("field_uuid"),Seq("field_uuid"),None,"widget",true))),
       CommonField.lookupEntity(tables),
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),

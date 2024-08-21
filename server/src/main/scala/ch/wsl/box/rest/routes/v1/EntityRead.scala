@@ -13,7 +13,7 @@ import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONFieldMap, JSONFieldMapForeign, JSONID, JSONMetadata, JSONQuery}
 import ch.wsl.box.rest.logic.{DbActions, JSONViewActions, Lookup, TableActions, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, UserProfile}
 import io.circe.{Decoder, Encoder}
@@ -86,7 +86,8 @@ object EntityRead extends Logging  {
             post {
               entity(as[JSONQuery]) { query =>
                 complete {
-                  db.run(Lookup.values(name, valueProperty, textProperty, query))
+                  def toSeq(s:String):Seq[String] = s.split(",").map(_.trim).filter(_.nonEmpty)
+                  db.run(Lookup.values(name, JSONFieldMapForeign(toSeq(valueProperty).head,toSeq(valueProperty),toSeq(textProperty)), query))
                 }
               }
             }

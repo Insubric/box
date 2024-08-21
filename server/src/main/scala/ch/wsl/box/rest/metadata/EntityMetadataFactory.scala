@@ -49,19 +49,21 @@ object EntityMetadataFactory extends Logging {
   }
 
 
-  def lookupField(registry:RegistryInstance, referencingTable:String, firstNoPK:Option[String],valueField:String)(implicit services: Services):String = {
+  def lookupField(registry:RegistryInstance, referencingTable:String, firstNoPK:Option[String],valueField:Seq[String])(implicit services: Services):Seq[String] = {
 
     val lookupLabelFields = services.config.fksLookupLabels
 
-    val default = lookupLabelFields.as[Option[String]]("default").getOrElse(valueField)
+    val default = lookupLabelFields.as[Option[String]]("default").map(x => Seq(x)).getOrElse(valueField)
 
-    val myDefaultTableLookupLabelField: String = default match {
-      case "firstNoPKField" => firstNoPK.getOrElse(valueField)
+    val myDefaultTableLookupLabelField: Seq[String] = default match {
+      case "firstNoPKField" => firstNoPK.map(x => Seq(x)).getOrElse(valueField)
       case _ => default
     }
 
-    val maybeField = lookupLabelFields.as[Option[String]](referencingTable).getOrElse(myDefaultTableLookupLabelField)
-    if(registry.fields.field(referencingTable,maybeField).isDefined) maybeField else valueField
+    val maybeField = lookupLabelFields.as[Option[String]](referencingTable).map(x => Seq(x)).getOrElse(myDefaultTableLookupLabelField)
+
+    val existingFields = maybeField.filter(f => registry.fields.field(referencingTable,f).isDefined )
+    if(existingFields.nonEmpty) existingFields else valueField
   }
 
 
@@ -95,18 +97,12 @@ object EntityMetadataFactory extends Logging {
             fk match {
               case Some(fk) => {
 
-                if (constraints.contains(fk.constraintName)) {
-                  logger.info("error: " + fk.constraintName)
-                  logger.info(field.column_name)
-                  JSONField(field.jsonType, name = field.boxName, nullable = !field.required)
-                } else {
-                  constraints = fk.constraintName :: constraints //add fk constraint to contraint list
 
+                  val foreignValue = fk.referencingKeys(fk.keys.indexOf(field.column_name))
 
-                  val value = fk.referencingKeys.head //todo verify for multiple keys
                   val model = fk.referencingTable
 
-                  val text = lookupField(registry,model, firstNoPK, value)
+                  val text = lookupField(registry,model, firstNoPK, fk.referencingKeys)
 
 
                   JSONField(
@@ -115,11 +111,10 @@ object EntityMetadataFactory extends Logging {
                     nullable = !field.required,
                     placeholder = Some(fk.referencingTable + " Lookup"),
                     widget = Some(WidgetsNames.select),
-                    lookup = Some(JSONFieldLookupRemote(model, JSONFieldMap(value, text, field.boxName)))
+                    lookup = Some(JSONFieldLookupRemote(model, JSONFieldMap(JSONFieldMapForeign(foreignValue,fk.referencingKeys,text), fk.keys)))
                   )
 
 
-                }
 
               }
               case _ => JSONField(

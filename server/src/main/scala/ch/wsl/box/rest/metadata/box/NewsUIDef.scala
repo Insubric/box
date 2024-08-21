@@ -22,7 +22,7 @@ object NewsUIDef {
       JSONField(JSONFieldTypes.STRING,"news_uuid",false),
       JSONField(JSONFieldTypes.DATETIME,"datetime",false, widget = Some(WidgetsNames.datetimePicker)),
       JSONField(JSONFieldTypes.STRING,"author",true, widget = Some(WidgetsNames.input)),
-      JSONField(JSONFieldTypes.CHILD,"news_i18n",true,child = Some(Child(NEWS_I18N,"news_i18n","news_uuid","news_uuid",None,"",true)), widget = Some(WidgetsNames.tableChild))
+      JSONField(JSONFieldTypes.CHILD,"news_i18n",true,child = Some(Child(NEWS_I18N,"news_i18n",Seq("news_uuid"),Seq("news_uuid"),None,"",true)), widget = Some(WidgetsNames.tableChild))
     ),
     layout = Layout(
       blocks = Seq(
