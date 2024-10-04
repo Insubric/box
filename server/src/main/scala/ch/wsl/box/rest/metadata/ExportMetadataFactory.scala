@@ -143,7 +143,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
       entity <- field.lookupEntity
       value <- field.lookupValueField
       text <- fieldI18n.flatMap(_.lookupTextField)
-    } yield JSONFieldLookup.fromDB(entity, JSONFieldMap(value, text, field.name),field.lookupQuery)
+    } yield JSONFieldLookup.fromDB(entity, JSONFieldMap(JSONFieldMapForeign(value,Seq(value),Seq(text)), Seq(field.name)),field.lookupQuery)
 
 
     val condition = for{

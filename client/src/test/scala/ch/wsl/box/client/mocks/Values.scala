@@ -93,8 +93,8 @@ class Values(val loggerLevel:Level) {
         child = Some(Child(
           objId = id2,
           key = "child",
-          masterFields = "id",
-          childFields = "parent_id",
+          parent = Seq("id"),
+          child = Seq("parent_id"),
           childQuery = None,
           props = "",
           hasData = true
@@ -151,8 +151,8 @@ class Values(val loggerLevel:Level) {
         child = Some(Child(
           objId = id3,
           key = "subchild",
-          masterFields = "id",
-          childFields = "child_id",
+          parent = Seq("id"),
+          child = Seq("child_id"),
           childQuery = None,
           props = "",
           hasData = true

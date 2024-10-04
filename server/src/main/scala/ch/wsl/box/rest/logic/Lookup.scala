@@ -49,7 +49,7 @@ object Lookup {
       foreignEntity <- elements.get(remoteLookup.lookupEntity)
       foreignRow <- foreignEntity.find(_.js(remoteLookup.map.foreign.valueColumn) == value)
     } yield {
-       JSONFieldLookup.toJsonLookup(remoteLookup.map.foreign)(foreignRow).value
+       JSONFieldLookup.toJsonLookup(remoteLookup.map.foreign)(foreignRow).id
     }
 
   }

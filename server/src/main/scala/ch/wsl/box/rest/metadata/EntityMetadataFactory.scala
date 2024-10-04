@@ -55,8 +55,8 @@ object EntityMetadataFactory extends Logging {
 
     val default = lookupLabelFields.as[Option[String]]("default").map(x => Seq(x)).getOrElse(valueField)
 
-    val myDefaultTableLookupLabelField: Seq[String] = default match {
-      case "firstNoPKField" => firstNoPK.map(x => Seq(x)).getOrElse(valueField)
+    val myDefaultTableLookupLabelField: Seq[String] = default.headOption match {
+      case Some("firstNoPKField") => firstNoPK.map(x => Seq(x)).getOrElse(valueField)
       case _ => default
     }
 

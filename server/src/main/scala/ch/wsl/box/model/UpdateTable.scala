@@ -80,10 +80,20 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
   protected def whereBuilder(query: JSONQuery): SQLActionBuilder = {
     val kv = jsonQueryComposer(this)
 //    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
-    val filters = query.filter.flatMap(kv)
-    val where = if(filters.nonEmpty) {
-      filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
-    } else sql""
+
+    val where = query.validatedWhere match {
+      case Some(whereClause) => sql""" where #${whereClause}"""
+      case None => {
+        val filters = query.filter.flatMap(kv)
+        if (filters.nonEmpty) {
+          filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
+        } else sql""
+      }
+    }
+
+
+
+
 
     val order = if(query.sort.nonEmpty)
       query.sort.tail.foldLeft(concat(sql" order by ", orderBlock(query.sort.head))) { case (builder, pair) => concat(builder, concat(sql" , ", orderBlock(pair))) }

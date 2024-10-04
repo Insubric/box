@@ -138,7 +138,9 @@ case class JSONLookup(id:Json, values:Seq[String]) {
   }
 }
 
-case class JSONFieldMap(foreign:JSONFieldMapForeign, localKeysColumn:Seq[String])
+case class JSONFieldMap(foreign:JSONFieldMapForeign, localKeysColumn:Seq[String]) {
+  def mapping = localKeysColumn.zip(foreign.keyColumns)
+}
 case class JSONFieldMapForeign(valueColumn:String,keyColumns:Seq[String],labelColumns:Seq[String])
 
 case class ChildMapping(parent:String,child:String)

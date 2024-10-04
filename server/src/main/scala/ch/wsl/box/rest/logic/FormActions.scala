@@ -155,8 +155,8 @@ case class FormActions(metadata:JSONMetadata,
     val lookupFields = tabularFields.filter(_.remoteLookup.isDefined)
 
     DBIO.sequence(lookupFields.map{ lf =>
-      val localFields = lf.remoteLookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
-      val foreignFields = lf.remoteLookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
+      val localFields = lf.remoteLookup.get.map.localKeysColumn
+      val foreignFields = lf.remoteLookup.get.map.foreign.keyColumns
 
 
       val data: Seq[Seq[String]] = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose.map(_.distinct)

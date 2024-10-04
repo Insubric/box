@@ -15,17 +15,17 @@ case class PreFiltered(filters: Seq[JSONQueryFilter])
 class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext, services: Services) {
 
   private def singleLookupRemote(table:String, field: String, query:JSONQuery,lookup:JSONFieldLookupRemote):DBIO[JSONLookups] = {
-    val remoteLabels = lookup.map.textProperty.split(",").toSeq
+    val remoteLabels = lookup.map.foreign.labelColumns
     val baseQuery:JSONQuery = lookup.lookupQuery.flatMap(q => JSONQuery.fromJson(q)).getOrElse(JSONQuery.empty)
     for{
       values <- registry.actions(table).distinctOn(Seq(field),query)
       allValues = values.flatMap(_.getOpt(field))
-      baseFilter = if(allValues.nonEmpty) List(WHERE.in(lookup.map.valueProperty,allValues)) else baseQuery.filter
+      baseFilter = if(allValues.nonEmpty) List(WHERE.in(lookup.map.localKeysColumn.mkString(","),allValues)) else baseQuery.filter
       query = baseQuery.copy(filter =  baseFilter)
-      rows <- registry.actions(lookup.lookupEntity).fetchFields(Seq(lookup.map.valueProperty) ++ remoteLabels,query)
+      rows <- registry.actions(lookup.lookupEntity).fetchFields(Seq(lookup.map.foreign.valueColumn) ++ remoteLabels,query)
     } yield JSONLookups(
         field,
-        rows.map(row => JSONLookup(row.js(lookup.map.valueProperty),remoteLabels.map(row.get)))
+        rows.map(row => JSONLookup(row.js(lookup.map.foreign.valueColumn),remoteLabels.map(row.get)))
       )
 
   }
@@ -67,10 +67,10 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
   private def fkFilterForRemote(filter:JSONQueryFilter,lookup:JSONFieldLookupRemote):DBIO[Option[JSONQueryFilter]] = {
     val jsonActions = registry.actions(lookup.lookupEntity)
 
-    def toParentValues(rows:Seq[Json]):Seq[String] = rows.flatMap(_.getOpt(lookup.map.valueProperty)).distinct
+    def toParentValues(rows:Seq[Json]):Seq[String] = rows.flatMap(_.getOpt(lookup.map.foreign.valueColumn)).distinct
 
     def transfrom(remoteFilter: String => JSONQueryFilter,localFilter: Seq[String] => JSONQueryFilter) = {
-      val remoteLabels = lookup.map.textProperty.split(",").toSeq
+      val remoteLabels = lookup.map.foreign.labelColumns
       DBIO.sequence(remoteLabels.map(l =>
         jsonActions.findSimple(JSONQuery.filterWith(remoteFilter(l)).limit(9999999)))
       )

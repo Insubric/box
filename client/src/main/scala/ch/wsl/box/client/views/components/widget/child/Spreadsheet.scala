@@ -18,7 +18,9 @@ import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
-import ch.wsl.typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance, ToolbarIconItem, ToolbarItem}
+import ch.wsl.typings.jspreadsheetCe.mod.{BaseColumn, CellValue, Column, CustomEditor, DropdownColumn, DropdownSourceItem, JSpreadsheet, JSpreadsheetOptions, JspreadsheetInstance, JspreadsheetInstanceElement, ToolbarIconItem, ToolbarItem}
+import ch.wsl.typings.jsuites.distTypesDropdownMod.DropdownItem
+import ch.wsl.typings.jspreadsheetCe.anon.Group
 import ch.wsl.typings.std
 
 import scala.collection.mutable.ListBuffer
@@ -27,7 +29,7 @@ import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.{JSRichFutureNonThenable, JSRichIterableOnce, iterableOnceConvertible2JSRichIterableOnce}
 import scala.scalajs.js.Thenable.Implicits._
-import scala.scalajs.js.|
+import scala.scalajs.js.{JSON, |}
 import scala.scalajs.js.JSConverters._
 import scalatags.JsDom.all._
 import io.udash._
@@ -36,11 +38,23 @@ import io.udash.css.CssView._
 import io.circe.generic.auto._
 import scalatags.JsDom
 
-import scala.scalajs.js.timers.SetIntervalHandle
+import scala.scalajs.js.timers.{SetIntervalHandle, setTimeout}
 import scala.util.Try
 
 object Spreadsheet extends ComponentWidgetFactory {
 
+  def getExcelColumnName(_columnNumber: Int) = {
+    var columnName = ""
+    var columnNumber = _columnNumber
+    while (columnNumber > 0) {
+      val modulo = columnNumber % 26
+      columnName = ('A'.toInt + modulo).toChar.toString + columnName
+      columnNumber = (columnNumber - modulo) / 26
+    }
+    columnName
+  }
+
+  import ch.wsl.box.client.Context.Implicits._
 
   override def name: String = WidgetsNames.spreadsheet
 
@@ -48,17 +62,110 @@ object Spreadsheet extends ComponentWidgetFactory {
   override def create(params: WidgetParams): Widget = SpreadsheetRenderer(params)
 
 
-  case class SpreadsheetRenderer(widgetParam:WidgetParams) extends Widget with HasData with ChildUtils {
+  case class SpreadsheetRenderer(widgetParam:WidgetParams) extends Widget
+    with HasData
+    with ChildUtils {
+
+
 
     override def field: JSONField = widgetParam.field
 
+
+    def loadLookupBaseValue(rawData:Seq[Json],field:JSONField) = {
+                  val fieldLookup = field.lookup match {
+                    case Some(value:JSONFieldLookupRemote) => value
+                    case None => throw new Exception("Not a remote lookup")
+                  }
+                  val allColumnId: Seq[String] = rawData.map{ row =>
+                    val keys = fieldLookup.map.localKeysColumn.map { local =>
+                      val value = row.js(local).fold(
+                        "null",
+                        bool => bool.toString,
+                        num => num.toString,
+                        str => s"'$str'",
+                        arr => arr.toString,
+                        obj => obj.toString
+                      )
+                      value
+                    }
+                    keys.mkString("(",",",")")
+                  }
+                  logger.debug(s"Loading dropdown for $allColumnId")
+
+
+                  val query =
+                    s"""
+                       | ${fieldLookup.map.foreign.keyColumns.mkString("(",",",")")} in ${allColumnId.mkString("(",",",")")}
+                       |""".stripMargin
+
+                  logger.debug(s"Generated where: $query")
+                  val values = JSONQuery.where(query)
+
+                  services.httpClient.get[Seq[Json]](Routes.spreadsheetLookupUrl(services.clientSession.lang(),metadata.get.name,field.name,Some(values.asJson))).map { rows =>
+                    rows.map { row =>
+                      row.js("id") -> row.js("name")
+                    }.toMap
+                  }
+    }
+
+    def jsonToCellValue(js:Json):CellValue = js.fold[CellValue](
+      null,
+      b => b,
+      n => n.toDouble,
+      s => s,
+      a => js.noSpaces,
+      o => js.noSpaces
+    )
+
     override def data: Property[Json] = widgetParam.prop
+
+    val tableData:Property[Seq[Seq[CellValue]]] = Property(Seq())
 
     val metadata = widgetParam.children.find(_.objId == child.objId)
 
+    data.listen(allData => {
+
+      logger.debug(s"Found new data $data")
+      val rawData = allData.asArray.get
+
+      val lookupCols = fields(metadata.get).filter(_.lookup match {
+          case Some(value:JSONFieldLookupRemote) => true
+          case _ => false
+      })
+
+
+      val rows: Future[Seq[Seq[CellValue]]] = Future.sequence(lookupCols.map{ f => loadLookupBaseValue(rawData,f).map(f.name ->  _)}).map(_.toMap).map { lookupValues =>
+        rawData.map { _row =>
+          val row = _row.deepMerge(propagatedFields.get)
+          fields(metadata.get).map { f =>
+            val rawCellValue = row.js(f.name)
+            val cellValue:CellValue = if (lookupCols.contains(f) && !rawCellValue.isNull ) {
+              jsonToCellValue(lookupValues(f.name)(rawCellValue))
+            } else {
+              jsonToCellValue(rawCellValue)
+            }
+            cellValue
+          }
+        }
+      }
+
+      rows.recover{ case t =>
+        t.printStackTrace()
+        Seq()
+      }.foreach{ r =>
+        BrowserConsole.log(r.map(_.toJSArray).toJSArray)
+        tableData.set(r)
+      }
+
+    },true)
+
+
+
+
+
     val parentMetadata = widgetParam.metadata
 
-    import ch.wsl.box.client.Context.Implicits._
+
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
@@ -109,18 +216,12 @@ object Spreadsheet extends ComponentWidgetFactory {
       )
     }
 
-    def jsonToCellValue(js:Json):CellValue = js.fold[CellValue](
-      null,
-      b => b,
-      n => n.toDouble,
-      s => s,
-      a => js.noSpaces,
-      o => js.noSpaces
-    )
 
-    def cellValueToJson(cell: js.UndefOr[CellValue]): Json = cell.toOption match {
+
+    def cellValueToJson(field:JSONField, cell: js.UndefOr[CellValue]): Json = cell.toOption match {
       case None => Json.Null
       case Some(c) => c.asInstanceOf[Any] match {
+        case s:String if s.isEmpty && field.nullable => Json.fromString(s)
         case s:String => Json.fromString(s)
         case b: Boolean => Json.fromBoolean(b)
         case n:Double => Json.fromDoubleOrNull(n)
@@ -128,64 +229,91 @@ object Spreadsheet extends ComponentWidgetFactory {
     }
 
     def toTableData: js.Array[js.Array[CellValue] | std.Record[String, CellValue]] = {
-      val _data = widgetParam.prop.get.asArray.get.map{ _row =>
-        val row = _row.deepMerge(propagatedFields.get)
-        fields(metadata.get).map{f =>
-          val col = row.js(f.name)
-          jsonToCellValue(col)
-        }
-      }
-      val data:Seq[js.Array[CellValue] | std.Record[String,CellValue]] = _data.map(_.toJSArray)
+      val data:Seq[js.Array[CellValue] | std.Record[String,CellValue]] = tableData.get.map(_.toJSArray)
       data.toJSArray
     }
 
-    var listener = Option.empty[Registration]
-    private def resetListener(f: () => Unit): Unit = {
-      listener.foreach(_.cancel())
-      f()
-      listener = Some(widgetParam.prop.listen{ _ =>
-            jspreadsheetInstance.foreach(_.setData(toTableData))
+    def rowData(i:Int):Property[Json] = {
+      widgetParam.prop.bitransform({rows:Json =>
+        rows.asArray.flatMap(_.lift(i)).map(_.deepMerge(propagatedFields.get)).getOrElse(propagatedFields.get)
+
+      })({ row:Json =>
+        widgetParam.prop.get.asArray match {
+          case Some(value) => Json.fromValues(value.zipWithIndex.map{ case (js,j) =>
+            if(i == j) js.deepMerge(row) else js
+          })
+          case None => Seq(row).asJson
+        }
+
       })
     }
 
-    def syncChanges() = {
-      val tableFields = fields(metadata.get)
-
-      val table = jspreadsheetInstance.get.getData().toSeq.map { r =>
-        val row = r.zipWithIndex.map { case (x, i) =>
-          (tableFields(i).name, cellValueToJson(Some(x).orUndefined))
+    def dropdownOptions(f:JSONField,rowIndex:Int):Future[js.Array[DropdownSourceItem]] = {
+      if(f.lookup.isDefined) {
+        val lang = services.clientSession.lang()
+        val query = f.lookup match {
+          case Some(r: JSONFieldLookupRemote) => r.lookupQuery.flatMap(JSONQuery.fromJson).map(_.withData(rowData(rowIndex).get, lang).asJson)
+          case None => None
         }
-        tableFields.zip(r).map { case (f, d) =>
-          colContentWidget(Property(Json.fromFields(row).deepMerge(propagatedFields.get)), Property(Json.Null), f, metadata.get) match {
-            case w: HasData => {
-              logger.debug(s"Sync changes on ${f.name} with data $d")
-              f.name -> cellValueToJson(d)
-            }
+        services.httpClient.get[Seq[Json]](Routes.spreadsheetLookupUrl(lang, metadata.get.name, f.name, query)).map { rows =>
+
+          val items: Seq[DropdownSourceItem] = rows.map { d =>
+            val group = Group(d.get("name"),d.get("name"))
+            group.setGroup(rowIndex)
+            group
           }
+
+          items.toJSArray
+
         }
-      }
-
-      Json.fromValues(table.map(x => Json.fromFields(x).deepMerge(propagatedFields.get)))
-
-
+      } else Future.successful(js.Array[DropdownSourceItem]())
     }
 
-    val updateChanges = Debounce()((_: Unit) => {
-      logger.debug("updateChanges")
-      val data = syncChanges()
-      if(widgetParam.prop.get != data) {
-        logger.debug("updateChanges with new data")
-        resetListener(() => widgetParam.prop.set(data))
-      }
-    })
+    def indexToCellCode(colIndex:Int,rowIndex:Int) = getExcelColumnName(colIndex) + rowIndex
+    val CELL_SOURCE = "cellSource"
 
+    def updateDropdownValues(colIndex:Int,rowIndex:Int,jsTable:JspreadsheetInstance) = {
+      val f = fields(metadata.get).apply(colIndex)
+      if(f.lookup.isDefined) {
+        dropdownOptions(f,rowIndex).map{ source =>
+          val cell = jsTable.getColumnOptions(colIndex)
+          val existing = cell.asInstanceOf[DropdownColumn].source.toOption.getOrElse(js.Array[DropdownSourceItem]()).filter{ g =>
+            !g.asInstanceOf[Group].group.contains(rowIndex)
+          }
+          cell.set("source",existing ++ source)
 
-
-    override def beforeSave(data: Json, m: JSONMetadata): Future[Json] = Future.successful {
-      val r = syncChanges()
-      data.deepMerge(Json.fromFields(Map(field.name -> r)))
-
+        }
+      } else Future.successful(())
     }
+
+    val dropdownFilter:js.Function5[JspreadsheetInstanceElement,HTMLTableCellElement,String,String,js.Any,js.Array[DropdownSourceItem]] = (jsTable:JspreadsheetInstanceElement,cell:HTMLTableCellElement,colIndex:String,rowIndex:String,source:js.Any) => {
+      source.asInstanceOf[js.Array[Group]]
+        .filter( _.group.contains(rowIndex.toInt))
+        .map(_.name)
+    }
+
+    var listener = Option.empty[Registration]
+    private def resetListener(f: () => Unit,initUpdate:Boolean = false): Unit = {
+      listener.foreach(_.cancel())
+      f()
+      listener = Some(tableData.listen({ td =>
+            jspreadsheetInstance.foreach { jsInstance =>
+
+              Future.sequence {
+                for {
+                  row <- td.indices
+                  col <- if (td.nonEmpty) td.head.indices else Seq()
+                } yield updateDropdownValues(col, row, jsInstance)
+              }.foreach{ _ =>
+                // dropdown source should be setted
+                //setTimeout(0) {
+                  jsInstance.setData(toTableData)
+                //}
+              }
+            }
+      },initUpdate))
+    }
+
 
     def loadTable(_div:Div,metadata: JSONMetadata) = {
 
@@ -198,20 +326,7 @@ object Spreadsheet extends ComponentWidgetFactory {
       def rowIndex(cell:HTMLTableCellElement):Int = cell.dataset.get("y").flatMap(_.toIntOption).getOrElse(0)
 
       def rowDataCell(cell:HTMLTableCellElement):Property[Json] = rowData(rowIndex(cell))
-      def rowData(i:Int):Property[Json] = {
-        widgetParam.prop.bitransform({rows:Json =>
-          rows.asArray.flatMap(_.lift(i)).map(_.deepMerge(propagatedFields.get)).getOrElse(propagatedFields.get)
 
-        })({ row:Json =>
-          widgetParam.prop.get.asArray match {
-            case Some(value) => Json.fromValues(value.zipWithIndex.map{ case (js,j) =>
-              if(i == j) js.deepMerge(row) else js
-            })
-            case None => Seq(row).asJson
-          }
-
-        })
-      }
 
 
 
@@ -219,11 +334,11 @@ object Spreadsheet extends ComponentWidgetFactory {
 
         val fields:Seq[(String,Json)] = jsTable.getRowData(row.toDouble).toOption match {
           case Some(value) => value.toSeq.zipWithIndex.map{ case (x,i) =>
-            (tableFields(i).name,cellValueToJson(Some(x).orUndefined))
+            val f = tableFields(i)
+            (f.name,cellValueToJson(f,Some(x).orUndefined))
           }
           case None => Seq()
         }
-
 
 
         rowData(row).get.deepMerge(Json.fromFields(fields))
@@ -245,7 +360,7 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
 
-      val columns: Seq[Column] = tableFields.map { c =>
+      val columns: Seq[Column] = tableFields.zipWithIndex.map { case (c,colIndex) =>
         val typ:jspreadsheetCeStrings.text | jspreadsheetCeStrings.numeric | jspreadsheetCeStrings.hidden | jspreadsheetCeStrings.dropdown | jspreadsheetCeStrings.autocomplete | jspreadsheetCeStrings.checkbox | jspreadsheetCeStrings.radio | jspreadsheetCeStrings.calendar | jspreadsheetCeStrings.image | jspreadsheetCeStrings.color | jspreadsheetCeStrings.html = (c.`type`,c.lookup) match {
           case (_,Some(value)) => jspreadsheetCeStrings.dropdown
           case (JSONFieldTypes.STRING,_) => jspreadsheetCeStrings.text
@@ -258,21 +373,11 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
         val col = c.lookup match {
-          case Some(fieldLookup:JSONFieldLookupRemote) => {
-            val col = DropdownColumn()
-
-            // TODO make a request will all the values of the column
-            val allColumnId = data.get.asArray.get.toList.flatMap(_.getOpt(c.name)).distinct
-            logger.debug(s"Loading dropdown for $allColumnId")
-
-            val values = JSONQuery.filterWith(JSONQueryFilter.WHERE.in(fieldLookup.map.valueProperty,allColumnId))
-
-            col.setAutocomplete(true).setUrl(Routes.spreadsheetLookupUrl(services.clientSession.lang(),metadata.name,c.name,Some(values.asJson)))
+          case Some(_) =>  {
+            DropdownColumn().set("filter",dropdownFilter)
           }
           case _ => BaseColumn()
         }
-
-
 
          col
           .setTitle(c.label.getOrElse(c.name))
@@ -290,33 +395,18 @@ object Spreadsheet extends ComponentWidgetFactory {
 
         val jspreadsheet = ch.wsl.typings.jspreadsheetCe.jspreadsheetCeRequire.asInstanceOf[JSpreadsheet]
 
+
+
         val table: JspreadsheetInstance = jspreadsheet(_div,JSpreadsheetOptions()
           .setColumns(columns.toJSArray)
           .setAllowDeleteColumn(false)
           .setAllowInsertColumn(false)
           .setAllowRenameColumn(false)
           .setColumnResize(true)
-          .setData(toTableData)
+          //.setData(toTableData)
           .setMinDimensions((columns.length.toDouble,1.0))
-          .setOncreateeditor((jsTable,cell,colIndex,rowIndex,el) => {
-            val f = fields(metadata).apply(colIndex.toInt)
-            if(f.lookup.isDefined) {
-              val dropdown = ch.wsl.typings.jsuites.mod.dropdown(el, null)
-
-              val lang = services.clientSession.lang()
-              val query = f.lookup match {
-                case Some(r:JSONFieldLookupRemote) => r.lookupQuery.flatMap(JSONQuery.fromJson).map(_.withData(rowData(rowIndex.toInt).get,lang).asJson)
-                case None => None
-              }
-              services.httpClient.get[Seq[Json]](Routes.spreadsheetLookupUrl(lang,metadata.name,f.name,query)).foreach(_.foreach{ d =>
-                dropdown.reset()
-                if(d.get("name").trim.nonEmpty)
-                  dropdown.add(d.get("name"),d.get("id"))
-              })
-
-            }
-
-          })
+          //.setOnload()
+          //.setOncreateeditor((jsTable,cell,colIndex,rowIndex,el) => setDropdownValues(colIndex.toInt,rowIndex.toInt,jsTable.jspreadsheet))
           .setOnchange((jsTable,cell,colIndex,rowIndex,editorValue,wasSaved) => {
 
 
@@ -330,12 +420,11 @@ object Spreadsheet extends ComponentWidgetFactory {
               colContentWidget(Property(row), Property(Json.Null), f, metadata) match {
                 case w:HasData => {
 
-                  val result = JSONUtils.toJs(editorValue.toString,f).getOrElse(Json.Null)
-                  w.data.set(result)
 
                   for{
+                    result <- w.fromLabel(editorValue.toString)
+                    _ = w.data.set(result)
                     valid <- w.valid()
-                    label <- w.toUserReadableData(result)
                   } yield {
                     logger.debug(s"On change col $colIndex row $rowIndex value: $result is valid: $valid")
                     if(!valid && editorValue != js.undefined) {
@@ -343,14 +432,23 @@ object Spreadsheet extends ComponentWidgetFactory {
                       cell.innerHTML = ""
                     }
                     if(valid)
-                      cell.innerHTML = label.string
+                      cell.innerHTML = editorValue.toString
+
+                    f.dependencyFields(tableFields).foreach{f =>
+                      updateDropdownValues(tableFields.indexOf(f),rowNumber,jsTable.jspreadsheet)
+                    }
                     Future.sequence(f.dependencyFields(tableFields).map(checkCellValidity(jsTable.jspreadsheet,rowNumber,Json.fromFields(Map(f.name -> result))))).foreach{ valids =>
                       logger.debug(s"Dependents fields ${valids.map(x => x._2.name + " " + x._1) }")
                       valids.filterNot(_._1).map(_._2).foreach{ f =>
                         jsTable.jspreadsheet.setValueFromCoords(tableFields.indexOf(f).toDouble,rowNumber.toDouble,js.undefined.asInstanceOf[CellValue])
                       }
                     }
-                    updateChanges()
+                    val newData = data.get.asArray.get.zipWithIndex.map{ case (row,i) =>
+                      if(i == rowNumber) {
+                        row.deepMerge(Json.fromFields(Seq((f.name,result))))
+                      } else row
+                    }
+                    data.set(Json.fromValues(newData))
                   }
                 }
                 case _ => ()
@@ -366,7 +464,7 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
 
-      resetListener(() => {})
+      resetListener(() => {},true)
 
     }
 
@@ -387,6 +485,7 @@ object Spreadsheet extends ComponentWidgetFactory {
         observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
         div(
+          bind(tableData),
           table
         ).render
 
