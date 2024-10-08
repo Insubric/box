@@ -10,7 +10,7 @@ with box_usages as (select name, entity as entity
                              left join form on form_i18n.form_uuid = form.form_uuid
                     union
                     distinct
-                    select f.name, "lookupEntity" as name
+                    select f.name, foreign_entity as name
                     from field
                              left join form f on field.form_uuid = f.form_uuid
 )

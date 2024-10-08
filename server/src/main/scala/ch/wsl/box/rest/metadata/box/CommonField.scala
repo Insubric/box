@@ -40,14 +40,33 @@ object CommonField {
     condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
   )
 
+  def foreignEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_entity",false,
+    widget = Some(WidgetsNames.select),
+    lookup = Some(JSONFieldLookup.prefilled(
+      tables.map(x => JSONLookup(x.asJson,Seq(x)))
+    )),
+    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
+  )
+
   def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",false,
     condition = Some(ConditionalField("lookupEntity",tables.asJson)),
+    widget = Some(WidgetsNames.input)
+  )
+
+  def foreignValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_value_field",false,
+    condition = Some(ConditionalField("foreign_entity",tables.asJson)),
     widget = Some(WidgetsNames.input)
   )
 
   def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
     widget = Some(WidgetsNames.code),
     condition = Some(ConditionalField("lookupEntity",tables.asJson)),
+    params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
+  )
+
+  def foreignQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
+    widget = Some(WidgetsNames.code),
+    condition = Some(ConditionalField("foreign_entity",tables.asJson)),
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
   )
 

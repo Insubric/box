@@ -5,11 +5,11 @@ as
 SELECT fi.type,
        fi.name,
        fi.widget,
-       fi."lookupEntity",
-       fi."lookupValueField",
+       fi.foreign_entity,
+       fi.foreign_value_field,
        fi."lookupQuery",
-       fi."masterFields",
-       fi."childFields",
+       fi.local_key_columns,
+       fi.foreign_key_columns,
        fi."childQuery",
        fi."default",
        fi."conditionFieldId",
@@ -33,6 +33,77 @@ FROM field fi
 
 alter table v_field
     owner to postgres;
+
+
+create or replace function v_field_ins() returns trigger
+    SET search_path = wssweb_box
+    language plpgsql
+as
+$$
+begin
+    insert into field (type, name, widget, foreign_entity,foreign_value_field, "lookupQuery", local_key_columns, foreign_key_columns, "childQuery", "default", "conditionFieldId", "conditionValues", params, read_only, required, form_uuid, child_form_uuid, function,min,max,roles) values
+        (new.type, new.name, new.widget, new.foreign_entity, new.foreign_value_field, new."lookupQuery", new.local_key_columns, new.foreign_key_columns, new."childQuery", new."default", new."conditionFieldId", new."conditionValues", new.params, new.read_only, new.required, new.form_uuid, new.child_form_uuid, new.function,new.min,new.max, new.roles)
+    returning field_uuid into new.field_uuid;
+
+    select count(*)>0 into new.entity_field from information_schema.columns where table_name=(select entity from form where form_uuid=new.form_uuid) and column_name=new.name;
+
+    return new;
+end;
+$$;
+
+alter function v_field_ins() owner to postgres;
+
+grant execute on function v_field_ins() to bafu;
+
+grant execute on function v_field_ins() to wsb;
+
+
+
+
+create or replace function v_field_upd() returns trigger
+    SET search_path = wssweb_box
+    language plpgsql
+as
+$$
+begin
+    update field
+    set type = new.type,
+        name = new.name,
+        widget = new.widget,
+        foreign_entity = new.foreign_entity,
+        foreign_value_field = new.foreign_value_field,
+        "lookupQuery" = new."lookupQuery",
+        local_key_columns = new.local_key_columns,
+        foreign_key_columns = new.foreign_key_columns,
+        "childQuery" = new."childQuery",
+        "default" = new."default",
+        "conditionFieldId" = new."conditionFieldId",
+        "conditionValues" = new."conditionValues",
+        params = new.params,
+        read_only = new.read_only,
+        required = new.required,
+        form_uuid = new.form_uuid,
+        child_form_uuid = new.child_form_uuid,
+        function = new.function,
+        min = new.min,
+        max = new.max,
+        roles = new.roles
+    where field_uuid = new.field_uuid;
+
+    select count(*)>0 into new.entity_field from information_schema.columns where table_name=(select entity from form where form_uuid=new.form_uuid) and column_name=new.name;
+
+    return new;
+end;
+$$;
+
+alter function v_field_upd() owner to postgres;
+
+grant execute on function v_field_upd() to bafu;
+
+grant execute on function v_field_upd() to wsb;
+
+
+
 
 create trigger v_field_del
     instead of delete

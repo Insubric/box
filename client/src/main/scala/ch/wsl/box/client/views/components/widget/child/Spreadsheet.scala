@@ -7,6 +7,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, RunNow}
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.client.views.components.widget.lookup.LookupWidget
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
+import ch.wsl.box.model.shared
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONFieldLookupRemote, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata, JSONQuery, JSONQueryFilter, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -71,7 +72,9 @@ object Spreadsheet extends ComponentWidgetFactory {
     override def field: JSONField = widgetParam.field
 
 
-    def loadLookupBaseValue(rawData:Seq[Json],field:JSONField) = {
+    def loadLookupBaseValue(rawData:Seq[Json],field:JSONField):Future[Map[Json,Json]] = {
+                  if(rawData.isEmpty) return Future.successful(Map())
+
                   val fieldLookup = field.lookup match {
                     case Some(value:JSONFieldLookupRemote) => value
                     case None => throw new Exception("Not a remote lookup")
@@ -123,14 +126,13 @@ object Spreadsheet extends ComponentWidgetFactory {
 
     val metadata = widgetParam.children.find(_.objId == child.objId)
 
-    data.listen(allData => {
-
+    def listenAllData(allData:Json) = {
       logger.debug(s"Found new data $data")
       val rawData = allData.asArray.get
 
       val lookupCols = fields(metadata.get).filter(_.lookup match {
-          case Some(value:JSONFieldLookupRemote) => true
-          case _ => false
+        case Some(value:JSONFieldLookupRemote) => true
+        case _ => false
       })
 
 
@@ -153,11 +155,11 @@ object Spreadsheet extends ComponentWidgetFactory {
         t.printStackTrace()
         Seq()
       }.foreach{ r =>
-        BrowserConsole.log(r.map(_.toJSArray).toJSArray)
         tableData.set(r)
       }
+    }
 
-    },true)
+
 
 
 
@@ -248,9 +250,20 @@ object Spreadsheet extends ComponentWidgetFactory {
       })
     }
 
+    def rowJsonId(rowIndex:Int):String = {
+      if(rowIndex == -1) return "empty"
+      val data = rowData(rowIndex).get
+      JSONID.fromData(data, metadata.get, true).map(_.asString) match {
+        case Some("") => "empty"
+        case Some(value) => value
+        case None => "empty"
+      }
+    }
+
     def dropdownOptions(f:JSONField,rowIndex:Int):Future[js.Array[DropdownSourceItem]] = {
       if(f.lookup.isDefined) {
         val lang = services.clientSession.lang()
+
         val query = f.lookup match {
           case Some(r: JSONFieldLookupRemote) => r.lookupQuery.flatMap(JSONQuery.fromJson).map(_.withData(rowData(rowIndex).get, lang).asJson)
           case None => None
@@ -259,7 +272,7 @@ object Spreadsheet extends ComponentWidgetFactory {
 
           val items: Seq[DropdownSourceItem] = rows.map { d =>
             val group = Group(d.get("name"),d.get("name"))
-            group.setGroup(rowIndex)
+            group.setGroup(rowJsonId(rowIndex))
             group
           }
 
@@ -272,13 +285,22 @@ object Spreadsheet extends ComponentWidgetFactory {
     def indexToCellCode(colIndex:Int,rowIndex:Int) = getExcelColumnName(colIndex) + rowIndex
     val CELL_SOURCE = "cellSource"
 
+    def updateDropdownForRow(rowIndex:Int,jsTable:JspreadsheetInstance) = {
+      Future.sequence({
+        for( col <- fields(metadata.get).indices)
+        yield updateDropdownValues(col,rowIndex,jsTable)
+      })
+    }
+
     def updateDropdownValues(colIndex:Int,rowIndex:Int,jsTable:JspreadsheetInstance) = {
+      logger.debug(s"updateDropdownValues for row $rowIndex col $colIndex")
       val f = fields(metadata.get).apply(colIndex)
+      val rowId = rowJsonId(rowIndex)
       if(f.lookup.isDefined) {
         dropdownOptions(f,rowIndex).map{ source =>
           val cell = jsTable.getColumnOptions(colIndex)
           val existing = cell.asInstanceOf[DropdownColumn].source.toOption.getOrElse(js.Array[DropdownSourceItem]()).filter{ g =>
-            !g.asInstanceOf[Group].group.contains(rowIndex)
+            !g.asInstanceOf[Group].group.contains(rowId)
           }
           cell.set("source",existing ++ source)
 
@@ -288,22 +310,36 @@ object Spreadsheet extends ComponentWidgetFactory {
 
     val dropdownFilter:js.Function5[JspreadsheetInstanceElement,HTMLTableCellElement,String,String,js.Any,js.Array[DropdownSourceItem]] = (jsTable:JspreadsheetInstanceElement,cell:HTMLTableCellElement,colIndex:String,rowIndex:String,source:js.Any) => {
       source.asInstanceOf[js.Array[Group]]
-        .filter( _.group.contains(rowIndex.toInt))
+        .filter( _.group.contains(rowJsonId(rowIndex.toInt)))
         .map(_.name)
     }
 
-    var listener = Option.empty[Registration]
+    def loadEmptyRowLookups() = {
+      jspreadsheetInstance.foreach { jsInstance =>
+        updateDropdownForRow(-1, jsInstance)
+      }
+    }
+
+    widgetParam.id.listen(_ => loadEmptyRowLookups())
+
+
+    var listenerTableData = Option.empty[Registration]
+    var listenerData = Some(data.listen(listenAllData,true))
     private def resetListener(f: () => Unit,initUpdate:Boolean = false): Unit = {
-      listener.foreach(_.cancel())
+      listenerTableData.foreach(_.cancel())
+      listenerData.foreach(_.cancel())
       f()
-      listener = Some(tableData.listen({ td =>
+
+
+      listenerData = Some(data.listen(listenAllData,false))
+
+      listenerTableData = Some(tableData.listen({ td =>
             jspreadsheetInstance.foreach { jsInstance =>
 
               Future.sequence {
                 for {
-                  row <- td.indices
-                  col <- if (td.nonEmpty) td.head.indices else Seq()
-                } yield updateDropdownValues(col, row, jsInstance)
+                  row <- td.indices.toSeq
+                } yield updateDropdownForRow(row, jsInstance)
               }.foreach{ _ =>
                 // dropdown source should be setted
                 //setTimeout(0) {
@@ -316,6 +352,8 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
     def loadTable(_div:Div,metadata: JSONMetadata) = {
+
+      logger.debug("Loading new spreadsheet table")
 
       import ch.wsl.typings.jspreadsheetCe._
 
@@ -403,9 +441,22 @@ object Spreadsheet extends ComponentWidgetFactory {
           .setAllowInsertColumn(false)
           .setAllowRenameColumn(false)
           .setColumnResize(true)
+          .setColumnSorting(false)
           //.setData(toTableData)
           .setMinDimensions((columns.length.toDouble,1.0))
-          //.setOnload()
+          .setOnload((_,_) => loadEmptyRowLookups())
+          .setOnbeforeinsertrow((jsTable,rowIndex,numOfRows,insertBefore) => {
+            val currentData = data.get.asArray.get
+            val offset = if(insertBefore) 0 else 1
+            val newRows = for(i <- 0 until numOfRows.toInt) yield propagatedFields.get
+            val newData = currentData.take(rowIndex.toInt + offset) ++ newRows ++ currentData.drop(rowIndex.toInt + offset)
+            resetListener(() => {data.set(Json.fromValues(newData))})
+          })
+          .setOnbeforedeleterow((jsTable,rowIndex,numOfRows) => {
+            val currentData = data.get.asArray.get
+            val newData = currentData.take(rowIndex.toInt) ++ currentData.drop(rowIndex.toInt+numOfRows.toInt)
+            resetListener(() => {data.set(Json.fromValues(newData))})
+          })
           //.setOncreateeditor((jsTable,cell,colIndex,rowIndex,el) => setDropdownValues(colIndex.toInt,rowIndex.toInt,jsTable.jspreadsheet))
           .setOnchange((jsTable,cell,colIndex,rowIndex,editorValue,wasSaved) => {
 
@@ -431,24 +482,44 @@ object Spreadsheet extends ComponentWidgetFactory {
                       jsTable.jspreadsheet.setValue(cell,js.undefined.asInstanceOf[CellValue])
                       cell.innerHTML = ""
                     }
-                    if(valid)
-                      cell.innerHTML = editorValue.toString
-
-                    f.dependencyFields(tableFields).foreach{f =>
-                      updateDropdownValues(tableFields.indexOf(f),rowNumber,jsTable.jspreadsheet)
+                    if(valid) {
+                      if(f.lookup.isDefined)
+                        cell.innerHTML = editorValue.toString
+                      else if(Seq(JSONFieldTypes.STRING,JSONFieldTypes.NUMBER,JSONFieldTypes.INTEGER).contains(f.`type`))
+                        cell.innerHTML = result.string
                     }
-                    Future.sequence(f.dependencyFields(tableFields).map(checkCellValidity(jsTable.jspreadsheet,rowNumber,Json.fromFields(Map(f.name -> result))))).foreach{ valids =>
-                      logger.debug(s"Dependents fields ${valids.map(x => x._2.name + " " + x._1) }")
-                      valids.filterNot(_._1).map(_._2).foreach{ f =>
-                        jsTable.jspreadsheet.setValueFromCoords(tableFields.indexOf(f).toDouble,rowNumber.toDouble,js.undefined.asInstanceOf[CellValue])
+
+                    val currentData = data.get.asArray.get
+
+
+                    val newData = currentData.lift(rowNumber) match {
+                      case Some(row) => currentData.take(rowNumber) ++
+                        Seq(row.deepMerge(Json.fromFields(Seq((f.name, result))))) ++
+                        currentData.drop(rowNumber+1)
+                      case None => currentData.take(rowNumber) ++
+                          Seq(propagatedFields.get.deepMerge(Json.fromFields(Seq((f.name, result)))))
+
+                    }
+                    logger.debug(s"Setting data for row $rowNumber col $colIndex : ${newData}")
+                    resetListener(() => {
+                      data.set(Json.fromValues(newData))
+                      tableData.set(jsTable.jspreadsheet.getData().toSeq.map(_.toSeq))
+                    })
+
+                    if(currentData.lift(rowNumber).map(j => JSONID.fromData(j,metadata,false)) != newData.lift(rowNumber).map(j => JSONID.fromData(j,metadata,false))) { // changed row JSONID
+                      updateDropdownForRow(rowNumber,jsTable.jspreadsheet)
+                    } else {
+                      f.dependencyFields(tableFields).foreach{f =>
+                        updateDropdownValues(tableFields.indexOf(f),rowNumber,jsTable.jspreadsheet)
+                      }
+                      Future.sequence(f.dependencyFields(tableFields).map(checkCellValidity(jsTable.jspreadsheet,rowNumber,Json.fromFields(Map(f.name -> result))))).foreach{ valids =>
+                        logger.debug(s"Dependents fields ${valids.map(x => x._2.name + " " + x._1) }")
+                        valids.filterNot(_._1).map(_._2).foreach{ f =>
+                          jsTable.jspreadsheet.setValueFromCoords(tableFields.indexOf(f).toDouble,rowNumber.toDouble,js.undefined.asInstanceOf[CellValue])
+                        }
                       }
                     }
-                    val newData = data.get.asArray.get.zipWithIndex.map{ case (row,i) =>
-                      if(i == rowNumber) {
-                        row.deepMerge(Json.fromFields(Seq((f.name,result))))
-                      } else row
-                    }
-                    data.set(Json.fromValues(newData))
+
                   }
                 }
                 case _ => ()
@@ -485,7 +556,6 @@ object Spreadsheet extends ComponentWidgetFactory {
         observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
         div(
-          bind(tableData),
           table
         ).render
 

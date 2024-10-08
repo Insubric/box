@@ -448,6 +448,9 @@ object GlobalStyleFactory{
       ),
       unsafeChild("textarea") (
         float.right
+      ),
+      unsafeChild(".jexcel input") (
+        float.none
       )
     )
 

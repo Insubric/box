@@ -57,3 +57,4 @@ alter table field drop "lookupEntity";
 alter table field drop "lookupValueField";
 alter table field drop "masterFields";
 alter table field drop "childFields";
+alter table field_i18n drop "lookupTextField";
