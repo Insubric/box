@@ -20,7 +20,7 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     for{
       values <- registry.actions(table).distinctOn(Seq(field),query)
       allValues = values.flatMap(_.getOpt(field))
-      baseFilter = if(allValues.nonEmpty) List(WHERE.in(lookup.map.localKeysColumn.mkString(","),allValues)) else baseQuery.filter
+      baseFilter = if(allValues.nonEmpty) List(WHERE.in(lookup.map.foreign.valueColumn,allValues)) else baseQuery.filter
       query = baseQuery.copy(filter =  baseFilter)
       rows <- registry.actions(lookup.lookupEntity).fetchFields(Seq(lookup.map.foreign.valueColumn) ++ remoteLabels,query)
     } yield JSONLookups(
