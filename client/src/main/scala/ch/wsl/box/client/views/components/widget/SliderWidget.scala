@@ -63,8 +63,8 @@ object SliderWidget extends ComponentWidgetFactory {
           slider.max = max
           slider.disabled = disabled
           slider.sliderWidth = "100%"
-          slider.pointerWidth = "15px"
-          slider.pointerHeight = "15px"
+          slider.pointerWidth = "10px"
+          slider.pointerHeight = "10px"
           slider.sliderBgFill = color
           slider.sliderBg = "#aaa"
           slider.pointerBg = color
