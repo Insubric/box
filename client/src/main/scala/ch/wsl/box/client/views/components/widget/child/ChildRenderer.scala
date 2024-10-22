@@ -83,6 +83,11 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     val duplicateIgnoreFields:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateIgnoreFields").as[Seq[String]].toOption).flatten
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
+    val addObject: Option[Json] = field.params.flatMap(_.jsOpt("addObject"))
+
+    case class RowSpan(rows:Int,cols:Seq[String])
+    val rowSpan: Option[RowSpan] = field.params.flatMap(_.jsOpt("rowSpan").flatMap(_.as[RowSpan].toOption))
+
 
     // childWidgets contains the JSONMetadata renderer for each child
     val childWidgets: scala.collection.mutable.ListBuffer[ChildRow] = scala.collection.mutable.ListBuffer()
@@ -178,10 +183,15 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def removeItem(itemToRemove: => ChildRow) = (e:Event) => {
       logger.info("removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
+
         findItem(itemToRemove).map { case (row, idx) =>
-          entity.remove(row.id)
-          childWidgets.update(idx, row.copy(deleted = true))
-          checkChanges()
+          val indexes = for(i <- 0 until rowSpan.map(_.rows).getOrElse(1)) yield { (idx + i,childWidgets(idx+i)) }
+          indexes.foreach { case (idx, row) =>
+            entity.remove(row.id)
+            childWidgets.update(idx, row.copy(deleted = true))
+            checkChanges()
+          }
+
         }
       }
     }
@@ -228,7 +238,20 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
           val newData = if(md.keyFields.forall(_.readOnly)) {
             dataWithNoKeys
           } else dataWithoutIgnored
-          this.add(newData,true,true,Some(entity.get.indexOf(itemToDuplicate.id)+1))
+
+
+          val itemsToAdd = addObject match {
+            case Some(value) if value.isObject => Seq(newData.deepMerge(value))
+            case Some(value) if value.isArray => value.asArray.get.map(r => newData.deepMerge(r))
+            case _ => Seq(newData)
+          }
+
+          val span=rowSpan.map(_.rows).getOrElse(1)
+
+          itemsToAdd.zipWithIndex.foreach { case (e,i) =>
+            this.add(e,true,true,Some(entity.get.indexOf(itemToDuplicate.id)+i+span))
+          }
+
         };
         case None => logger.warn("duplicating invalid object")
       }
@@ -244,10 +267,21 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def placeholder(metadata:JSONMetadata): Json = {
       Json.fromFields(JSONMetadata.jsonPlaceholder(metadata, children))
     }
+
+
+
     def addItem(child: Child, metadata: JSONMetadata) =  {
       logger.info("adding item")
 
-      add(placeholder(metadata),true,true)
+      val itemsToAdd = addObject match {
+        case Some(value) if value.isObject => Seq(placeholder(metadata).deepMerge(value))
+        case Some(value) if value.isArray => value.asArray.get.map(r => placeholder(metadata).deepMerge(r))
+        case _ => Seq(placeholder(metadata))
+      }
+
+      itemsToAdd.foreach { e =>
+        add(e, true, true)
+      }
       checkChanges()
     }
 

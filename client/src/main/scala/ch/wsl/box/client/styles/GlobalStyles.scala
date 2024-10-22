@@ -1395,7 +1395,7 @@ object GlobalStyleFactory{
 
     val editableTableMulti = style(
       minHeight(20 px),
-      padding(5 px)
+      padding.`0`
     )
 
     val xyButtonOnTable = style(
