@@ -41,10 +41,10 @@ jobs:
         uses: coursier/setup-action@v1
         with:
           jvm: adoptium:1.17
-      - name: Node 14.x
+      - name: Node 16.x
         uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 16
       - name: Setup client test env
         run: npm install
       - name: Run tests client
