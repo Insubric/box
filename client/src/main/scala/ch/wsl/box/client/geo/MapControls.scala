@@ -381,6 +381,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
       finishDrawing()
       activeControl.set(Control.VIEW)
     }
+    case Some(_) if activeControl.get == Control.VIEW => ()
     case Some(ls) =>
 
 
