@@ -381,7 +381,6 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
       finishDrawing()
       activeControl.set(Control.VIEW)
     }
-    case Some(_) if activeControl.get == Control.VIEW => ()
     case Some(ls) =>
 
 
@@ -393,16 +392,18 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     val vs = MapControlsParams.toVectorSource(ls.olLayer)
     oldVectorSource = Some(vs)
 
+    val editing = Seq(Control.POLYGON,Control.POLYGON_HOLE,Control.POINT,Control.LINESTRING).contains(activeControl.get)
+
     finishDrawing()
-    if(ls.features.polygon || ls.features.multiPolygon) {
+    if(editing && (ls.features.polygon || ls.features.multiPolygon)) {
       activeControl.set(Control.POLYGON)
-    } else if(ls.features.point) {
+    } else if(editing && ls.features.point) {
       if(vs.getFeatures().nonEmpty) {
         activeControl.set(Control.VIEW)
       } else {
         activeControl.set(Control.POINT)
       }
-    } else if(ls.features.multiPoint) {
+    } else if(editing && ls.features.multiPoint) {
       activeControl.set(Control.POINT)
     } else {
       activeControl.set(Control.VIEW)
