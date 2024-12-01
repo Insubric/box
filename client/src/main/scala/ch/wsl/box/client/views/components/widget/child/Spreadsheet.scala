@@ -324,14 +324,14 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
     var listenerTableData = Option.empty[Registration]
-    var listenerData = Some(data.listen(listenAllData,true))
+    var listenerData = Some(autoRelease(data.listen(listenAllData,true)))
     private def resetListener(f: () => Unit,initUpdate:Boolean = false): Unit = {
       listenerTableData.foreach(_.cancel())
       listenerData.foreach(_.cancel())
       f()
 
 
-      listenerData = Some(data.listen(listenAllData,false))
+      listenerData = Some(autoRelease(data.listen(listenAllData,false)))
 
       listenerTableData = Some(tableData.listen({ td =>
             jspreadsheetInstance.foreach { jsInstance =>
