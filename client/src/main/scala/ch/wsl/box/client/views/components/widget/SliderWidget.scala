@@ -11,11 +11,13 @@ import io.udash._
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import org.scalajs.dom.html.Div
-import org.scalajs.dom.{Element, Event, MutationObserver, MutationObserverInit, Node, document}
+import org.scalajs.dom.{Element, Event, EventListenerOptions, MutationObserver, MutationObserverInit, Node, WheelEvent, document}
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import ch.wsl.typings.std.EventListener
-import ch.wsl.typings.toolcoolRangeSlider.mod.RangeSlider
+import org.scalajs.dom
+
+import scala.scalajs.js
 
 
 object SliderWidget extends ComponentWidgetFactory {
@@ -47,7 +49,8 @@ object SliderWidget extends ComponentWidgetFactory {
     }
 
     private def renderSlider(disabled:Boolean = false): Binding = {
-      val slider = document.createElement("toolcool-range-slider").asInstanceOf[RangeSlider]
+      val slider = document.createElement("toolcool-range-slider").asInstanceOf[js.Dynamic]
+      slider.mousewheelDisabled = true
       val wrapper: Div = div(slider.asInstanceOf[Node]).render
       val binding = new Binding {
         override def applyTo(t: Element): Unit = t.appendChild(wrapper)
@@ -63,8 +66,8 @@ object SliderWidget extends ComponentWidgetFactory {
           slider.max = max
           slider.disabled = disabled
           slider.sliderWidth = "100%"
-          slider.pointerWidth = "15px"
-          slider.pointerHeight = "15px"
+          slider.pointerWidth = "12px"
+          slider.pointerHeight = "12px"
           slider.sliderBgFill = color
           slider.sliderBg = "#aaa"
           slider.pointerBg = color
@@ -73,6 +76,8 @@ object SliderWidget extends ComponentWidgetFactory {
           slider.pointerBorder = "0"
           slider.pointerBorderFocus = "0"
           slider.pointerBorderHover = "0"
+          slider.mousewheelDisabled = true
+
           step.foreach(s => slider.step = s )
           val listener = params.prop.listen(v => v.as[Double] match {
             case Left(value) => logger.warn(s"$v is not as number ${value.message}")
@@ -81,12 +86,13 @@ object SliderWidget extends ComponentWidgetFactory {
 
           val changeListener:EventListener = {e:Event =>
             listener.cancel()
-            val value = e.target.asInstanceOf[RangeSlider].value.asInstanceOf[Double]
+            val value = e.target.asInstanceOf[js.Dynamic].value.asInstanceOf[Double]
             Json.fromDouble(value).map(x => params.prop.set(x))
             listener.restart()
           }
           binding.addRegistration(listener)
           slider.addEventListener("change",changeListener)
+
         }
 
       })

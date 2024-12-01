@@ -68,7 +68,7 @@ object Main extends Logging {
 
         //loads datetime picker
         ch.wsl.typings.bootstrap.bootstrapRequire
-        ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
+        //ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
 
 
 

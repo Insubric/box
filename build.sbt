@@ -97,7 +97,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider").map{ p =>
       if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -166,7 +166,7 @@ lazy val client: Project = (project in file("client"))
       "js-md5" -> "0.7.3",
       "@types/js-md5" -> "0.4.2",
       "striptags" -> "3.2.0",
-      "toolcool-range-slider" -> "2.0.12",
+      "toolcool-range-slider" -> "4.0.28",
       "hotkeys-js" -> "3.10.0",
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
@@ -186,6 +186,7 @@ lazy val client: Project = (project in file("client"))
     stIgnore += "ol-ext",
     stIgnore += "@fortawesome/fontawesome-free",
     stIgnore += "stream-browserify",
+    stIgnore += "toolcool-range-slider",
     stTypescriptVersion := "4.2.4",
     stOutputPackage := "ch.wsl.typings",
     // Use library mode for fastOptJS

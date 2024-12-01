@@ -6,8 +6,8 @@ import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.styles.fonts.Font
 import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, Icons, StyleConf}
-import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry, WidgetUtils}
+import ch.wsl.box.client.utils.{MustacheUtils, TestHooks}
+import ch.wsl.box.client.views.components.widget.{HasData, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.Internationalization._
 import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -177,9 +177,10 @@ object EditableTable extends ChildRendererFactory {
     }
 
     def colHeader(field:JSONField):ReadableProperty[String] = {
+
         val name = field.widget match {
           case Some(WidgetsNames.html) => ""
-          case _ => field.label.getOrElse(field.name) + {
+          case _ => MustacheUtils.render(field.label.getOrElse(field.name),widgetParam.allData.get) + {
             if(!field.nullable) " "+Labels.form.required else ""
           }
         }
@@ -478,40 +479,64 @@ object EditableTable extends ChildRendererFactory {
 
                     tr(tableStyle.tr, color, data("row") := rowIdx,
                       for ((field, columnIdx) <- f.zipWithIndex) yield {
-                        val (params, widget) = colContentWidget(childWidget, field, m)
-                        rowWidgets.addOne(widget)
 
-                        showIfCondition(field, nested) {
-                          td(data("column") := columnIdx,
-                            showIfConditionRow(field, childWidget.data, nested) {
-                              div(if (
-                                field.readOnly ||
-                                  WidgetUtils.isKeyNotEditable(m, field, params.id.get)
-                              ) widget.showOnTable(nested) else widget.editOnTable(nested))
-                            }, tableStyle.td, borderColor, colWidth)
+                        logger.info(s"Loading rows $rowSpan")
+
+                        val span = rowSpan match {
+                          case Some(v) if v.cols.contains(field.name) => v.rows
+                          case _ => 1
+                        }
+
+                        if(rowIdx % span == 0) {
+                          val (params, widget) = colContentWidget(childWidget, field, m)
+                          rowWidgets.addOne(widget)
+
+
+                          showIfCondition(field, nested) {
+                            td(rowspan := span ,data("column") := columnIdx,
+                              showIfConditionRow(field, childWidget.data, nested) {
+                                div(if (
+                                  field.readOnly ||
+                                    WidgetUtils.isKeyNotEditable(m, field, params.id.get)
+                                ) widget.showOnTable(nested) else widget.editOnTable(nested))
+                              }, tableStyle.td, borderColor, colWidth)
+                          }
+                        } else {
+                          val offset = rowIdx % span
+                          val (mainChildWidget, _) = getWidget(entity.get(rowIdx - offset))
+                          val (_, widget) = colContentWidget(childWidget, field, m)
+                          val (_, mainWidget) = colContentWidget(mainChildWidget, field, m)
+                          (widget,mainWidget) match {
+                            case (w:HasData,mw:HasData) => w.data.sync(mw.data)(x => x,x=>x)
+                            case _ => ()
+                          }
+                          val mod:Modifier = Seq[Modifier]()
+                          mod
                         }
                       },
-                      if (write && (!disableRemove || !disableDuplicate)) td(tableStyle.td, colWidth,
-                        if (!disableDuplicate) {
+                      if (write && (!disableRemove || !disableDuplicate) && rowIdx % rowSpan.map(_.rows).getOrElse(1) == 0) {
+                        td(rowspan := rowSpan.map(_.rows).getOrElse(1),tableStyle.td, colWidth,
+                          if (!disableDuplicate) {
 
-                          a(ClientConf.style.childDuplicateButton, tabindex := 0,
-                            onclick :+= duplicateItem(childWidget),
-                            onkeyup :+= { (e: Event) => if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e) },
-                            duplicateIcon)
-                        } else frag()
-                        , " ",
-                        if (!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
-                          showIf(entity.transform(_.length > min)) {
-                            a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
-                              onclick :+= removeItem(childWidget),
-                              onkeyup :+= { (e: Event) =>
-                                if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
-                                  removeItem(childWidget)(e)
-                              },
-                              Icons.minusFill).render
-                          }
-                        } else frag()
-                      ) else frag()
+                            a(ClientConf.style.childDuplicateButton, tabindex := 0,
+                              onclick :+= duplicateItem(childWidget),
+                              onkeyup :+= { (e: Event) => if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key)) duplicateItem(childWidget)(e) },
+                              duplicateIcon)
+                          } else frag()
+                          , " ",
+                          if (!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
+                            showIf(entity.transform(_.length > min)) {
+                              a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
+                                onclick :+= removeItem(childWidget),
+                                onkeyup :+= { (e: Event) =>
+                                  if (Seq("Enter", " ").contains(e.asInstanceOf[KeyboardEvent].key))
+                                    removeItem(childWidget)(e)
+                                },
+                                Icons.minusFill).render
+                            }
+                          } else frag()
+                        )
+                      } else frag()
                     ).render
                   }),
                   if (write && !disableAdd) {
