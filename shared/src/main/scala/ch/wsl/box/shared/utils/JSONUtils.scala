@@ -32,7 +32,10 @@ object JSONUtils extends Logging {
         case JSONFieldTypes.DATE => DateTimeFormatters.date.parse(value).get.asJson
         case JSONFieldTypes.DATETIME => DateTimeFormatters.timestamp.parse(value).get.asJson
         case JSONFieldTypes.TIME => DateTimeFormatters.time.parse(value).get.asJson
-        case _ => Json.fromString(value)
+        case _ => parser.parse(value) match {
+          case Left(_) => Json.fromString(value)
+          case Right(value) => value
+        }
       }
       json
     } match {
