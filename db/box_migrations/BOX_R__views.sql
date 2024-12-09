@@ -31,12 +31,11 @@ SELECT fi.type,
 FROM field fi
          LEFT JOIN form f ON fi.form_uuid = f.form_uuid;
 
-alter table v_field
-    owner to postgres;
+
 
 
 create or replace function v_field_ins() returns trigger
-    SET search_path = wssweb_box
+    set search_path from current
     language plpgsql
 as
 $$
@@ -51,17 +50,13 @@ begin
 end;
 $$;
 
-alter function v_field_ins() owner to postgres;
 
-grant execute on function v_field_ins() to bafu;
-
-grant execute on function v_field_ins() to wsb;
 
 
 
 
 create or replace function v_field_upd() returns trigger
-    SET search_path = wssweb_box
+    set search_path from current
     language plpgsql
 as
 $$
@@ -96,11 +91,6 @@ begin
 end;
 $$;
 
-alter function v_field_upd() owner to postgres;
-
-grant execute on function v_field_upd() to bafu;
-
-grant execute on function v_field_upd() to wsb;
 
 
 

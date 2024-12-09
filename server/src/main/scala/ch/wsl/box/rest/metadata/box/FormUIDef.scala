@@ -226,7 +226,7 @@ object FormUIDef {
           "required",
           "read_only",
           "foreign_entity",
-          "lookupValueField",
+          "foreign_value_field",
           "lookupQuery",
           "default",
           "min",
