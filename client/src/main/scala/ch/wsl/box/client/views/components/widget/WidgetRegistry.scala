@@ -74,6 +74,8 @@ object WidgetRegistry extends Logging {
 
     SliderWidget,
 
+    RadioWidget,
+
     ChoicesWidget,
     MultipleLookupWidget,
 

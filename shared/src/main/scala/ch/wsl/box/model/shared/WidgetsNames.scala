@@ -18,6 +18,7 @@ object WidgetsNames {
   val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
   val slider = "slider"
+  val radio = "radio"
   val multi = "multi"
   val inputMultipleText = "inputMultipleText"
   val multipleLookup = "multipleLookup"
@@ -60,6 +61,7 @@ object WidgetsNames {
       input,
       select,
       slider,
+      radio,
       popup,
       checkbox,
       inputDisabled,
@@ -71,6 +73,7 @@ object WidgetsNames {
       input,
       integerDecimal2,
       slider,
+      radio,
       select,
       popup,
       checkbox,
@@ -88,6 +91,7 @@ object WidgetsNames {
       richTextEditorPopup,
       redactor,
       code,
+      radio,
       select,
       popup,
       hidden,
