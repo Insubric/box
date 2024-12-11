@@ -51,8 +51,8 @@ update field f set foreign_value_field=t."lookupTextField"
 from (select distinct field_uuid,"lookupTextField" from field_i18n where "lookupTextField" is not null) t
 where t.field_uuid = f.field_uuid and widget in ('linked_form','lookup_form');
 
-drop view v_box_usages;
-drop view v_field;
+drop view if exists v_box_usages;
+drop view if exists v_field;
 alter table field drop "lookupEntity";
 alter table field drop "lookupValueField";
 alter table field drop "masterFields";
