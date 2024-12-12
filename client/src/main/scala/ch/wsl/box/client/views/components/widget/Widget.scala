@@ -60,6 +60,7 @@ trait Widget extends Logging {
    * @return
    */
   def fromLabel(str:String)(implicit ec:ExecutionContext):Future[Json] = Future.successful{ field.`type` match {
+    case JSONFieldTypes.STRING if str.trim.isEmpty && field.nullable => Json.Null
     case JSONFieldTypes.STRING => Json.fromString(str)
     case JSONFieldTypes.NUMBER => str.toDoubleOption.flatMap(Json.fromDouble) match {
       case Some(v) => v

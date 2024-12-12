@@ -112,7 +112,7 @@ object Spreadsheet extends ComponentWidgetFactory {
     }
 
     def jsonToCellValue(js:Json):CellValue = js.fold[CellValue](
-      null,
+      "",
       b => b,
       n => n.toDouble,
       s => s,
@@ -220,13 +220,17 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
 
-    def cellValueToJson(field:JSONField, cell: js.UndefOr[CellValue]): Json = cell.toOption match {
-      case None => Json.Null
-      case Some(c) => c.asInstanceOf[Any] match {
-        case s:String if s.isEmpty && field.nullable => Json.fromString(s)
-        case s:String => Json.fromString(s)
+    def cellValueToJson(field:JSONField, cell: CellValue): Json = {
+      println(s"======= Setting ${field.name}")
+      cell.asInstanceOf[Any] match {
+        case v: Void => Json.Null
+        case s: String if s.trim.isEmpty && field.nullable => Json.Null
+        case s: String => {
+          println(s"======= String ${field.name}: ${Json.fromString(s).toString()}")
+          Json.fromString(s)
+        }
         case b: Boolean => Json.fromBoolean(b)
-        case n:Double => Json.fromDoubleOrNull(n)
+        case n: Double => Json.fromDoubleOrNull(n)
       }
     }
 
@@ -373,7 +377,7 @@ object Spreadsheet extends ComponentWidgetFactory {
         val fields:Seq[(String,Json)] = jsTable.getRowData(row.toDouble).toOption match {
           case Some(value) => value.toSeq.zipWithIndex.map{ case (x,i) =>
             val f = tableFields(i)
-            (f.name,cellValueToJson(f,Some(x).orUndefined))
+            (f.name,cellValueToJson(f,x))
           }
           case None => Seq()
         }
