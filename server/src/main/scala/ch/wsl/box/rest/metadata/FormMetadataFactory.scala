@@ -201,7 +201,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         default.copy(blocks = default.blocks.map(_.copy(width = 12)))
       }
 
-      val layout = Layout.fromString(form.layout).getOrElse(defaultLayout)
+      val layout = Layout.fromJson(form.layout).getOrElse(defaultLayout)
 
       val formActions = if(actions.isEmpty) {
         if(form.entity == FormMetadataFactory.STATIC_PAGE) {

@@ -52,8 +52,48 @@ object Layout extends Logging {
     }
   }
 
-  implicit val layoutBlockEncoder: Encoder[LayoutBlock] = deriveEncoder[LayoutBlock]
-  implicit val layoutBlockDecoder: Decoder[LayoutBlock] = deriveDecoder[LayoutBlock]
+  implicit val layoutBlockEncoder: Encoder[LayoutBlock] = new Encoder[LayoutBlock] {
+    final def apply(a: LayoutBlock): Json = Json.obj(
+      ("width", a.width.asJson),
+      ("fields", a.fields.asJson),
+      ("title", a.title.asJson),
+      ("tab", a.tab.asJson),
+      ("tabGroup", a.tabGroup.asJson),
+      ("layoutType", {
+        a.layoutType match {
+          case StackedLayout => "StackedLayout"
+          case DistributedLayout => "DistributedLayout"
+          case TableLayout => "TableLayout"
+          case MultirowTableLayout => "MultirowTableLayout"
+        }}.asJson),
+    )
+  }
+  implicit val layoutBlockDecoder: Decoder[LayoutBlock] = new Decoder[LayoutBlock] {
+    final def apply(c: HCursor): Decoder.Result[LayoutBlock] =
+      for {
+        width <- c.downField("width").as[Int]
+        fields <- c.downField("fields").as[Seq[Either[String,SubLayoutBlock]]]
+        title = c.downField("title").as[Either[String,I18n]]
+        tab = c.downField("tab").as[String]
+        tabGroup = c.downField("tabGroup").as[String]
+        layoutType = c.downField("layoutType").as[String]
+        distribute = c.downField("distribute").as[Boolean]
+      } yield {
+        val lt = (distribute,layoutType) match {
+          case (Right(true),_) => DistributedLayout
+          case (_,Right("DistributedLayout")) => DistributedLayout
+          case (_,Right("TableLayout")) => TableLayout
+          case (_,Right("MultirowTableLayout")) => MultirowTableLayout
+          case (_,Right("StackedLayout")) => StackedLayout
+          case _ => {
+            logger.warn(s"Unable to parse $layoutType")
+            StackedLayout
+          }
+        }
+
+        LayoutBlock(title.toOption,width,fields,lt,tab.toOption,tabGroup.toOption)
+      }
+  }
 
   implicit val encodeFoo: Encoder[Layout] = new Encoder[Layout] {
     final def apply(a: Layout): Json = Json.obj(
@@ -79,6 +119,12 @@ object Layout extends Logging {
       println(jsonFailure.getMessage())
       None
     }, { json =>                                    //valid json
+      fromJson(Some(json))
+    })
+  }
+
+  def fromJson(layout:Option[Json]) = layout.flatMap { json =>
+                                    //valid json
       json.as[Layout].fold({ layoutFailure =>             //layout parsing failure
         logger.warn(layoutFailure.getMessage())
         println(layoutFailure.getMessage())
@@ -87,13 +133,19 @@ object Layout extends Logging {
         Some(lay)
       }
       )
-    })
+
   }
 
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
-    LayoutBlock(None,12,None,fields.map(x => Left(x.name)))
+    LayoutBlock(None,12,fields.map(x => Left(x.name)),StackedLayout)
   ))
 }
+
+sealed trait LayoutType
+case object StackedLayout extends LayoutType
+case object DistributedLayout extends LayoutType
+case object TableLayout extends LayoutType
+case object MultirowTableLayout extends LayoutType
 
 /**
   *
@@ -104,10 +156,10 @@ object Layout extends Logging {
 case class LayoutBlock(
                    title: Option[Either[String,I18n]],
                    width:Int,
-                   distribute: Option[Boolean],
                    fields:Seq[Either[String,SubLayoutBlock]],
+                   layoutType:LayoutType = StackedLayout,
                    tab: Option[String] = None,
-                   tabGroup:Option[String] = None
+                   tabGroup:Option[String] = None,
                  ) {
   def extractFields(metadata: JSONMetadata): Seq[String] = fields.flatMap {
     case Left(value) if metadata.fields.exists(_.name == value) => Seq(value)
@@ -120,7 +172,7 @@ case class LayoutBlock(
 
 case class SubLayoutBlock(
                          title: Option[String],
-                         fieldsWidth:Seq[Int],
+                         fieldsWidth:Option[Seq[Int]],
                          fields:Seq[Either[String,SubLayoutBlock]]
                          ) {
   def extractFields(metadata:JSONMetadata): Seq[String] = fields.flatMap {

@@ -129,12 +129,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   case class FormBlock(widget:Widget,fields:Seq[String],layoutBlock: Option[LayoutBlock])
 
   val blocks: Seq[FormBlock] = metadata.layout.blocks.map { block =>
-    val hLayout = block.distribute.contains(true) match {
-      case true => Right(true)
-      case false => Left(Stream.continually(12))
-    }
+
     FormBlock(
-      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,hLayout),
+      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,block.layoutType),
       block.extractFields(metadata),
       Some(block),
     )

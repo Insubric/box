@@ -29,7 +29,7 @@ object BoxForm {
                          name: String,
                          entity:String,
                          description: Option[String] = None,
-                         layout: Option[String] = None,
+                         layout: Option[Json] = None,
                          tabularFields: Option[String] = None,
                          query: Option[String] = None,
                          exportfields: Option[String] = None,
@@ -53,7 +53,7 @@ object BoxForm {
     /** Database column description SqlType(text), Default(None) */
     val description: Rep[Option[String]] = column[Option[String]]("description", O.Default(None))
     /** Database column layout SqlType(text), Default(None) */
-    val layout: Rep[Option[String]] = column[Option[String]]("layout", O.Default(None))
+    val layout: Rep[Option[Json]] = column[Option[Json]]("layout", O.Default(None))
     val tabularFields: Rep[Option[String]] = column[Option[String]]("tabularFields", O.Default(None))
     val exportfields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))

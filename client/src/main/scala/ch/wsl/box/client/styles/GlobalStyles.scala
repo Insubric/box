@@ -588,6 +588,32 @@ object GlobalStyleFactory{
       )
     )
 
+
+    val table = style(
+      borderColor(Colors.GreySemi),
+      borderCollapse.collapse,
+      unsafeChild("th") (
+        backgroundColor(conf.colors.main),
+        color(conf.colors.mainText),
+        borderColor(conf.colors.main),
+      ),
+      unsafeChild("td") (
+        borderColor(conf.colors.main),
+        borderStyle.solid,
+        borderWidth(1 px),
+        paddingLeft(10 px),
+        paddingRight(10 px),
+        paddingTop(10 px),
+        paddingBottom(10 px),
+      ),
+      unsafeChild("label") (
+        marginBottom.`0`
+      ),
+      width(100 %%),
+      marginLeft(10.px),
+      marginBottom(20.px)
+    )
+
     val field = style(
       paddingRight(10 px),
       paddingLeft(10 px),
@@ -1228,7 +1254,7 @@ object GlobalStyleFactory{
       width(100.%%),
       height(100.%%),
       float.none.important,
-      borderWidth.`0`
+      borderWidth(0 px,0 px,1 px,0 px)
     )
 
     val simpleCheckbox = style(

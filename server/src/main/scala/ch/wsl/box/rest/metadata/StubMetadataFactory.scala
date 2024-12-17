@@ -32,7 +32,7 @@ object StubMetadataFactory {
           name = entity,
           description = None,
           entity = entity,
-          layout = Some(metadata.layout.asJson.toString()),
+          layout = Some(metadata.layout.asJson),
           tabularFields = Some(metadata.tabularFields.mkString(",")),
           query = None,
           exportfields = Some(metadata.exportFields.mkString(",")),

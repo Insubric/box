@@ -139,7 +139,6 @@ object LayoutWidget extends ComponentWidgetFactory {
           LayoutBlock(
             title = None,
             width = block.gridstackNode.toOption.flatMap(_.w.toOption).map(_.toInt).getOrElse(6),
-            distribute = None,
             fields = {
               for {
                 subBlock <- block.gridstackNode
@@ -206,7 +205,7 @@ object LayoutWidget extends ComponentWidgetFactory {
         button("Add block", ClientConf.style.boxButton, onclick := ((e: Event) => {
           grid.foreach{ g =>
 
-            val block = g.addWidget( renderBlock(LayoutBlock(None, 6, None, Seq(), None)))
+            val block = g.addWidget( renderBlock(LayoutBlock(None, 6, Seq())))
 
             block.gridstackNode.flatMap(_.subGrid).foreach(_.on("added removed change",aaa))
             println("AAA")

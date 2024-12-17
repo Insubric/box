@@ -50,21 +50,21 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,None,Seq(
-          SubLayoutBlock(None,Seq(5,1,6),Seq(
+        LayoutBlock(None,8,Seq(
+          SubLayoutBlock(None,Some(Seq(5,1,6)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("function_uuid","name","order","description","mode").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Some(Seq(12)),Seq("function_uuid","name","order","description","mode").map(Left(_)))
             ),
             Left(""),
             Right(
-              SubLayoutBlock(Some("Layout"),Seq(12),Seq("layout").map(Left(_)))
+              SubLayoutBlock(Some("Layout"),Some(Seq(12)),Seq("layout").map(Left(_)))
             )
           )),
-          SubLayoutBlock(Some("Function"),Seq(12),Seq("function").map(Left(_))),
-          SubLayoutBlock(Some("Presenter"),Seq(12),Seq("presenter").map(Left(_))),
+          SubLayoutBlock(Some("Function"),Some(Seq(12)),Seq("function").map(Left(_))),
+          SubLayoutBlock(Some("Presenter"),Some(Seq(12)),Seq("presenter").map(Left(_))),
         ).map(Right(_))),
-        LayoutBlock(Some(Left("I18n")),4,None,Seq("function_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Fields")),12,None,Seq("function_field").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,Seq("function_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Fields")),12,Seq("function_field").map(Left(_))),
       )
     ),
     entity = "function",
@@ -100,7 +100,7 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4,None,Seq(
+        LayoutBlock(None,4,Seq(
           "field_uuid",
           "function_uuid",
           "name",
@@ -113,7 +113,7 @@ object FunctionUIDef {
           "conditionFieldId",
           "conditionValues"
         ).map(Left(_))),
-        LayoutBlock(None,8,None,Seq("function_field_i18n").map(Left(_))),
+        LayoutBlock(None,8,Seq("function_field_i18n").map(Left(_))),
       )
     ),
     entity = "function_field",
@@ -145,8 +145,8 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,3,None,Seq("field_uuid","uuid","lang").map(Left(_))),
-        LayoutBlock(None,9,None,Seq("label","placeholder","tooltip","hint","lookupTextField").map(Left(_))),
+        LayoutBlock(None,3,Seq("field_uuid","uuid","lang").map(Left(_))),
+        LayoutBlock(None,9,Seq("label","placeholder","tooltip","hint","lookupTextField").map(Left(_))),
       )
     ),
     entity = "function_field_i18n",
@@ -176,7 +176,7 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,Seq("lang","label","tooltip","hint").map(Left(_)))
+        LayoutBlock(None,12,Seq("lang","label","tooltip","hint").map(Left(_)))
       )
     ),
     entity = "function_i18n",

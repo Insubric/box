@@ -26,8 +26,8 @@ object NewsUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4, None, Seq("datetime","author").map(Left(_))),
-        LayoutBlock(Some(Left("Translations")),8, None,Seq("news_i18n").map(Left(_)))
+        LayoutBlock(None,4,  Seq("datetime","author").map(Left(_))),
+        LayoutBlock(Some(Left("Translations")),8, Seq("news_i18n").map(Left(_)))
       )
     ),
 //    layout = parse("""
@@ -57,8 +57,8 @@ object NewsUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,3, None,Seq("lang").map(Left(_))),
-        LayoutBlock(None,9, None,Seq("title","text").map(Left(_))),
+        LayoutBlock(None,3, Seq("lang").map(Left(_))),
+        LayoutBlock(None,9, Seq("title","text").map(Left(_))),
       )
     ),
     entity = "news_i18n",

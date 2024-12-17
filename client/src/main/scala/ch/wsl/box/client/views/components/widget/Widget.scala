@@ -131,6 +131,15 @@ trait Widget extends Logging {
     }
   }
 
+  final def renderOnTable(write:Boolean,nested:Binding.NestedInterceptor):Modifier = {
+    load()
+    if(write && !field.readOnly) {
+      editOnTable(nested)
+    } else {
+      showOnTable(nested)
+    }
+  }
+
 
   def beforeSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
 

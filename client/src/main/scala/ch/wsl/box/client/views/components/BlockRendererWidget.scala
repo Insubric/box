@@ -2,14 +2,16 @@ package ch.wsl.box.client.views.components
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.views.components.widget.WidgetUtils.LabelLeft
 import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
-import ch.wsl.box.model.shared.{ConditionalField, JSONField, JSONMetadata, SubLayoutBlock}
+import ch.wsl.box.model.shared.{ConditionalField, DistributedLayout, JSONField, JSONMetadata, LayoutType, MultirowTableLayout, StackedLayout, SubLayoutBlock, TableLayout}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.css.CssStyleName
 import io.udash._
+import org.scalajs.dom.Node
 import scalatags.JsDom
 import scalatags.JsDom.all.{div, h3, minHeight, s}
 
@@ -17,7 +19,7 @@ import scala.concurrent.Future
 
 
 
-class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, SubLayoutBlock]], horizontal: Either[Stream[Int],Boolean], titleSub:Option[String] = None, margin: Boolean = true) extends Widget with HasData {
+class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String, SubLayoutBlock]], layoutType:LayoutType, widths: Option[Stream[Int]] = None, titleSub:Option[String] = None, margin: Boolean = true) extends Widget with HasData {
 
   private case class WidgetVisibility(widget: Widget, visibility: ReadableProperty[Boolean])
 
@@ -105,14 +107,18 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
   }}.getOrElse(WidgetVisibility(HiddenWidget.HiddenWidgetImpl(JSONField.empty)))
 
-  private val widgets:Seq[WidgetVisibility] = fields.map{
-    case Left(fieldName) => simpleField(fieldName)
-    case Right(subForm) => subBlock(subForm)
+  private val widgets:Seq[WidgetVisibility] = fields.flatMap{
+    case Left(fieldName) => Seq(simpleField(fieldName))
+    case Right(subForm) if layoutType == MultirowTableLayout => subForm.fields.flatMap {
+      case Left(value) => Some(simpleField(value))
+      case Right(value) => None
+    }
+    case Right(subForm) => Seq(subBlock(subForm))
   }
   import io.circe.syntax._
 
   private def subBlock(block: SubLayoutBlock):WidgetVisibility = WidgetVisibility(
-    new BlockRendererWidget(widgetParams,block.fields, Left(Stream.continually(block.fieldsWidth.toStream).flatten),block.title.orElse(Some("")),false)
+    new BlockRendererWidget(widgetParams,block.fields, layoutType, Some(Stream.continually(block.fieldsWidth.getOrElse(Seq(12)).toStream).flatten),block.title.orElse(Some("")),false)
   )
 
 
@@ -177,12 +183,18 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
   override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderBlock(true,nested)
 
 
-  private def renderIfVisible(widget:WidgetVisibility,write:Boolean,nested:Binding.NestedInterceptor) = {
+  private def renderIfVisible(
+                               widget:WidgetVisibility,
+                               write:Boolean,
+                               nested:Binding.NestedInterceptor)(
+                                 renderer:(WidgetVisibility,Boolean) => Seq[Node]
+  ) = {
     nested(showIf(widget.visibility) {
       widget.widget.load()
-      div(widget.widget.render(write,nested)).render
+      renderer(widget,write)
     })
   }
+
 
   def fixedWidth(widths:Stream[Int],write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = {
 
@@ -193,7 +205,9 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
 
 
         div(CssStyleName(s"block-el-$i"),BootstrapCol.md(width), ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
-          renderIfVisible(widget,write,nested)
+          renderIfVisible(widget,write,nested)( (widget,write) =>
+            div(widget.widget.render(write,nested)).render
+          )
         )
       }
     )
@@ -202,20 +216,71 @@ class BlockRendererWidget(widgetParams: WidgetParams,fields: Seq[Either[String, 
   def distribute(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = div(ClientConf.style.distributionContrainer,
     widgets.map { case widget =>
       div(ClientConf.style.field,if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
-        renderIfVisible(widget,write,nested)
+        renderIfVisible(widget,write,nested)( (widget,write) =>
+          div(widget.widget.render(write,nested)).render
+        )
       )
     }
   )
 
+  def tableRenderer(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = table(ClientConf.style.table,
+    tr(
+      widgets.map { case widget =>
+        renderIfVisible(widget,write,nested)( (widget,write) =>
+            th(ClientConf.style.field,WidgetUtils.toLabel(widget.widget.field,LabelLeft)).render
+        )
+      }
+    ),
+    tr(
+      widgets.map { case widget =>
+        renderIfVisible(widget,write,nested)( (widget,write) =>
+          td(if(!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
+              widget.widget.renderOnTable(write,nested)
+          ).render
+        )
+      }
+    )
+  )
+
+  def multiLineRableRenderer(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = {
+
+    val blocks = fields.flatMap(_.toOption)
+
+    table(ClientConf.style.table,
+      tr(
+          blocks.map{ b =>
+            th(ClientConf.style.field,b.title).render
+          }
+      ),
+
+      widgets.zipWithIndex.groupBy(_._2 / blocks.size).map { case (_,wdgts) =>
+        tr(
+          wdgts.map{ case (widget, _) =>
+            renderIfVisible(widget, write, nested)((widget, write) =>
+              td(if (!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
+                widget.widget.renderOnTable(write, nested)
+              ).render
+            )
+          }
+        ).render
+      }.toSeq
+
+    )
+  }
+
 
   private def renderBlock(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
-    logger.info(s"blockname: $titleSub horizontal: $horizontal")
+    logger.info(s"blockname: $titleSub type: $layoutType")
 
-    def ren() = horizontal match {
-      case Left(widths) => fixedWidth(widths, write,nested)
-      case Right(_) => distribute(write,nested)
+    def ren() = layoutType match {
+      case StackedLayout => fixedWidth(widths.getOrElse(Stream.continually(12)), write,nested)
+      case DistributedLayout => distribute(write,nested)
+      case TableLayout => tableRenderer(write,nested)
+      case MultirowTableLayout => multiLineRableRenderer(write,nested)
     }
+
+
 
 
     div(BootstrapCol.md(12), ClientConf.style.subBlock)(
