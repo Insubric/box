@@ -588,19 +588,23 @@ object GlobalStyleFactory{
       )
     )
 
+    val tableContainer = style(
+      paddingLeft(10.px),
+      paddingRight(10.px),
+      paddingBottom(20.px)
+    )
 
     val table = style(
       borderColor(Colors.GreySemi),
       borderCollapse.collapse,
       unsafeChild("th") (
-        backgroundColor(conf.colors.main),
-        color(conf.colors.mainText),
-        borderColor(conf.colors.main),
+        Font.bold,
+        //borderColor(conf.colors.main),
       ),
       unsafeChild("td") (
-        borderColor(conf.colors.main),
-        borderStyle.solid,
-        borderWidth(1 px),
+        //borderColor(conf.colors.main),
+        //borderStyle.solid,
+        //borderWidth(1 px),
         paddingLeft(10 px),
         paddingRight(10 px),
         paddingTop(10 px),
@@ -609,9 +613,7 @@ object GlobalStyleFactory{
       unsafeChild("label") (
         marginBottom.`0`
       ),
-      width(100 %%),
-      marginLeft(10.px),
-      marginBottom(20.px)
+      width(100 %%)
     )
 
     val field = style(

@@ -45,8 +45,10 @@ object RadioWidget extends ComponentWidgetFactory {
     def jsToString(js:Json):String = options.flatMap(_.find(_.value == js)).map(_.label).getOrElse("")
     def stringToJs(s:String):Json = options.flatMap(_.find(_.label == s)).map(_.value).getOrElse(Json.Null)
 
+    def includeNullOptions = if(field.nullable) options.map(Seq(OptionEntry("",Json.Null)) ++ _ ) else options
+
     override def edit(nested:Binding.NestedInterceptor) = {
-      options match {
+      includeNullOptions match {
         case Some(opt) => editWithOptions(opt,nested)
         case None => div( "Error: options not defined in params" )
       }
@@ -56,7 +58,7 @@ object RadioWidget extends ComponentWidgetFactory {
       val tooltip = WidgetUtils.addTooltip(field.tooltip,UdashTooltip.Placement.Right) _
 
 
-      val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.right())++WidgetUtils.toNullable(field.nullable)
+      val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.none(),width.auto,margin := 5.px)++WidgetUtils.toNullable(field.nullable)
 
       val stringProp = Property("")
 
@@ -78,16 +80,20 @@ object RadioWidget extends ComponentWidgetFactory {
 
     override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
-      val m:Seq[Modifier] = WidgetUtils.toNullable(field.nullable)
+      val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.none(),width.auto,margin := 5.px) ++ WidgetUtils.toNullable(field.nullable)
       val stringProp = Property("")
 
       autoRelease(data.sync[String](stringProp)(js => jsToString(js),s => stringToJs(s)))
 
-      RadioButtons(stringProp, options.getOrElse(Seq()).map(_.label).toSeqProperty)(
+
+
+      RadioButtons(stringProp, includeNullOptions.getOrElse(Seq()).map(_.label).toSeqProperty)(
         els => span(els.map {
+          case (_, "") => frag()
           case (i: Input, l: String) => label(Form.checkInline)(i, l)
-        },m).render
+        },ClientConf.style.distributionContrainer).render,m
       ).render
+
     }
 
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = WidgetUtils.showNotNull(data,nested) { p =>

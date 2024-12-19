@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components.widget.WidgetUtils.LabelLeft
 import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
@@ -246,25 +246,29 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
 
     val blocks = fields.flatMap(_.toOption)
 
-    table(ClientConf.style.table,
-      tr(
-          blocks.map{ b =>
-            th(ClientConf.style.field,b.title).render
-          }
-      ),
+    val temp = widgets.zipWithIndex.groupBy(_._2 % (widgets.size / blocks.size))
 
-      widgets.zipWithIndex.groupBy(_._2 / blocks.size).map { case (_,wdgts) =>
+    div(ClientConf.style.tableContainer,
+      table(ClientConf.style.table,
         tr(
-          wdgts.map{ case (widget, _) =>
-            renderIfVisible(widget, write, nested)((widget, write) =>
-              td(if (!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
-                widget.widget.renderOnTable(write, nested)
-              ).render
-            )
-          }
-        ).render
-      }.toSeq
+            blocks.map{ b =>
+              th(ClientConf.style.field,b.title).render
+            }
+        ),
 
+          temp.map { case (_,wdgts) =>
+          tr(
+            wdgts.map{ case (widget, _) =>
+              renderIfVisible(widget, write, nested)((widget, write) =>
+                td(if (!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
+                  widget.widget.renderOnTable(write, nested)
+                ).render
+              )
+            }
+          ).render
+        }.toSeq
+
+      )
     )
   }
 

@@ -32,6 +32,7 @@ import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
 import ch.wsl.typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
 
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
 import scala.scalajs.js.timers.setTimeout
@@ -188,8 +189,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def save(check:Boolean = true):Future[(JSONID,Json)]  = {
 
-
-    services.clientSession.loading.set(true)
+    if(!autoSave)
+      services.clientSession.loading.set(true)
 
     if(check) if(!_form.reportValidity()) {
       services.clientSession.loading.set(false)
@@ -367,9 +368,18 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   private val childChanged:Property[Boolean] = Property(false)
 
+  def autoSave = model.get.metadata.flatMap(_.params).exists(_.js("autoSave") == Json.True)
+
+  val debounceSave = Debounce(500.millis) { (_:Unit) =>
+    save().map { case (id, d) => afterSave(id, d) }
+  }
+
   val changesListener = childChanged.listen { hasChanges =>
     if(hasChanges) {
       avoidGoAway
+      if(autoSave)
+        debounceSave()
+
     } else {
       enableGoAway("changeListener")
     }
