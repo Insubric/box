@@ -9,7 +9,7 @@ import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFor
 import ch.wsl.box.client.views.components.widget.geo.{MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.labels.{HtmlWidget, LinkedFormWidget, LookupLabelWidget, StaticTextWidget, TitleWidget}
 import ch.wsl.box.client.views.components.widget.lookup.{MultipleLookupWidget, PopupSelectWidget, SelectWidgetFactory}
-import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget}
+import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget, UUIDWidget}
 import ch.wsl.box.model.shared.WidgetsNames
 import scribe.Logging
 
@@ -26,6 +26,7 @@ object WidgetRegistry extends Logging {
 
     HiddenWidget,
     LangWidget,
+    UUIDWidget,
     DropdownLangWidget,
 
     PopupSelectWidget,

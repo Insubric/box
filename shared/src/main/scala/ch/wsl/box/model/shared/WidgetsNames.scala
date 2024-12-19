@@ -52,6 +52,7 @@ object WidgetsNames {
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
+  val uuid = "uuid"
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
   val adminLayoutWidget = "adminLayoutWidget"
@@ -97,6 +98,7 @@ object WidgetsNames {
       hidden,
       dynamicWidget,
       langWidget,
+      uuid,
       dropdownLangWidget,
       popupWidget
     ),
