@@ -245,8 +245,15 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
   def multiLineRableRenderer(write:Boolean,nested:Binding.NestedInterceptor) : JsDom.all.Modifier = {
 
     val blocks = fields.flatMap(_.toOption)
+    val rowCount:Int = blocks.headOption.map(_.fields.count(_.isLeft)).getOrElse(0)
 
-    val temp = widgets.zipWithIndex.groupBy(_._2 % (widgets.size / blocks.size))
+
+
+    val temp: Seq[Seq[Option[WidgetVisibility]]] = (0 until rowCount).map { j =>
+      (0 until blocks.size).map { i =>
+        widgets.lift(j + i*rowCount)
+      }
+    }
 
     div(ClientConf.style.tableContainer,
       table(ClientConf.style.table,
@@ -256,14 +263,18 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
             }
         ),
 
-          temp.map { case (_,wdgts) =>
+          temp.map { wdgts =>
           tr(
-            wdgts.map{ case (widget, _) =>
-              renderIfVisible(widget, write, nested)((widget, write) =>
-                td(if (!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
-                  widget.widget.renderOnTable(write, nested)
-                ).render
-              )
+            wdgts.map{ widget =>
+              val r:Modifier = widget match {
+                case Some(value) => renderIfVisible(value, write, nested)((widget, write) =>
+                  td(if (!widget.widget.subForm) ClientConf.style.fieldHighlight else Seq[Modifier](),
+                    widget.widget.renderOnTable(write, nested)
+                  ).render
+                )
+                case None => Seq[Modifier]()
+              }
+              r
             }
           ).render
         }.toSeq

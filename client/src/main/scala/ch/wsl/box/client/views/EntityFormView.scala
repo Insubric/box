@@ -189,8 +189,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def save(check:Boolean = true):Future[(JSONID,Json)]  = {
 
-    if(!autoSave)
-      services.clientSession.loading.set(true)
+    services.clientSession.loading.set(true)
 
     if(check) if(!_form.reportValidity()) {
       services.clientSession.loading.set(false)
@@ -370,7 +369,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def autoSave = model.get.metadata.flatMap(_.params).exists(_.js("autoSave") == Json.True)
 
-  val debounceSave = Debounce(500.millis) { (_:Unit) =>
+  val debounceSave = Debounce(2000.millis) { (_:Unit) =>
     save().map { case (id, d) => afterSave(id, d) }
   }
 
