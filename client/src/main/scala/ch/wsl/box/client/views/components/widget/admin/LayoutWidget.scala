@@ -85,7 +85,7 @@ object LayoutWidget extends ComponentWidgetFactory {
 
     private def _afterRender(container:HTMLDivElement,fieldList:HTMLDivElement,layoutJs:Json): Option[GridStack] = {
 
-      Layout.fromString(layoutJs.asString).map{ layout =>
+      Layout.fromJs(layoutJs).toOption.map{ layout =>
 
           val inLayout:Seq[String] = layout.blocks.flatMap(_.fields.flatMap(_.left.toOption))
 
@@ -165,7 +165,7 @@ object LayoutWidget extends ComponentWidgetFactory {
         val layout = grid.map(gridToLayout)
         BrowserConsole.log(layout.asJson)
         listener.foreach(_.cancel())
-        params.prop.set(layout.asJson.noSpaces.asJson)
+        params.prop.set(layout.asJson)
         BrowserConsole.log(layout.asJson)
         listener.foreach(_.restart())
       }

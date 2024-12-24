@@ -148,6 +148,7 @@ object WidgetsNames {
       checkbox,
       tristateCheckbox,
       selectBoolean,
+      radio,
       hidden,
       dynamicWidget,
       popupWidget

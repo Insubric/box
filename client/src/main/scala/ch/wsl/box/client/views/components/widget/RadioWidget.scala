@@ -58,7 +58,7 @@ object RadioWidget extends ComponentWidgetFactory {
       val tooltip = WidgetUtils.addTooltip(field.tooltip,UdashTooltip.Placement.Right) _
 
 
-      val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.none(),width.auto,margin := 5.px)++WidgetUtils.toNullable(field.nullable)
+      val m:Seq[Modifier] = Seq[Modifier](width.auto,margin := 5.px)++WidgetUtils.toNullable(field.nullable)
 
       val stringProp = Property("")
 
@@ -68,10 +68,13 @@ object RadioWidget extends ComponentWidgetFactory {
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip({
-          RadioButtons(stringProp, options.map(_.label).toSeqProperty)(
-            els => span(els.map {
-              case (i: Input, l: String) => label(Form.checkInline)(i,l)
-            },m).render
+          div(BootstrapStyles.Float.right(),
+            RadioButtons(stringProp, options.map(_.label).toSeqProperty)(
+              els => span(els.map {
+                case (_, "") => frag()
+                case (i: Input, l: String) => label(Form.checkInline)(i, l)
+              },m).render
+            )
           )
         }.render)._1,
         div(BootstrapStyles.Visibility.clearfix)
