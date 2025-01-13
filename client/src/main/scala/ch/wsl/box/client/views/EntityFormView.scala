@@ -6,6 +6,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate,
 import ch.wsl.box.client.styles.{BootstrapCol, Fade}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
+import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
@@ -594,6 +595,15 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
   }
 
+  case class StepperOption(steps:Seq[String],current:String)
+
+
+  def stepper(s:StepperOption) = {
+    div(margin := "20px",
+      Stepper.render(s.steps.map(st => Stepper.Step(st,"","")),s.steps.indexOf(s.current))
+    )
+  }
+
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
     def recordNavigation = showIf(presenter.showNavigation){
@@ -745,17 +755,21 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
         val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
+        val stepperOptions = _form.flatMap(_.params).flatMap(_.js("stepper").as[StepperOption].toOption)
+
         div(
           if(showHeader && _form.isDefined) {
             formHeader(showId,_form.get).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+
             _form match {
               case None => div()
               case Some(f) => {
 
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
+                  stepperOptions.map(stepper),
                   _maxWidth.map(mw => maxWidth := mw),
                   presenter.loadWidgets(f).render(model.get.write,nested)
                 ).render

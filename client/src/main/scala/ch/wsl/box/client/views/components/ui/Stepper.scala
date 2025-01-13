@@ -32,7 +32,7 @@ case class StepperStyle(conf:StyleConf) extends StyleSheet.Inline {
     padding.`0`,
     border.`0`,
     fontSize(1 rem),
-    backgroundColor(gray),
+    backgroundColor(lightgray),
     marginLeft(0.4 em),
     marginRight(0.4 em),
   )
@@ -44,11 +44,14 @@ case class StepperStyle(conf:StyleConf) extends StyleSheet.Inline {
     height(1.5 em),
     borderStyle.solid,
     borderWidth(1 px),
-    borderColor(gray),
+    borderColor(lightgray),
     borderRadius(50 %%),
     textAlign.center,
     lineHeight :=! "calc(1.5em - 1px * 2)",
-    marginRight(0.25 em)
+    marginRight(0.25 em),
+    unsafeChild("span") (
+      color(lightgray)
+    ),
   )
 
   val title = style(
@@ -69,6 +72,33 @@ case class StepperStyle(conf:StyleConf) extends StyleSheet.Inline {
     flexGrow(2),
     flexWrap.nowrap
   )
+
+  val lineComplete = style(
+    backgroundColor(conf.colors.main)
+  )
+
+  val statusActive = style(
+    backgroundColor(conf.colors.main),
+    unsafeChild("span") (
+      color.white.important
+    )
+  )
+
+  val statusComplete = style(
+    unsafeChild("span") (
+      color(conf.colors.main)
+    ),
+    borderColor(conf.colors.main),
+  )
+
+  val titleActive = style(
+    fontWeight.bold
+  )
+
+  val titleComplete = style(
+    color(conf.colors.main)
+  )
+
 }
 
 //https://codepen.io/VitorLuizC/pen/xxZwvXW
@@ -82,26 +112,34 @@ object Stepper {
 
 
   case class Step(label:String,title:String,status:String) {
-    def render(first:Boolean):Modifier = Seq[Modifier](
-      if(!first) hr(style.line) else Seq[Modifier](),
+    def render(first:Boolean,active:Boolean,completed:Boolean):Modifier = Seq[Modifier](
+      if(!first) hr(style.line,
+          if(completed) {style.lineComplete}
+      ) else Seq[Modifier](),
       a(style.step,
         span(style.status,
+          if(active) {style.statusActive},
+          if(completed) {style.statusComplete},
           span(
             label
           )
         ),
-        h4(style.title,title)
+        h4(
+          style.title,
+          if(active) {style.titleActive},
+          if(completed) {style.titleComplete},
+          title)
       ),
 
     )
   }
 
-  def render(steps:Seq[Step]) = {
+  def render(steps:Seq[Step],current:Int) = {
 
     //val rendered:Seq[Node] = steps.map(_.render())
 
     div(style.container,
-      steps.zipWithIndex.map{ case (s,i) => s.render(i == 0) }
+      steps.zipWithIndex.map{ case (s,i) => s.render(i == 0,i==current,i<=current) }
     )
   }
 
