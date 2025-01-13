@@ -3,6 +3,7 @@ package ch.wsl.box.client
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
 import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
+import ch.wsl.box.client.views.components.ui.Stepper
 import io.udash.wrappers.jquery._
 import org.scalajs.dom
 import org.scalajs.dom.{Element, WebSocket, document, window}
@@ -94,6 +95,9 @@ object Main extends Logging {
         val choicesStyle = document.createElement("style")
         choicesStyle.innerText = new ChoicesStyles(ClientConf.styleConf).render(cssStringRenderer,cssEnv)
 
+        val stepperStyle = document.createElement("style")
+        stepperStyle.innerText = Stepper.style.render(cssStringRenderer,cssEnv)
+
         val animations = document.createElement("style")
         animations.innerText =
           """
@@ -122,6 +126,7 @@ object Main extends Logging {
         document.body.appendChild(olStyle)
         document.body.appendChild(choicesStyle)
         document.body.appendChild(autocompleteStyle)
+        document.body.appendChild(stepperStyle)
 
         val app = document.createElement("div")
         document.body.appendChild(app)
