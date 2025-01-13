@@ -17,7 +17,7 @@ import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
-import org.scalajs.dom.{Event, HTMLAnchorElement, document, window}
+import org.scalajs.dom.{Event, HTMLAnchorElement, Node, document, window}
 import scalatags.JsDom
 import scribe.Logging
 
@@ -393,11 +393,12 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     registerListener(true)
 
 
-    def addButton(write:Boolean,m:JSONMetadata) = {
+    def addButton(write:Boolean,m:JSONMetadata,mod:Modifier = Seq[Node]()) = {
       val name = widgetParam.field.label.getOrElse(widgetParam.field.name)
       if (write && !disableAdd) {
         autoRelease(showIf(entity.transform(e => max.forall(_ > e.length))) {
           a(id := TestHooks.addChildId(m.objId),
+            mod,
             ClientConf.style.childAddButton,
             onclick :+= addItemHandler(child,m),
             name,span(ClientConf.style.field,Icons.plusFill)

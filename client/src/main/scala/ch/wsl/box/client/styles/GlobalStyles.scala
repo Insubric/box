@@ -1325,7 +1325,7 @@ object GlobalStyleFactory{
 
     val childAddButton = style(
       lineHeight(40 px),
-      marginLeft(10 px),
+      paddingLeft(10 px),
       fontSize(14 px),
       display.inlineBlock,
       unsafeChild("svg")(
@@ -1334,6 +1334,13 @@ object GlobalStyleFactory{
         width(20 px),
         marginRight(5 px)
       )
+    )
+
+    val childAddButtonBoxed = style(
+      width(100 %%),
+      border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
+      backgroundColor(conf.childProps.backgroundColor),
+      marginBottom(20 px)
     )
 
     val childRemoveButton = style(

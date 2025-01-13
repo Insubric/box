@@ -50,7 +50,7 @@ object SimpleChildFactory extends ChildRendererFactory {
                 ).render
               })
             ).render,
-            addButton(write,f)
+            addButton(write,f,ClientConf.style.childAddButtonBoxed)
           )
 
         }
