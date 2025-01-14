@@ -15,9 +15,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
-      - uses: coursier/setup-action@v1
+      - name: Setup JDK
+        uses: actions/setup-java@v4
         with:
-          jvm: adoptium:1.17
+          distribution: temurin
+          java-version: 17
+      - name: Setup sbt launcher
+        uses: sbt/setup-sbt@v1
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@v6
         with:
@@ -26,10 +30,10 @@ jobs:
       - name: List keys
         run: gpg -K
       - name: Build bundle
-        run: sbtn -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/fullOptJS::webpack
+        run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/fullOptJS::webpack
       - name: Publish to sonatype
         run: |
-          sbtn -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
         env:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
