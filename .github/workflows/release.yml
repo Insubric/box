@@ -26,10 +26,10 @@ jobs:
       - name: List keys
         run: gpg -K
       - name: Build bundle
-        run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/fullOptJS::webpack
+        run: sbtn -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/fullOptJS::webpack
       - name: Publish to sonatype
         run: |
-          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
+          sbtn -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
         env:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
