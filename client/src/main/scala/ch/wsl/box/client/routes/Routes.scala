@@ -61,11 +61,6 @@ object Routes extends Logging {
     baseUri + "api/v1"+path
   }
 
-  def spreadsheetLookupUrl(lang:String,entity:String,fieldName:String,query:Option[Json]):String = {
-    val q = query.map(x => "?q=" + Base64.Encoder(x.noSpaces.getBytes).toBase64).getOrElse("")
-    apiV1(s"/form/$lang/$entity/lookup/$fieldName" + q)
-  }
-
   def wsV1(topic:String):String = {
     fullUrl.replace("http","ws") + "api/v1/notifications/"+topic
   }

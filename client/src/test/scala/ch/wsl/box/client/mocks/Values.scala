@@ -101,7 +101,7 @@ class Values(val loggerLevel:Level) {
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(
       Left("child"),
       Left(readOnlyField),
       Left(conditionerField),
@@ -159,7 +159,7 @@ class Values(val loggerLevel:Level) {
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
     entity = "test_child",
     lang = "it",
     tabularFields = Seq("id"),
@@ -194,7 +194,7 @@ class Values(val loggerLevel:Level) {
         nullable = true
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
     entity = "test_subchild",
     lang = "it",
     tabularFields = Seq("id"),

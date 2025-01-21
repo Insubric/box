@@ -37,24 +37,34 @@ case class JSONField(
                     ) {
   def title = label.getOrElse(name)
 
-  def withWidget(name:String) = copy(widget = Some(name))
+  def withWidget(name: String) = copy(widget = Some(name))
 
-  def isDbStored(fieldList:Set[String]):Boolean = this.`type` match {
+  def isDbStored(fieldList: Set[String]): Boolean = this.`type` match {
     case JSONFieldTypes.CHILD | JSONFieldTypes.STATIC => false
     case _ => fieldList.contains(name)
   }
 
-  def fromString(s:String):Json = JSONUtils.toJs(s,`type`).getOrElse(Json.Null)
+  def fromString(s: String): Json = JSONUtils.toJs(s, `type`).getOrElse(Json.Null)
 
-  lazy val remoteLookup:Option[JSONFieldLookupRemote] = lookup.flatMap {
-    case e:JSONFieldLookupRemote => Some(e)
+  lazy val remoteLookup: Option[JSONFieldLookupRemote] = lookup.flatMap {
+    case e: JSONFieldLookupRemote => Some(e)
     case _ => None
   }
 
-  def dependsTo(field:JSONField):Boolean =
+  def dependsTo(field: JSONField): Boolean = {
+    val lookupDependent: Boolean = field.lookup match {
+      case Some(l: JSONFieldLookupRemote) => l.lookupQuery.flatMap(JSONQuery.fromJson) match {
+        case Some(value) => value.filter.exists(_.fieldValue.contains(name))
+        case None => false
+      }
+      case _ => false
+    }
     query.toSeq.flatMap(_.filter).exists(_.fieldValue.contains(field.name)) ||
-    condition.exists(_.conditionFieldId == field.name)
+      condition.exists(_.conditionFieldId == field.name) || lookupDependent
+  }
+
   def dependencyFields(fields: Seq[JSONField]):Seq[JSONField] = fields.filter(_.dependsTo(this))
+
 
 }
 

@@ -11,7 +11,6 @@ import io.circe.{Encoder, Json}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class JSSpreadsheetLookupEntry(id:Json,name:String)
 
 trait HasLookup[T] {
 
@@ -65,9 +64,7 @@ trait HasLookup[T] {
             json <- parse(str).toOption
             query <- json.as[JSONQuery].toOption
           } yield query
-          _lookup(futMetadata,field,query.getOrElse(JSONQuery.empty)){ x =>
-            JSSpreadsheetLookupEntry(x.id,x.value)
-          }
+          _lookup(futMetadata,field,query.getOrElse(JSONQuery.empty)){ x => x }
         }
       }
     }

@@ -8,7 +8,7 @@ import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.client.views.components.widget.lookup.LookupWidget
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared
-import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONFieldLookupRemote, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata, JSONQuery, JSONQueryFilter, WidgetsNames}
+import ch.wsl.box.model.shared.{CSVTable, Child, EntityKind, JSONField, JSONFieldLookupRemote, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata, JSONQuery, JSONQueryFilter, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -104,9 +104,9 @@ object Spreadsheet extends ComponentWidgetFactory {
                   logger.debug(s"Generated where: $query")
                   val values = JSONQuery.where(query)
 
-                  services.httpClient.get[Seq[Json]](Routes.spreadsheetLookupUrl(services.clientSession.lang(),metadata.get.name,field.name,Some(values.asJson))).map { rows =>
+                  services.rest.lookup(EntityKind.FORM.kind,services.clientSession.lang(),metadata.get.name,field.name,values).map{ rows =>
                     rows.map { row =>
-                      row.js("id") -> row.js("name")
+                      row.id -> row.value.asJson
                     }.toMap
                   }
     }
@@ -268,14 +268,15 @@ object Spreadsheet extends ComponentWidgetFactory {
       if(f.lookup.isDefined) {
         val lang = services.clientSession.lang()
 
-        val query = f.lookup match {
-          case Some(r: JSONFieldLookupRemote) => r.lookupQuery.flatMap(JSONQuery.fromJson).map(_.withData(rowData(rowIndex).get, lang).asJson)
+        val query:Option[JSONQuery] = f.lookup match {
+          case Some(r: JSONFieldLookupRemote) => r.lookupQuery.flatMap(JSONQuery.fromJson).map(_.withData(rowData(rowIndex).get, lang))
           case None => None
         }
-        services.httpClient.get[Seq[Json]](Routes.spreadsheetLookupUrl(lang, metadata.get.name, f.name, query)).map { rows =>
+        logger.debug(s"Fetching options for ${f.name} rowIndex: $rowIndex with query $query")
+        services.rest.lookup(EntityKind.FORM.kind,lang,metadata.get.name,f.name,query.getOrElse(JSONQuery.empty)).map { rows =>
 
           val items: Seq[DropdownSourceItem] = rows.map { d =>
-            val group = Group(d.get("name"),d.get("name"))
+            val group = Group(d.value,d.value)
             group.setGroup(rowJsonId(rowIndex))
             group
           }
@@ -296,31 +297,57 @@ object Spreadsheet extends ComponentWidgetFactory {
       })
     }
 
+    def updateIndependentLookups(jsTable:JspreadsheetInstance) = {
+      val indipendentFields = fields(metadata.get).zipWithIndex.filter(_._1.dependencyFields(fields(metadata.get)).isEmpty)
+      indipendentFields.map{ case (f,colIndex) =>
+        if(f.lookup.isDefined) {
+          dropdownOptions(f,-1).map{ source =>
+            val cell = jsTable.getColumnOptions(colIndex)
+            logger.debug(s"Setting ${f.name} source: ${ io.circe.scalajs.convertJsToJson(source).toOption.get.noSpaces}")
+            cell.set("source",source.map(_.asInstanceOf[Group].name))
+          }
+        }
+      }
+    }
+
     def updateDropdownValues(colIndex:Int,rowIndex:Int,jsTable:JspreadsheetInstance) = {
       logger.debug(s"updateDropdownValues for row $rowIndex col $colIndex")
       val f = fields(metadata.get).apply(colIndex)
       val rowId = rowJsonId(rowIndex)
-      if(f.lookup.isDefined) {
+      if(f.lookup.isDefined && f.dependencyFields(fields(metadata.get)).nonEmpty) {
         dropdownOptions(f,rowIndex).map{ source =>
           val cell = jsTable.getColumnOptions(colIndex)
+
           val existing = cell.asInstanceOf[DropdownColumn].source.toOption.getOrElse(js.Array[DropdownSourceItem]()).filter{ g =>
             !g.asInstanceOf[Group].group.contains(rowId)
           }
-          cell.set("source",existing ++ source)
+
+          logger.debug(s"Setting ${f.name} source: ${ io.circe.scalajs.convertJsToJson(source ++ existing).toOption.get.noSpaces}")
+          cell.set("source",source ++ existing)
 
         }
       } else Future.successful(())
     }
 
     val dropdownFilter:js.Function5[JspreadsheetInstanceElement,HTMLTableCellElement,String,String,js.Any,js.Array[DropdownSourceItem]] = (jsTable:JspreadsheetInstanceElement,cell:HTMLTableCellElement,colIndex:String,rowIndex:String,source:js.Any) => {
-      source.asInstanceOf[js.Array[Group]]
-        .filter( _.group.contains(rowJsonId(rowIndex.toInt)))
-        .map(_.name)
+      val dependentField = metadata.map(fields).exists(fields => fields.lift(colIndex.toInt).exists(_.dependencyFields(fields).nonEmpty))
+
+      if(dependentField) {
+        source.asInstanceOf[js.Array[Group]]
+          .filter(x => x.group.contains(rowJsonId(rowIndex.toInt)))
+          .map(_.name)
+      } else {
+        source.asInstanceOf[js.Array[DropdownSourceItem]]
+      }
+
+
+
     }
 
     def loadEmptyRowLookups() = {
       jspreadsheetInstance.foreach { jsInstance =>
-        updateDropdownForRow(-1, jsInstance)
+        updateIndependentLookups(jsInstance)
+        updateDropdownForRow(-1,jsInstance)
       }
     }
 
@@ -540,6 +567,8 @@ object Spreadsheet extends ComponentWidgetFactory {
 
 
       resetListener(() => {},true)
+      logger.debug("Listeners set")
+      tableData.touch() //load correct dropdown values on load
 
     }
 
