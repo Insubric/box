@@ -27,7 +27,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
     val ceForm = BoxForm_row(
       name = "ce",
       entity = "ce",
-      layout = Some(
+      layout = _root_.io.circe.parser.parse(
         """
           |{
           |  "blocks" : [
@@ -40,13 +40,13 @@ class UpdateWithChildMultiKey extends BaseSpec {
           |    }
           |  ]
           |}
-          |""".stripMargin),
+          |""".stripMargin).toOption,
       show_navigation = true
     )
     val cesForm = BoxForm_row(
       name = "ces",
       entity = "ces",
-      layout = Some(
+      layout = _root_.io.circe.parser.parse(
         """
           |{
           |  "blocks" : [
@@ -61,13 +61,13 @@ class UpdateWithChildMultiKey extends BaseSpec {
           |    }
           |  ]
           |}
-          |""".stripMargin),
+          |""".stripMargin).toOption,
       show_navigation = true
     )
     val cesrForm = BoxForm_row(
       name = "cesr",
       entity = "cesr",
-      layout = Some(
+      layout = _root_.io.circe.parser.parse(
         """
           |{
           |  "blocks" : [
@@ -82,19 +82,19 @@ class UpdateWithChildMultiKey extends BaseSpec {
           |    }
           |  ]
           |}
-          |""".stripMargin),
+          |""".stripMargin).toOption,
       show_navigation = true
     )
 
     def ceFields(ceId:UUID,cesId:UUID):Seq[BoxField_row] = Seq(
       BoxField_row(form_uuid = ceId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
-      BoxField_row(form_uuid = ceId, `type` = JSONFieldTypes.CHILD, name = "ces", widget = Some(WidgetsNames.trasparentChild),child_form_uuid = Some(cesId),masterFields = Some("id"),childFields = Some("ce_id"))
+      BoxField_row(form_uuid = ceId, `type` = JSONFieldTypes.CHILD, name = "ces", widget = Some(WidgetsNames.trasparentChild),child_form_uuid = Some(cesId),local_key_columns = Some(List("id")),foreign_key_columns = Some(List("ce_id")))
     )
     def cesFields(cesId:UUID,cesrId:UUID):Seq[BoxField_row] = Seq(
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.NUMBER, name = "ce_id", widget = Some(WidgetsNames.input)),
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.NUMBER, name = "s_id", widget = Some(WidgetsNames.input)),
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.BOOLEAN, name = "negative", widget = Some(WidgetsNames.checkbox)),
-      BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.CHILD, name = "cesr", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(cesrId),masterFields = Some("ce_id,s_id"),childFields = Some("ce_id,s_id"),conditionFieldId = Some("negative"),conditionValues = Some("false"),params = Some(Json.fromFields(Map("deleteWhenHidden" -> deleteWhenHidden.asJson))))
+      BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.CHILD, name = "cesr", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(cesrId),local_key_columns = Some(List("ce_id","s_id")),foreign_key_columns = Some(List("ce_id","s_id")),conditionFieldId = Some("negative"),conditionValues = Some("false"),params = Some(Json.fromFields(Map("deleteWhenHidden" -> deleteWhenHidden.asJson))))
     )
     def cesrFields(cesrId:UUID):Seq[BoxField_row] = Seq(
       BoxField_row(form_uuid = cesrId, `type` = JSONFieldTypes.NUMBER, name = "ce_id", widget = Some(WidgetsNames.input)),

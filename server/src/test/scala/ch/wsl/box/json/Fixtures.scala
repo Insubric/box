@@ -28,7 +28,7 @@ private object Fixtures {
       JSONField.number("cfield1"),
       JSONField.string("cfield2"),
       JSONField.number("cid1"),
-      JSONField.child("cchild1",child2Metadata.objId,"","")
+      JSONField.child("cchild1",child2Metadata.objId,Seq(),Seq())
     ),
     keys = Seq("cid1","cid2")
   )
@@ -42,7 +42,7 @@ private object Fixtures {
       JSONField.number("field1"),
       JSONField.string("field2"),
       JSONField.number("field3"),
-      JSONField.child("child1",child1Metadata.objId,"","")
+      JSONField.child("child1",child1Metadata.objId,Seq(),Seq())
     ),
     keys = Seq("id1","id2"),
     entity = "main",

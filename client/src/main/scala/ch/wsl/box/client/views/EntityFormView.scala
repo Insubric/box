@@ -142,7 +142,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       widget.afterRender().map{ _ =>
         enableGoAway("handleState")
         services.clientSession.loading.set(false)
-        loaded.success(true)
+        if(!loaded.isCompleted)
+          loaded.success(true)
       }
 
 

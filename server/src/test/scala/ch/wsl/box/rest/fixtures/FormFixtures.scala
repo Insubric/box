@@ -17,7 +17,7 @@ object FormFixtures{
   private val simpleForm = BoxForm_row(
     name = simpleName,
     entity = simpleName,
-    layout = Some(
+    layout = io.circe.parser.parse(
       """
         |{
         |  "blocks" : [
@@ -31,7 +31,7 @@ object FormFixtures{
         |    }
         |  ]
         |}
-        |""".stripMargin),
+        |""".stripMargin).toOption,
     show_navigation = true
   )
 
@@ -53,7 +53,7 @@ object FormFixtures{
   private val simpleExtForm = BoxForm_row(
     name = simpleExtName,
     entity = simpleName,
-    layout = Some(
+    layout = io.circe.parser.parse(
       """
         |{
         |  "blocks" : [
@@ -68,7 +68,7 @@ object FormFixtures{
         |    }
         |  ]
         |}
-        |""".stripMargin),
+        |""".stripMargin).toOption,
     show_navigation = true
   )
 
@@ -94,7 +94,7 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
   private val parentForm = BoxForm_row(
     name = parentName,
     entity = parentName,
-    layout = Some(
+    layout = io.circe.parser.parse(
       """
         |{
         |  "blocks" : [
@@ -109,14 +109,14 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
         |    }
         |  ]
         |}
-        |""".stripMargin),
+        |""".stripMargin).toOption,
     show_navigation = true
   )
 
   private val childForm = BoxForm_row(
     name = childName,
     entity = childName,
-    layout = Some(
+    layout = io.circe.parser.parse(
       """
         |{
         |  "blocks" : [
@@ -131,14 +131,14 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
         |    }
         |  ]
         |}
-        |""".stripMargin),
+        |""".stripMargin).toOption,
     show_navigation = true
   )
 
   private val subchildForm = BoxForm_row(
     name = subchildName,
     entity = subchildName,
-    layout = Some(
+    layout = io.circe.parser.parse(
       """
         |{
         |  "blocks" : [
@@ -152,21 +152,21 @@ class FormFixtures(tablePrefix:String)(implicit ec:ExecutionContext) {
         |    }
         |  ]
         |}
-        |""".stripMargin),
+        |""".stripMargin).toOption,
     show_navigation = true
   )
 
   private def parentFormFields(parentFormId:UUID,childFormId:UUID) = Seq(
     BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
     BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.STRING, name = "name", widget = Some(WidgetsNames.input)),
-    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.CHILD, name = "childs", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(childFormId),masterFields = Some("id"),childFields = Some("parent_id"))
+    BoxField_row(form_uuid = parentFormId, `type` = JSONFieldTypes.CHILD, name = "childs", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(childFormId),local_key_columns = Some(List("id")),foreign_key_columns = Some(List("parent_id")))
   )
 
   private def childFormFields(childFormId:UUID,subchildFormId:UUID) = Seq(
     BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.NUMBER, name = "id", widget = Some(WidgetsNames.input)),
     BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.STRING, name = "name", widget = Some(WidgetsNames.input)),
     BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.NUMBER, name = "parent_id", widget = Some(WidgetsNames.input)),
-    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.CHILD, name = "subchilds", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(subchildFormId),masterFields = Some("id"),childFields = Some("child_id")),
+    BoxField_row(form_uuid = childFormId, `type` = JSONFieldTypes.CHILD, name = "subchilds", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(subchildFormId),local_key_columns = Some(List("id")),foreign_key_columns = Some(List("child_id"))),
   )
 
   private def subchildFormFields(subchildFormId:UUID) = Seq(

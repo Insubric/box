@@ -44,16 +44,6 @@ import scala.util.Try
 
 object Spreadsheet extends ComponentWidgetFactory {
 
-  def getExcelColumnName(_columnNumber: Int) = {
-    var columnName = ""
-    var columnNumber = _columnNumber
-    while (columnNumber > 0) {
-      val modulo = columnNumber % 26
-      columnName = ('A'.toInt + modulo).toChar.toString + columnName
-      columnNumber = (columnNumber - modulo) / 26
-    }
-    columnName
-  }
 
   import ch.wsl.box.client.Context.Implicits._
 
@@ -286,9 +276,6 @@ object Spreadsheet extends ComponentWidgetFactory {
         }
       } else Future.successful(js.Array[DropdownSourceItem]())
     }
-
-    def indexToCellCode(colIndex:Int,rowIndex:Int) = getExcelColumnName(colIndex) + rowIndex
-    val CELL_SOURCE = "cellSource"
 
     def updateDropdownForRow(rowIndex:Int,jsTable:JspreadsheetInstance) = {
       Future.sequence({

@@ -41,12 +41,18 @@ object GeneratedRoutes extends GeneratedRoutes {
     ch.wsl.box.rest.routes.Table[Image_cache,Image_cache_row]("image_cache",Image_cache, lang)(Entities.encodeImage_cache_row,Entities.decodeImage_cache_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Labels,Labels_row]("labels",Labels, lang)(Entities.encodeLabels_row,Entities.decodeLabels_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Mails,Mails_row]("mails",Mails, lang)(Entities.encodeMails_row,Entities.decodeMails_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Map_layer_i18n,Map_layer_i18n_row]("map_layer_i18n",Map_layer_i18n, lang)(Entities.encodeMap_layer_i18n_row,Entities.decodeMap_layer_i18n_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Map_layer_vector_db,Map_layer_vector_db_row]("map_layer_vector_db",Map_layer_vector_db, lang)(Entities.encodeMap_layer_vector_db_row,Entities.decodeMap_layer_vector_db_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Map_layer_wmts,Map_layer_wmts_row]("map_layer_wmts",Map_layer_wmts, lang)(Entities.encodeMap_layer_wmts_row,Entities.decodeMap_layer_wmts_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Maps,Maps_row]("maps",Maps, lang)(Entities.encodeMaps_row,Entities.decodeMaps_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[News,News_row]("news",News, lang)(Entities.encodeNews_row,Entities.decodeNews_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[News_i18n,News_i18n_row]("news_i18n",News_i18n, lang)(Entities.encodeNews_i18n_row,Entities.decodeNews_i18n_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Public_entities,Public_entities_row]("public_entities",Public_entities, lang)(Entities.encodePublic_entities_row,Entities.decodePublic_entities_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Ui,Ui_row]("ui",Ui, lang)(Entities.encodeUi_row,Entities.decodeUi_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Ui_src,Ui_src_row]("ui_src",Ui_src, lang)(Entities.encodeUi_src_row,Entities.decodeUi_src_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Users,Users_row]("users",Users, lang)(Entities.encodeUsers_row,Entities.decodeUsers_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[V_box_form_childs,V_box_form_childs_row]("v_box_form_childs",V_box_form_childs, lang)(Entities.encodeV_box_form_childs_row,Entities.decodeV_box_form_childs_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[V_box_usages,V_box_usages_row]("v_box_usages",V_box_usages, lang)(Entities.encodeV_box_usages_row,Entities.decodeV_box_usages_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_field,V_field_row]("v_field",V_field, lang)(Entities.encodeV_field_row,Entities.decodeV_field_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_labels,V_labels_row]("v_labels",V_labels, lang)(Entities.encodeV_labels_row,Entities.decodeV_labels_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_roles,V_roles_row]("v_roles",V_roles, lang)(Entities.encodeV_roles_row,Entities.decodeV_roles_row,mat,up,ec,services).route

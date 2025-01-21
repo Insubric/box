@@ -21,7 +21,7 @@ object TestDatabase{
   val langs = Seq("en")
 
   val containerDef = PostgreSQLContainer.Def(
-    dockerImageName = DockerImageName.parse("postgis/postgis:13-master").asCompatibleSubstituteFor("postgres"),
+    dockerImageName = DockerImageName.parse("postgis/postgis:15-master").asCompatibleSubstituteFor("postgres"),
     mountPostgresDataToTmpfs = true,
     username = "postgres"
   )
@@ -71,7 +71,7 @@ object TestCodeGenerator extends App {
 
   val params = GeneratorParams(tables = Seq("*"), views = Seq("*"), excludes = Seq(), excludeFields = Seq(), schema = TestDatabase.publicSchema, boxSchema = TestDatabase.boxSchema, postgisSchema=TestDatabase.publicSchema, langs = Seq("en"))
 
-  CodeGeneratorWriter.write(connection,params,args(0),"ch.wsl.box.testmodel")
+  CodeGeneratorWriter.write(connection,params,"./server/src/test/scala","ch.wsl.box.testmodel")
 
   container.stop()
 
