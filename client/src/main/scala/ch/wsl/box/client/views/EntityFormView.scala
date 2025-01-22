@@ -734,17 +734,30 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       hr(ClientConf.style.hrThin)
     )
 
-    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
-      _maxWidth.map(mw => maxWidth := mw),
-      actions(_.actions),
-      ul(
-        produce(Notification.list){ notices =>
-          notices.map { notice =>
-            li(notice).render
+    def formFooter(_maxWidth:Option[Int]):Modifier = Seq(
+      div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
+        _maxWidth.map(mw => maxWidth := mw),
+        actions(_.actions),
+        ul(
+          produce(Notification.list){ notices =>
+            notices.map { notice =>
+              li(notice).render
+            }
           }
-        }
+        )
+      ),
+      div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
+        _maxWidth.map(mw => maxWidth := mw),
+        actions(_.actions),
+        ul(
+          produce(Notification.list){ notices =>
+            notices.map { notice =>
+              li(notice).render
+            }
+          }
+        )
       )
-    )
+    ).render
 
 
 
@@ -779,7 +792,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               }
             },
             if(showFooter) {
-              formFooter(_maxWidth).render
+              formFooter(_maxWidth)
             }
           ).render,
           Debug(model.subProp(_.metadata),b => b, "metadata")

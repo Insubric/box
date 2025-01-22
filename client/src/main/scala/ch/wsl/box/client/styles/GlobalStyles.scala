@@ -68,7 +68,10 @@ object GlobalStyleFactory{
 
       unsafeRoot("h5")(
         Font.bold,
-        fontSize(14 px)
+        fontSize(14 px),
+        media.maxWidth(600 px)( //disable autozoom
+          fontSize(16 px)
+        )
       ),
 
       unsafeRoot("body") (
@@ -91,6 +94,9 @@ object GlobalStyleFactory{
 
       unsafeRoot("select")(
         inputDefaultWidth,
+        media.maxWidth(600 px)(
+          width(100 %%)
+        ),
         borderStyle.solid,
         borderWidth(0 px,0 px,1 px,0 px),
         borderRadius.`0`,
@@ -115,6 +121,9 @@ object GlobalStyleFactory{
 
       unsafeRoot("input")(
         inputDefaultWidth,
+        media.maxWidth(600 px)(
+          width(100 %%)
+        ),
         borderStyle.solid,
         borderWidth(0 px,0 px,1 px,0 px),
         borderRadius.`0`,
@@ -464,6 +473,9 @@ object GlobalStyleFactory{
 
     val dateTimePicker = style(
       inputDefaultWidth,
+      media.maxWidth(600 px)(
+        width(100 %%)
+      ),
       textAlign.right,
       float.right
     )
@@ -609,9 +621,16 @@ object GlobalStyleFactory{
         paddingRight(10 px),
         paddingTop(10 px),
         paddingBottom(10 px),
+        media.maxWidth(600 px)(
+          verticalAlign.textTop
+        ),
       ),
       unsafeChild("label") (
-        marginBottom.`0`
+        marginBottom.`0`,
+        media.maxWidth(600 px)(
+          width(100 %%),
+          justifyContent.spaceEvenly
+        ),
       ),
       width(100 %%)
     )
@@ -620,10 +639,8 @@ object GlobalStyleFactory{
       paddingRight(10 px),
       paddingLeft(10 px),
       minHeight.`0`,
-      unsafeChild("div") (
-        unsafeChild("h3") (
-          marginLeft((-10-conf.paddingBlocks) px)
-        )
+      media.maxWidth(600 px)( //disable autozoom
+        paddingTop(10 px)
       )
     )
 
@@ -924,6 +941,9 @@ object GlobalStyleFactory{
 
     val popupButton = style(
       inputDefaultWidth,
+      media.maxWidth(600 px)(
+        width(100 %%)
+      ),
       borderStyle.solid,
       borderWidth(0 px,0 px,1 px,0 px),
       borderRadius.`0`,
@@ -1001,6 +1021,15 @@ object GlobalStyleFactory{
       display.none,
       media.maxWidth(600 px)(
         display.block
+      )
+    )
+
+    val mobileFooter = style(
+      media.maxWidth(600 px)(
+        unsafeChild("button")(
+          (width :=! "calc(100vw - 20px)").important,
+          height(35 px).important
+        )
       )
     )
 
@@ -1107,6 +1136,9 @@ object GlobalStyleFactory{
 
     val editor = style(
       inputDefaultWidth,
+      media.maxWidth(600 px)(
+        width(100 %%)
+      ),
       float.right,
       borderStyle.solid,
       borderWidth(1 px),
