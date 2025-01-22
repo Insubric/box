@@ -142,7 +142,6 @@ case class Form(
   }
 
   def updateDiff = put {
-    privateOnly {
       entity(as[JSONDiff]) { e =>
         complete {
           for {
@@ -155,23 +154,21 @@ case class Form(
           }
         }
       }
-    }
   }
 
 
   def _get(ids:Seq[JSONID]) = get {
-    privateOnly {
+
       complete({
         db.run(actions.getById(ids.head).transactionally).map { record =>
           logger.info(record.toString)
           HttpEntity(ContentTypes.`application/json`, record.asJson)
         }
       })
-    }
+
   }
 
   def _delete(ids:Seq[JSONID]) = delete {
-    privateOnly {
       complete {
 
           val action = DBIO.sequence(ids.map(id => actions.delete(id))).transactionally
@@ -181,11 +178,9 @@ case class Form(
           } yield JSONCount(count.sum)
 
       }
-    }
   }
 
   def update(ids:Seq[JSONID]) = put {
-    privateOnly {
       entity(as[Json]) { e =>
         complete {
 
@@ -205,7 +200,6 @@ case class Form(
 
         }
       }
-    }
   }
 
 
@@ -302,25 +296,24 @@ case class Form(
       }
     } ~
     lookup(Future.successful(metadata)) ~
-    privateOnly {
-      xls ~
-        csv ~
-        shp ~
-        geoPkg
-    } ~
-    privateOnly {
-      GeoData(db, actions)
-    }~
     lookups(actions) ~
     pathEnd {
-        post {
-          entity(as[Json]) { e =>
-            complete {
-              db.run(actions.insert(e).transactionally)
-            }
+      post {
+        entity(as[Json]) { e =>
+          complete {
+            db.run(actions.insert(e).transactionally)
           }
         }
+      }
+    } ~
+    privateOnly {
+      xls ~
+      csv ~
+      shp ~
+      geoPkg ~
+      GeoData(db, actions)
     }
+
 
 
 }
