@@ -98,8 +98,8 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
     div(BootstrapStyles.Grid.row, paddingTop := 15.px, paddingBottom := 15.px, borderBottomStyle.solid, borderBottomWidth := 1.px)(
       div(BootstrapCol.md(2),fontSize := 10.px, {
         source.source match {
-          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse("")).add()),source.name))
-          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name).add()),source.name))
+          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse(""),false).add()),source.name))
+          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name,false).add()),source.name))
           case _ => div(source.name)
         }
       }),

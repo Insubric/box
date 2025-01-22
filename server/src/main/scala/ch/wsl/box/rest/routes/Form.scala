@@ -36,7 +36,7 @@ case class Form(
                  registry: RegistryInstance,
                  metadataFactory: MetadataFactory,
                  kind:String,
-                 public: Boolean = false
+                 show_list: Boolean = true
                )(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] with Exporters {
 
     import JSONSupport._
@@ -92,7 +92,7 @@ case class Form(
     }
 
     def privateOnly(r: => Route):Route = {
-      if(public) {
+      if(!show_list) {
         complete(StatusCodes.Unauthorized,"Not authorized to do that action without authentication")
       } else {
         r
@@ -308,7 +308,9 @@ case class Form(
         shp ~
         geoPkg
     } ~
-    GeoData(db,actions) ~
+    privateOnly {
+      GeoData(db, actions)
+    }~
     lookups(actions) ~
     pathEnd {
         post {

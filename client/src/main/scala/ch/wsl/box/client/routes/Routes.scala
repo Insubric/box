@@ -65,12 +65,12 @@ object Routes extends Logging {
     fullUrl.replace("http","ws") + "api/v1/notifications/"+topic
   }
 
-  def apply(kind:String, entityName:String) = new Routes{
-    def add() = EntityFormState(kind,entityName,"true",None,false)
-    def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),false)
-    def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),false)
-    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => window.btoa(js.asJson.noSpaces)))
-    def entity(name:String) = EntityTableState(kind,name,None)
+  def apply(kind:String, entityName:String,public:Boolean) = new Routes{
+    def add() = EntityFormState(kind,entityName,"true",None,public)
+    def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),public)
+    def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),public)
+    def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => window.btoa(js.asJson.noSpaces)),public)
+    def entity(name:String) = EntityTableState(kind,name,None,public)
   }
 
   def getUrl(fa:FormAction, data: Json, kind: String, name: String, id: Option[String], writable: Boolean): Option[String] = fa.afterActionGoTo.map { x =>

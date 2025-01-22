@@ -270,7 +270,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       case None => baseQuery
     }
 
-    services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.field,GeoDataRequest(query,Seq())).map(x => (vector,x))
+    services.rest.geoData("table",services.clientSession.lang(),vector.entity,vector.field,GeoDataRequest(query,Seq()),false).map(x => (vector,x))
   }
 
 

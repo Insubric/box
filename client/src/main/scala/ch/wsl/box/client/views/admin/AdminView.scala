@@ -67,7 +67,7 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("Box Set-up"),
       ul(ClientConf.style.spacedList,
         li(
-          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"form",None))),
+          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"form",None,false))),
         ),
         li(
           div(
@@ -77,10 +77,10 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
           )
         ),
         li(
-          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"page",None))),
+          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"page",None,false))),
         ),
         li(
-          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"function",None)))
+          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"function",None,false)))
         ),
       )
     ),

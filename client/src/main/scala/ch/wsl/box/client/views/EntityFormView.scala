@@ -323,7 +323,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       } yield {
         services.rest.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")
-          Navigate.to(Routes(model.get.kind, name).entity(name))
+          Navigate.to(Routes(model.get.kind, name,model.subProp(_.public).get).entity(name))
         }
       }
 
@@ -352,7 +352,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def setNavigation() = {
-    services.navigator.For(model.get.id,model.get.metadata.get).navigation().map{ nav =>
+    services.navigator.For(model.get.id,model.get.metadata.get,model.subProp(_.public).get).navigation().map{ nav =>
       logger.info(s"Navigation $nav")
       model.subProp(_.navigation).set(nav)
     }
@@ -404,7 +404,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def navigate(n: navigator.For => Future[Option[String]]) = {
-    n(navigator.For(model.get.id, model.get.metadata.get)).map(_.map(goTo))
+    n(navigator.For(model.get.id, model.get.metadata.get,model.subProp(_.public).get)).map(_.map(goTo))
   }
 
   def next() = navigate(_.next())
@@ -421,7 +421,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def goTo(id:String) = {
     val m = model.get
-    val r = Routes(m.kind,m.name)
+    val r = Routes(m.kind,m.name,m.public)
     val newState = if(model.get.write) {
       r.edit(id)
     } else {

@@ -22,6 +22,7 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.routes.GeoData
 import ch.wsl.box.rest.routes.enablers.CSVDownload
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
@@ -144,6 +145,7 @@ object EntityRead extends Logging  {
             }
           }
         } ~
+        GeoData(db,actions) ~
         pathEnd {
           get { ctx =>
             ctx.complete {

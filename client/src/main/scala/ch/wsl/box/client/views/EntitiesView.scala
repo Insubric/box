@@ -18,10 +18,10 @@ import io.udash.core.Presenter
 import org.scalajs.dom.{Element, Event, HTMLDivElement}
 import scalatags.generic
 
-case class Entities(list:Seq[String], currentEntity:Option[String], kind:Option[String], search:String, filteredList:Seq[String])
+case class Entities(list:Seq[String], currentEntity:Option[String], kind:Option[String], search:String, filteredList:Seq[String],public:Boolean)
 object Entities extends HasModelPropertyCreator[Entities] {
   implicit val blank: Blank[Entities] =
-    Blank.Simple(Entities(Seq(),None,None,"",Seq()))
+    Blank.Simple(Entities(Seq(),None,None,"",Seq(),false))
 }
 
 case class EntitiesViewPresenter(kind:String, modelName:String) extends ViewFactory[EntitiesState] {
@@ -30,7 +30,7 @@ case class EntitiesViewPresenter(kind:String, modelName:String) extends ViewFact
 
   override def create(): (View, Presenter[EntitiesState]) = {
     val model = ModelProperty.blank[Entities]
-    val routes = Routes(kind,modelName)
+    val routes = Routes(kind,modelName,false)
     val presenter = new EntitiesPresenter(model)
     val view = new EntitiesView(model,presenter,routes)
     (view,presenter)
@@ -44,6 +44,7 @@ class EntitiesPresenter(model:ModelProperty[Entities]) extends Presenter[Entitie
   import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: EntitiesState): Unit = {
+    model.subProp(_.public).set(state.public)
     model.subProp(_.kind).set(Some(state.kind))
     if(services.clientSession.logged.get) {
       services.rest.entities(new EntityKind(state.kind).entityOrForm).map { models =>

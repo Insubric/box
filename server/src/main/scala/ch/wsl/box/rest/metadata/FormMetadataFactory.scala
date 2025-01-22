@@ -47,7 +47,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
   }
 
 
-  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):Future[Option[BoxSession]] = {
+  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):Future[Option[(BoxSession,Boolean)]] = {
 
     for{
       form <- services.connection.adminDB.run(BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption)
@@ -56,7 +56,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         case Some(u) => Auth.rolesOf(u)
         case None => Future.successful(Seq())
       }
-    } yield user.map(u => BoxSession(CurrentUser(u,roles)))
+    } yield user.map(u => (BoxSession(CurrentUser(u,roles)),form.exists(_.public_list)))
   }
 
 

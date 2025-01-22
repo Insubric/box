@@ -40,13 +40,13 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
     val linkedFormName = field.linked.map(_.name).getOrElse("unknown")
 
-    def navigate(goTo: Routes => RoutingState) =  Navigate.to(goTo(Routes(EntityKind.FORM.kind, linkedFormName)))
+    def navigate(goTo: Routes => RoutingState) =  Navigate.to(goTo(Routes(EntityKind.FORM.kind, linkedFormName,params.public)))
 
     val label = field.label.orElse(field.linked.flatMap(_.label)).orElse(field.linked.map(_.name)).getOrElse("Open")
 
     def loadAndGo(edit:Boolean,directToForm:Seq[String] => Boolean) = {
       val query = field.query.getOrElse(JSONQuery.empty).withData(params.allData.get,services.clientSession.lang())
-      services.rest.ids(EntityKind.FORM.kind, services.clientSession.lang(), linkedFormName, query).map { ids =>
+      services.rest.ids(EntityKind.FORM.kind, services.clientSession.lang(), linkedFormName, query,params.public).map { ids =>
         services.clientSession.setIDs(ids)
         if(directToForm(ids.ids)) {
           if (edit) {

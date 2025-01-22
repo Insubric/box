@@ -71,11 +71,11 @@ case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filte
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
                             metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess,
-                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon])
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],public:Boolean)
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None)
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false)
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -142,13 +142,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   override def handleState(state: EntityTableState): Unit = {
     fieldListener.foreach(_.cancel())
     services.clientSession.loading.set(true)
-    services.rest.tabularMetadata(state.kind,services.clientSession.lang(),state.entity).map{ metadata =>
+    services.rest.tabularMetadata(state.kind,services.clientSession.lang(),state.entity,state.public).map{ metadata =>
       metadata.static match {
         case false => _handleState(state,metadata)
         case true => {
           services.clientSession.loading.set(false)
           Context.applicationInstance.goTo(
-            FormPageState(state.kind,state.entity,"true",false),
+            FormPageState(state.kind,state.entity,"true",state.public),
             true
           )
         }
@@ -179,8 +179,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val query = queryWithGeom.copy(filter = queryWithGeom.filter.filterNot(f => geomFields.contains(f.column)))
 
     {for{
-      access <- services.rest.tableAccess(form.entity,state.kind)
-      specificKind <- services.rest.specificKind(state.kind, services.clientSession.lang(), state.entity)
+      access <- { if(!state.public)
+        services.rest.tableAccess(form.entity,state.kind)
+      else Future.successful(TableAccess(false,false,false))
+      }
+      specificKind <- { if(!state.public)
+        services.rest.specificKind(state.kind, services.clientSession.lang(), state.entity)
+      else Future.successful(EntityKind.FORM.kind)
+      }
     } yield {
 
 
@@ -209,7 +215,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         lookups = Seq(),
         query = Some(query),
         geoms = Seq(),
-        extent = None
+        extent = None,
+        public = state.public
       )
 
       saveIds(IDs(true,1,Seq(),0),query)
@@ -337,7 +344,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     model.get.metadata.foreach{ m =>
       Future.sequence(m.geomFields.map{ f =>
         val tableEntity = m.view.getOrElse(m.entity)
-        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys))
+        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys),model.subProp(_.public).get)
 
       }).foreach{ geoms =>
         model.subProp(_.geoms).set(geoms.flatten)
@@ -361,8 +368,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val q = qOrig.copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
 
     //start request in parallel
-    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q)
-    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q)
+    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get)
+    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
     if(hasGeometry() && !defaultClose) {
       loadGeoms(extent)
     }
@@ -370,7 +377,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
       case Some(m) => {
         val fields = m.tableLookupFields.map(_.name)
-        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(fields,qOrig))
+        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(fields,qOrig),model.get.public)
       }
       case None => Future.successful(Seq())
     }
@@ -758,7 +765,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       div(
         releaser(produce(model.subProp(_.name)) { m =>
 
-          button(id := TestHooks.mobileTableAdd, ClientConf.style.mobileBoxAction, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+          button(id := TestHooks.mobileTableAdd, ClientConf.style.mobileBoxAction, Navigate.click(Routes(model.subProp(_.kind).get, m,model.subProp(_.public).get).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
         })
       ),
     ).render
