@@ -15,10 +15,9 @@ val publishSettings = List(
     )
   ),
   developers := List(
-    Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
+    Developer(id="minettiandrea", name="Andrea Minetti", email="andrea.minetti@wsl.ch", url=url("https://wavein.ch")),
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
   ),
-  dynverSeparator := "-",
   pomIncludeRepository := { _ => false },
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
@@ -26,9 +25,12 @@ val publishSettings = List(
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
   publishMavenStyle := true,
-  dynverSonatypeSnapshots := true,
   sonatypeCredentialHost := "oss.sonatype.org",
-  credentials += Credentials(
+  git.gitTagToVersionNumber := { tag:String =>
+    Some(tag.stripPrefix("v"))
+  },
+
+    credentials += Credentials(
     "Sonatype Nexus Repository Manager",
     "s01.oss.sonatype.org",
     System.getenv("SONATYPE_USERNAME"),
