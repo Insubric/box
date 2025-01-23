@@ -31,6 +31,10 @@ jobs:
         run: gpg -K
       - name: Build bundle
         run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/fullOptJS::webpack
+      - name: Version info
+        run: |
+          sbt server/version
+          git status
       - name: Publish to sonatype
         run: |
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
