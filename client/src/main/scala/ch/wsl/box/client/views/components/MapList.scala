@@ -6,6 +6,7 @@ import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
 import ch.wsl.box.model.shared.GeoJson.{Coordinates, Polygon}
 import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONID, JSONMetadata}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.scalajs.dom.html.Div
 import io.circe.generic.auto._
@@ -25,7 +26,7 @@ import ch.wsl.typings.std.PositionOptions
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
-import scala.scalajs.js.|
+import scala.scalajs.js.{JSON, |}
 import scalatags.JsDom.all._
 import io.udash._
 import io.udash.wrappers.jquery.jQ
@@ -97,10 +98,15 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     map.renderSync()
 
 
+    val style = metadata.params.flatMap(_.jsOpt("mapStyle")) match {
+      case Some(value) => io.circe.scalajs.convertJsonToJs(value).asInstanceOf[js.Array[ch.wsl.typings.ol.styleStyleMod.Style]]
+      case None => MapStyle.vectorStyle()
+    }
+
     val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
     val featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
       .setSource(vectorSource)
-      .setStyle(MapStyle.vectorStyle())
+      .setStyle(style)
     )
     map.addLayer(featuresLayer)
 
