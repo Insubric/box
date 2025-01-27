@@ -14,6 +14,8 @@ import scala.util.Try
 case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
   def asString = id.map(id => id.asString).mkString(",")
 
+  def prettyPrint(metadata: JSONMetadata) = id.map(id => id.prettyPrint(metadata)).mkString(", ")
+
   def keys: Vector[String] = id.map(_.key)
   def values: Vector[Json] = id.map(_.value)
 
@@ -112,4 +114,6 @@ object JSONID {
 case class JSONKeyValue(key:String, value:Json) {
   def filter = JSONQueryFilter.withValue(key,Some(Filter.EQUALS),value.string)
   def asString = URLEncoder.encode(key,"UTF-8") + "::" + URLEncoder.encode(value.string,"UTF-8")
+
+  def prettyPrint(metadata: JSONMetadata): String = metadata.fields.find(_.name == key).flatMap(_.label).getOrElse(key) + ": " + value.string
 }

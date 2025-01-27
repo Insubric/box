@@ -1186,6 +1186,18 @@ object GlobalStyleFactory{
       padding.horizontal(10 px),
       marginLeft(5 px),
       marginTop(5 px),
+      unsafeChild("ul") (
+        paddingLeft.`0`,
+        marginBottom.`0`
+      ),
+      unsafeChild("li") (
+        listStyle := "none",
+        padding(5 px),
+        &.hover(
+          color.white,
+          backgroundColor(conf.colors.main)
+        )
+      )
     )
 
     val mapSearch = style(
@@ -1473,7 +1485,14 @@ object GlobalStyleFactory{
         width(100.px)
       )
     )
-
+//
+//    val mapPopup = style(
+//      border.solid,
+//      borderColor(conf.colors.main),
+//      backgroundColor.white,
+//      padding(10 px)
+//    )
+//
 
   //  val fixedHeader = style(
   //    unsafeRoot("tbody")(

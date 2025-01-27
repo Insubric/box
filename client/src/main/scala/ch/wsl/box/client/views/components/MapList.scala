@@ -13,11 +13,11 @@ import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
 import io.udash.{Property, ReadableProperty}
 import org.scalajs.dom
-import org.scalajs.dom.{Event, HTMLInputElement, MutationObserver, window}
+import org.scalajs.dom.{Event, HTMLInputElement, MutationObserver, document, window}
 import ch.wsl.typings.ol._
 import ch.wsl.typings.ol.geomMod.Point
 import ch.wsl.typings.ol.mapMod.MapOptions
-import ch.wsl.typings.ol.mod.MapBrowserEvent
+import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
 import ch.wsl.typings.ol.objectMod.ObjectEvent
 import ch.wsl.typings.ol.viewMod.FitOptions
 import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
@@ -28,6 +28,7 @@ import scala.scalajs.js
 import scala.scalajs.js.|
 import scalatags.JsDom.all._
 import io.udash._
+import io.udash.wrappers.jquery.jQ
 
 class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
 
@@ -50,11 +51,37 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
   )
 
+  import scalacss.ScalatagsCss._
+  import io.udash.css._
+
+  val mapDiv = div(width := 100.pct, height := 100.pct).render
+
+  val dispatchElements:Property[Seq[JSONID]] = Property(Seq())
+  val popupDiv = div(display.none,ClientConf.style.mapPopup,
+    ul(
+      produce(dispatchElements) { _.map{ id =>
+        li(
+          a(id.prettyPrint(metadata), onclick :+= ((e:Event) => edit(id.asString)) )
+        ).render
+      } }
+    )
+  ).render
+
+
+
+  _div.appendChild(mapDiv)
+  _div.appendChild(popupDiv)
 
   val map = new mod.Map(MapOptions()
-    .setTarget(_div)
+    .setTarget(mapDiv)
     .setView(view)
   )
+
+
+
+  val overlay = new Overlay(overlayMod.Options().setElement(popupDiv))
+
+  map.addOverlay(overlay)
 
   val geolocation = new MapGeolocation(map)
 
@@ -138,9 +165,16 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     })
 
     map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
-      for {
-        id <- MapUtils.toJsonId(map,metadata.keys,e)
-      } yield edit(id.asString)
+      jQ(popupDiv).hide()
+      val ids = MapUtils.toJsonId(map,metadata.keys,e)
+      if(ids.length == 1) {
+        edit(ids.head.asString)
+      } else if(ids.length > 1) {
+        println("Dispatch " + ids)
+        dispatchElements.set(ids)
+        jQ(popupDiv).show()
+        overlay.setPosition(e.coordinate);
+      }
     })
 
   }
