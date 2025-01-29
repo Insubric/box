@@ -104,6 +104,8 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
       case ((Some(mime),Some(file)),nested) if !FileUtils.isKeep(file) => if(mime.startsWith("image")) {
         div(img(src := file, ClientConf.style.maxFullWidth)).render
+      } else if(mime == "application/pdf") {
+        div(`object`(scalatags.JsDom.all.data := file, ClientConf.style.maxFullWidth)).render
       } else div(textAlign.center,marginTop := 20.px,
         div(Icons.fileOk(50),file.take(30)),
         span("File loaded")
@@ -119,13 +121,19 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
               backdrop = BackdropType.Active.toProperty
             )(
               headerFactory = None,
-              bodyFactory = Some((interceptor) => img(nested(src.bind(url))).render),
+              bodyFactory = Some((interceptor) => {
+                if(mime == "application/pdf") {
+                  `object`(attr("data").bind(url), ClientConf.style.fullWidth, ClientConf.style.fullHeight).render
+                } else {
+                  img(nested(src.bind(url))).render
+                }
+              }),
               footerFactory = None
             )
 
             div(
               img(src := Routes.apiV1(thumb),ClientConf.style.imageThumb, onclick :+= ((e:Event) => {
-                if(mime.startsWith("image")) {
+                if(mime.startsWith("image") || mime == "application/pdf") {
                   e.preventDefault()
                   url.set(Routes.apiV1(_download))
                   modal.show()
