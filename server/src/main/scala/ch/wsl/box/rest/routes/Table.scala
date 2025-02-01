@@ -81,7 +81,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     import JSONData._
 
 
-  def jsonMetadata:JSONMetadata = {
+  lazy val jsonMetadata:JSONMetadata = {
     val fut = EntityMetadataFactory.of(name, registry)
     Await.result(fut,20.seconds)
   }

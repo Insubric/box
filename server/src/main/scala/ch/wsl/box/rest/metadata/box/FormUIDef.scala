@@ -33,6 +33,10 @@ object FormUIDef {
         widget = Some(WidgetsNames.checkbox),
         default = Some("true")
       ),
+      JSONField(JSONFieldTypes.BOOLEAN,"public_list",false,
+        widget = Some(WidgetsNames.checkbox),
+        default = Some("false")
+      ),
       JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.STRING,"query",true,
         widget = Some(WidgetsNames.code),
@@ -96,7 +100,7 @@ object FormUIDef {
         LayoutBlock(None,4,Seq(
           SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Some(Seq(12)),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props","params").map(Left(_)))
+              SubLayoutBlock(Some("Base Info"),Some(Seq(12)),Seq("name","entity","query","description","guest_user","public_list","edit_key_field","show_navigation","props","params").map(Left(_)))
             ),
             Left("")
           ))

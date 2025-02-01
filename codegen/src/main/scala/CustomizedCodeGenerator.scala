@@ -38,12 +38,12 @@ case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:
     val calculatedTables = enabledTables.map(_.name.name).distinct
 
     GeneratedFiles(
-      entities = EntitiesGenerator(connection,dbModel),
+      entities = EntitiesGenerator(connection,dbModel,generatorParams.boxSchema),
       generatedRoutes = RoutesGenerator(calculatedViews, calculatedTables, dbModel),
       entityActionsRegistry = EntityActionsRegistryGenerator(calculatedViews ++ calculatedTables, dbModel),
       fileAccessGenerator = FileAccessGenerator(dbModel),
       registry = RegistryGenerator(dbModel,dbSchema, generatorParams.postgisSchema),
-      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel),
+      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel,generatorParams.boxSchema),
     )
 
   }

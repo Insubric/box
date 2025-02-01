@@ -2,7 +2,7 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema}
+import ch.wsl.box.information_schema.{PgInformationSchema}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.shared.utils.JSONUtils
@@ -13,7 +13,7 @@ import net.ceedubs.ficus.Ficus._
 import scala.concurrent.duration._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{FullDatabase, Managed, TypeMapping}
-import ch.wsl.box.rest.runtime.{ColType, RegistryInstance}
+import ch.wsl.box.rest.runtime.{ColType, Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 import io.circe.Json
 
@@ -22,6 +22,8 @@ import scala.util.Try
 
 
 object EntityMetadataFactory extends Logging {
+
+
 
   private case class SchemaCache(
                           cacheTable:scala.collection.mutable.Map[String, JSONMetadata],
@@ -80,13 +82,13 @@ object EntityMetadataFactory extends Logging {
       case None => {
         logger.warn(s"Metadata table cache miss! cache key: $cacheKey")
 
-        val schema = new PgInformationSchema(registry.schema,table, excludeFields)(ec)
+        val schema = new PgInformationSchema(Registry.box().schema,registry.schema,table, excludeFields)(ec)
 
         //    println(schema.fk)
 
         var constraints = List[String]()
 
-        def field2form(field: PgColumn): DBIO[JSONField] = {
+        def field2form(field: schema.pis.PgColumn): DBIO[JSONField] = {
           for {
             fk <- schema.findFk(field.column_name)
             firstNoPK <- fk match {
@@ -183,7 +185,7 @@ object EntityMetadataFactory extends Logging {
       case None => {
         logger.info(s"Metadata keys cache miss! cache key: ($table)")
 
-        val result = new PgInformationSchema(schema,table)(ec).pk.map { pk => //map to enter the future
+        val result = new PgInformationSchema(Registry.box().schema,schema,table)(ec).pk.map { pk => //map to enter the future
           logger.info(pk.toString)
           pk.boxKeys
         }
@@ -204,7 +206,7 @@ object EntityMetadataFactory extends Logging {
 
   def firstNoPKField(_schema:String,table:String)(implicit db:FullDatabase, ec:ExecutionContext):DBIO[Option[String]] = {
     logger.info("Getting first field of " + table + " that is not PK")
-    val schema = new PgInformationSchema(_schema,table,excludeFields)(ec)
+    val schema = new PgInformationSchema(Registry.box().schema,_schema,table,excludeFields)(ec)
     for {
       pks <- schema.pk.map(_.boxKeys) //todo: or boxKeys?
       c <- schema.columns
@@ -218,11 +220,6 @@ object EntityMetadataFactory extends Logging {
   def fieldType(table:String,field:String,registry:RegistryInstance):Option[ColType] = {
     registry.fields.field(table,field)
   }
-
-
-  def isView(schema:String,table:String)(implicit ec:ExecutionContext):DBIO[Boolean] =
-    new PgInformationSchema(schema,table)(ec).pgTable.map(_.isView)  //map to enter the future
-
 
 
 }
