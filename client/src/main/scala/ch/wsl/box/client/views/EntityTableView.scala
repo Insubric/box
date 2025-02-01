@@ -261,7 +261,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   model.subProp(_.extent).listen { extent =>
-    reloadRows(1,extent)
+    reloadRows(1)
   }
 
   def show(el: => Row) = (e:Event) => {
@@ -311,7 +311,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   def query(extent:Option[Polygon]):JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
 
-    model.subProp(_.extent).set(extent)
+
 
 
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
@@ -353,12 +353,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
   }
 
-  def reloadRows(page:Int,extent:Option[Polygon] = None): Future[Unit] = {
+  def reloadRows(page:Int): Future[Unit] = {
 
     reloadCount = reloadCount + 1
     val currentCount = reloadCount
 
     services.clientSession.loading.set(true)
+
+    val extent = model.subProp(_.extent).get
 
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
