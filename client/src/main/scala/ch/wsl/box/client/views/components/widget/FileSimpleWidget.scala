@@ -104,8 +104,6 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
       case ((Some(mime),Some(file)),nested) if !FileUtils.isKeep(file) => if(mime.startsWith("image")) {
         div(img(src := file, ClientConf.style.maxFullWidth)).render
-      } else if(mime == "application/pdf") {
-        div(`object`(scalatags.JsDom.all.data := file, ClientConf.style.maxFullWidth)).render
       } else div(textAlign.center,marginTop := 20.px,
         div(Icons.fileOk(50),file.take(30)),
         span("File loaded")
@@ -123,7 +121,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
               headerFactory = None,
               bodyFactory = Some((interceptor) => {
                 if(mime == "application/pdf") {
-                  `object`(attr("data").bind(url), ClientConf.style.fullWidth, ClientConf.style.fullHeight).render
+                  iframe(attr("src").bind(url.transform(f => "http://localhost:8080/pdf/web/viewer.html?file="+f)), ClientConf.style.fullWidth, ClientConf.style.fullHeight).render
                 } else {
                   img(nested(src.bind(url))).render
                 }
