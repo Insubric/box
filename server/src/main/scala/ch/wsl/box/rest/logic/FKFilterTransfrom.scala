@@ -19,14 +19,13 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     val baseQuery:JSONQuery = lookup.lookupQuery.flatMap(q => JSONQuery.fromJson(q)).getOrElse(JSONQuery.empty)
     for{
       values <- registry.actions(table).distinctOn(Seq(field),query)
-      allValues = values.flatMap(_.getOpt(field))
-      baseFilter = if(allValues.nonEmpty) List(WHERE.in(lookup.map.foreign.valueColumn,allValues)) else baseQuery.filter
-      query = baseQuery.copy(filter =  baseFilter)
-      rows <- registry.actions(lookup.lookupEntity).fetchFields(Seq(lookup.map.foreign.valueColumn) ++ remoteLabels,query)
-    } yield JSONLookups(
-        field,
-        rows.map(row => JSONLookup(row.js(lookup.map.foreign.valueColumn),remoteLabels.map(row.get)))
-      )
+      allValues = values.flatMap(_.getOpt(field)).grouped(500).toSeq
+      baseFilters = if(allValues.nonEmpty) allValues.map( av => List(WHERE.in(lookup.map.foreign.valueColumn,av))) else Seq(baseQuery.filter)
+      queries:Iterable[JSONQuery] = baseFilters.map( bf => baseQuery.copy(filter =  bf))
+      chunks <- DBIO.sequence(queries.map( q=> registry.actions(lookup.lookupEntity).fetchFields(Seq(lookup.map.foreign.valueColumn) ++ remoteLabels,q)))
+    } yield chunks.foldLeft(JSONLookups(field,Seq())) { case (acc,rows) =>
+      acc.copy(lookups = acc.lookups ++ rows.map(row => JSONLookup(row.js(lookup.map.foreign.valueColumn), remoteLabels.map(row.get))) )
+    }
 
   }
 

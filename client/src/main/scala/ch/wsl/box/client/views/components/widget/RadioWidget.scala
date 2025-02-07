@@ -45,7 +45,7 @@ object RadioWidget extends ComponentWidgetFactory {
     def jsToString(js:Json):String = options.flatMap(_.find(_.value == js)).map(_.label).getOrElse("")
     def stringToJs(s:String):Json = options.flatMap(_.find(_.label == s)).map(_.value).getOrElse(Json.Null)
 
-    def includeNullOptions = if(field.nullable) options.map(Seq(OptionEntry("",Json.Null)) ++ _ ) else options
+    def includeNullOptions = options.map(Seq(OptionEntry("",Json.Null)) ++ _ )
 
     override def edit(nested:Binding.NestedInterceptor) = {
       includeNullOptions match {
@@ -58,7 +58,7 @@ object RadioWidget extends ComponentWidgetFactory {
       val tooltip = WidgetUtils.addTooltip(field.tooltip,UdashTooltip.Placement.Right) _
 
 
-      val m:Seq[Modifier] = Seq[Modifier](width.auto,margin := 5.px)++WidgetUtils.toNullable(field.nullable)
+      val m:Seq[Modifier] = Seq[Modifier](width.auto,margin := 5.px)
 
       val stringProp = Property("")
 
@@ -72,7 +72,11 @@ object RadioWidget extends ComponentWidgetFactory {
             RadioButtons(stringProp, options.map(_.label).toSeqProperty)(
               els => span(els.map {
                 case (_, "") => frag()
-                case (i: Input, l: String) => label(Form.checkInline)(i, l)
+                case (i: Input, l: String) => {
+                  i.setAttribute("name",field.name)
+                  if(!field.nullable) i.setAttribute("required","required")
+                  label(Form.checkInline)(i, l)
+                }
               },m).render
             )
           )

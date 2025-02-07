@@ -49,7 +49,10 @@ object TypeMapping extends Logging {
     case  s"varchar$precision" => JSONFieldTypes.STRING
     case "boolean" | "bool" => JSONFieldTypes.BOOLEAN
     case "bytea" => JSONFieldTypes.FILE
-    case "timestamp without time zone" | "timestamp with time zone" | "timestamp" | "timestampz" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision without time zone" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision with time zone" => JSONFieldTypes.DATETIME
+    case s"timestampz$precision" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision" => JSONFieldTypes.DATETIME
     case "time without time zone" | "time" | "timez" => JSONFieldTypes.TIME
     case "date" => JSONFieldTypes.DATE
     case "interval" => JSONFieldTypes.INTERVAL
