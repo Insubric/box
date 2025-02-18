@@ -100,7 +100,7 @@ object FormUIDef {
         LayoutBlock(None,4,Seq(
           SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Some(Seq(12)),Seq("name","entity","query","description","guest_user","public_list","edit_key_field","show_navigation","props","params").map(Left(_)))
+              SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","entity","query","description","guest_user","public_list","edit_key_field","show_navigation","props","params").map(Left(_)))
             ),
             Left("")
           ))
@@ -165,7 +165,7 @@ object FormUIDef {
         LayoutBlock(None,8,Seq(
           SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Some(Seq(12)),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
+              SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
             ),
           ))
         ).map(Right(_))),

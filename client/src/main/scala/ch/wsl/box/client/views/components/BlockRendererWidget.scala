@@ -4,7 +4,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components.widget.WidgetUtils.LabelLeft
 import ch.wsl.box.client.views.components.widget.{HasData, HiddenWidget, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
-import ch.wsl.box.model.shared.{ConditionalField, DistributedLayout, JSONField, JSONMetadata, LayoutType, MultirowTableLayout, StackedLayout, SubLayoutBlock, TableLayout}
+import ch.wsl.box.model.shared.{ConditionalField, DistributedLayout, Internationalization, JSONField, JSONMetadata, LayoutType, MultirowTableLayout, StackedLayout, SubLayoutBlock, TableLayout}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash.bindings.modifiers.Binding
@@ -118,7 +118,7 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
   import io.circe.syntax._
 
   private def subBlock(block: SubLayoutBlock):WidgetVisibility = WidgetVisibility(
-    new BlockRendererWidget(widgetParams,block.fields, layoutType, Some(Stream.continually(block.fieldsWidth.getOrElse(Seq(12)).toStream).flatten),block.title.orElse(Some("")),false)
+    new BlockRendererWidget(widgetParams,block.fields, layoutType, Some(Stream.continually(block.fieldsWidth.getOrElse(Seq(12)).toStream).flatten),block.title.flatMap(Internationalization.either(services.clientSession.lang())).orElse(Some("")),false)
   )
 
 
@@ -259,7 +259,7 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
       table(ClientConf.style.table,
         tr(
             blocks.map{ b =>
-              th(ClientConf.style.field,b.title).render
+              th(ClientConf.style.field,b.title.flatMap(Internationalization.either(services.clientSession.lang()))).render
             }
         ),
 

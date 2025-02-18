@@ -2,7 +2,8 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
+import ch.wsl.box.model.shared.Internationalization.I18n
+import ch.wsl.box.model.shared.{Internationalization, JSONField, WidgetsNames}
 import io.circe.Json
 import io.udash._
 import io.udash.bindings.modifiers.Binding
@@ -25,27 +26,33 @@ object RadioWidget extends ComponentWidgetFactory {
     import scalatags.JsDom.all._
     import ch.wsl.box.client.Context.Implicits._
     import ch.wsl.box.shared.utils.JSONUtils._
+    import Internationalization._
 
     override def field: JSONField = params.field
 
-    case class OptionEntry(label:String,value:Json)
+    case class OptionEntry(label: Either[String,I18n],value:Json)
     import io.circe.generic.auto._
 
     val options:Option[Seq[OptionEntry]] = field.params.flatMap(_.jsOpt("options")).flatMap{ p =>
 
       p.as[Seq[OptionEntry]] match {
         case Left(value) => {
-          p.asArray.map{ _.map(r => OptionEntry(r.string,r) ) }
+          println(value.toString())
+          p.asArray.map{ _.map(r => OptionEntry(Left(r.string),r) ) }
         }
         case Right(value) => Some(value)
       }
 
     }
 
-    def jsToString(js:Json):String = options.flatMap(_.find(_.value == js)).map(_.label).getOrElse("")
-    def stringToJs(s:String):Json = options.flatMap(_.find(_.label == s)).map(_.value).getOrElse(Json.Null)
+    import ch.wsl.box.client.Context._
 
-    def includeNullOptions = options.map(Seq(OptionEntry("",Json.Null)) ++ _ )
+    def translatedLabel(x:OptionEntry) = Internationalization.either(services.clientSession.lang())(x.label)
+
+    def jsToString(js:Json):String = options.flatMap(_.find(_.value == js)).flatMap(translatedLabel).getOrElse("")
+    def stringToJs(s:String):Json = options.flatMap(_.find(x => translatedLabel(x).contains(s))).map(_.value).getOrElse(Json.Null)
+
+    def includeNullOptions = options.map(Seq(OptionEntry(Left(""),Json.Null)) ++ _ )
 
     override def edit(nested:Binding.NestedInterceptor) = {
       includeNullOptions match {
@@ -69,7 +76,7 @@ object RadioWidget extends ComponentWidgetFactory {
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip({
           div(BootstrapStyles.Float.right(),
-            RadioButtons(stringProp, options.map(_.label).toSeqProperty)(
+            RadioButtons[String](stringProp, options.flatMap(translatedLabel).toSeqProperty)(
               els => span(els.map {
                 case (_, "") => frag()
                 case (i: Input, l: String) => {
@@ -94,7 +101,7 @@ object RadioWidget extends ComponentWidgetFactory {
 
 
 
-      RadioButtons(stringProp, includeNullOptions.getOrElse(Seq()).map(_.label).toSeqProperty)(
+      RadioButtons(stringProp, includeNullOptions.getOrElse(Seq()).flatMap(translatedLabel).toSeqProperty)(
         els => span(els.map {
           case (_, "") => frag()
           case (i: Input, l: String) => label(Form.checkInline)(i, l)

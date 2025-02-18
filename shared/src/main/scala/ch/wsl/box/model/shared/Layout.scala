@@ -20,18 +20,7 @@ object Layout extends Logging {
   import Internationalization._
 
 
-  implicit val encodeEitherI18n: Encoder[Either[String,I18n]] = new Encoder[Either[String, I18n]] {
-    override def apply(a: Either[String, I18n]): Json = a match {
-      case Right(str) => str.asJson
-      case Left(obj) => obj.asJson
-    }
-  }
-  implicit val decodeEitherI18n: Decoder[Either[String,I18n]] = new Decoder[Either[String, I18n]] {
-    override def apply(c: HCursor): Result[Either[String, I18n]] = c.value.asString match {
-      case Some(str) => c.as[String].map(Left(_))
-      case None => c.as[I18n].map(Right(_))
-    }
-  }
+
 
   implicit def enc = deriveEncoder[LangLabel]
   implicit def dec = deriveDecoder[LangLabel]
@@ -171,7 +160,7 @@ case class LayoutBlock(
 
 
 case class SubLayoutBlock(
-                         title: Option[String],
+                         title: Option[Either[String,I18n]],
                          fieldsWidth:Option[Seq[Int]],
                          fields:Seq[Either[String,SubLayoutBlock]]
                          ) {

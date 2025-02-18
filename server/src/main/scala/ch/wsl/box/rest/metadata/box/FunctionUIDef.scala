@@ -53,15 +53,15 @@ object FunctionUIDef {
         LayoutBlock(None,8,Seq(
           SubLayoutBlock(None,Some(Seq(5,1,6)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Some(Seq(12)),Seq("function_uuid","name","order","description","mode").map(Left(_)))
+              SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("function_uuid","name","order","description","mode").map(Left(_)))
             ),
             Left(""),
             Right(
-              SubLayoutBlock(Some("Layout"),Some(Seq(12)),Seq("layout").map(Left(_)))
+              SubLayoutBlock(Some(Left("Layout")),Some(Seq(12)),Seq("layout").map(Left(_)))
             )
           )),
-          SubLayoutBlock(Some("Function"),Some(Seq(12)),Seq("function").map(Left(_))),
-          SubLayoutBlock(Some("Presenter"),Some(Seq(12)),Seq("presenter").map(Left(_))),
+          SubLayoutBlock(Some(Left("Function")),Some(Seq(12)),Seq("function").map(Left(_))),
+          SubLayoutBlock(Some(Left("Presenter")),Some(Seq(12)),Seq("presenter").map(Left(_))),
         ).map(Right(_))),
         LayoutBlock(Some(Left("I18n")),4,Seq("function_i18n").map(Left(_))),
         LayoutBlock(Some(Left("Fields")),12,Seq("function_field").map(Left(_))),
