@@ -270,7 +270,7 @@ case class FormActions(metadata:JSONMetadata,
 
 
     val subFields = metadata.fields
-      .filter(_.child.exists(_.hasData))
+      .filter(f => f.child.exists(_.hasData) && !f.readOnly)
       .filter{f =>
         f.condition.map(_.check(e)) match {
           case Some(true) => true
