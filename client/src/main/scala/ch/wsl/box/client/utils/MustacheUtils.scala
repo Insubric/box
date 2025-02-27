@@ -9,21 +9,29 @@ import yamusca.data.{Section, Template, Variable}
 import yamusca.imports.{Context, mustache}
 
 object MustacheUtils extends Logging {
-  def context(tmpl:Template,data:Json):Context = {
-    val variables = tmpl.els.flatMap {
-      case Variable(key, _) => Some(key)
-      case Section(key, _, _) => Some(key)
-      case _ => None
-    }
 
-    val values = variables.map { v =>
-      v -> data.js(v).toMustacheValue
+  def extractVariables(tmpl:Template) = tmpl.els.flatMap {
+    case Variable(key, _) => Some(key)
+    case Section(key, _, _) => Some(key)
+    case _ => None
+  }
+
+  def variables(variables:Seq[String],data:Json):Seq[(String,Json)] = {
+    variables.map { v =>
+      v -> data.js(v)
+    }
+  }
+
+  def context(values:Seq[(String,Json)]):Context = {
+
+    val ctx = values.map { case (v,data) =>
+      v -> data.toMustacheValue
     } ++ Seq(
       "BASE_URI" -> Value.of(Routes.baseUri),
       "FULL_URL" -> Value.of(Routes.fullUrl),
       "ORIGIN_URL" -> Value.of(Routes.originUrl)
     )
-    Context(values: _*)
+    Context(ctx: _*)
 
   }
 
@@ -33,7 +41,10 @@ object MustacheUtils extends Logging {
         logger.warn(err._2)
         template
       }
-      case Right(tmpl) => mustache.render(tmpl)(context(tmpl, data))
+      case Right(tmpl) => {
+        val ctx = context(variables(extractVariables(tmpl),data))
+        mustache.render(tmpl)(ctx)
+      }
     }
   }
 }

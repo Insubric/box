@@ -25,6 +25,7 @@ object HtmlWidget extends ComponentWidgetFactory {
     val _text:String = field.label.getOrElse(field.name)
 
     val template = mustache.parse(_text)
+    val variables = template.toOption.map(MustacheUtils.extractVariables)
 
 
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = template match {
@@ -34,13 +35,13 @@ object HtmlWidget extends ComponentWidgetFactory {
         val renderer = mustache.render(tmpl)
 
 
-        val watchedVariables:ReadableProperty[Context] = data.transform{ js =>
-          MustacheUtils.context(tmpl,js)
+        val watchedVariables:ReadableProperty[Seq[(String,Json)]] = data.transform{ js =>
+          MustacheUtils.variables(variables.get,js)
         }
 
 
         nested(produce(watchedVariables) { context =>
-          raw(renderer(context)).render
+          raw(renderer(MustacheUtils.context(context))).render
         })
 
       }
