@@ -113,3 +113,42 @@ create trigger v_field_upd
     for each row
 execute procedure v_field_upd();
 
+
+
+
+create or replace view v_roles
+            (rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolconnlimit, rolvaliduntil,
+             memberof, rolreplication, rolbypassrls)
+as
+
+with recursive roles as (
+    SELECT r.rolname,b.rolname as parent
+    FROM pg_roles r
+             join pg_auth_members m on m.member = r.oid
+             JOIN pg_roles b ON m.roleid = b.oid
+    WHERE r.rolname !~ '^pg_'::text
+    union distinct
+
+    select r.rolname,b.rolname as parent from roles r
+                                                  join pg_auth_members m on m.member = (select oid from pg_roles where rolname = r.parent)
+                                                  JOIN pg_roles b ON m.roleid = b.oid
+), parent_roles as (select rolname, array_agg(parent) as parents
+                    from roles
+                    group by rolname
+)
+SELECT r.rolname,
+       r.rolsuper,
+       r.rolinherit,
+       r.rolcreaterole,
+       r.rolcreatedb,
+       r.rolcanlogin,
+       r.rolconnlimit,
+       r.rolvaliduntil,
+       coalesce(pr.parents,array[]::text[]) AS memberof,
+       r.rolreplication,
+       r.rolbypassrls
+FROM pg_roles r
+         left join parent_roles pr on r.rolname = pr.rolname
+WHERE r.rolname !~ '^pg_'::text
+ORDER BY r.rolname;
+

@@ -785,6 +785,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                   ClientConf.style.margin0Auto,
                   stepperOptions.map(stepper),
                   _maxWidth.map(mw => maxWidth := mw),
+                  onsubmit :+= ((e:Event) => e.preventDefault()),
                   presenter.loadWidgets(f).render(model.get.write,nested)
                 ).render
                 presenter.setForm(mainForm)
