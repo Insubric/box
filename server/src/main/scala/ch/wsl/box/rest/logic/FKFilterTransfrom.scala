@@ -19,6 +19,7 @@ class FKFilterTransfrom(registry:RegistryInstance)(implicit ec:ExecutionContext,
     val baseQuery:JSONQuery = lookup.lookupQuery.flatMap(q => JSONQuery.fromJson(q)).getOrElse(JSONQuery.empty)
     for{
       values <- registry.actions(table).distinctOn(Seq(field),query)
+      // grouping of 500 to avoid errors in oracle FDW
       allValues = values.flatMap(_.getOpt(field)).grouped(500).toSeq
       baseFilters = if(allValues.nonEmpty) allValues.map( av => List(WHERE.in(lookup.map.foreign.valueColumn,av))) else Seq(baseQuery.filter)
       queries:Iterable[JSONQuery] = baseFilters.map( bf => baseQuery.copy(filter =  bf))

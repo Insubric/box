@@ -129,6 +129,36 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     case Right(value) => value
   }
 
+
+  /**
+   *
+   * Fast count query example
+   * ```sql select count(*) from (
+   * select 1 from "case"
+   * where canton_id = 'TI' and date > '2025-01-01'
+   * limit 101 ) t ```
+   *
+   * @param query
+   * @return
+   */
+  def fastCount(query: Option[JSONQuery]): DBIO[Int] = {
+
+    val where = query match {
+      case Some(q) => whereBuilder(q.copy(sort = List(), paging = None))
+      case None => sql""
+    }
+
+
+    val q = concat(
+      sql"""
+          select count(*) from (
+            select 1 from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """,
+      concat(where,sql" limit 101 ) t")
+    ).as[Int].head
+    q
+
+  }
+
   def count(query: Option[JSONQuery]): DBIO[Int] = {
 
         val where = query match {
