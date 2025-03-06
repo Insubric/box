@@ -79,7 +79,14 @@ object JSONUtils extends Logging {
         num => Value.of(num.toString),
         str => Value.of(str),
         arr => Value.fromSeq(arr.map(_.toMustacheValue)),
-        obj => Value.fromMap(obj.toMap.mapValues(_.toMustacheValue).toMap)
+        obj => Value.fromMap{
+          obj.toMap.flatMap{ case (k,v) =>
+            Map(
+              k -> v.toMustacheValue,
+              k + "$str"-> Value.of(v.noSpaces),
+            )
+          }
+        }
       )
     }
 

@@ -26,6 +26,9 @@ object MustacheUtils extends Logging {
 
     val ctx = values.map { case (v,data) =>
       v -> data.toMustacheValue
+    } ++
+    values.map { case (v,data) =>
+      v + "$str" -> Value.of(data.noSpaces)
     } ++ Seq(
       "BASE_URI" -> Value.of(Routes.baseUri),
       "FULL_URL" -> Value.of(Routes.fullUrl),
