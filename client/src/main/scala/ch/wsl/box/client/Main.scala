@@ -64,6 +64,11 @@ object Main extends Logging {
       labels <- services.rest.labels(services.clientSession.lang())
     } yield {
 
+        for{
+          site_id <- ClientConf.matomo_site_id
+          tracker_url <- ClientConf.matomo_tracker_url
+        } yield Matomo.load(tracker_url,site_id)
+
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()
         println(s"Setting logger level to ${ClientConf.loggerLevel}")
 
