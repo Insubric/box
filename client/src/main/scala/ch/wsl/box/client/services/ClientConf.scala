@@ -102,7 +102,4 @@ object ClientConf {
 
   def mapOptions: Json = Try(parse(conf("map.options")).right.get).getOrElse(Json.Null)
 
-  def matomo_site_id:Option[String] = Try(conf("matomo.site_id")).toOption
-  def matomo_tracker_url:Option[String] = Try(conf("matomo.tracker_url")).toOption
-
 }

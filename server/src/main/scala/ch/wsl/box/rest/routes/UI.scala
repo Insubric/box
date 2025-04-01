@@ -109,7 +109,7 @@ object UI {
     } ~
     get {
       complete {
-        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor)
+        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor,services.config.matomo)
       }
     }
   }
