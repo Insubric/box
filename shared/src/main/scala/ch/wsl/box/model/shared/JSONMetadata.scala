@@ -55,6 +55,8 @@ case class JSONMetadata(
   lazy val keyFields:Seq[JSONField] = keys.flatMap(k => fields.find(_.name == k))
 
   def geomFields = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
+
+  def exportFieldsNoGeom = fields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY)
 }
 
 object JSONMetadata extends Logging {

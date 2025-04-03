@@ -114,10 +114,10 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query, true, _.exportFields))
+      csv <- db.run(formActions.csv(query, true, _.exportFieldsNoGeom.map(_.name)))
     } yield csv.copy(
       showHeader = true,
-      header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
+      header = metadata.exportFieldsNoGeom.map(_.title)
     )
   }
 
