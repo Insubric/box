@@ -29,6 +29,10 @@ object FieldAccessRegistry extends FieldRegistry {
       "image_cache",
       "labels",
       "mails",
+      "map_layer_i18n",
+      "map_layer_vector_db",
+      "map_layer_wmts",
+      "maps",
       "news",
       "news_i18n",
       "public_entities",
@@ -38,6 +42,8 @@ object FieldAccessRegistry extends FieldRegistry {
   )
 
   override def views: Seq[String] = Seq(
+      "v_box_form_childs",
+      "v_box_usages",
       "v_field",
       "v_labels",
       "v_roles"
@@ -68,12 +74,18 @@ object FieldAccessRegistry extends FieldRegistry {
         "image_cache" -> image_cache_map,
         "labels" -> labels_map,
         "mails" -> mails_map,
+        "map_layer_i18n" -> map_layer_i18n_map,
+        "map_layer_vector_db" -> map_layer_vector_db_map,
+        "map_layer_wmts" -> map_layer_wmts_map,
+        "maps" -> maps_map,
         "news" -> news_map,
         "news_i18n" -> news_i18n_map,
         "public_entities" -> public_entities_map,
         "ui" -> ui_map,
         "ui_src" -> ui_src_map,
         "users" -> users_map,
+        "v_box_form_childs" -> v_box_form_childs_map,
+        "v_box_usages" -> v_box_usages_map,
         "v_field" -> v_field_map,
         "v_labels" -> v_labels_map,
         "v_roles" -> v_roles_map,
@@ -108,7 +120,7 @@ object FieldAccessRegistry extends FieldRegistry {
               "widget" -> ColType("String","string",false,true),
               "lookupEntity" -> ColType("String","string",false,true),
               "lookupValueField" -> ColType("String","string",false,true),
-              "lookupQuery" -> ColType("String","string",false,true),
+              "lookupQuery" -> ColType("io.circe.Json","json",false,true),
               "default" -> ColType("String","string",false,true),
               "conditionFieldId" -> ColType("String","string",false,true),
               "conditionValues" -> ColType("String","string",false,true),
@@ -138,12 +150,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "type" -> ColType("String","string",false,false),
               "name" -> ColType("String","string",false,false),
               "widget" -> ColType("String","string",false,true),
-              "lookupEntity" -> ColType("String","string",false,true),
-              "lookupValueField" -> ColType("String","string",false,true),
-              "lookupQuery" -> ColType("String","string",false,true),
-              "masterFields" -> ColType("String","string",false,true),
-              "childFields" -> ColType("String","string",false,true),
-              "childQuery" -> ColType("String","string",false,true),
+              "lookupQuery" -> ColType("io.circe.Json","json",false,true),
+              "childQuery" -> ColType("io.circe.Json","json",false,true),
               "default" -> ColType("String","string",false,true),
               "conditionFieldId" -> ColType("String","string",false,true),
               "conditionValues" -> ColType("String","string",false,true),
@@ -156,7 +164,12 @@ object FieldAccessRegistry extends FieldRegistry {
               "function" -> ColType("String","string",false,true),
               "min" -> ColType("Double","number",false,true),
               "max" -> ColType("Double","number",false,true),
-              "roles" -> ColType("List[String]","array_string",false,true)
+              "roles" -> ColType("List[String]","array_string",false,true),
+              "map_uuid" -> ColType("java.util.UUID","string",false,true),
+              "foreign_entity" -> ColType("String","string",false,true),
+              "foreign_value_field" -> ColType("String","string",false,true),
+              "foreign_key_columns" -> ColType("List[String]","array_string",false,true),
+              "local_key_columns" -> ColType("List[String]","array_string",false,true)
 )
   private def field_file_map =  Map(
               "file_field" -> ColType("String","string",false,false),
@@ -170,9 +183,10 @@ object FieldAccessRegistry extends FieldRegistry {
               "placeholder" -> ColType("String","string",false,true),
               "tooltip" -> ColType("String","string",false,true),
               "hint" -> ColType("String","string",false,true),
-              "lookupTextField" -> ColType("String","string",false,true),
               "uuid" -> ColType("java.util.UUID","string",true,false),
-              "field_uuid" -> ColType("java.util.UUID","string",false,false)
+              "field_uuid" -> ColType("java.util.UUID","string",false,false),
+              "foreign_label_columns" -> ColType("List[String]","array_string",false,true),
+              "dynamic_label" -> ColType("String","string",false,true)
 )
   private def flyway_schema_history_box_map =  Map(
               "installed_rank" -> ColType("Int","integer",false,false),
@@ -190,7 +204,7 @@ object FieldAccessRegistry extends FieldRegistry {
               "name" -> ColType("String","string",false,false),
               "entity" -> ColType("String","string",false,false),
               "description" -> ColType("String","string",false,true),
-              "layout" -> ColType("String","string",false,true),
+              "layout" -> ColType("io.circe.Json","json",false,true),
               "tabularFields" -> ColType("String","string",false,true),
               "query" -> ColType("String","string",false,true),
               "exportfields" -> ColType("String","string",false,true),
@@ -345,6 +359,47 @@ object FieldAccessRegistry extends FieldRegistry {
               "mail_bcc" -> ColType("List[String]","array_string",true,false),
               "reply_to" -> ColType("String","string",false,true)
 )
+  private def map_layer_i18n_map =  Map(
+              "layer_id" -> ColType("java.util.UUID","string",false,false),
+              "lang" -> ColType("String","string",false,false),
+              "label" -> ColType("String","string",false,false)
+)
+  private def map_layer_vector_db_map =  Map(
+              "layer_id" -> ColType("java.util.UUID","string",true,false),
+              "map_id" -> ColType("java.util.UUID","string",false,false),
+              "entity" -> ColType("String","string",false,false),
+              "field" -> ColType("String","string",false,false),
+              "geometry_type" -> ColType("String","string",false,false),
+              "srid" -> ColType("Int","integer",false,false),
+              "z_index" -> ColType("Int","integer",false,false),
+              "layer_order" -> ColType("Int","integer",false,false),
+              "extra" -> ColType("io.circe.Json","json",false,true),
+              "editable" -> ColType("Boolean","boolean",true,false),
+              "query" -> ColType("io.circe.Json","json",false,true),
+              "autofocus" -> ColType("Boolean","boolean",true,false),
+              "color" -> ColType("String","string",false,false)
+)
+  private def map_layer_wmts_map =  Map(
+              "layer_id" -> ColType("java.util.UUID","string",true,false),
+              "map_id" -> ColType("java.util.UUID","string",false,false),
+              "capabilities_url" -> ColType("String","string",false,false),
+              "wmts_layer_id" -> ColType("String","string",false,false),
+              "srid" -> ColType("Int","integer",false,false),
+              "z_index" -> ColType("Int","integer",false,false),
+              "layer_order" -> ColType("Int","integer",false,false),
+              "extra" -> ColType("io.circe.Json","json",false,true)
+)
+  private def maps_map =  Map(
+              "map_id" -> ColType("java.util.UUID","string",true,false),
+              "name" -> ColType("String","string",false,false),
+              "parameters" -> ColType("List[String]","array_string",false,true),
+              "srid" -> ColType("Int","integer",false,false),
+              "x_min" -> ColType("Double","number",false,false),
+              "y_min" -> ColType("Double","number",false,false),
+              "x_max" -> ColType("Double","number",false,false),
+              "y_max" -> ColType("Double","number",false,false),
+              "max_zoom" -> ColType("Double","number",false,false)
+)
   private def news_map =  Map(
               "datetime" -> ColType("java.time.LocalDateTime","datetime",true,false),
               "author" -> ColType("String","string",false,true),
@@ -377,16 +432,27 @@ object FieldAccessRegistry extends FieldRegistry {
               "username" -> ColType("String","string",false,false),
               "access_level_id" -> ColType("Int","integer",false,false)
 )
+  private def v_box_form_childs_map =  Map(
+              "name" -> ColType("String","string",false,true),
+              "entity" -> ColType("String","string",false,true),
+              "form_uuid" -> ColType("java.util.UUID","string",false,true),
+              "child" -> ColType("String","string",false,true),
+              "index_page" -> ColType("Boolean","boolean",false,true)
+)
+  private def v_box_usages_map =  Map(
+              "name" -> ColType("String","string",false,true),
+              "entity" -> ColType("String","string",false,true)
+)
   private def v_field_map =  Map(
               "type" -> ColType("String","string",false,true),
               "name" -> ColType("String","string",false,true),
               "widget" -> ColType("String","string",false,true),
-              "lookupEntity" -> ColType("String","string",false,true),
-              "lookupValueField" -> ColType("String","string",false,true),
-              "lookupQuery" -> ColType("String","string",false,true),
-              "masterFields" -> ColType("String","string",false,true),
-              "childFields" -> ColType("String","string",false,true),
-              "childQuery" -> ColType("String","string",false,true),
+              "foreign_entity" -> ColType("String","string",false,true),
+              "foreign_value_field" -> ColType("String","string",false,true),
+              "lookupQuery" -> ColType("io.circe.Json","json",false,true),
+              "local_key_columns" -> ColType("List[String]","array_string",false,true),
+              "foreign_key_columns" -> ColType("List[String]","array_string",false,true),
+              "childQuery" -> ColType("io.circe.Json","json",false,true),
               "default" -> ColType("String","string",false,true),
               "conditionFieldId" -> ColType("String","string",false,true),
               "conditionValues" -> ColType("String","string",false,true),

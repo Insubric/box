@@ -11,7 +11,6 @@ object Schema {
       BoxExportField.BoxExportFieldTable.schema ++
       BoxExportField.BoxExportField_i18nTable.schema ++
       BoxField.BoxFieldTable.schema ++
-      BoxField.BoxFieldFileTable.schema ++
       BoxField.BoxField_i18nTable.schema ++
       BoxForm.BoxFormTable.schema ++
       BoxForm.BoxForm_i18nTable.schema ++

@@ -18,8 +18,18 @@ import io.circe.generic.auto._
 case class JSONQuery(
                       filter:List[JSONQueryFilter],
                       sort:List[JSONSort],
-                      paging:Option[JSONQueryPaging]
+                      paging:Option[JSONQueryPaging],
+                      sqlWhere:Option[String] = None
                     ){
+
+  def validatedWhere = sqlWhere.map(_.replaceAll("insert ","not valid")
+    .replaceAll("update ","not valid")
+    .replaceAll("truncate ","not valid")
+    .replaceAll("drop ","not valid")
+    .replaceAll("delete ","not valid")
+    .replaceAll("alter ","not valid")
+    .replaceAll("grant ","not valid")
+  )
 
   def filterWith(filter:JSONQueryFilter*) = this.copy(filter = filter.toList)
   def sortWith(sort:JSONSort*) = this.copy(sort = sort.toList)
@@ -146,6 +156,8 @@ object JSONQuery extends Logging {
     sort = List(),
     paging = Some(JSONQueryPaging(1000)),
   )
+
+  def where(sql:String) = empty.copy(sqlWhere = Some(sql))
 
   def filterWith(filter:JSONQueryFilter*) = empty.copy(filter = filter.toList)
   def sortWith(sort:JSONSort*) = empty.copy(sort = sort.toList)

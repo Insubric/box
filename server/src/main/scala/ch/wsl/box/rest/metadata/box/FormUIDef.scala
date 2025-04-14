@@ -33,6 +33,10 @@ object FormUIDef {
         widget = Some(WidgetsNames.checkbox),
         default = Some("true")
       ),
+      JSONField(JSONFieldTypes.BOOLEAN,"public_list",false,
+        widget = Some(WidgetsNames.checkbox),
+        default = Some("false")
+      ),
       JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.STRING,"query",true,
         widget = Some(WidgetsNames.code),
@@ -52,7 +56,7 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.STRING,"exportfields",true,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.CHILD,"fields",true,
-        child = Some(Child(FORM_FIELD,"fields","form_uuid","form_uuid",
+        child = Some(Child(FORM_FIELD,"fields",Seq("form_uuid"),Seq("form_uuid"),
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(
             JSONQueryFilter.withValue("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
             JSONQueryFilter.WHERE.eq("entity_field","true")
@@ -63,7 +67,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.tableChild)
       ),
       JSONField(JSONFieldTypes.CHILD,"fields_no_db",true,
-        child = Some(Child(FORM_FIELD_NOT_DB,"fields_no_db","form_uuid","form_uuid",
+        child = Some(Child(FORM_FIELD_NOT_DB,"fields_no_db",Seq("form_uuid"),Seq("form_uuid"),
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(
             JSONQueryFilter.withValue("type",Some("notin"),JSONFieldTypes.STATIC+","+JSONFieldTypes.CHILD),
             JSONQueryFilter.WHERE.eq("entity_field","false")
@@ -74,12 +78,12 @@ object FormUIDef {
         widget = Some(WidgetsNames.tableChild)
       ),
       JSONField(JSONFieldTypes.CHILD,"form_actions",true,
-        child = Some(Child(FORM_ACTION,"form_actions","form_uuid","form_uuid", None,"",true)),
+        child = Some(Child(FORM_ACTION,"form_actions",Seq("form_uuid"),Seq("form_uuid"), None,"",true)),
         widget = Some(WidgetsNames.tableChild),
         params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
       JSONField(JSONFieldTypes.CHILD,"form_navigation_actions",true,
-        child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions","form_uuid","form_uuid", None,"",true)),
+        child = Some(Child(FORM_NAVIGATION_ACTION,"form_navigation_actions",Seq("form_uuid"),Seq("form_uuid"), None,"",true)),
         widget = Some(WidgetsNames.tableChild),
         params = Some(Json.fromFields(Map("sortable" -> Json.True)))
       ),
@@ -93,22 +97,22 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4,None,Seq(
-          SubLayoutBlock(None,Seq(12,12,12),Seq(
+        LayoutBlock(None,4,Seq(
+          SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","entity","query","description","guest_user","edit_key_field","show_navigation","props","params").map(Left(_)))
+              SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","entity","query","description","guest_user","public_list","edit_key_field","show_navigation","props","params").map(Left(_)))
             ),
             Left("")
           ))
         ).map(Right(_))),
-        LayoutBlock(Some(Left("Actions")),4,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
-        LayoutBlock(Some(Left("I18n")),4,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Table Info")),12,None,Seq("tabularFields","exportfields").map(Left(_))),
-        LayoutBlock(Some(Left("Fields")),12,None,Seq("fields").map(Left(_))),
-        LayoutBlock(Some(Left("Not DB fields")),12,None,Seq("fields_no_db").map(Left(_))),
-        LayoutBlock(Some(Left("Linked forms")),12,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,None,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some(Left("Layout")),12,None,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("Actions")),4,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Table Info")),12,Seq("tabularFields","exportfields").map(Left(_))),
+        LayoutBlock(Some(Left("Fields")),12,Seq("fields").map(Left(_))),
+        LayoutBlock(Some(Left("Not DB fields")),12,Seq("fields_no_db").map(Left(_))),
+        LayoutBlock(Some(Left("Linked forms")),12,Seq("fields_child").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,Seq("fields_static").map(Left(_))),
+        LayoutBlock(Some(Left("Layout")),12,Seq("layout").map(Left(_))),
       )
     ),
     entity = "form",
@@ -158,17 +162,17 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,None,Seq(
-          SubLayoutBlock(None,Seq(12,12,12),Seq(
+        LayoutBlock(None,8,Seq(
+          SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
-              SubLayoutBlock(Some("Base Info"),Seq(12),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
+              SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
             ),
           ))
         ).map(Right(_))),
-        LayoutBlock(Some(Left("I18n")),4,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Linked forms")),12,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,None,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some(Left("Layout")),12,None,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Linked forms")),12,Seq("fields_child").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,Seq("fields_static").map(Left(_))),
+        LayoutBlock(Some(Left("Layout")),12,Seq("layout").map(Left(_))),
       )
     ),
     entity = "form",
@@ -198,10 +202,10 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
-      CommonField.lookupEntity(tables),
-      CommonField.lookupValueField(tables),
-      CommonField.lookupQuery(tables),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.foreignEntity(tables),
+      CommonField.foreignValueField(tables),
+      CommonField.foreignQuery(tables),
       CommonField.roles,
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
@@ -219,14 +223,14 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,Seq(
+        LayoutBlock(None,6,Seq(
           "name",
           "type",
           "widget",
           "required",
           "read_only",
-          "lookupEntity",
-          "lookupValueField",
+          "foreign_entity",
+          "foreign_value_field",
           "lookupQuery",
           "default",
           "min",
@@ -236,13 +240,13 @@ object FormUIDef {
           "params",
           "roles"
         ).map(Left(_))),
-        LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "v_field",
     lang = "en",
     tabularFields = Seq("field_uuid","name","type","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    rawTabularFields = Seq("name","widget","read_only","foreign_entity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(JSONQuery.sortByKeys(Seq("name"))),
@@ -263,10 +267,10 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
-      CommonField.lookupEntity(tables),
-      CommonField.lookupValueField(tables),
-      CommonField.lookupQuery(tables),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.foreignEntity(tables),
+      CommonField.foreignValueField(tables),
+      CommonField.foreignQuery(tables),
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
@@ -283,14 +287,14 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,Seq(
+        LayoutBlock(None,6,Seq(
           "name",
           "type",
           "widget",
           "required",
           "read_only",
-          "lookupEntity",
-          "lookupValueField",
+          "foreign_entity",
+          "foreign_value_field",
           "lookupQuery",
           "default",
           "min",
@@ -299,13 +303,13 @@ object FormUIDef {
           "conditionValues",
           "params"
         ).map(Left(_))),
-        LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "v_field",
     lang = "en",
     tabularFields = Seq("field_uuid","name","type","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    rawTabularFields = Seq("name","widget","read_only","foreign_entity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(JSONQuery.sortByKeys(Seq("name"))),
@@ -333,7 +337,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.CHILD)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       JSONField(JSONFieldTypes.STRING,"child_form_uuid",false,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
@@ -343,29 +347,31 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.CHILD,"formRef",true,label = Some("Open form"),
         widget = Some(WidgetsNames.lookupForm),
-        child = Some(Child(Constants.FORM,"form_uuid","child_form_uuid","form_uuid",None,"",false)),
+        child = Some(Child(Constants.FORM,"form_uuid",Seq("child_form_uuid"),Seq("form_uuid"),None,"",false)),
         linked = Some(LinkedForm("form",Seq("child_form_uuid"),Seq("form_uuid"),None,Some("Open child form"),EntityKind.BOX_FORM)),
         params = Some(Json.fromFields(Map("target" -> Json.fromString("new_window"))))
       ),
-      JSONField(JSONFieldTypes.STRING,"masterFields",false,
+      JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,
         label = Some("Parent key fields"),
-        widget = Some(WidgetsNames.input),
+        widget = Some(WidgetsNames.inputMultipleText),
         condition = Some(ConditionalField("widget",Seq(
           WidgetsNames.simpleChild,
           WidgetsNames.tableChild,
           WidgetsNames.lookupForm,
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
+          WidgetsNames.spreadsheet,
         ).asJson))
       ),
-      JSONField(JSONFieldTypes.STRING,"childFields",false,
+      JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_key_columns",false,
         label = Some("Child key fields"),
-        widget = Some(WidgetsNames.input),
+        widget = Some(WidgetsNames.inputMultipleText),
         condition = Some(ConditionalField("widget",Seq(
           WidgetsNames.simpleChild,
           WidgetsNames.tableChild,
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
+          WidgetsNames.spreadsheet,
         ).asJson))
       ),
       JSONField(JSONFieldTypes.JSON,"childQuery",true,
@@ -377,6 +383,7 @@ object FormUIDef {
           WidgetsNames.tableChild,
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
+          WidgetsNames.spreadsheet,
         ).asJson))
       ),
       CommonField.conditionFieldId,
@@ -386,28 +393,28 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,Seq(
+        LayoutBlock(None,6,Seq(
           "name",
           "type",
           "widget",
           "read_only",
           "child_form_uuid",
           "formRef",
-          "masterFields",
-          "childFields",
+          "local_key_columns",
+          "foreign_key_columns",
           "childQuery",
           "default",
           "conditionFieldId",
           "conditionValues",
           "params"
         ).map(Left(_))),
-        LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "field",
     lang = "en",
     tabularFields = Seq("field_uuid","name","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    rawTabularFields = Seq("name","widget","read_only","foreign_entity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(JSONQuery.sortByKeys(Seq("name"))),
@@ -435,11 +442,11 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.STATIC)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n","field_uuid","field_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
-      CommonField.lookupEntity(tables),
-      CommonField.lookupValueField(tables),
-      JSONField(JSONFieldTypes.STRING,"masterFields",false,label=Some("Parent field"),
-        widget = Some(WidgetsNames.input),
+      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.foreignEntity(tables),
+      CommonField.foreignValueField(tables),
+      JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,label=Some("Parent field"),
+        widget = Some(WidgetsNames.inputMultipleText),
         condition = Some(ConditionalField("widget",Seq(WidgetsNames.lookupLabel).asJson))
       ),
       CommonField.conditionFieldId,
@@ -456,27 +463,27 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,Seq(
+        LayoutBlock(None,6,Seq(
           "name",
           "type",
           "widget",
-          "lookupEntity",
-          "masterFields",
+          "foreign_entity",
+          "local_key_columns",
           "function",
-          "lookupValueField",
+          "foreign_value_field",
           "lookupQuery",
           "conditionFieldId",
           "conditionValues",
           "params",
           "read_only"
         ).map(Left(_))),
-        LayoutBlock(None,6,None,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "field",
     lang = "en",
     tabularFields = Seq("field_uuid","name","widget"),
-    rawTabularFields = Seq("name","widget","read_only","lookupEntity","child_form_uuid"),
+    rawTabularFields = Seq("name","widget","read_only","foreign_entity","child_form_uuid"),
     keys = Seq("field_uuid"),
     keyStrategy = SurrugateKey,
     query = Some(JSONQuery.sortByKeys(Seq("name"))),
@@ -505,17 +512,22 @@ object FormUIDef {
         WidgetsNames.richTextEditor,
         WidgetsNames.redactor
       )),
-      CommonField.lookupTextField(Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.multipleLookup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input,WidgetsNames.multi,WidgetsNames.popupWidget)),
+      JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_label_columns",true,label = Some("Foreign label field"), tooltip = Some("Label in external table"), widget = Some(WidgetsNames.inputMultipleText),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.multipleLookup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input,WidgetsNames.multi,WidgetsNames.popupWidget).asJson))
+      ),
+      JSONField(JSONFieldTypes.STRING,"dynamic_label",true,label = Some("Dynamic label"), tooltip = Some("Another field in the same form"), widget = Some(WidgetsNames.input),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.multi,WidgetsNames.popupWidget).asJson))
+      )
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,Seq("lang","label","lookupTextField","placeholder","tooltip").map(Left(_))),
+        LayoutBlock(None,12,Seq("lang","label","foreign_label_columns","dynamic_label","placeholder","tooltip").map(Left(_))),
       )
     ),
     entity = "field_i18n",
     lang = "en",
     tabularFields = Seq("field_uuid","uuid","lang","label"),
-    rawTabularFields = Seq("lang","label","lookupTextField"),
+    rawTabularFields = Seq("lang","label","foreign_value_field"),
     keys = Seq("uuid"),
     keyStrategy = SurrugateKey,
     query = Some(JSONQuery.sortByKeys(Seq("lang"))),
@@ -543,7 +555,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,Seq("lang","label","view_table").map(Left(_))),
+        LayoutBlock(None,12,Seq("lang","label","view_table").map(Left(_))),
       )
     ),
     entity = "form_i18n",
@@ -624,7 +636,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,Seq(
+        LayoutBlock(None,12,Seq(
           "uuid",
           "form_uuid",
           "order",
@@ -710,7 +722,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,Seq(
+        LayoutBlock(None,12,Seq(
           "uuid",
           "form_uuid",
           "order",

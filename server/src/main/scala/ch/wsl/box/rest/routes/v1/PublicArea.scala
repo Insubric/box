@@ -49,13 +49,13 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
         val route: Future[Route] = FormMetadataFactory.hasGuestAccess(name).map {
-          _ match {
-            case Some(session) => {
+
+            case Some((session,public_list)) => {
               implicit val s = session
-              Form(name, lang, Registry(), FormMetadataFactory, EntityKind.FORM.kind).route
+              Form(name, lang, Registry(), FormMetadataFactory, EntityKind.FORM.kind,public_list).route
             }
-            case None => complete(StatusCodes.BadRequest, "The form is not public")
-          }
+            case _ => complete(StatusCodes.BadRequest, "The form is not public")
+
         }
         onComplete(route) {
           case Success(value) => value
@@ -88,6 +88,11 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
   val route:Route = pathPrefix("public") {
     form ~
     file ~
+    pathPrefix("entity") { // keep same path structure than private API
+      pathPrefix(Segment) { lang =>
+        entityRoute
+      }
+    } ~
     entityRoute
   }
 

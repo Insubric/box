@@ -16,7 +16,9 @@ object EntityActionsRegistry extends ActionRegistry {
 
   def apply(name:String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {
     case FormMetadataFactory.STATIC_PAGE => JSONPageActions
-       case "v_field" => JSONTableActions[V_field,V_field_row](V_field)(Entities.encodeV_field_row,Entities.decodeV_field_row,ec,services)
+       case "v_box_form_childs" => JSONTableActions[V_box_form_childs,V_box_form_childs_row](V_box_form_childs)(Entities.encodeV_box_form_childs_row,Entities.decodeV_box_form_childs_row,ec,services)
+   case "v_box_usages" => JSONTableActions[V_box_usages,V_box_usages_row](V_box_usages)(Entities.encodeV_box_usages_row,Entities.decodeV_box_usages_row,ec,services)
+   case "v_field" => JSONTableActions[V_field,V_field_row](V_field)(Entities.encodeV_field_row,Entities.decodeV_field_row,ec,services)
    case "v_labels" => JSONTableActions[V_labels,V_labels_row](V_labels)(Entities.encodeV_labels_row,Entities.decodeV_labels_row,ec,services)
    case "v_roles" => JSONTableActions[V_roles,V_roles_row](V_roles)(Entities.encodeV_roles_row,Entities.decodeV_roles_row,ec,services)
    case "access_level" => JSONTableActions[Access_level,Access_level_row](Access_level)(Entities.encodeAccess_level_row,Entities.decodeAccess_level_row,ec,services)
@@ -43,6 +45,10 @@ object EntityActionsRegistry extends ActionRegistry {
    case "image_cache" => JSONTableActions[Image_cache,Image_cache_row](Image_cache)(Entities.encodeImage_cache_row,Entities.decodeImage_cache_row,ec,services)
    case "labels" => JSONTableActions[Labels,Labels_row](Labels)(Entities.encodeLabels_row,Entities.decodeLabels_row,ec,services)
    case "mails" => JSONTableActions[Mails,Mails_row](Mails)(Entities.encodeMails_row,Entities.decodeMails_row,ec,services)
+   case "map_layer_i18n" => JSONTableActions[Map_layer_i18n,Map_layer_i18n_row](Map_layer_i18n)(Entities.encodeMap_layer_i18n_row,Entities.decodeMap_layer_i18n_row,ec,services)
+   case "map_layer_vector_db" => JSONTableActions[Map_layer_vector_db,Map_layer_vector_db_row](Map_layer_vector_db)(Entities.encodeMap_layer_vector_db_row,Entities.decodeMap_layer_vector_db_row,ec,services)
+   case "map_layer_wmts" => JSONTableActions[Map_layer_wmts,Map_layer_wmts_row](Map_layer_wmts)(Entities.encodeMap_layer_wmts_row,Entities.decodeMap_layer_wmts_row,ec,services)
+   case "maps" => JSONTableActions[Maps,Maps_row](Maps)(Entities.encodeMaps_row,Entities.decodeMaps_row,ec,services)
    case "news" => JSONTableActions[News,News_row](News)(Entities.encodeNews_row,Entities.decodeNews_row,ec,services)
    case "news_i18n" => JSONTableActions[News_i18n,News_i18n_row](News_i18n)(Entities.encodeNews_i18n_row,Entities.decodeNews_i18n_row,ec,services)
    case "public_entities" => JSONTableActions[Public_entities,Public_entities_row](Public_entities)(Entities.encodePublic_entities_row,Entities.decodePublic_entities_row,ec,services)

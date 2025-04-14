@@ -13,7 +13,7 @@ import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONFieldMap, JSONFieldMapForeign, JSONID, JSONMetadata, JSONQuery}
 import ch.wsl.box.rest.logic.{DbActions, JSONViewActions, Lookup, TableActions, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, UserProfile}
 import io.circe.{Decoder, Encoder}
@@ -22,6 +22,7 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.routes.GeoData
 import ch.wsl.box.rest.routes.enablers.CSVDownload
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
@@ -86,7 +87,8 @@ object EntityRead extends Logging  {
             post {
               entity(as[JSONQuery]) { query =>
                 complete {
-                  db.run(Lookup.values(name, valueProperty, textProperty, query))
+                  def toSeq(s:String):Seq[String] = s.split(",").map(_.trim).filter(_.nonEmpty)
+                  db.run(Lookup.values(name, JSONFieldMapForeign(toSeq(valueProperty).head,toSeq(valueProperty),toSeq(textProperty)), query))
                 }
               }
             }
@@ -143,6 +145,7 @@ object EntityRead extends Logging  {
             }
           }
         } ~
+        GeoData(db,actions) ~
         pathEnd {
           get { ctx =>
             ctx.complete {

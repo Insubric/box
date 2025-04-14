@@ -1,5 +1,7 @@
 package ch.wsl.box.services.config
 
+import ch.wsl.box.viewmodel.MatomoConfig
+
 import java.time.LocalDateTime
 
 trait FullConfig extends Config {
@@ -28,5 +30,8 @@ trait FullConfig extends Config {
   def name:String
   def shortName:String
   def initials:String
+
+
+  def matomo:Option[MatomoConfig]
 
 }

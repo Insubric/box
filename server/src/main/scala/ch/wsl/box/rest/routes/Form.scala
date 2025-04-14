@@ -36,7 +36,7 @@ case class Form(
                  registry: RegistryInstance,
                  metadataFactory: MetadataFactory,
                  kind:String,
-                 public: Boolean = false
+                 show_list: Boolean = true
                )(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] with Exporters {
 
     import JSONSupport._
@@ -92,7 +92,7 @@ case class Form(
     }
 
     def privateOnly(r: => Route):Route = {
-      if(public) {
+      if(!show_list) {
         complete(StatusCodes.Unauthorized,"Not authorized to do that action without authentication")
       } else {
         r
@@ -114,10 +114,10 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query, true, _.exportFields))
+      csv <- db.run(formActions.csv(query, true, _.exportFieldsNoGeom.map(_.name)))
     } yield csv.copy(
       showHeader = true,
-      header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
+      header = metadata.exportFieldsNoGeom.map(_.title)
     )
   }
 
@@ -142,7 +142,6 @@ case class Form(
   }
 
   def updateDiff = put {
-    privateOnly {
       entity(as[JSONDiff]) { e =>
         complete {
           for {
@@ -155,23 +154,21 @@ case class Form(
           }
         }
       }
-    }
   }
 
 
   def _get(ids:Seq[JSONID]) = get {
-    privateOnly {
+
       complete({
         db.run(actions.getById(ids.head).transactionally).map { record =>
           logger.info(record.toString)
           HttpEntity(ContentTypes.`application/json`, record.asJson)
         }
       })
-    }
+
   }
 
   def _delete(ids:Seq[JSONID]) = delete {
-    privateOnly {
       complete {
 
           val action = DBIO.sequence(ids.map(id => actions.delete(id))).transactionally
@@ -181,11 +178,9 @@ case class Form(
           } yield JSONCount(count.sum)
 
       }
-    }
   }
 
   def update(ids:Seq[JSONID]) = put {
-    privateOnly {
       entity(as[Json]) { e =>
         complete {
 
@@ -205,7 +200,6 @@ case class Form(
 
         }
       }
-    }
   }
 
 
@@ -302,23 +296,24 @@ case class Form(
       }
     } ~
     lookup(Future.successful(metadata)) ~
-    privateOnly {
-      xls ~
-        csv ~
-        shp ~
-        geoPkg
-    } ~
-    GeoData(db,actions) ~
     lookups(actions) ~
     pathEnd {
-        post {
-          entity(as[Json]) { e =>
-            complete {
-              db.run(actions.insert(e).transactionally)
-            }
+      post {
+        entity(as[Json]) { e =>
+          complete {
+            db.run(actions.insert(e).transactionally)
           }
         }
+      }
+    } ~
+    privateOnly {
+      xls ~
+      csv ~
+      shp ~
+      geoPkg ~
+      GeoData(db, actions)
     }
+
 
 
 }

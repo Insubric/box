@@ -110,7 +110,7 @@ trait LookupWidget extends Widget with HasData {
         val request = for{
           lookups <- services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public)
           singleLookup <- if(data.get != Json.Null && !lookups.exists(_.id == data.get)) {
-            services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, JSONQuery.filterWith(WHERE.in(fieldLookup.map.valueProperty,Seq(data.get.string))), public)
+            services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, JSONQuery.filterWith(WHERE.in(fieldLookup.map.foreign.valueColumn,Seq(data.get.string))), public)
           } else Future.successful(Seq[JSONLookup]())
         } yield {
           logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
@@ -139,7 +139,6 @@ trait LookupWidget extends Widget with HasData {
     fieldLookup.lookupQuery.flatMap(JSONQuery.fromJson) match {
       case Some(query) => {
         autoRelease(allData.listen({ allJs =>
-          BrowserConsole.log(allJs)
           val newQuery = query.withData(allJs,services.clientSession.lang())
           fetchRemoteLookup(fieldLookup)(newQuery)
 
@@ -193,7 +192,10 @@ trait LookupWidget extends Widget with HasData {
   }
 
   private def extractUserData(data:Seq[JSONLookup])(json:Json) = data.find(_.id == json).map(x => Json.fromString(x.value)).getOrElse(Json.Null)
-  private def extractDataFromLabel(data:Seq[JSONLookup])(label:String) = data.find(_.value == label).map(x => x.id).getOrElse(Json.Null)
+  private def extractDataFromLabel(data:Seq[JSONLookup])(label:String) = {
+    logger.debug(s"Searching for $label on $data")
+    data.find(_.value == label).map(x => x.id).getOrElse(Json.Null)
+  }
 
 
   private def fetchLookups()(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {

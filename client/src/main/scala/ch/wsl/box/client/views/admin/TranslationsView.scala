@@ -86,7 +86,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
 
     val fieldProp = viewModel.subProp(_.dest).bitransform{ seq =>
       seq.find(_.uuid == source.uuid ) match {
-        case None => Field(source.uuid,source.name,source.source,"","","","")
+        case None => Field(source.uuid,source.name,source.source,"","","",List(),"")
         case Some(f) => f
       }
     } { field =>
@@ -98,8 +98,8 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
     div(BootstrapStyles.Grid.row, paddingTop := 15.px, paddingBottom := 15.px, borderBottomStyle.solid, borderBottomWidth := 1.px)(
       div(BootstrapCol.md(2),fontSize := 10.px, {
         source.source match {
-          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse("")).add()),source.name))
-          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name).add()),source.name))
+          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse(""),false).add()),source.name))
+          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name,false).add()),source.name))
           case _ => div(source.name)
         }
       }),
@@ -107,11 +107,12 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
       div(BootstrapCol.md(1),source.placeholder),
       div(BootstrapCol.md(1),source.tooltip),
       div(BootstrapCol.md(1),source.dynamicLabel),
+      div(BootstrapCol.md(1),source.lookup_columns),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.label)(str => fieldProp.get.copy(label = str)))(ClientConf.style.fullWidth)),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.placeholder)(str => fieldProp.get.copy(placeholder = str)))(ClientConf.style.fullWidth)),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.tooltip)(str => fieldProp.get.copy(tooltip = str)))(ClientConf.style.fullWidth)),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.dynamicLabel)(str => fieldProp.get.copy(dynamicLabel = str)))(ClientConf.style.fullWidth)),
-      div(BootstrapCol.md(2)),
+      div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.lookup_columns.mkString(","))(str => fieldProp.get.copy(lookup_columns = str.split(",").map(_.trim).filter(_.nonEmpty).toList)))(ClientConf.style.fullWidth)),
     ).render
   }
 
@@ -120,6 +121,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
     div(BootstrapCol.md(3),b("Placeholder")),
     div(BootstrapCol.md(3),b("Tooltip")),
     div(BootstrapCol.md(3),b("Dynamic label")),
+    div(BootstrapCol.md(3),b("Lookup column")),
   )
 
   private val content = div(BootstrapStyles.Grid.row)(

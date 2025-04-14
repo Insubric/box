@@ -43,10 +43,10 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
 
   private val (loggedInUrl2State, loggedInState2Url) = bidirectional {
     case "/" => IndexState
-    case "/entities" => EntitiesState("entity","",Layouts.std)
-    case "/tables" => EntitiesState("table","",Layouts.std)
-    case "/views" => EntitiesState("view","",Layouts.std)
-    case "/forms" => EntitiesState("form","",Layouts.std)
+    case "/entities" => EntitiesState("entity","",false,Layouts.std)
+    case "/tables" => EntitiesState("table","",false,Layouts.std)
+    case "/views" => EntitiesState("view","",false,Layouts.std)
+    case "/forms" => EntitiesState("form","",false,Layouts.std)
     case "/functions"  => DataListState(DataKind.FUNCTION,"")
     case "/exports"  => DataListState(DataKind.EXPORT,"")
     case "/box" / "export" / exportFunction  => DataState(DataKind.EXPORT,exportFunction)
@@ -55,8 +55,8 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std)
     case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std)
     case "/box" / kind / entity / "child" / childEntity => MasterChildState(kind,entity,childEntity)
-    case "/box" / kind / entity => EntityTableState(kind,entity,None)
-    case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query))
+    case "/box" / kind / entity => EntityTableState(kind,entity,None,false)
+    case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query),false)
     case "/translations"  => TranslatorState
     case "/admin"  => AdminState
     case "/admin" / "box-definition"  => AdminBoxDefinitionState
@@ -65,9 +65,12 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "ui-conf"  => AdminUiConfState
   }
 
+
+  //localhost:8080/public/box/form/tree
   private val (loggedOutUrl2State, loggedOutState2Url) = bidirectional {
     case "/" => LoginState("")
     case "/logout" => LogoutState
+    case "/public" / "box" / kind / entity  => EntityTableState(kind,entity,None,true)
     case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
     case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank)
     case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std)

@@ -44,11 +44,11 @@ trait Exporters {
           val io = for {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, registry, metadataFactory)
-            data <- formActions.list(query, true, true, _.exportFields)
+            data <- formActions.list(query, true, true, _.exportFieldsNoGeom.map(_.name))
             xlsTable = XLSTable(
               title = name,
-              header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
-              rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
+              header = metadata.exportFieldsNoGeom.map(_.title),
+              rows = data.map(row => metadata.exportFieldsNoGeom.map(cell => row.get(cell.name)))
             )
           } yield {
             XLS.route(xlsTable)

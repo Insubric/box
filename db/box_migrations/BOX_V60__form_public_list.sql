@@ -1,0 +1,1 @@
+alter table form add column public_list boolean not null default false;

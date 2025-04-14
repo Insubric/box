@@ -41,20 +41,27 @@ object TypeMapping extends Logging {
   // udt_name
   def jsonTypesMapping(key:String, orElse:String = null) =  key match {
     case "numeric" | "double precision" | "real" | "float2" | "float4" | "float8" | "decimal"  => JSONFieldTypes.NUMBER
+    case s"numeric$suffix"  => JSONFieldTypes.NUMBER
     case "integer" | "bigint" | "smallint" | "oid" | "int2" | "int4" | "int8" => JSONFieldTypes.INTEGER
     case "text" | "character varying" | "character" | "name" | "uuid" | "citext" | "varchar" | "bpchar" | "char" => JSONFieldTypes.STRING
+    case  s"character$precision"  => JSONFieldTypes.STRING
+    case  s"$prefix.email"  => JSONFieldTypes.STRING
+    case  s"varchar$precision" => JSONFieldTypes.STRING
     case "boolean" | "bool" => JSONFieldTypes.BOOLEAN
     case "bytea" => JSONFieldTypes.FILE
-    case "timestamp without time zone" | "timestamp with time zone" | "timestamp" | "timestampz" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision without time zone" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision with time zone" => JSONFieldTypes.DATETIME
+    case s"timestampz$precision" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision" => JSONFieldTypes.DATETIME
     case "time without time zone" | "time" | "timez" => JSONFieldTypes.TIME
     case "date" => JSONFieldTypes.DATE
     case "interval" => JSONFieldTypes.INTERVAL
     case "ARRAY" => JSONFieldTypes.STRING
     case "USER-DEFINED" => JSONFieldTypes.STRING
-    case "geometry" => JSONFieldTypes.GEOMETRY
+    case s"${prefix}geometry$suffix" => JSONFieldTypes.GEOMETRY
     case "jsonb" => JSONFieldTypes.JSON
     case "_varchar" | "_text" | "text[]" | "varchar[]" => JSONFieldTypes.ARRAY_STRING
-    case "_float8" | "float8[]" | "_float4" | "float4[]" | "_int8" | "int8[]" | "_int4" | "int4[]" | "_int2" | "int2[]" | "_decimal" | "decimal[]" | "_numeric" | "numeric[]" => JSONFieldTypes.ARRAY_NUMBER
+    case "double precision[]" | "_float8" | "float8[]" | "_float4" | "float4[]" | "_int8" | "int8[]" | "integer[]" | "_int4" | "int4[]" | "_int2" | "int2[]" | "_decimal" | "decimal[]" | "_numeric" | "numeric[]" => JSONFieldTypes.ARRAY_NUMBER
     case _ => {
       logger.warn(s"$key type not mapped")
       orElse

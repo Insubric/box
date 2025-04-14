@@ -68,7 +68,10 @@ object GlobalStyleFactory{
 
       unsafeRoot("h5")(
         Font.bold,
-        fontSize(14 px)
+        fontSize(14 px),
+        media.maxWidth(600 px)( //disable autozoom
+          fontSize(16 px)
+        )
       ),
 
       unsafeRoot("body") (
@@ -91,6 +94,9 @@ object GlobalStyleFactory{
 
       unsafeRoot("select")(
         inputDefaultWidth,
+        media.maxWidth(600 px)(
+          width(100 %%)
+        ),
         borderStyle.solid,
         borderWidth(0 px,0 px,1 px,0 px),
         borderRadius.`0`,
@@ -115,6 +121,9 @@ object GlobalStyleFactory{
 
       unsafeRoot("input")(
         inputDefaultWidth,
+        media.maxWidth(600 px)(
+          width(100 %%)
+        ),
         borderStyle.solid,
         borderWidth(0 px,0 px,1 px,0 px),
         borderRadius.`0`,
@@ -437,6 +446,19 @@ object GlobalStyleFactory{
       fontSize(14 px)
     )
 
+    val chipLink = style(
+      borderColor.gray,
+      padding(5 px, 10 px),
+      marginLeft(10 px),
+      fontSize(10 px),
+      backgroundColor(Color("#eee")),
+      borderRadius(20 px),
+      &.hover(
+        color(conf.colors.main).important,
+        backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4))
+      )
+    )
+
     val checkboxWidget = style(
       float.none.important,
       marginRight(5.px)
@@ -448,6 +470,9 @@ object GlobalStyleFactory{
       ),
       unsafeChild("textarea") (
         float.right
+      ),
+      unsafeChild(".jexcel input") (
+        float.none
       )
     )
 
@@ -461,6 +486,9 @@ object GlobalStyleFactory{
 
     val dateTimePicker = style(
       inputDefaultWidth,
+      media.maxWidth(600 px)(
+        width(100 %%)
+      ),
       textAlign.right,
       float.right
     )
@@ -473,7 +501,8 @@ object GlobalStyleFactory{
 
     val tableHeaderFixed = style(
       unsafeChild("table")(
-        verticalAlign.middle
+        verticalAlign.middle,
+        height.fitContent
       ),
       unsafeChild("thead") (
         position.sticky,
@@ -503,20 +532,51 @@ object GlobalStyleFactory{
       )
     )
 
-    val rowStyle = style(
+    val tableCellActions = style(
+      height(100 %%),
+      minWidth(80 px),
+      fontSize(15 px),
+      display.flex,
+      alignItems.center,
+      justifyContent.spaceAround,
+      unsafeChild("a.action.primary") (
+        &.hover(
+          color(conf.colors.main)
+        )
+      ),
+      unsafeChild("a.action.danger") (
+        &.hover(
+          color(conf.colors.danger)
+        )
+      ),
+//      unsafeChild("svg") (
+//        transform := "scale(1.5)"
+//      )
+    )
 
+    val rowStyle = style(
+      height(100 %%),
       unsafeChild("a.action") (
         color(Color("#ccc")),
         fontSize(11 px)
       ),
       borderLeft(4 px,solid,transparent),
 
+      unsafeExt(_ + ".selected") (
+        unsafeChild("a.action") (
+          color(Color("#333")),
+        ),
+        backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.2))
+      ),
       &.hover(
         backgroundColor(rgba(250,248,250,1)),
         borderLeft(4 px,solid,black),
         unsafeChild("a.action") (
           color(Color("#333")),
-        )
+        ),
+        unsafeExt(_ + ".selected") (
+          backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.2))
+        ),
       ),
       unsafeExt(_ + "." + StyleConstants.mapHoverClass)(
         backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).lighten(0.8).color)
@@ -585,14 +645,47 @@ object GlobalStyleFactory{
       )
     )
 
+    val tableContainer = style(
+      paddingLeft(10.px),
+      paddingRight(10.px),
+      paddingBottom(20.px)
+    )
+
+    val table = style(
+      borderColor(Colors.GreySemi),
+      borderCollapse.collapse,
+      unsafeChild("th") (
+        Font.bold,
+        //borderColor(conf.colors.main),
+      ),
+      unsafeChild("td") (
+        //borderColor(conf.colors.main),
+        //borderStyle.solid,
+        //borderWidth(1 px),
+        paddingLeft(10 px),
+        paddingRight(10 px),
+        paddingTop(10 px),
+        paddingBottom(10 px),
+        media.maxWidth(600 px)(
+          verticalAlign.textTop
+        ),
+      ),
+      unsafeChild("label") (
+        marginBottom.`0`,
+        media.maxWidth(600 px)(
+          width(100 %%),
+          justifyContent.spaceEvenly
+        ),
+      ),
+      width(100 %%)
+    )
+
     val field = style(
       paddingRight(10 px),
       paddingLeft(10 px),
       minHeight.`0`,
-      unsafeChild("div") (
-        unsafeChild("h3") (
-          marginLeft((-10-conf.paddingBlocks) px)
-        )
+      media.maxWidth(600 px)( //disable autozoom
+        paddingTop(10 px)
       )
     )
 
@@ -792,7 +885,7 @@ object GlobalStyleFactory{
     val boxIconButtonDanger = style(
       Font.regular,
       whiteSpace.nowrap,
-      padding(3 px, 10 px),
+      padding(7 px, 15 px),
       fontSize(16 px),
       margin(3 px, 0 px),
       border(0 px),
@@ -817,7 +910,7 @@ object GlobalStyleFactory{
       Font.regular,
       whiteSpace.nowrap,
       height.auto,
-      padding(4 px, 8 px),
+      padding(7 px, 15 px),
       fontSize(14 px),
       minWidth(25 px),
       textAlign.center,
@@ -859,7 +952,7 @@ object GlobalStyleFactory{
       Font.regular,
       whiteSpace.nowrap,
       height.auto,
-      padding(4 px, 8 px),
+      padding(7 px, 15 px),
       fontSize(14 px),
       lineHeight(16 px),
       margin(9 px, 5 px, 9 px, 0 px),
@@ -869,7 +962,9 @@ object GlobalStyleFactory{
       color(conf.colors.mainText),
       &.hover(
         backgroundColor.white,
-        color(conf.colors.mainLink)
+        color(conf.colors.mainLink),
+        borderColor(conf.colors.mainLink),
+        boxShadow := "0px 0px 5px #555"
       )
     )
 
@@ -877,7 +972,7 @@ object GlobalStyleFactory{
       Font.regular,
       whiteSpace.nowrap,
       height.auto,
-      padding(4 px, 8 px),
+      padding(7 px, 15 px),
       fontSize(14 px),
       lineHeight(16 px),
       margin(9 px, 5 px, 9 px, 0 px),
@@ -893,6 +988,9 @@ object GlobalStyleFactory{
 
     val popupButton = style(
       inputDefaultWidth,
+      media.maxWidth(600 px)(
+        width(100 %%)
+      ),
       borderStyle.solid,
       borderWidth(0 px,0 px,1 px,0 px),
       borderRadius.`0`,
@@ -970,6 +1068,15 @@ object GlobalStyleFactory{
       display.none,
       media.maxWidth(600 px)(
         display.block
+      )
+    )
+
+    val mobileFooter = style(
+      media.maxWidth(600 px)(
+        unsafeChild("button")(
+          (width :=! "calc(100vw - 20px)").important,
+          height(35 px).important
+        )
       )
     )
 
@@ -1076,6 +1183,9 @@ object GlobalStyleFactory{
 
     val editor = style(
       inputDefaultWidth,
+      media.maxWidth(600 px)(
+        width(100 %%)
+      ),
       float.right,
       borderStyle.solid,
       borderWidth(1 px),
@@ -1123,6 +1233,18 @@ object GlobalStyleFactory{
       padding.horizontal(10 px),
       marginLeft(5 px),
       marginTop(5 px),
+      unsafeChild("ul") (
+        paddingLeft.`0`,
+        marginBottom.`0`
+      ),
+      unsafeChild("li") (
+        listStyle := "none",
+        padding(5 px),
+        &.hover(
+          color.white,
+          backgroundColor(conf.colors.main)
+        )
+      )
     )
 
     val mapSearch = style(
@@ -1225,7 +1347,7 @@ object GlobalStyleFactory{
       width(100.%%),
       height(100.%%),
       float.none.important,
-      borderWidth.`0`
+      borderWidth(0 px,0 px,1 px,0 px)
     )
 
     val simpleCheckbox = style(
@@ -1294,7 +1416,7 @@ object GlobalStyleFactory{
 
     val childAddButton = style(
       lineHeight(40 px),
-      marginLeft(10 px),
+      paddingLeft(10 px),
       fontSize(14 px),
       display.inlineBlock,
       unsafeChild("svg")(
@@ -1303,6 +1425,13 @@ object GlobalStyleFactory{
         width(20 px),
         marginRight(5 px)
       )
+    )
+
+    val childAddButtonBoxed = style(
+      width(100 %%),
+      border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
+      backgroundColor(conf.childProps.backgroundColor),
+      marginBottom(20 px)
     )
 
     val childRemoveButton = style(
@@ -1403,7 +1532,14 @@ object GlobalStyleFactory{
         width(100.px)
       )
     )
-
+//
+//    val mapPopup = style(
+//      border.solid,
+//      borderColor(conf.colors.main),
+//      backgroundColor.white,
+//      padding(10 px)
+//    )
+//
 
   //  val fixedHeader = style(
   //    unsafeRoot("tbody")(

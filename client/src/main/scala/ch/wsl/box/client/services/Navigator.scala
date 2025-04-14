@@ -61,7 +61,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
 
   import Context._
 
-  case class For(currentId: Option[String], metadata:JSONMetadata) {
+  case class For(currentId: Option[String], metadata:JSONMetadata,public:Boolean) {
 
     def navigation(): Option[Navigation] = {
 
@@ -96,7 +96,7 @@ class Navigator(session:ClientSession,rest:REST) extends Logging {
 
 
     private def fetchIds(query:JSONQuery,head:Boolean)(implicit ex:ExecutionContext) = {
-      services.rest.ids(metadata.kind,session.lang(),metadata.name,query).map { ids =>
+      services.rest.ids(metadata.kind,session.lang(),metadata.name,query,public).map { ids =>
         session.setQueryFor(metadata.kind,metadata.name,session.getURLQuery(),query)
         session.setIDs(ids)
         if(head) {

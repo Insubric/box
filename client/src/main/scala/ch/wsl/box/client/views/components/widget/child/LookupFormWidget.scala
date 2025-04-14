@@ -54,7 +54,7 @@ object LookupFormWidget extends ComponentWidgetFactory {
     def navigate(goTo: Routes => RoutingState) = (e: Event) => {
       val blank = params.field.params.exists(_.get("target") == "new_window")
 
-      Navigate.to(goTo(Routes(linked.kind.kind, linked.name)),blank)
+      Navigate.to(goTo(Routes(linked.kind.kind, linked.name,params.public)),blank)
       e.preventDefault()
     }
 

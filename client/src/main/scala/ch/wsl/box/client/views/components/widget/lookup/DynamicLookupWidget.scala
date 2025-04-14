@@ -43,7 +43,8 @@ trait DynamicLookupWidget extends Widget with Logging {
         remoteId -> js.js(localId)
       }
       val newId = JSONID.fromMap(ids)
-      if(!lookupId.contains(newId.asString)) { // do only if relevant values have changed
+//      logger.debug(s"Listening all data: $newId ${params.metadata.name} ${field.name} curentvale ${remoteField.get}")
+      if(!lookupId.contains(newId.asString) || remoteField.get == Json.Null) { // do only if relevant values have changed
         if(newId.valid) {
           lookupId = Some(newId.asString)
           logger.debug(s"Listening: $newId ${params.metadata.name} ${field.name}")

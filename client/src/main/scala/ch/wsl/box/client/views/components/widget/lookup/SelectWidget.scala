@@ -11,6 +11,7 @@ import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.css.CssView._
 import io.udash.properties.single.Property
+import org.scalajs.dom.Node
 import scalacss.ScalatagsCss._
 import scalatags.JsDom
 import scalatags.JsDom.all.{label => lab, _}
@@ -45,13 +46,19 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
     ).render
   })
 
+  val nolabel = field.params.exists(_.js("nolabel") == true.asJson)
+
   override def edit(nested:Binding.NestedInterceptor) = {
-    val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.right())++modifiers++WidgetUtils.toNullable(field.nullable)
+
+    val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.right()) ++
+      modifiers ++
+      WidgetUtils.toNullable(field.nullable) ++
+      {if(nolabel) Seq(width := 100.pct) else Seq()}
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
-      WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
+      if(!nolabel) WidgetUtils.toLabel(field,WidgetUtils.LabelRight) else Seq[Node](),
       tooltip(nested(Select.optional[JSONLookup](model, lookup,StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*)).render)._1,
       div(BootstrapStyles.Visibility.clearfix)
     )

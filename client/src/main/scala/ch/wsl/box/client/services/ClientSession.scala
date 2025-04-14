@@ -66,7 +66,8 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         dom.window.sessionStorage.setItem(LANG, l)
       }
       parameters.delete("lang")
-      dom.window.location.href = dom.window.location.href.replace(dom.window.location.search, parameters.toString)
+      parameters.toString
+      dom.window.location.href = dom.window.location.href.takeWhile(_ != '?') + {if(parameters.nonEmpty) "?" + parameters else ""}
     }
   }
 

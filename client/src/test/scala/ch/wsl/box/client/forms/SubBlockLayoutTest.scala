@@ -26,9 +26,9 @@ class SubBlockLayoutTest extends TestBase {
 
     override def metadata: JSONMetadata = {
       val originalMetadata = super.metadata
-      originalMetadata.copy(layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
+      originalMetadata.copy(layout = Layout(Seq(LayoutBlock(None,12,Seq(
         Left(stringField),
-        Right(SubLayoutBlock(Some("title"),Seq(12),Seq())),
+        Right(SubLayoutBlock(Some(Left("title")),Some(Seq(12)),Seq())),
       )))))
     }
 

@@ -30,14 +30,14 @@ object Translations {
     q
       .sortBy(_._2.name)
       .result.map(_.map { case (fieldI18n, field, f) =>
-      Field(field.field_uuid.get.toString, s"${f.name}.${field.name}", fieldSource, fieldI18n.label.getOrElse(""), fieldI18n.placeholder.getOrElse(""), fieldI18n.tooltip.getOrElse(""), fieldI18n.lookupTextField.getOrElse(""))
+      Field(field.field_uuid.get.toString, s"${f.name}.${field.name}", fieldSource, fieldI18n.label.getOrElse(""), fieldI18n.placeholder.getOrElse(""), fieldI18n.tooltip.getOrElse(""), fieldI18n.foreign_label_columns.getOrElse(List()),fieldI18n.dynamic_label.getOrElse(""))
     })
   }
 
   private def getLabels(langSource:String)(implicit ec:ExecutionContext, services: Services):DBIO[Seq[Field]] = tableInstance.filter(f => f.lang === langSource && f.label.nonEmpty )
     .sortBy(_.label)
     .result.map { _.map{ f =>
-      Field(f.key,"Global labels",labelSource,f.label.get, "","","")
+      Field(f.key,"Global labels",labelSource,f.label.get, "","",List(),"")
     }}
 
 
@@ -50,7 +50,7 @@ object Translations {
       q
       .sortBy(_._1.name)
       .result.map( _.map{ case (f,i18n) =>
-        Field(f.form_uuid.get.toString,f.name,formSource,i18n.label.getOrElse(""), "","", i18n.dynamic_label.getOrElse(""))
+        Field(f.form_uuid.get.toString,f.name,formSource,i18n.label.getOrElse(""), "","", List(),i18n.dynamic_label.getOrElse(""))
       })
 
 
@@ -83,7 +83,8 @@ object Translations {
             label = Some(dest.label),
             placeholder = emptyToNone(dest.placeholder),
             tooltip = emptyToNone(dest.tooltip),
-            lookupTextField = emptyToNone(dest.dynamicLabel)
+            dynamic_label = emptyToNone(dest.dynamicLabel),
+            foreign_label_columns = if(dest.lookup_columns.isEmpty) None else Some(dest.lookup_columns)
           )
           case None => BoxField.BoxField_i18n_row(
             uuid = Some(UUID.randomUUID()),
@@ -92,7 +93,8 @@ object Translations {
             label = Some(dest.label),
             placeholder = emptyToNone(dest.placeholder),
             tooltip = emptyToNone(dest.tooltip),
-            lookupTextField = emptyToNone(dest.dynamicLabel)
+            dynamic_label = emptyToNone(dest.dynamicLabel),
+            foreign_label_columns = if(dest.lookup_columns.isEmpty) None else Some(dest.lookup_columns)
           )
 
       }

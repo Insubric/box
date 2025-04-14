@@ -60,9 +60,9 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def geoData(kind: String, lang: String, entity: String, field: String, request: GeoDataRequest)(implicit ec: ExecutionContext): Future[GeoData] = ???
+  override def geoData(kind: String, lang: String, entity: String, field: String, request: GeoDataRequest,public:Boolean)(implicit ec: ExecutionContext): Future[GeoData] = ???
 
-  override def csv(kind: String, lang: String, entity: String, q: JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
+  override def csv(kind: String, lang: String, entity: String, q: JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
     println("csv not implemented")
     ???
   }
@@ -77,7 +77,7 @@ class RestMock(values:Values) extends REST with Logging {
     ???
   }
 
-  override def ids(kind: String, lang: String, entity: String, q: JSONQuery)(implicit ec:ExecutionContext): Future[IDs] = {
+  override def ids(kind: String, lang: String, entity: String, q: JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[IDs] = {
     println("ids not implemented")
     ???
   }
@@ -86,7 +86,7 @@ class RestMock(values:Values) extends REST with Logging {
     values.metadata
   }
 
-  override def tabularMetadata(kind: String, lang: String, entity: String)(implicit ec:ExecutionContext): Future[JSONMetadata] = {
+  override def tabularMetadata(kind: String, lang: String, entity: String,public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata] = {
     println("tabularMetadata not implemented")
     ???
   }
@@ -101,7 +101,7 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]] = ???
+  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]] = ???
 
   override def get(kind: String, lang: String, entity: String, id: JSONID, public:Boolean)(implicit ec:ExecutionContext): Future[Json] = Future.successful{
     values.get(id)

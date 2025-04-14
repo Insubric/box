@@ -18,6 +18,8 @@ object JSONUtils extends Logging {
   val LANG = "::lang"
   val FIRST = "::first"
 
+  def toJs(value:String,field:JSONField):Option[Json] = toJs(value,field.`type`)
+
   def toJs(value:String,typ:String):Option[Json] = {
     Try {
       val json:Json = typ match {
@@ -32,6 +34,7 @@ object JSONUtils extends Logging {
         case JSONFieldTypes.DATE => DateTimeFormatters.date.parse(value).get.asJson
         case JSONFieldTypes.DATETIME => DateTimeFormatters.timestamp.parse(value).get.asJson
         case JSONFieldTypes.TIME => DateTimeFormatters.time.parse(value).get.asJson
+        case JSONFieldTypes.STRING => Json.fromString(value)
         case _ => parser.parse(value) match {
           case Left(_) => Json.fromString(value)
           case Right(value) => value
@@ -76,7 +79,14 @@ object JSONUtils extends Logging {
         num => Value.of(num.toString),
         str => Value.of(str),
         arr => Value.fromSeq(arr.map(_.toMustacheValue)),
-        obj => Value.fromMap(obj.toMap.mapValues(_.toMustacheValue).toMap)
+        obj => Value.fromMap{
+          obj.toMap.flatMap{ case (k,v) =>
+            Map(
+              k -> v.toMustacheValue,
+              k + "$str"-> Value.of(v.noSpaces),
+            )
+          }
+        }
       )
     }
 

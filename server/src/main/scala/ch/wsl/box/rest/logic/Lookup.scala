@@ -2,7 +2,7 @@ package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
 import ch.wsl.box.jdbc.FullDatabase
-import ch.wsl.box.model.shared.{JSONFieldLookup, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookup, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{JSONFieldLookup, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONFieldMapForeign, JSONID, JSONLookup, JSONMetadata, JSONQuery}
 import io.circe.Json
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
@@ -47,19 +47,16 @@ object Lookup {
         case _ => None
       }
       foreignEntity <- elements.get(remoteLookup.lookupEntity)
-      foreignRow <- foreignEntity.find(_.js(remoteLookup.map.valueProperty) == value)
+      foreignRow <- foreignEntity.find(_.js(remoteLookup.map.foreign.valueColumn) == value)
     } yield {
-      Json.fromString(
-        JSONFieldLookup.toJsonLookup(remoteLookup.map)(foreignRow).value
-      )
+       JSONFieldLookup.toJsonLookup(remoteLookup.map.foreign)(foreignRow).id
     }
 
   }
 
-  def values(entity:String,value:String,text:String,query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Seq[JSONLookup]] = {
+  def values(entity:String, foreign:JSONFieldMapForeign, query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer, services: Services) :DBIO[Seq[JSONLookup]] = {
     Registry().actions(entity).findSimple(query).map{ _.map{ row =>
-      val label = text.split(",").flatMap(x => row.getOpt(x.trim)).filterNot(_.isEmpty)
-      JSONLookup(row.js(value),label)
+      JSONFieldLookup.toJsonLookup(foreign)(row)
     }}
   }
 }

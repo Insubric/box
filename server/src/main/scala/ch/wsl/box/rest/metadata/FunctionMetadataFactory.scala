@@ -144,7 +144,7 @@ class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Exec
 
     } yield {
 
-        Some(JSONFieldLookup.fromDB(entity, JSONFieldMap(value, text, field.name)))
+        Some(JSONFieldLookup.fromDB(entity, JSONFieldMap(JSONFieldMapForeign(value,Seq(value),Seq(text)), Seq(field.name))))
 
     }} match {
       case Some(a) => a

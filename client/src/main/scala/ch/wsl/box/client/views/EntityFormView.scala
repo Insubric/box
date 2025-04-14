@@ -6,6 +6,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate,
 import ch.wsl.box.client.styles.{BootstrapCol, Fade}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
+import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
@@ -32,6 +33,7 @@ import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
 import ch.wsl.typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
 
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
 import scala.scalajs.js.timers.setTimeout
@@ -140,7 +142,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       widget.afterRender().map{ _ =>
         enableGoAway("handleState")
         services.clientSession.loading.set(false)
-        loaded.success(true)
+        if(!loaded.isCompleted)
+          loaded.success(true)
       }
 
 
@@ -187,7 +190,6 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def save(check:Boolean = true):Future[(JSONID,Json)]  = {
-
 
     services.clientSession.loading.set(true)
 
@@ -321,7 +323,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       } yield {
         services.rest.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")
-          Navigate.to(Routes(model.get.kind, name).entity(name))
+          Navigate.to(Routes(model.get.kind, name,model.subProp(_.public).get).entity(name))
         }
       }
 
@@ -350,7 +352,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def setNavigation() = {
-    services.navigator.For(model.get.id,model.get.metadata.get).navigation().map{ nav =>
+    services.navigator.For(model.get.id,model.get.metadata.get,model.subProp(_.public).get).navigation().map{ nav =>
       logger.info(s"Navigation $nav")
       model.subProp(_.navigation).set(nav)
     }
@@ -367,9 +369,18 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   private val childChanged:Property[Boolean] = Property(false)
 
+  def autoSave = model.get.metadata.flatMap(_.params).exists(_.js("autoSave") == Json.True)
+
+  val debounceSave = Debounce(2000.millis) { (_:Unit) =>
+    save().map { case (id, d) => afterSave(id, d) }
+  }
+
   val changesListener = childChanged.listen { hasChanges =>
     if(hasChanges) {
       avoidGoAway
+      if(autoSave)
+        debounceSave()
+
     } else {
       enableGoAway("changeListener")
     }
@@ -393,7 +404,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def navigate(n: navigator.For => Future[Option[String]]) = {
-    n(navigator.For(model.get.id, model.get.metadata.get)).map(_.map(goTo))
+    n(navigator.For(model.get.id, model.get.metadata.get,model.subProp(_.public).get)).map(_.map(goTo))
   }
 
   def next() = navigate(_.next())
@@ -410,7 +421,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def goTo(id:String) = {
     val m = model.get
-    val r = Routes(m.kind,m.name)
+    val r = Routes(m.kind,m.name,m.public)
     val newState = if(model.get.write) {
       r.edit(id)
     } else {
@@ -585,6 +596,15 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
   }
 
+  case class StepperOption(steps:Seq[String],current:String)
+
+
+  def stepper(s:StepperOption) = {
+    div(margin := "20px",
+      Stepper.render(s.steps.map(st => Stepper.Step(st,"","")),s.steps.indexOf(s.current))
+    )
+  }
+
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
     def recordNavigation = showIf(presenter.showNavigation){
@@ -629,9 +649,13 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         div(
           realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
-              realeser2(produce(model.subProp(_.id)) { _id =>
+              realeser2(produceWithNested(model.subProp(_.id)) { case (_id,releaser3) =>
                 div(ClientConf.style.spaceBetween,
-                  form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+                  releaser3(produce(model.subProp(_.insert)) { _ =>
+                    div(
+                      form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+                    ).render
+                  })
                 ).render
               })
             ).render
@@ -714,17 +738,30 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       hr(ClientConf.style.hrThin)
     )
 
-    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
-      _maxWidth.map(mw => maxWidth := mw),
-      actions(_.actions),
-      ul(
-        produce(Notification.list){ notices =>
-          notices.map { notice =>
-            li(notice).render
+    def formFooter(_maxWidth:Option[Int]):Modifier = Seq(
+      div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
+        _maxWidth.map(mw => maxWidth := mw),
+        actions(_.actions),
+        ul(
+          produce(Notification.list){ notices =>
+            notices.map { notice =>
+              li(notice).render
+            }
           }
-        }
+        )
+      ),
+      div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
+        _maxWidth.map(mw => maxWidth := mw),
+        actions(_.actions),
+        ul(
+          produce(Notification.list){ notices =>
+            notices.map { notice =>
+              li(notice).render
+            }
+          }
+        )
       )
-    )
+    ).render
 
 
 
@@ -736,18 +773,23 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
         val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
+        val stepperOptions = _form.flatMap(_.params).flatMap(_.js("stepper").as[StepperOption].toOption)
+
         div(
           if(showHeader && _form.isDefined) {
             formHeader(showId,_form.get).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+
             _form match {
               case None => div()
               case Some(f) => {
 
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
+                  stepperOptions.map(stepper),
                   _maxWidth.map(mw => maxWidth := mw),
+                  onsubmit :+= ((e:Event) => e.preventDefault()),
                   presenter.loadWidgets(f).render(model.get.write,nested)
                 ).render
                 presenter.setForm(mainForm)
@@ -755,10 +797,11 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               }
             },
             if(showFooter) {
-              formFooter(_maxWidth).render
+              formFooter(_maxWidth)
             }
           ).render,
           Debug(model.subProp(_.metadata),b => b, "metadata")
+
         ).render
       }
     )

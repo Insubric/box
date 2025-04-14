@@ -212,7 +212,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     val mapDiv: Div = div(height := 400).render
 
-    loadMap(mapDiv,p => null)
+    loadMap(mapDiv,p => new MapControlsIcons(p))
 
     val observer = new MutationObserver({(mutations,observer) =>
       if(document.contains(mapDiv)) {

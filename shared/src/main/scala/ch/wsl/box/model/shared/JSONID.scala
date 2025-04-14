@@ -5,6 +5,7 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.parser
 
+import java.net.{URLDecoder, URLEncoder}
 import scala.util.Try
 
 /**
@@ -12,6 +13,8 @@ import scala.util.Try
   */
 case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
   def asString = id.map(id => id.asString).mkString(",")
+
+  def prettyPrint(metadata: JSONMetadata) = id.map(id => id.prettyPrint(metadata)).mkString(", ")
 
   def keys: Vector[String] = id.map(_.key)
   def values: Vector[Json] = id.map(_.value)
@@ -51,12 +54,15 @@ object JSONID {
             throw new Exception(s"Invalid JSONID, $str")
           }
 
+          val key = URLDecoder.decode(c(0),"UTF-8")
+          val value = URLDecoder.decode(c(1),"UTF-8")
+
           val v = for{
-            field <- form.fields.find(_.name == c(0))
-            value <- JSONUtils.toJs(c(1),field.`type`)
+            field <- form.fields.find(_.name == key)
+            value <- JSONUtils.toJs(value,field.`type`)
           } yield value
 
-          JSONKeyValue(c(0),v.get)
+          JSONKeyValue(key,v.get)
         }.toVector
       )
     }.toOption
@@ -107,5 +113,7 @@ object JSONID {
 
 case class JSONKeyValue(key:String, value:Json) {
   def filter = JSONQueryFilter.withValue(key,Some(Filter.EQUALS),value.string)
-  def asString = key + "::" + value.string
+  def asString = URLEncoder.encode(key,"UTF-8") + "::" + URLEncoder.encode(value.string,"UTF-8")
+
+  def prettyPrint(metadata: JSONMetadata): String = metadata.fields.find(_.name == key).flatMap(_.label).getOrElse(key) + ": " + value.string
 }

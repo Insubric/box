@@ -29,7 +29,7 @@ object BoxForm {
                          name: String,
                          entity:String,
                          description: Option[String] = None,
-                         layout: Option[String] = None,
+                         layout: Option[Json] = None,
                          tabularFields: Option[String] = None,
                          query: Option[String] = None,
                          exportfields: Option[String] = None,
@@ -37,12 +37,13 @@ object BoxForm {
                          edit_key_field:Option[String] = None,
                          show_navigation:Boolean,
                          props:Option[String] = None,
-                         params:Option[Json] = None
+                         params:Option[Json] = None,
+                         public_list:Boolean = false
                         )
 
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
   class BoxForm(_tableTag: Tag) extends profile.api.Table[BoxForm_row](_tableTag,schema, "form") {
-    def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportfields,guest_user,edit_key_field,show_navigation,props,params) <> (BoxForm_row.tupled, BoxForm_row.unapply)
+    def * = (Rep.Some(form_uuid), name, entity, description, layout, tabularFields, query,exportfields,guest_user,edit_key_field,show_navigation,props,params,public_list) <> (BoxForm_row.tupled, BoxForm_row.unapply)
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid", O.AutoInc, O.PrimaryKey)
@@ -53,7 +54,7 @@ object BoxForm {
     /** Database column description SqlType(text), Default(None) */
     val description: Rep[Option[String]] = column[Option[String]]("description", O.Default(None))
     /** Database column layout SqlType(text), Default(None) */
-    val layout: Rep[Option[String]] = column[Option[String]]("layout", O.Default(None))
+    val layout: Rep[Option[Json]] = column[Option[Json]]("layout", O.Default(None))
     val tabularFields: Rep[Option[String]] = column[Option[String]]("tabularFields", O.Default(None))
     val exportfields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
@@ -61,6 +62,7 @@ object BoxForm {
     val query: Rep[Option[String]] = column[Option[String]]("query", O.Default(None))
     val props: Rep[Option[String]] = column[Option[String]]("props", O.Default(None))
     val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
+    val public_list: Rep[Boolean] = column[Boolean]("public_list", O.Default(false))
 
   }
   /** Collection-like TableQuery object for table Form */

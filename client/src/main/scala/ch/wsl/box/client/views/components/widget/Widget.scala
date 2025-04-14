@@ -60,6 +60,7 @@ trait Widget extends Logging {
    * @return
    */
   def fromLabel(str:String)(implicit ec:ExecutionContext):Future[Json] = Future.successful{ field.`type` match {
+    case JSONFieldTypes.STRING if str.trim.isEmpty && field.nullable => Json.Null
     case JSONFieldTypes.STRING => Json.fromString(str)
     case JSONFieldTypes.NUMBER => str.toDoubleOption.flatMap(Json.fromDouble) match {
       case Some(v) => v
@@ -127,6 +128,15 @@ trait Widget extends Logging {
       edit(nested)
     } else {
       show(nested)
+    }
+  }
+
+  final def renderOnTable(write:Boolean,nested:Binding.NestedInterceptor):Modifier = {
+    load()
+    if(write && !field.readOnly) {
+      editOnTable(nested)
+    } else {
+      showOnTable(nested)
     }
   }
 

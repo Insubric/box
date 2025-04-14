@@ -11,6 +11,7 @@ import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
 import ch.wsl.typings.ol.renderFeatureMod
 import ch.wsl.typings.ol.viewMod.FitOptions
+import org.scalajs.dom
 
 import scala.concurrent.ExecutionContext
 
@@ -56,6 +57,17 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
             e.preventDefault()
           }
         )(Icons.search).render else frag(),
+        if(dom.window.matchMedia("(hover: none)").matches) {
+        showIf(activeControl.transform(ac =>  Seq(Control.POLYGON,Control.POLYGON_HOLE,Control.LINESTRING).contains(ac))) {
+          button(
+            ClientConf.style.mapButton
+          )(
+            onclick :+= { (e: Event) =>
+              finishDrawing()
+              e.preventDefault()
+            }
+          )(Icons.check).render
+        }} else frag(),
         if (baseLayers.length > 1) Select(baseLayer, SeqProperty(baseLayers))((x: String) => StringFrag(x), ClientConf.style.mapLayerSelect) else frag(),
         button(
           ClientConf.style.mapButton

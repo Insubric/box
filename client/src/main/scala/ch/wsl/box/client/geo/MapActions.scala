@@ -89,7 +89,7 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
 
     val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent(crs))
 
-    services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, GeoDataRequest(query,Seq())).foreach { geoms =>
+    services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, GeoDataRequest(query,Seq()),false).foreach { geoms =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
 
       vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])

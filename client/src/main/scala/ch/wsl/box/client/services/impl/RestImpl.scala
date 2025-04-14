@@ -36,21 +36,31 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def specificKind(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext):Future[String] = httpClient.get[String](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/kind") )    //distinguish entities into table or view
   def list(kind:String, lang:String, entity:String, limit:Int)(implicit ec:ExecutionContext): Future[Seq[Json]] = httpClient.post[JSONQuery,Seq[Json]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/list"),JSONQuery.empty.limit(limit))
   def list(kind:String, lang:String, entity:String, query:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Json]] = httpClient.post[JSONQuery,Seq[Json]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/list"),query)
-  def csv(kind:String, lang:String, entity:String, q:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = httpClient.post[JSONQuery,String](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/csv"),q).map{ result =>
-    result.asUnsafeCsvReader[Seq[String]](rfc).toSeq
+  def csv(kind:String, lang:String, entity:String, q:JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.post[JSONQuery,String](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/csv"),q).map{ result =>
+      result.asUnsafeCsvReader[Seq[String]](rfc).toSeq
+    }
   }
-  override def geoData(kind:String, lang:String, entity:String, field:String, request:GeoDataRequest)(implicit ec:ExecutionContext): Future[GeoTypes.GeoData] = {
-    httpClient.post[GeoDataRequest,GeoTypes.GeoData](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data/$field"),request)
+  override def geoData(kind:String, lang:String, entity:String, field:String, request:GeoDataRequest,public:Boolean)(implicit ec:ExecutionContext): Future[GeoTypes.GeoData] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.post[GeoDataRequest,GeoTypes.GeoData](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/geo-data/$field"),request)
   }
 
   def count(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Int] = httpClient.get[Int](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/count"))
   def keys(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/keys"))
-  def ids(kind:String, lang:String, entity:String, q:JSONQuery)(implicit ec:ExecutionContext): Future[IDs] = httpClient.post[JSONQuery,IDs](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/ids"),q)
+  def ids(kind:String, lang:String, entity:String, q:JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[IDs] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.post[JSONQuery,IDs](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/ids"),q)
+  }
   def metadata(kind:String, lang:String, entity:String, public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata] = {
     val prefix = if(public) "/public" else ""
     httpClient.get[JSONMetadata](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/metadata"))
   }
-  def tabularMetadata(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[JSONMetadata] = httpClient.get[JSONMetadata](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/tabularMetadata"))
+  def tabularMetadata(kind:String, lang:String, entity:String, public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.get[JSONMetadata](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/tabularMetadata"))
+  }
 
   //only for forms
   def children(kind:String, entity:String, lang:String, public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONMetadata]] = {
@@ -63,7 +73,10 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   }
 
 
-  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]] = httpClient.post[JSONLookupsRequest,Seq[JSONLookups]](Routes.apiV1(s"/${EntityKind(kind).entityOrForm}/$lang/$entity/lookups"),fk)
+  override def lookups(kind: String, lang: String, entity: String, fk: JSONLookupsRequest,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]] = {
+    val prefix = if(public) "/public" else ""
+    httpClient.post[JSONLookupsRequest,Seq[JSONLookups]](Routes.apiV1(s"$prefix/${EntityKind(kind).entityOrForm}/$lang/$entity/lookups"),fk)
+  }
 
   private def prefix(kind: String, lang: String, public: Boolean):String = (public, EntityKind(kind).isEntity) match {
     case (true, true) => "/public"

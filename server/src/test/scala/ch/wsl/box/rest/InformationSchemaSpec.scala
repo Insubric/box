@@ -1,7 +1,7 @@
 package ch.wsl.box.rest
 
 import ch.wsl.box.BaseSpec
-import ch.wsl.box.information_schema.{PgColumn, PgInformationSchema}
+import ch.wsl.box.information_schema.{PgInformationSchema}
 import ch.wsl.box.jdbc.FullDatabase
 import org.scalatest.concurrent.ScalaFutures
 import slick.lifted.TableQuery
@@ -19,11 +19,11 @@ import scala.concurrent.duration._
   */
 class InformationSchemaSpec extends BaseSpec {
 
-  def infoSchema(table:String = "simple")(implicit bdb:FullDatabase) = new PgInformationSchema(TestDatabase.publicSchema,table)
+  def infoSchema(table:String = "simple")(implicit bdb:FullDatabase) = new PgInformationSchema(TestDatabase.boxSchema,TestDatabase.publicSchema,table)
 
   "The service" should "query pgcolumn" in withFullDB { implicit db =>
 
-    val res: Future[Seq[PgColumn]] = db.adminDb.run(infoSchema().columns)
+    val res = db.adminDb.run(infoSchema().columns)
 
     res.map{ r =>
       r.nonEmpty shouldBe true

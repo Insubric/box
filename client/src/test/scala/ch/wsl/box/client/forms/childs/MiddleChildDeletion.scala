@@ -81,7 +81,7 @@ class MiddleChildDeletion extends TestBase {
     override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,parentName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.string("parent_text"),
-      JSONField.child(childName,values.id2,"id","parent_id").withWidget(WidgetsNames.tableChild)
+      JSONField.child(childName,values.id2,Seq("id"),Seq("parent_id")).withWidget(WidgetsNames.tableChild)
     ),Seq("id"))
 
 

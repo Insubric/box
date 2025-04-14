@@ -85,7 +85,7 @@ object LayoutWidget extends ComponentWidgetFactory {
 
     private def _afterRender(container:HTMLDivElement,fieldList:HTMLDivElement,layoutJs:Json): Option[GridStack] = {
 
-      Layout.fromString(layoutJs.asString).map{ layout =>
+      Layout.fromJs(layoutJs).toOption.map{ layout =>
 
           val inLayout:Seq[String] = layout.blocks.flatMap(_.fields.flatMap(_.left.toOption))
 
@@ -139,7 +139,6 @@ object LayoutWidget extends ComponentWidgetFactory {
           LayoutBlock(
             title = None,
             width = block.gridstackNode.toOption.flatMap(_.w.toOption).map(_.toInt).getOrElse(6),
-            distribute = None,
             fields = {
               for {
                 subBlock <- block.gridstackNode
@@ -166,7 +165,7 @@ object LayoutWidget extends ComponentWidgetFactory {
         val layout = grid.map(gridToLayout)
         BrowserConsole.log(layout.asJson)
         listener.foreach(_.cancel())
-        params.prop.set(layout.asJson.noSpaces.asJson)
+        params.prop.set(layout.asJson)
         BrowserConsole.log(layout.asJson)
         listener.foreach(_.restart())
       }
@@ -206,7 +205,7 @@ object LayoutWidget extends ComponentWidgetFactory {
         button("Add block", ClientConf.style.boxButton, onclick := ((e: Event) => {
           grid.foreach{ g =>
 
-            val block = g.addWidget( renderBlock(LayoutBlock(None, 6, None, Seq(), None)))
+            val block = g.addWidget( renderBlock(LayoutBlock(None, 6, Seq())))
 
             block.gridstackNode.flatMap(_.subGrid).foreach(_.on("added removed change",aaa))
             println("AAA")

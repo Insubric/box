@@ -51,7 +51,7 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
 }
 
 //exteded code generator (add route and registry generation)
-case class EntitiesGenerator(connection:Connection,model:Model) extends slick.codegen.SourceCodeGenerator(model) with BoxSourceCodeGenerator with MyOutputHelper with Logging {
+case class EntitiesGenerator(connection:Connection,model:Model,box_schema:String) extends slick.codegen.SourceCodeGenerator(model) with BoxSourceCodeGenerator with MyOutputHelper with Logging {
 
 
 
@@ -214,9 +214,7 @@ class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkStri
       private val primaryWithDefault:Boolean = {
         val dbDefault = Await.result(
           connection.dbConnection.run(
-            PgInformationSchema.hasDefault(
-              model.table.schema.getOrElse("public"),
-              model.table.table,
+            new PgInformationSchema(box_schema:String,model.table.schema.getOrElse("public"),model.table.table).hasDefault(
               model.name
             )
           ),

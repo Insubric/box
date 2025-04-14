@@ -32,7 +32,7 @@ object StubMetadataFactory {
           name = entity,
           description = None,
           entity = entity,
-          layout = Some(metadata.layout.asJson.toString()),
+          layout = Some(metadata.layout.asJson),
           tabularFields = Some(metadata.tabularFields.mkString(",")),
           query = None,
           exportfields = Some(metadata.exportFields.mkString(",")),
@@ -60,8 +60,10 @@ object StubMetadataFactory {
             `type` = field.`type`,
             name = field.name,
             widget = field.widget,
-            lookupEntity = field.remoteLookup.map(_.lookupEntity),
-            lookupValueField = field.remoteLookup.map(_.map.valueProperty),
+            foreign_entity = field.remoteLookup.map(_.lookupEntity),
+            foreign_value_field = field.remoteLookup.map(_.map.foreign.valueColumn),
+            local_key_columns = field.remoteLookup.map(_.map.localKeysColumn.toList),
+            foreign_key_columns = field.remoteLookup.map(_.map.foreign.keyColumns.toList),
             default = field.default,
           )
 
@@ -85,7 +87,7 @@ object StubMetadataFactory {
               label = field.label,
               placeholder = field.placeholder,
               tooltip = field.tooltip,
-              lookupTextField = field.remoteLookup.map(_.map.textProperty)
+              foreign_label_columns = field.remoteLookup.map(_.map.foreign.labelColumns.toList)
             )
             BoxField.BoxField_i18nTable.returning(BoxField.BoxField_i18nTable) += newFieldI18n
           })

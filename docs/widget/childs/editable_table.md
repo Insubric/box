@@ -1,4 +1,3 @@
-
 ---
 title: Editable table
 parent: Childs

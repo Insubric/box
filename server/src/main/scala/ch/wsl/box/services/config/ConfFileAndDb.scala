@@ -3,6 +3,7 @@ package ch.wsl.box.services.config
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config.{ConfigFactory, ConfigValue, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
 import scribe.{Level, Logging}
@@ -119,6 +120,11 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case JSONFieldTypes.DATETIME => ((x: LocalDateTime) => x)
     case _ => ((x: LocalDateTime) => x)
   }
+
+  override def matomo: Option[MatomoConfig] = for{
+    site_id <- _conf.get("matomo.site_id")
+    tracker_url <- _conf.get("matomo.tracker_url")
+  } yield MatomoConfig(site_id, tracker_url)
 
   val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
 }

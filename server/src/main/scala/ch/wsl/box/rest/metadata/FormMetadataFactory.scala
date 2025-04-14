@@ -2,7 +2,7 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.information_schema.{PgColumn, PgColumns, PgInformationSchema}
+import ch.wsl.box.information_schema.{PgInformationSchema}
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
 import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_i18nTable, BoxForm_row}
@@ -47,7 +47,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
   }
 
 
-  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):Future[Option[BoxSession]] = {
+  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):Future[Option[(BoxSession,Boolean)]] = {
 
     for{
       form <- services.connection.adminDB.run(BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption)
@@ -56,7 +56,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         case Some(u) => Auth.rolesOf(u)
         case None => Future.successful(Seq())
       }
-    } yield user.map(u => BoxSession(CurrentUser(u,roles)))
+    } yield user.map(u => (BoxSession(CurrentUser(u,roles)),form.exists(_.public_list)))
   }
 
 
@@ -82,7 +82,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         } yield form
 
         for {
-          metadata <- getForm(formQuery, lang)
+          metadata <- getForm(formQuery, lang,id.toString)
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormId.put(cacheKey,metadata)
@@ -106,7 +106,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         } yield form
 
         for {
-          metadata <- getForm(formQuery, lang)
+          metadata <- getForm(formQuery, lang, name)
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormName.put(cacheKey,metadata)
@@ -147,7 +147,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     }
   }
 
-  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String)(implicit ec:ExecutionContext,services:Services) = {
+  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String,id:String)(implicit ec:ExecutionContext,services:Services) = {
 
     import io.circe.generic.auto._
 
@@ -159,7 +159,10 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
 
     val result = for{
-      (form,formI18n) <- fQuery.result.map(_.head)
+      (form,formI18n) <- fQuery.result.map{_.headOption match {
+        case Some(f) => f
+        case None => throw new Exception(s"Form not found: $id")
+      }}
       fields <- fieldQuery(form.form_uuid.get).result
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
@@ -198,7 +201,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         default.copy(blocks = default.blocks.map(_.copy(width = 12)))
       }
 
-      val layout = Layout.fromString(form.layout).getOrElse(defaultLayout)
+      val layout = Layout.fromJson(form.layout).getOrElse(defaultLayout)
 
       val formActions = if(actions.isEmpty) {
         if(form.entity == FormMetadataFactory.STATIC_PAGE) {
@@ -323,15 +326,14 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         keys <- keys(lForm(0))
       } yield {
         lForm.map{ value =>
-          val parentFields = field.masterFields.toSeq.flatMap(_.split(",").map(_.trim))
 
           LinkedForm(
             value.name,
-            parentFields,
+            field.local_key_columns.toSeq.flatten,
             keys,
-            lookup = field_i18n_row.flatMap(_.lookupTextField).map{ remoteField =>
+            lookup = field.foreign_value_field.map{ remoteField =>
               LookupLabel(
-                localIds = parentFields,
+                localIds = field.local_key_columns.toSeq.flatten,
                 remoteIds = keys,
                 remoteField = remoteField,
                 remoteEntity = value.entity,
@@ -352,17 +354,17 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
   private def lookupLabel(field:BoxField_row,field_i18n_row: Option[BoxField_i18n_row]):Option[LookupLabel] = {
     for{
-      localIds <- field.masterFields
-      remoteIds <- field.lookupValueField
-      remoteField <- field_i18n_row.flatMap(_.lookupTextField)
-      remoteEntity <- field.lookupEntity
+      localIds <- field.local_key_columns
+      remoteIds <- field.foreign_key_columns
+      remoteField <- field.foreign_value_field
+      remoteEntity <- field.foreign_entity
     } yield {
 
 
 
       LookupLabel(
-        localIds = localIds.split(",").map(_.trim),
-        remoteIds = remoteIds.split(",").map(_.trim),
+        localIds = localIds,
+        remoteIds = remoteIds,
         remoteField = remoteField,
         remoteEntity = remoteEntity,
         widget = widget(field,remoteEntity,remoteField)
@@ -409,8 +411,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
         for {
           id <- field.child_form_uuid
-          local <- field.masterFields
-          remote <- field.childFields
+          local <- field.local_key_columns
+          remote <- field.foreign_key_columns
         } yield {
           Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""),field.widget.exists(WidgetsNames.childsWithData))
         }
@@ -420,12 +422,13 @@ object FormMetadataFactory extends Logging with MetadataFactory{
   }
 
   private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row])(implicit ec:ExecutionContext,services:Services): Option[JSONFieldLookup] = {for{
-    refEntity <- field.lookupEntity
-    value <- field.lookupValueField
-    text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(Registry(),refEntity,None,value))
+    refEntity <- field.foreign_entity
+    value <- field.foreign_value_field
+    foreignKeyColumns = field.foreign_key_columns.getOrElse(Seq(value))
+    text = fieldI18n.flatMap(_.foreign_label_columns).getOrElse(EntityMetadataFactory.lookupField(Registry(),refEntity,None,foreignKeyColumns))
   } yield {
 
-      Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), field.lookupQuery))
+      Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(JSONFieldMapForeign(value,foreignKeyColumns,text),field.local_key_columns.getOrElse(Seq(field.name))), field.lookupQuery))
 
   }} match {
     case Some(a) => a
@@ -455,7 +458,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
           readOnly = field.read_only,
           label = Some(lab),
           lookup = look,
-          dynamicLabel = if(look.isEmpty) fieldI18n.flatMap(_.lookupTextField) else None,
+          dynamicLabel = fieldI18n.flatMap(_.dynamic_label),
           placeholder = fieldI18n.flatMap(_.placeholder),
           widget = field.widget,
           child = subform,

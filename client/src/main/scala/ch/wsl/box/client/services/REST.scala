@@ -25,14 +25,14 @@ trait REST{
   def list(kind:String, lang:String, entity:String, limit:Int)(implicit ec:ExecutionContext): Future[Seq[Json]]
   def list(kind:String, lang:String, entity:String, query:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Json]]
 
-  def geoData(kind:String, lang:String, entity:String, field:String, request:GeoDataRequest)(implicit ec:ExecutionContext):Future[GeoTypes.GeoData]
-  def csv(kind:String, lang:String, entity:String, q:JSONQuery)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]]
+  def geoData(kind:String, lang:String, entity:String, field:String, request:GeoDataRequest,public:Boolean)(implicit ec:ExecutionContext):Future[GeoTypes.GeoData]
+  def csv(kind:String, lang:String, entity:String, q:JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]]
   def count(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Int]
   def keys(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[Seq[String]]
-  def ids(kind:String, lang:String, entity:String, q:JSONQuery)(implicit ec:ExecutionContext): Future[IDs]
-  def lookups(kind:String, lang:String, entity:String, fk:JSONLookupsRequest)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]]
+  def ids(kind:String, lang:String, entity:String, q:JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[IDs]
+  def lookups(kind:String, lang:String, entity:String, fk:JSONLookupsRequest,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONLookups]]
   def metadata(kind:String, lang:String, entity:String, public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata]
-  def tabularMetadata(kind:String, lang:String, entity:String)(implicit ec:ExecutionContext): Future[JSONMetadata]
+  def tabularMetadata(kind:String, lang:String, entity:String, public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata]
 
   //only for forms
   def children(kind:String, entity:String, lang:String, public:Boolean)(implicit ec:ExecutionContext): Future[Seq[JSONMetadata]]

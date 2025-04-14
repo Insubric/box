@@ -93,15 +93,15 @@ class Values(val loggerLevel:Level) {
         child = Some(Child(
           objId = id2,
           key = "child",
-          masterFields = "id",
-          childFields = "parent_id",
+          parent = Seq("id"),
+          child = Seq("parent_id"),
           childQuery = None,
           props = "",
           hasData = true
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(
       Left("child"),
       Left(readOnlyField),
       Left(conditionerField),
@@ -151,15 +151,15 @@ class Values(val loggerLevel:Level) {
         child = Some(Child(
           objId = id3,
           key = "subchild",
-          masterFields = "id",
-          childFields = "child_id",
+          parent = Seq("id"),
+          child = Seq("child_id"),
           childQuery = None,
           props = "",
           hasData = true
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
     entity = "test_child",
     lang = "it",
     tabularFields = Seq("id"),
@@ -194,7 +194,7 @@ class Values(val loggerLevel:Level) {
         nullable = true
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
     entity = "test_subchild",
     lang = "it",
     tabularFields = Seq("id"),

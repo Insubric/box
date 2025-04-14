@@ -41,7 +41,8 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
   def formLoaded():Future[Boolean] = {
     val promise = Promise[Boolean]
     TestHooks.addOnLoad(() => {
-      promise.success(true)
+      if(!promise.isCompleted)
+        promise.success(true)
     })
     promise.future
   }

@@ -37,6 +37,10 @@ case class TitleWidget(level:Int) extends ComponentWidgetFactory {
       case 5 => h5(_text)
     }
 
+    override def editOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = div(_text)
+
+    override def showOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = div(_text)
+
     override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
   }
 }

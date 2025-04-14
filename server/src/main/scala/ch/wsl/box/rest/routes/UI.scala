@@ -4,6 +4,7 @@ import java.net.{Inet4Address, InetAddress}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpEntity, HttpRequest, MediaType, MediaTypes}
+import akka.http.scaladsl.server.directives.ContentTypeResolver
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
 import boxInfo.BoxBuildInfo
@@ -53,6 +54,20 @@ object UI {
     pathPrefix("sw.js") {
       getFromResource("sw.js")
     } ~
+    pathPrefix("pdf") {
+      extractUnmatchedPath { e =>
+
+        val contentTypeResolver = new ContentTypeResolver{
+          override def apply(fileName: String): ContentType = {
+            fileName match {
+              case s"$file.mjs" => MediaTypes.`application/javascript`.toContentType(HttpCharsets.`UTF-8`)
+              case _ => ContentTypeResolver.Default.apply(fileName)
+            }
+          }
+        }
+        getFromResource("pdfjs" + e)(contentTypeResolver)
+      }
+    } ~
     pathPrefix("manifest.webmanifest") {
       get {
         val manifest =
@@ -94,7 +109,7 @@ object UI {
     } ~
     get {
       complete {
-        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor)
+        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor,services.config.matomo)
       }
     }
   }

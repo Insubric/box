@@ -40,14 +40,33 @@ object CommonField {
     condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
   )
 
+  def foreignEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_entity",false,
+    widget = Some(WidgetsNames.select),
+    lookup = Some(JSONFieldLookup.prefilled(
+      tables.map(x => JSONLookup(x.asJson,Seq(x)))
+    )),
+    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
+  )
+
   def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",false,
     condition = Some(ConditionalField("lookupEntity",tables.asJson)),
+    widget = Some(WidgetsNames.input)
+  )
+
+  def foreignValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_value_field",false,
+    condition = Some(ConditionalField("foreign_entity",tables.asJson)),
     widget = Some(WidgetsNames.input)
   )
 
   def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
     widget = Some(WidgetsNames.code),
     condition = Some(ConditionalField("lookupEntity",tables.asJson)),
+    params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
+  )
+
+  def foreignQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
+    widget = Some(WidgetsNames.code),
+    condition = Some(ConditionalField("foreign_entity",tables.asJson)),
     params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
   )
 
@@ -106,7 +125,7 @@ object CommonField {
   val params = JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code))
 
   val formFieldChild = JSONField(JSONFieldTypes.CHILD,"fields_child",true,
-    child = Some(Child(FORM_FIELD_CHILDS,"fields_child","form_uuid","form_uuid",
+    child = Some(Child(FORM_FIELD_CHILDS,"fields_child",Seq("form_uuid"),Seq("form_uuid"),
       Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.CHILD))),
       "",
       true
@@ -114,7 +133,7 @@ object CommonField {
     widget = Some(WidgetsNames.tableChild)
   )
   val formFieldStatic = JSONField(JSONFieldTypes.CHILD,"fields_static",true,
-    child = Some(Child(FORM_FIELD_STATIC,"fields_static","form_uuid","form_uuid",
+    child = Some(Child(FORM_FIELD_STATIC,"fields_static",Seq("form_uuid"),Seq("form_uuid"),
       Some(JSONQuery.sortByKeys(Seq("field_uuid")).filterWith(JSONQueryFilter.WHERE.eq("type",JSONFieldTypes.STATIC))),
       "",true
     )),
@@ -122,7 +141,7 @@ object CommonField {
   )
 
   val formi18n = JSONField(JSONFieldTypes.CHILD,"form_i18n",true,
-    child = Some(Child(FORM_I18N,"form_i18n","form_uuid","form_uuid",Some(JSONQuery.sortByKeys(Seq("lang"))),"",true)),
+    child = Some(Child(FORM_I18N,"form_i18n",Seq("form_uuid"),Seq("form_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"",true)),
     widget = Some(WidgetsNames.tableChild)
   )
 

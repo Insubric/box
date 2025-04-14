@@ -15,10 +15,9 @@ val publishSettings = List(
     )
   ),
   developers := List(
-    Developer(id="minettiandrea", name="Andrea Minetti", email="andrea@wavein.ch", url=url("https://wavein.ch")),
+    Developer(id="minettiandrea", name="Andrea Minetti", email="andrea.minetti@wsl.ch", url=url("https://wavein.ch")),
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
   ),
-  dynverSeparator := "-",
   pomIncludeRepository := { _ => false },
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
@@ -26,9 +25,12 @@ val publishSettings = List(
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
   publishMavenStyle := true,
-  dynverSonatypeSnapshots := true,
   sonatypeCredentialHost := "oss.sonatype.org",
-  credentials += Credentials(
+  git.gitTagToVersionNumber := { tag:String =>
+    Some(tag.stripPrefix("v"))
+  },
+
+    credentials += Credentials(
     "Sonatype Nexus Repository Manager",
     "s01.oss.sonatype.org",
     System.getenv("SONATYPE_USERNAME"),
@@ -177,7 +179,9 @@ lazy val client: Project = (project in file("client"))
       "jspdf" -> "2.5.1",
       "jspdf-autotable" -> "3.5.28",
       "gridstack" -> "8.3.0",
-      "jspreadsheet-ce" -> "4.13.4"//"git+https://github.com/minettiandrea/jspreadsheet-ce.git#c35aa1194f1309af81f2862f911408c6fce5812e"
+      "jspreadsheet-ce" -> "git://github.com/jspreadsheet/ce.git#2e7389f8f6a84d260603bbac06f00bb404e1ba49", //v5.0.0
+      "jsuites" -> "5.9.1",
+      "@electric-sql/pglite" -> "0.2.17"
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",

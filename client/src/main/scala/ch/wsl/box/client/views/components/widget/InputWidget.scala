@@ -133,7 +133,9 @@ object InputWidget extends Logging {
 
     val modifiers:Seq[Modifier] = Seq()
 
-    override def edit(nested:Binding.NestedInterceptor) = editMe(field,true, WidgetUtils.LabelLeft, false, modifiers){ case y =>
+    val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
+
+    override def edit(nested:Binding.NestedInterceptor) = editMe(field,!noLabel, WidgetUtils.LabelLeft, false, modifiers){ case y =>
       val stringModel = Property("")
       val textAreaId = UUID.randomUUID().toString
       stringModel.listen{_ =>

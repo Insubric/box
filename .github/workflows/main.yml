@@ -39,10 +39,13 @@ jobs:
         uses: testspace-com/setup-testspace@v1
         with:
           domain: Insubric
-      - name: Setup Scala
-        uses: coursier/setup-action@v1
+      - name: Setup JDK
+        uses: actions/setup-java@v4
         with:
-            jvm: adoptium:1.17
+          distribution: temurin
+          java-version: 17
+      - name: Setup sbt launcher
+        uses: sbt/setup-sbt@v1
       - name: Run tests server
         run: |
           export PATH=./node_modules/.bin:$PATH

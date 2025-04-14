@@ -18,6 +18,7 @@ object WidgetsNames {
   val tristateCheckbox = "tristateCheckbox"
   val hidden = "hidden"
   val slider = "slider"
+  val radio = "radio"
   val multi = "multi"
   val inputMultipleText = "inputMultipleText"
   val multipleLookup = "multipleLookup"
@@ -51,6 +52,7 @@ object WidgetsNames {
   val lookupLabel = "lookupLabel"
   val dynamicWidget = "dynamicWidget"
   val langWidget = "langWidget"
+  val uuid = "uuid"
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
   val adminLayoutWidget = "adminLayoutWidget"
@@ -60,6 +62,7 @@ object WidgetsNames {
       input,
       select,
       slider,
+      radio,
       popup,
       checkbox,
       inputDisabled,
@@ -71,6 +74,7 @@ object WidgetsNames {
       input,
       integerDecimal2,
       slider,
+      radio,
       select,
       popup,
       checkbox,
@@ -88,11 +92,13 @@ object WidgetsNames {
       richTextEditorPopup,
       redactor,
       code,
+      radio,
       select,
       popup,
       hidden,
       dynamicWidget,
       langWidget,
+      uuid,
       dropdownLangWidget,
       popupWidget
     ),
@@ -142,6 +148,7 @@ object WidgetsNames {
       checkbox,
       tristateCheckbox,
       selectBoolean,
+      radio,
       hidden,
       dynamicWidget,
       popupWidget
