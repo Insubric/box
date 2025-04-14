@@ -61,7 +61,7 @@ object TypeMapping extends Logging {
     case s"${prefix}geometry$suffix" => JSONFieldTypes.GEOMETRY
     case "jsonb" => JSONFieldTypes.JSON
     case "_varchar" | "_text" | "text[]" | "varchar[]" => JSONFieldTypes.ARRAY_STRING
-    case "_float8" | "float8[]" | "_float4" | "float4[]" | "_int8" | "int8[]" | "integer[]" | "_int4" | "int4[]" | "_int2" | "int2[]" | "_decimal" | "decimal[]" | "_numeric" | "numeric[]" => JSONFieldTypes.ARRAY_NUMBER
+    case "double precision[]" | "_float8" | "float8[]" | "_float4" | "float4[]" | "_int8" | "int8[]" | "integer[]" | "_int4" | "int4[]" | "_int2" | "int2[]" | "_decimal" | "decimal[]" | "_numeric" | "numeric[]" => JSONFieldTypes.ARRAY_NUMBER
     case _ => {
       logger.warn(s"$key type not mapped")
       orElse

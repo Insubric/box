@@ -28,7 +28,7 @@ class SubBlockLayoutTest extends TestBase {
       val originalMetadata = super.metadata
       originalMetadata.copy(layout = Layout(Seq(LayoutBlock(None,12,Seq(
         Left(stringField),
-        Right(SubLayoutBlock(Some("title"),Some(Seq(12)),Seq())),
+        Right(SubLayoutBlock(Some(Left("title")),Some(Seq(12)),Seq())),
       )))))
     }
 
