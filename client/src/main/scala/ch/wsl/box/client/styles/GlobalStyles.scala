@@ -446,6 +446,19 @@ object GlobalStyleFactory{
       fontSize(14 px)
     )
 
+    val chipLink = style(
+      borderColor.gray,
+      padding(5 px, 10 px),
+      marginLeft(10 px),
+      fontSize(10 px),
+      backgroundColor(Color("#eee")),
+      borderRadius(20 px),
+      &.hover(
+        color(conf.colors.main).important,
+        backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4))
+      )
+    )
+
     val checkboxWidget = style(
       float.none.important,
       marginRight(5.px)
@@ -488,7 +501,8 @@ object GlobalStyleFactory{
 
     val tableHeaderFixed = style(
       unsafeChild("table")(
-        verticalAlign.middle
+        verticalAlign.middle,
+        height.fitContent
       ),
       unsafeChild("thead") (
         position.sticky,
@@ -518,20 +532,51 @@ object GlobalStyleFactory{
       )
     )
 
-    val rowStyle = style(
+    val tableCellActions = style(
+      height(100 %%),
+      minWidth(80 px),
+      fontSize(15 px),
+      display.flex,
+      alignItems.center,
+      justifyContent.spaceAround,
+      unsafeChild("a.action.primary") (
+        &.hover(
+          color(conf.colors.main)
+        )
+      ),
+      unsafeChild("a.action.danger") (
+        &.hover(
+          color(conf.colors.danger)
+        )
+      ),
+//      unsafeChild("svg") (
+//        transform := "scale(1.5)"
+//      )
+    )
 
+    val rowStyle = style(
+      height(100 %%),
       unsafeChild("a.action") (
         color(Color("#ccc")),
         fontSize(11 px)
       ),
       borderLeft(4 px,solid,transparent),
 
+      unsafeExt(_ + ".selected") (
+        unsafeChild("a.action") (
+          color(Color("#333")),
+        ),
+        backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.2))
+      ),
       &.hover(
         backgroundColor(rgba(250,248,250,1)),
         borderLeft(4 px,solid,black),
         unsafeChild("a.action") (
           color(Color("#333")),
-        )
+        ),
+        unsafeExt(_ + ".selected") (
+          backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.2))
+        ),
       ),
       unsafeExt(_ + "." + StyleConstants.mapHoverClass)(
         backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).lighten(0.8).color)
@@ -840,7 +885,7 @@ object GlobalStyleFactory{
     val boxIconButtonDanger = style(
       Font.regular,
       whiteSpace.nowrap,
-      padding(3 px, 10 px),
+      padding(7 px, 15 px),
       fontSize(16 px),
       margin(3 px, 0 px),
       border(0 px),
@@ -865,7 +910,7 @@ object GlobalStyleFactory{
       Font.regular,
       whiteSpace.nowrap,
       height.auto,
-      padding(4 px, 8 px),
+      padding(7 px, 15 px),
       fontSize(14 px),
       minWidth(25 px),
       textAlign.center,
@@ -907,7 +952,7 @@ object GlobalStyleFactory{
       Font.regular,
       whiteSpace.nowrap,
       height.auto,
-      padding(4 px, 8 px),
+      padding(7 px, 15 px),
       fontSize(14 px),
       lineHeight(16 px),
       margin(9 px, 5 px, 9 px, 0 px),
@@ -917,7 +962,9 @@ object GlobalStyleFactory{
       color(conf.colors.mainText),
       &.hover(
         backgroundColor.white,
-        color(conf.colors.mainLink)
+        color(conf.colors.mainLink),
+        borderColor(conf.colors.mainLink),
+        boxShadow := "0px 0px 5px #555"
       )
     )
 
@@ -925,7 +972,7 @@ object GlobalStyleFactory{
       Font.regular,
       whiteSpace.nowrap,
       height.auto,
-      padding(4 px, 8 px),
+      padding(7 px, 15 px),
       fontSize(14 px),
       lineHeight(16 px),
       margin(9 px, 5 px, 9 px, 0 px),

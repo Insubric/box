@@ -58,6 +58,9 @@ object SharedLabels extends LabelsCollection {
   object navigation extends LabelsCollection{
     def recordFound = "navigation.recordFound"
     def recordsFiltered = "navigation.recordsFiltered"
+    def recordsSelected = "navigation.recordsSelected"
+    def removeSelection = "navigation.removeSelection"
+    def selectAll = "navigation.selectAll"
     def goAway = "navigation.goAway"
     def first = "navigation.first"
     def last = "navigation.last"
@@ -85,7 +88,10 @@ object SharedLabels extends LabelsCollection {
       loading,
       page,
       record,
-      of
+      of,
+      recordsSelected,
+      selectAll,
+      removeSelection
     )
   }
 
