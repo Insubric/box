@@ -649,9 +649,13 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         div(
           realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
-              realeser2(produce(model.subProp(_.id)) { _id =>
+              realeser2(produceWithNested(model.subProp(_.id)) { case (_id,releaser3) =>
                 div(ClientConf.style.spaceBetween,
-                  form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+                  releaser3(produce(model.subProp(_.insert)) { _ =>
+                    div(
+                      form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+                    ).render
+                  })
                 ).render
               })
             ).render
@@ -797,6 +801,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
             }
           ).render,
           Debug(model.subProp(_.metadata),b => b, "metadata")
+
         ).render
       }
     )
