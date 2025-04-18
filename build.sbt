@@ -1,4 +1,5 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
+import xerial.sbt.Sonatype.sonatypeCentralHost
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
 import scalajsbundler.util.JSON
@@ -19,26 +20,24 @@ val publishSettings = List(
     Developer(id="pezzacolori", name="Gianni Boris Pezzatti",email="",url=url("https://github.com/pezzacolori"))
   ),
   pomIncludeRepository := { _ => false },
-  publishTo := {
-    val nexus = "https://s01.oss.sonatype.org/"
-    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  },
   publishMavenStyle := true,
-  sonatypeCredentialHost := "oss.sonatype.org",
   git.gitTagToVersionNumber := { tag:String =>
     Some(tag.stripPrefix("v"))
   },
 
     credentials += Credentials(
     "Sonatype Nexus Repository Manager",
-    "s01.oss.sonatype.org",
+    "oss.sonatype.org",
     System.getenv("SONATYPE_USERNAME"),
     System.getenv("SONATYPE_PASSWORD")
-  )
+  ),
+
 )
 
 inThisBuild(publishSettings)
+
+publishTo := sonatypePublishToBundle.value
+ThisBuild / sonatypeCredentialHost := sonatypeCentralHost
 
 publish / skip := true
 
@@ -383,3 +382,4 @@ lazy val dropBoxTask = Def.sequential(
     (server / Compile / runMain ).toTask(" ch.wsl.box.model.DropBox").value
   }
 )
+
