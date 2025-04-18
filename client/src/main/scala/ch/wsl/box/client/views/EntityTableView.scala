@@ -303,10 +303,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         case NoAction => {
           def rowEv(id: JSONID):  Future[Boolean] = {
 
-            val tab = (ta.target, new_window) match {
-              case (NewWindow, _) | (_, true) => Some(window.open("about:blank", id.asString))
-              case (Self, false) => None
-            }
             for {
               data <- getObj(id)
               _ <- ta.executeFunction match {
@@ -329,10 +325,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
               }
             } yield {
               val url = Routes.getUrl(ta, data, metadata.get.kind, metadata.get.name, Some(id.asString), model.get.access.update)
-              (ta.target, url) match {
-                case (Self, Some(url)) => Navigate.toUrl(url)
-                case (NewWindow, Some(url)) => tab.foreach(_.location.href = url)
-                case _ => ()
+              (ta.target, new_window, url) match {
+                case (_,_, None) => ()
+                case (Self, false, Some(url)) => Navigate.toUrl(url)
+                case (_,_, Some(url)) =>  window.open(url)
               }
               true
             }
