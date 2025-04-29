@@ -32,7 +32,7 @@ object Settings {
   object versions {
 
     //General
-    val scala213 = "2.13.9"
+    val scala213 = "2.13.16"
     val ficus = "1.5.2"
 
     val macWire = "2.3.7"

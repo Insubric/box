@@ -23,12 +23,72 @@ object UI {
 
   import Directives._
 
+  val postgresWorker = path("postgres.worker.js") {
+    get{
+      val worker = s"""
+                      |try {
+                      |    import { PGlite } from '@electric-sql/pglite'
+                      |} catch (error) {
+                      |    console.error('Error importing PGlite:', error);
+                      |}
+                      |
+                      |try {
+                      |    import { worker } from '@electric-sql/pglite/worker'
+                      |} catch (error) {
+                      |    console.error('Error importing worker:', error);
+                      |}
+                      |
+                      |try{
+                      |  worker({
+                      |    async init() {
+                      |      // Create and return a PGlite instance
+                      |      return new PGlite('idb://box-pgdata')
+                      |    },
+                      |  })
+                      |} catch (error) {
+                      |    console.error('Error starting worker:', error);
+                      |}
+                      |""".stripMargin
+
+      val simpleWorker =
+        s"""
+           |console.log('Worker started');
+           |
+           |try {
+           |    const { PGlite } = await import('./assets/@electric-sql/pglite/dist/index.js')
+           |    const { worker } = await import('./assets/@electric-sql/pglite/dist/worker/index.js')
+           |    worker({
+           |      async init() {
+           |        // Create and return a PGlite instance
+           |        return new PGlite('idb://box-pgdata')
+           |      },
+           |    })
+           |} catch (error) {
+           |    console.error('Error starting worker:', error);
+           |}
+           |
+           |self.onmessage = function(event) {
+           |    console.log('Message received in worker:', event.data);
+           |};
+           |""".stripMargin
+
+      complete(HttpEntity(MediaTypes.`application/javascript`.toContentType(HttpCharsets.`UTF-8`) ,simpleWorker))
+    }
+  }
+
+  val postgresWasm = path("postgres.wasm") {
+    WebJarsSupport.fullPath("@electric-sql/pglite/dist/postgres.wasm",ContentType.apply(MediaType.applicationBinary("wasm",MediaType.Compressible)))
+  }
+  val postgresData = path("postgres.data") {
+    WebJarsSupport.fullPath("@electric-sql/pglite/dist/postgres.data",ContentTypes.`text/plain(UTF-8)`)
+  }
 
   def clientFiles(implicit system:ActorSystem,services:Services):Route = {
 
     pathPrefix("dev") {
       getFromBrowseableDirectories("./client/target/scala-2.13/scalajs-bundler/main")
     } ~
+    postgresWorker ~
     pathPrefix("icon") {
       pathPrefix("icon.png") {
         get{
@@ -92,6 +152,8 @@ object UI {
       }
     } ~
     pathPrefix("assets") {
+      postgresWasm ~
+      postgresData ~
       WebJarsSupport.webJars
     } ~
     pathPrefix("bundle") {

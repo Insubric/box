@@ -98,7 +98,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider","@electric-sql/pglite").map{ p =>
       if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths

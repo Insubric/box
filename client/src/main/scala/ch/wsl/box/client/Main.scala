@@ -1,5 +1,6 @@
 package ch.wsl.box.client
 
+import ch.wsl.box.client.db.DB
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
 import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
@@ -62,6 +63,7 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
+      _ <- DB.run()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()
