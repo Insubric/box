@@ -1,5 +1,5 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
-import xerial.sbt.Sonatype.sonatypeCentralHost
+//import xerial.sbt.Sonatype.sonatypeCentralHost
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
 import scalajsbundler.util.JSON
@@ -21,23 +21,22 @@ val publishSettings = List(
   ),
   pomIncludeRepository := { _ => false },
   publishMavenStyle := true,
-  git.gitTagToVersionNumber := { tag:String =>
-    Some(tag.stripPrefix("v"))
-  },
-
-    credentials += Credentials(
-    "Sonatype Nexus Repository Manager",
-    "oss.sonatype.org",
-    System.getenv("SONATYPE_USERNAME"),
-    System.getenv("SONATYPE_PASSWORD")
-  ),
+//  git.gitTagToVersionNumber := { tag:String =>
+//    Some(tag.stripPrefix("v"))
+//  },
+  version := "1.14.1",
 
 )
 
 inThisBuild(publishSettings)
 
-publishTo := sonatypePublishToBundle.value
-ThisBuild / sonatypeCredentialHost := sonatypeCentralHost
+//credentials += Credentials(
+//  "Sonatype Nexus Repository Manager",
+//  "central.sonatype.com",
+//  "Hm0Qnn9h",
+//  "NzaBt3O9NrokWPvGnkwSuWsIWPTECbtx3yP7X7f3kFCc"
+//)
+
 
 publish / skip := true
 
@@ -50,6 +49,7 @@ lazy val codegen  = (project in file("codegen")).settings(
   resolvers += Resolver.jcenterRepo,
   Compile / resourceDirectory := baseDirectory.value / "../resources",
   Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
+  publishTo := sonatypeCentralPublishToBundle.value
 ).settings(publishSettings).dependsOn(sharedJVM).dependsOn(serverServices)
 
 lazy val serverServices  = (project in file("server-services")).settings(
@@ -58,6 +58,7 @@ lazy val serverServices  = (project in file("server-services")).settings(
   scalaVersion := Settings.versions.scala213,
   libraryDependencies += "com.iheart" %% "ficus" % Settings.versions.ficus,
   resolvers += Resolver.jcenterRepo,
+  publishTo := sonatypeCentralPublishToBundle.value
 ).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
@@ -109,7 +110,8 @@ lazy val server: Project  = project
       Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
-    )
+    ),
+      publishTo := sonatypeCentralPublishToBundle.value
   ).settings(publishSettings)
   .enablePlugins(
     GitVersioning,
@@ -129,6 +131,7 @@ lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   scalaVersion := Settings.versions.scala213,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
+  publishTo := sonatypeCentralPublishToBundle.value
 ).settings(publishSettings).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
@@ -234,6 +237,7 @@ lazy val client: Project = (project in file("client"))
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
     localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
+    publishTo := sonatypeCentralPublishToBundle.value
   )
   .settings(publishSettings)
   .enablePlugins(
@@ -255,6 +259,7 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
+    publishTo := sonatypeCentralPublishToBundle.value
   )
   .settings(publishSettings)
   .jsSettings(
@@ -346,7 +351,7 @@ lazy val publishAllTask = {
     (codegen / publishSigned),
     (server / publishSigned),
     (serverCacheRedis / publishSigned),
-    (serverServices / publishSigned),
+    (serverServices / publishSigned)
   )
 }
 

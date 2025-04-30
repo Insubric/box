@@ -38,6 +38,7 @@ jobs:
       - name: Publish to sonatype
         run: |
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  sonatypeCentralRelease
         env:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
