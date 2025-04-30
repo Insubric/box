@@ -11,7 +11,7 @@ addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
 addSbtPlugin("com.typesafe.play" % "sbt-twirl" % "1.5.2")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject"  % "1.0.0")
 
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.12.2")
+addSbtPlugin("com.lumidion"   % "sbt-sonatype-central"  % "0.2.0")
 addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
