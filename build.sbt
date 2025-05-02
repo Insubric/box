@@ -21,21 +21,14 @@ val publishSettings = List(
   ),
   pomIncludeRepository := { _ => false },
   publishMavenStyle := true,
-//  git.gitTagToVersionNumber := { tag:String =>
-//    Some(tag.stripPrefix("v"))
-//  },
-  version := "1.14.1",
+  git.gitTagToVersionNumber := { tag:String =>
+    Some(tag.stripPrefix("v"))
+  },
 
 )
 
 inThisBuild(publishSettings)
 
-//credentials += Credentials(
-//  "Sonatype Nexus Repository Manager",
-//  "central.sonatype.com",
-//  "Hm0Qnn9h",
-//  "NzaBt3O9NrokWPvGnkwSuWsIWPTECbtx3yP7X7f3kFCc"
-//)
 
 
 publish / skip := true
