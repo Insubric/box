@@ -92,7 +92,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider","@electric-sql/pglite").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider","@electric-sql/pglite","@electric-sql/pglite-repl").map{ p =>
       if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -176,7 +176,8 @@ lazy val client: Project = (project in file("client"))
       "gridstack" -> "8.3.0",
       "jspreadsheet-ce" -> "git://github.com/jspreadsheet/ce.git#2e7389f8f6a84d260603bbac06f00bb404e1ba49", //v5.0.0
       "jsuites" -> "5.9.1",
-      "@electric-sql/pglite" -> "0.2.17"
+      "@electric-sql/pglite" -> "0.2.17",
+      "@electric-sql/pglite-repl" -> "0.2.17",
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",

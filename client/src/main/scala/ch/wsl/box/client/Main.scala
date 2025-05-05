@@ -63,7 +63,7 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
-      _ <- DB.run()
+      _ <- DB.init()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()

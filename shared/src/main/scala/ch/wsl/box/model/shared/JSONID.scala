@@ -1,11 +1,13 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.model.shared.JSONID.LOCAL_NEW_KEY
 import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.parser
 
 import java.net.{URLDecoder, URLEncoder}
+import java.util.UUID
 import scala.util.Try
 
 /**
@@ -30,11 +32,14 @@ case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
 
   def valid:Boolean = id.forall(_.value != Json.Null)
 
+  def isLocalNew: Boolean = id.forall(_.key == LOCAL_NEW_KEY)
+
 }
 
 object JSONID {
 
   val BOX_OBJECT_ID = "_box_object_id"
+  private val LOCAL_NEW_KEY = "local_new"
 
   def empty = JSONID(Vector())
 
@@ -65,8 +70,18 @@ object JSONID {
           JSONKeyValue(key,v.get)
         }.toVector
       )
-    }.toOption
+    }.toOption.orElse{ // try local
+      val tokens = str.split("::")
+      for{
+        key <- tokens.lift(0) if key == LOCAL_NEW_KEY
+        value <- tokens.lift(1)
+      } yield JSONID.fromMap(Map(key -> Json.fromString(value)).toSeq)
+    }
   }
+
+
+
+  def newLocal(): JSONID = JSONID(Vector(JSONKeyValue(LOCAL_NEW_KEY, Json.fromString(UUID.randomUUID().toString))))
 
   def fromMap(map:Map[String,String],form:JSONMetadata) = {
     JSONID(map.map{ case (key,strValue) =>

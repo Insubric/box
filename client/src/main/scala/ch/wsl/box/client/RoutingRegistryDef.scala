@@ -63,6 +63,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "translations" / from / to  => AdminTranslationsState(from,to)
     case "/admin" / "conf"  => AdminConfState
     case "/admin" / "ui-conf"  => AdminUiConfState
+    case "/admin" / "db-repl"  => AdminDBReplState
   }
 
 
@@ -96,5 +97,6 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "translations" / from / to  => LoginState2params("/admin/translations/$from/$to",from,to)
     case "/admin" / "conf"  => LoginState("/admin/conf")
     case "/admin" / "ui-conf"  => LoginState("/admin/ui-conf")
+    case "/admin" / "db-repl"  => LoginState("/admin/db-repl")
   }
 }

@@ -6,11 +6,13 @@ import yamusca.imports._
 
 sealed trait Action
 case object SaveAction extends Action
+case object SaveLocalAction extends Action
 case object EditAction extends Action
 case object ShowAction extends Action
 case object CopyAction extends Action
 case object RevertAction extends Action
 case object DeleteAction extends Action
+case object DeleteLocalAction extends Action
 case object NoAction extends Action
 case object BackAction extends Action
 case object HideActions extends Action
@@ -18,9 +20,11 @@ case object HideActions extends Action
 object Action{
   def fromString(s:String):Action = s match {
     case "SaveAction" => SaveAction
+    case "SaveLocalAction" => SaveLocalAction
     case "CopyAction" => CopyAction
     case "RevertAction" => RevertAction
     case "DeleteAction" => DeleteAction
+    case "DeleteLocalAction" => DeleteLocalAction
     case "NoAction" => NoAction
     case "BackAction" => BackAction
     case "EditAction" => EditAction
@@ -28,7 +32,7 @@ object Action{
     case "HideActions" => ShowAction
   }
 
-  def all = Seq(SaveAction,EditAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction,ShowAction,HideActions)
+  def all = Seq(SaveAction,SaveLocalAction,EditAction,CopyAction,RevertAction,DeleteAction,DeleteLocalAction,NoAction,BackAction,ShowAction,HideActions)
 }
 
 sealed trait Importance
@@ -126,7 +130,9 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
   def default:FormActionsMetadata = FormActionsMetadata(
     actions = Seq(
       FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
+      FormAction(SaveLocalAction,Primary, None, SharedLabels.form.save_local,updateOnly = true, reload = true),
       FormAction(SaveAction,Primary, Some("/box/$kind/$name/row/$writable/$id"), SharedLabels.form.save,insertOnly = true),
+      FormAction(SaveLocalAction,Primary, Some("/box/$kind/$name/row/$writable/$id"), SharedLabels.form.save_local,insertOnly = true),
       FormAction(SaveAction,Std, Some("/box/$kind/$name"),SharedLabels.form.save_table),
       FormAction(SaveAction,Std, Some("/box/$kind/$name/insert"), SharedLabels.form.save_add),
       FormAction(NoAction,Primary, Some("/box/$kind/$name/insert"), SharedLabels.entities.`new`),

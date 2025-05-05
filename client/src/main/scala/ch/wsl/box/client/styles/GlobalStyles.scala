@@ -459,6 +459,15 @@ object GlobalStyleFactory{
       )
     )
 
+    val chip = style(
+      color(conf.colors.main).important,
+      backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4)),
+      padding(5 px, 10 px),
+      marginLeft(10 px),
+      fontSize(10 px),
+      borderRadius(20 px),
+    )
+
     val checkboxWidget = style(
       float.none.important,
       marginRight(5.px)

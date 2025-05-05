@@ -4,7 +4,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.UI
 import io.udash._
 import ch.wsl.box.client.views._
-import ch.wsl.box.client.views.admin.{AdminViewPresenter, BoxDefinitionViewPresenter, ConfViewPresenter, TranslationsViewPresenter, TranslatorViewPresenter, UiConfViewPresenter}
+import ch.wsl.box.client.views.admin.{AdminViewPresenter, BoxDefinitionViewPresenter, ConfViewPresenter, DBReplViewPresenter, TranslationsViewPresenter, TranslatorViewPresenter, UiConfViewPresenter}
 import ch.wsl.box.model.shared.EntityKind
 
 class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
@@ -30,6 +30,7 @@ class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
     case AdminTranslationsState(_,_) => TranslationsViewPresenter
     case AdminConfState => ConfViewPresenter
     case AdminUiConfState => UiConfViewPresenter
+    case AdminDBReplState => DBReplViewPresenter
     case _ => ErrorViewPresenter
   }
 }

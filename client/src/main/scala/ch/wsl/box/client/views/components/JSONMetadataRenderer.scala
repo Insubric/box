@@ -30,7 +30,7 @@ import org.scalajs.dom.Event
   */
 
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: Property[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: ReadableProperty[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -73,19 +73,6 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   }
 
   override def field: JSONField = JSONField("metadataRenderer","metadataRenderer",false)
-
-  private def getId(data:Json): Option[String] = {
-    if(metadata.static) id.get
-    else
-      data.ID(metadata.keyFields).map(_.asString)
-  }
-
-  data.listen { data =>
-    val currentID = getId(data)
-    if (currentID != id.get) {
-      id.set(currentID)
-    }
-  }
 
 
 

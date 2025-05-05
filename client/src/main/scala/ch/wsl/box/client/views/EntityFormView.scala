@@ -1,8 +1,9 @@
 package ch.wsl.box.client.views
 
+import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification, Record}
 import ch.wsl.box.client.styles.{BootstrapCol, Fade}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
@@ -33,6 +34,7 @@ import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
 import ch.wsl.typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
 
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
@@ -44,11 +46,11 @@ import scala.util.{Failure, Success, Try}
   */
 
 case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], originalData:Json,data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean)
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean, localData:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
 
-  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false)
+  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false,false)
 
   implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
@@ -85,24 +87,24 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     {for{
       metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public)
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind)) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
-      data <- state.id match {
+      record <- state.id match {
         case Some(id) => {
           val jsonId = state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
             case Some(value) => value
             case None => throw new Exception(s"cannot parse JsonID ${state.id}")
           }
-          services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
+          services.data.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
         }
-        case None => Future.successful(Json.Null)
+        case None => Future.successful(Record(Json.Null,false))
       }
     } yield {
 
-      BrowserConsole.log(data)
+      BrowserConsole.log(record.data)
 
       var insert = false
 
       //check if data is already present for the given id
-      val dataWithId = if(data == Json.Null) { // if not we are going to do an insert
+      val dataWithId = if(record.data == Json.Null) { // if not we are going to do an insert
         insert = true
         val d = Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*) // taking the defaults
         state.id.flatMap(JSONID.fromString(_, metadata)) match {
@@ -110,7 +112,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
           case None => d
         }
       } else {
-        data
+        record.data
       }
 
       val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
@@ -129,7 +131,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         state.writeable,
         state.public,
         insert,
-        false
+        false,
+        localData = record.local_version
       )
 
       model.set(stateModel)
@@ -189,7 +192,49 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def setForm(form:HTMLFormElement)= { _form = form }
 
 
-  def save(check:Boolean = true):Future[(JSONID,Json)]  = {
+  def saveToDb(data:Json):Future[(JSONID,Record)] = {
+
+    val m = model.get
+    val metadata = m.metadata.get
+    val originalId = JSONID.fromData(m.originalData,metadata)
+
+    logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
+    for {
+      result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
+        case Some(id) if !model.subProp(_.insert).get => services.data.update (m.kind, services.clientSession.lang(), m.name, originalId.getOrElse(id), data,m.public)
+        case _ => services.data.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
+      }
+    } yield {
+      logger.debug(s"saveAction::Result")
+      (JSONID.fromData(result,metadata,false).getOrElse(JSONID.empty),Record(result,false))
+    }
+  }
+
+  def saveLocally(data:Json):Future[(JSONID,Record)] = {
+
+    val m = model.get
+    val metadata = m.metadata.get
+    val originalId = JSONID.fromData(m.originalData,metadata)
+
+
+    val id:JSONID = JSONID.fromString(m.id.getOrElse(""), metadata) match {
+      case Some(value) => value
+      case None => JSONID.newLocal()
+    }
+
+    val record = LocalRecord(id.asString,m.kind,m.name,data)
+
+    logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
+    for {
+      result <- DB.localRecord.save(record)
+    } yield {
+      logger.debug(s"saveAction::Result")
+      (JSONID.fromString(result.pk.jsonid,metadata).get,Record(result.data,true))
+    }
+  }
+
+
+  def save(check:Boolean = true,saveAction: Json => Future[(JSONID,Record)] = saveToDb):Future[(JSONID,Record)]  = {
 
     services.clientSession.loading.set(true)
 
@@ -209,24 +254,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     val m = model.get
     val metadata = m.metadata.get
-    val originalId = JSONID.fromData(m.originalData,metadata)
     val data:Json = m.data
-
-    def saveAction(data:Json):Future[(JSONID,Json)] = {
-
-      logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
-      for {
-        result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
-          case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, originalId.getOrElse(id), data,m.public)
-          case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
-        }
-      } yield {
-        logger.debug(s"saveAction::Result")
-        (JSONID.fromData(result,metadata,false).getOrElse(JSONID.empty),result)
-      }
-
-    }
-
 
 
     {for{
@@ -250,11 +278,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       enableGoAway("save")
       val currentState = model.get
 
-      val newData = currentState.data.deepMerge(resultAfterAction)
+      val newData = currentState.data.deepMerge(resultAfterAction.data)
 
 
 
-      (newId,newData)
+      (newId,Record(newData,resultAfterAction.local_version))
 
 
     }}.recover{ case e =>
@@ -266,17 +294,23 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   }
 
-  def afterSave(id:JSONID,data:Json) = {
+  def afterSave(id:JSONID,data:Record) = {
     val currentState = model.get
-    model.set(currentState.copy(
-      data = data,
-      originalData = data,
-      id = Some(id.asString),
-      insert = false,
-      changed = false
-    ))
-    childChanged.set(false)
-    resetChanges()
+    if(!model.get.id.contains(id.asString)) {
+        val state = applicationInstance.currentState.asInstanceOf[EntityFormState]
+        Navigate.to(state.copy(_id = Some(id.asString)))
+    } else {
+      model.set(currentState.copy(
+        data = data.data,
+        originalData = data.data,
+        id = Some(id.asString),
+        insert = false,
+        changed = false,
+        localData =  data.local_version
+      ))
+      childChanged.set(false)
+      resetChanges()
+    }
 
     services.clientSession.loading.set(false)
   }
@@ -284,15 +318,25 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def reload(id:JSONID): Future[Json] = {
     services.clientSession.loading.set(true)
     for{
-      resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
-      result <- {
+      resultSaved <- services.data.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
+      result <- if(!model.get.id.contains(id.asString)) {
+        Future.successful{
+          val state = applicationInstance.currentState.asInstanceOf[EntityFormState]
+          Navigate.to(state.copy(_id = Some(id.asString)))
+          Json.Null
+        }
+      } else {
+
+
+
         val promise = Promise[Json]()
         reset()
 
         model.set(model.get.copy(
-          data = resultSaved,
-          originalData = resultSaved,
-          id = Some(id.asString)
+          data = resultSaved.data,
+          originalData = resultSaved.data,
+          id = Some(id.asString),
+          localData = resultSaved.local_version
         ))
 
         resetChanges()
@@ -321,7 +365,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         name <- model.get.metadata.map(_.name)
         key <- model.get.id.flatMap(x => JSONID.fromString(x,model.get.metadata.get))
       } yield {
-        services.rest.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
+        services.data.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")
           Navigate.to(Routes(model.get.kind, name,model.subProp(_.public).get).entity(name))
         }
@@ -388,7 +432,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def loadWidgets(f:JSONMetadata) = {
     val actions = WidgetCallbackActions((f:(JSONID,Json) => Future[Unit]) => save().foreach{ case (id,data) =>
-      f(id,data).foreach{ _ =>
+      f(id,data.data).foreach{ _ =>
         afterSave(id,data)
       }
     },reload)
@@ -483,30 +527,35 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       case None => Future.successful(None)
     }
 
-    def callBack() = action.action match {
-      case SaveAction =>  save(action.html5check).map{ case (_id,data) =>
+    def afterSaveAction(combined:(JSONID,Record)):Future[Unit] = {
 
-        def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write) match {
-          case Some(url) => {
-            logger.warn(s"Navigating to $url")
-            //reset()
-            afterGoto(url)
-          }
-          case None => afterSave(_id,data)
+      val (id,data) = combined
+
+      def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(id.asString), model.get.write) match {
+        case Some(url) => {
+          logger.warn(s"Navigating to $url")
+          //reset()
+          afterGoto(url)
         }
-
-        executeFunction().map {
-          case Some(true) => {
-            if (action.reload) {
-              reload(_id)
-            }
-            onSuccess
-          }
-          case None => onSuccess
-          case Some(false) => afterSave(_id,data)
-
-        }
+        case None => afterSave(id,data)
       }
+
+      executeFunction().map {
+        case Some(true) => {
+          if (action.reload) {
+            reload(id)
+          }
+          onSuccess
+        }
+        case None => onSuccess
+        case Some(false) => afterSave(id,data)
+
+      }
+    }
+
+    def callBack() = action.action match {
+      case SaveAction =>  save(action.html5check,saveToDb).map(afterSaveAction)
+      case SaveLocalAction =>  save(action.html5check,saveLocally).map(afterSaveAction)
       case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
         executeFunction().map {
           case Some(true) => {
@@ -682,14 +731,18 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           ClientConf.style.formTitle,
           if(showId) {
             showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
-              div(produce(model.subProp(_.id)) { id =>
-                id.flatMap(JSONID.fromString(_,metadata)).toSeq.flatMap{ jsonId =>
-                  jsonId.id.map{ k =>
-                    val label = metadata.fields.find(_.name == k.key).flatMap(_.label).getOrElse(k.key)
-                    span(span(ClientConf.style.formTitleLight,label), " ",k.value.string, " ").render
+              div(
+                showIf(model.subProp(_.localData)) { span(ClientConf.style.chip,"Local Data").render },
+                produce(model.subProp(_.id)) { id =>
+                  id.flatMap(JSONID.fromString(_,metadata)).toSeq.flatMap{ jsonId =>
+                    jsonId.id.flatMap{ k =>
+                      metadata.fields.find(_.name == k.key).flatMap(_.label).map { label =>
+                        span(span(ClientConf.style.formTitleLight, label), " ", k.value.string, " ").render
+                      }
+                    }
                   }
                 }
-              }).render
+              ).render
             }
           } else frag(),
         )

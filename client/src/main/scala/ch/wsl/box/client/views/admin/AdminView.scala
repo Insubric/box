@@ -82,6 +82,9 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
         li(
           a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"function",None,false)))
         ),
+        li(
+          a("PgLite REPL", Navigate.click(AdminDBReplState))
+        ),
       )
     ),
 //    div(BootstrapCol.md(3),h3("News"),

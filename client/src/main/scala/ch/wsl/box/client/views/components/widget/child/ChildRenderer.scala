@@ -297,9 +297,10 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       val out = Future.sequence(childWidgets.filterNot(_.deleted).map{ case cw =>
 
 
-        val oldData = cw.data.get
 
-        val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m,false) == cw.rowId.get )).getOrElse(Json.obj())
+        val newData = cw.data.get
+
+        val oldData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m,false) == cw.rowId.get )).getOrElse(Json.obj())
         val d = oldData.deepMerge(newData)
 
         logger.debug(
