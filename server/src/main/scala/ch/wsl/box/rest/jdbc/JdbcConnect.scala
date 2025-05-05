@@ -70,27 +70,40 @@ object JdbcConnect extends Logging {
     val result = Future{
       // make the connection
       val connection = services.connection.dbConnection.source.createConnection()
-      val result = Try {
-        connection.setAutoCommit(false)
-        // create the statement, and run the select query
-        val roleStatement = connection.createStatement()
-        roleStatement.execute(s"""SET ROLE "${up.name}" """)
 
-        val statement = connection.createStatement()
-        val argsStr = if (args == null) ""
-        else args.map(_.toString()).mkString(",")
+      var oracle_retry = 0
+      val oracle_retry_max = 3
 
-        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
-        logger.info(query)
-        val resultSet = statement.executeQuery(query)
-        connection.commit()
-        val metadata = getColumnMeta(resultSet.getMetaData)
-        val data = getResults(resultSet, metadata)
-        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping(x.datatype,"string")), data, Seq(), Map())
-      } match {
+      def executeFunction() = Try {
+          connection.setAutoCommit(false)
+          // create the statement, and run the select query
+          val roleStatement = connection.createStatement()
+          roleStatement.execute(s"""SET ROLE "${up.name}" """)
+
+          val statement = connection.createStatement()
+          val argsStr = if (args == null) ""
+          else args.map(_.toString()).mkString(",")
+
+          val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
+          logger.info(query)
+          val resultSet = statement.executeQuery(query)
+          connection.commit()
+          val metadata = getColumnMeta(resultSet.getMetaData)
+          val data = getResults(resultSet, metadata)
+          DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping(x.datatype,"string")), data, Seq(), Map())
+      }
+
+      def fetch():Option[DataResultTable] = executeFunction() match {
+
+        case Failure(exception) if exception.getMessage.contains("ORA-08177") && oracle_retry_max >= oracle_retry => { // https://github.com/laurenz/oracle_fdw?tab=readme-ov-file#serialization-errors oracle sometimes fails transaction and ask the user to retry, oracle claims that is not a bug :/
+          oracle_retry = oracle_retry + 1
+          connection.rollback()
+          fetch()
+        }
         case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),Seq(),errorMessage = Some(exception.getMessage)))
         case Success(value) => Some(value)
       }
+      val result = fetch()
       connection.close()
       result
     }
