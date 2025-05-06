@@ -82,23 +82,32 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     super.killWidget()
   }
 
-  def url(data:Json):Option[(String,String)] = {
+  def url(data:Json):Option[String] = {
     JSONID.fromData(data,widgetParams.metadata).map{ id =>
-      val randomString = UUID.randomUUID().toString
       val idString = id.asString
       val name = downloadFilenameField.flatMap(data.getOpt) match {
         case Some(name) => name
         case None => s"${widgetParams.metadata.name}_$idString"
       }
       val u = s"/file/${widgetParams.metadata.entity}.${field.name}/$idString"
-      (
-        s"$u/thumb?rand=$randomString",
-        s"$u?name=$name"
-      )
+      s"$u?name=$name"
     }
   }
 
-  val urls = widgetParams.allData.transform(url)
+  val idString:Property[Option[String]] = Property(None)
+  autoRelease{
+    widgetParams.allData.listen({data =>
+      idString.set(JSONID.fromData(data,widgetParams.metadata).map(_.asString))
+    },true)
+  }
+
+  val thumbUrl = idString.transform{ _.map{ idString =>
+    val randomString = UUID.randomUUID().toString
+    val u = s"/file/${widgetParams.metadata.entity}.${field.name}/$idString"
+    s"$u/thumb?rand=$randomString"
+  }}
+
+  val downloadUrl = widgetParams.allData.transform(url)
 
   private def showFile(nested:Binding.NestedInterceptor) = div(ClientConf.style.noPadding)(
     nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
@@ -109,8 +118,8 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
         span("File loaded")
       ).render
       case ((Some(mime),Some(file)),nested) if FileUtils.isKeep(file) => div(
-        nested(produce(urls) {
-          case Some((thumb,_download)) => {
+        nested(produce(thumbUrl.combine(downloadUrl){ case (x,y) => (x,y)}) {
+          case (Some(thumb),Some(_download)) => {
 
             val url:Property[String] = Property("")
 
@@ -186,8 +195,8 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding)(
       fileInput,
-      produce(urls) {
-        case Some((thumb,_download)) =>
+      produce(downloadUrl) {
+        case Some(_download) =>
           WidgetUtils.addTooltip(Some("Download")){
             a(Icons.download, ClientConf.style.boxIconButton, href := Routes.apiV1(_download),attr("download") := "download").render
           }._1
