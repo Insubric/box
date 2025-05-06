@@ -178,6 +178,7 @@ lazy val client: Project = (project in file("client"))
       "jsuites" -> "5.9.1",
       "@electric-sql/pglite" -> "0.2.17",
       "@electric-sql/pglite-repl" -> "0.2.17",
+      "compressorjs" -> "1.2.1"
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",
