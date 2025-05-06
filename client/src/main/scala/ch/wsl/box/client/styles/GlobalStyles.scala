@@ -466,6 +466,7 @@ object GlobalStyleFactory{
       marginLeft(10 px),
       fontSize(10 px),
       borderRadius(20 px),
+      textNoWrap
     )
 
     val checkboxWidget = style(
@@ -529,6 +530,7 @@ object GlobalStyleFactory{
     val smallCells = style(
       padding.horizontal(3 px),
       padding.vertical(15 px),
+      verticalAlign.middle.important,
       fontSize(conf.smallCellsSize px),
       unsafeRoot("input") (
         media.maxWidth(600 px)(

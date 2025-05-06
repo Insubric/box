@@ -7,5 +7,5 @@ trait DbEntity[T,K] {
   def get(k:K)(implicit ec:ExecutionContext):Future[Option[T]]
   def save(o:T)(implicit ec:ExecutionContext):Future[T]
   def delete(o:K)(implicit ec:ExecutionContext):Future[Boolean]
-  def list()(implicit ec:ExecutionContext):Future[Seq[T]]
+  def list(where:Option[String] = None)(implicit ec:ExecutionContext):Future[Seq[T]]
 }

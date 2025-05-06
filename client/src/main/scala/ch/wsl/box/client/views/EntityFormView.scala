@@ -10,6 +10,7 @@ import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
+import ch.wsl.box.client.views.elements.Offline
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -732,7 +733,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           if(showId) {
             showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
               div(
-                showIf(model.subProp(_.localData)) { span(ClientConf.style.chip,"Local Data").render },
+                Offline(model.subProp(_.localData)),
                 produce(model.subProp(_.id)) { id =>
                   id.flatMap(JSONID.fromString(_,metadata)).toSeq.flatMap{ jsonId =>
                     jsonId.id.flatMap{ k =>

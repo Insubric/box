@@ -4,6 +4,7 @@ import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.{EntityKind, JSONID}
 import ch.wsl.typings.electricSqlPglite.workerMod.PGliteWorker
 import io.circe.Json
+import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -31,7 +32,7 @@ object LocalRecord {
 }
 
 
-class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKey] {
+class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKey] with Logging {
 
   def init()(implicit ec:ExecutionContext) = db.exec(
     """
@@ -76,10 +77,11 @@ class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKe
     }
   }
 
-  override def list()(implicit ec: ExecutionContext): Future[Seq[LocalRecord]] = {
+  override def list(where:Option[String] = None)(implicit ec: ExecutionContext): Future[Seq[LocalRecord]] = {
     val q = s"""
-               |select jsonid,kind,name,data from local_records'
+               |select jsonid,kind,name,data from local_records ${where.map(x => s"where $x").getOrElse("")}
                |""".stripMargin
+    logger.debug(s"List query SQL: $q")
     db.query[LocalRecordResult](q).toFuture.map{r =>
       r.rows.map{ row =>
         BrowserConsole.log(row)
