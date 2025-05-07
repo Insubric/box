@@ -15,18 +15,20 @@ trait LocalRecordResult extends js.Any {
   val kind:String
   val name:String
   val data: js.Any
+  val original_data:js.Any
 }
 
 case class LocalRecordKey(jsonid:String,kind:String,name:String)
-case class LocalRecord(pk:LocalRecordKey,data:Json)
+case class LocalRecord(pk:LocalRecordKey,data:Json,original_data:Option[Json])
 object LocalRecord {
-  def apply(jsonid: String, kind: String, name: String, data: Json): LocalRecord = LocalRecord(LocalRecordKey(jsonid, kind, name), data)
+  def apply(jsonid: String, kind: String, name: String, data: Json,original_data:Option[Json]): LocalRecord = LocalRecord(LocalRecordKey(jsonid, kind, name), data, original_data)
 
   def fromDb(lrr:LocalRecordResult):LocalRecord = apply(
     lrr.jsonid,
     lrr.kind,
     lrr.name,
-    io.circe.scalajs.convertJsToJson(lrr.data).getOrElse(Json.Null)
+    io.circe.scalajs.convertJsToJson(lrr.data).getOrElse(Json.Null),
+    io.circe.scalajs.convertJsToJson(lrr.original_data).toOption
   )
 
 }
@@ -41,14 +43,24 @@ class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKe
       |    kind text,
       |    name text,
       |    data jsonb not null,
+      |    original_data jsonb,
       |    primary key(jsonid,kind,name)
       |  );
       |""".stripMargin).toFuture.map{ _ => true}
 
   override def save(o: LocalRecord)(implicit ec: ExecutionContext): Future[LocalRecord] = {
+    val od = o.original_data match {
+      case Some(value) => s"'${value.toString()}'::jsonb"
+      case None => "null"
+    }
+    logger.debug(s"Save original data: $od")
+    BrowserConsole.log(o.original_data.getOrElse(Json.Null))
+    BrowserConsole.log(od.take(20))
+
+    //on conflict update just the data, the original data should be the same
     val q = s"""
-       |insert into local_records (jsonid,kind,name,data) values
-       |('${o.pk.jsonid}','${o.pk.kind}','${o.pk.name}','${o.data.toString()}'::jsonb)
+       |insert into local_records (jsonid,kind,name,data,original_data) values
+       |('${o.pk.jsonid}','${o.pk.kind}','${o.pk.name}','${o.data.toString()}'::jsonb,$od)
        |on conflict (jsonid,kind,name) do update set data=excluded.data
        |""".stripMargin
 
@@ -58,12 +70,12 @@ class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKe
 
   override def get(k: LocalRecordKey)(implicit ec: ExecutionContext): Future[Option[LocalRecord]] = {
     val q = s"""
-         |select jsonid,kind,name,data from local_records where jsonid='${k.jsonid}' and kind='${k.kind}' and name='${k.name}'
+         |select jsonid,kind,name,data,original_data from local_records where jsonid='${k.jsonid}' and kind='${k.kind}' and name='${k.name}'
          |""".stripMargin
     db.query[LocalRecordResult](q).toFuture.map{r =>
       r.rows.headOption.map{ row =>
         BrowserConsole.log(row)
-        new LocalRecord(k,io.circe.scalajs.convertJsToJson(row.data).getOrElse(Json.Null))
+        LocalRecord.fromDb(row)
       }
     }
   }
@@ -79,7 +91,7 @@ class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKe
 
   override def list(where:Option[String] = None)(implicit ec: ExecutionContext): Future[Seq[LocalRecord]] = {
     val q = s"""
-               |select jsonid,kind,name,data from local_records ${where.map(x => s"where $x").getOrElse("")}
+               |select jsonid,kind,name,data,original_data from local_records ${where.map(x => s"where $x").getOrElse("")}
                |""".stripMargin
     logger.debug(s"List query SQL: $q")
     db.query[LocalRecordResult](q).toFuture.map{r =>

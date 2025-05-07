@@ -223,7 +223,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       case None => JSONID.newLocal()
     }
 
-    val record = LocalRecord(id.asString,m.kind,m.name,data)
+    val record = LocalRecord(id.asString,m.kind,m.name,data,Some(m.originalData))
 
     logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
     for {
