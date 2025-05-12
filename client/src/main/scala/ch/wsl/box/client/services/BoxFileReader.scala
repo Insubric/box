@@ -7,10 +7,10 @@ import scala.scalajs.js
 
 object BoxFileReader {
 
-  private def _read(f: FileReader => (Blob => Unit),blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = {
+  private def _read(f: FileReader => Unit)(implicit ex:ExecutionContext):Future[js.Any] = {
     val reader = new FileReader()
     val promise = Promise[js.Any]()
-    reader.readAsArrayBuffer(blob)
+    f(reader)
     reader.onload = _ => {
       promise.success(reader.result)
     }
@@ -28,7 +28,8 @@ object BoxFileReader {
   }
 
 
-  def readAsDataURL(blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = _read(_.readAsDataURL,blob)
-  def readAsArrayBuffer(blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = _read(_.readAsArrayBuffer,blob)
+  def readAsDataURL(blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = _read(_.readAsDataURL(blob))
+  def readAsArrayBuffer(blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = _read(_.readAsArrayBuffer(blob))
+  def readAsText(blob:Blob)(implicit ex:ExecutionContext):Future[String] = _read(_.readAsText(blob)).map(_.toString)
 
 }

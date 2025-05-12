@@ -10,7 +10,7 @@ object GeoJson {
 
   case class Feature(geometry: Geometry, properties: Option[JsonObject] = None, bbox:Option[Seq[Double]] = None, `type`:String = "Feature")
 
-  case class FeatureCollection(features: Seq[Feature])
+  case class FeatureCollection(features: Seq[Feature],crs:Option[CRS] = None)
 
   object FeatureCollection{
     def decode(j:Json) = j.as[FeatureCollection]
@@ -32,8 +32,14 @@ object GeoJson {
     def flatten = Seq(x,y)
   }
 
-  case class CRS(name:String) {
-    def srid:Int = name.stripPrefix("EPSG:").toInt
+  case class CRS(_name:String) {
+    def srid:Int = _name
+      .stripPrefix("EPSG:") // Box prefix format
+      .stripPrefix("urn:ogc:def:crs:EPSG::") // QGIS prefix format
+      .toInt
+
+    def name = s"EPSG:$srid"
+
   }
 
   object CRS {

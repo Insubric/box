@@ -1,6 +1,6 @@
 package ch.wsl.box.client.geo
 
-import ch.wsl.box.client.geo.handlers.Shp
+import ch.wsl.box.client.geo.handlers.{GeoJsonImporter, Shp}
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.model.shared.GeoJson.Geometry
@@ -26,15 +26,19 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
 
   def shpUplHandler = { (e:Event) =>
     e.target.asInstanceOf[Input].files.toSeq.headOption match {
-      case Some(value) => {
-
+      case Some(value) if value.name.endsWith("shp") => {
         new Shp(params.projections).read(value).foreach{_.foreach{ g =>
           change(Some(g),true)
           println("upload ok")
         }}
-
       }
-      case None => ()
+      case Some(value) if value.name.endsWith("geojson") => {
+        new GeoJsonImporter(params.projections).read(value).map{_.foreach{ g =>
+          change(Some(g),true)
+          println("upload ok")
+        }}.recover{ case t => t.printStackTrace()}
+      }
+      case _ => ()
     }
   }
 
@@ -55,7 +59,7 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
     insertCoordinateField.set("")
 
 
-    val uploader:Input =  input(display.none,`type` := "file","upload shp", accept := ".shp", onchange :+= shpUplHandler).render
+    val uploader:Input =  input(display.none,`type` := "file","upload shp", accept := ".shp,.geojson", onchange :+= shpUplHandler).render
 
     frag(
 
