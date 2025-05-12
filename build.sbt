@@ -176,10 +176,13 @@ lazy val client: Project = (project in file("client"))
       "gridstack" -> "8.3.0",
       "jspreadsheet-ce" -> "git://github.com/jspreadsheet/ce.git#2e7389f8f6a84d260603bbac06f00bb404e1ba49", //v5.0.0
       "jsuites" -> "5.9.1",
-      "@electric-sql/pglite" -> "0.2.17"
+      "@electric-sql/pglite" -> "0.2.17",
+      "shapefile" -> "0.6.6",
+      "@types/shapefile" -> "0.6.4",
     ),
     stIgnore += "@fontsource/open-sans",
     stIgnore += "redux",
+    stIgnore += "node",
     stIgnore += "crypto-browserify",
     stIgnore += "ol-ext",
     stIgnore += "@fortawesome/fontawesome-free",

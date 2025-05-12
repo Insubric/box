@@ -106,6 +106,8 @@ object GeoJson {
       .replaceAll("%x",allCoordinates.headOption.map(_.xApprox(precision).toString).getOrElse(""))
       .replaceAll("%y",allCoordinates.headOption.map(_.yApprox(precision).toString).getOrElse(""))
 
+    def convert(f:Coordinates => Coordinates,crs:CRS):Geometry
+
   }
 
   case class Point(coordinates: Coordinates, crs:CRS) extends SingleGeometry {
@@ -116,6 +118,7 @@ object GeoJson {
 
     override def toString(precision:Double): String = s"$geomName(${coordinates.toString(precision)})"
 
+    override def convert(f: Coordinates => Coordinates,crs:CRS): Point = Point(f(coordinates),crs)
   }
 
   case class LineString(coordinates: Seq[Coordinates], crs:CRS) extends SingleGeometry {
@@ -127,6 +130,8 @@ object GeoJson {
     override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.toString(precision)).mkString(",")})"
 
     override def flattenCoordinates: Seq[Double] = coordinates.flatMap(_.flatten)
+
+    override def convert(f: Coordinates => Coordinates,crs:CRS): LineString = LineString(coordinates.map(f),crs)
   }
 
   case class MultiPoint(coordinates: Seq[Coordinates], crs:CRS) extends Geometry {
@@ -141,6 +146,9 @@ object GeoJson {
     def toPoints: Seq[Point] = coordinates.map(c => Point(c,crs))
 
     override def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(MultiPoint(singleGeometries.map{case Point(coordinates,crs) => coordinates },crs))
+
+    override def convert(f: Coordinates => Coordinates,crs:CRS): MultiPoint = MultiPoint(coordinates.map(f),crs)
+
 
   }
 
@@ -166,6 +174,8 @@ object GeoJson {
 
     override def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(MultiLineString(singleGeometries.map{case LineString(coordinates,crs) => coordinates },crs))
 
+    override def convert(f: Coordinates => Coordinates,crs:CRS): MultiLineString = MultiLineString(coordinates.map(_.map(f)),crs)
+
   }
 
   object MultiLineString {
@@ -184,6 +194,9 @@ object GeoJson {
 
     override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
+    override def convert(f: Coordinates => Coordinates,crs:CRS): Polygon = Polygon(coordinates.map(_.map(f)),crs)
+
+
   }
 
   case class MultiPolygon(coordinates: Seq[Seq[Seq[Coordinates]]], crs:CRS) extends Geometry {
@@ -198,6 +211,9 @@ object GeoJson {
     def toPolygons: Seq[Polygon] = coordinates.map(c => Polygon(c,crs))
 
     override protected def _toGeom(singleGeometries: Seq[SingleGeometry]): Option[Geometry] = Some(MultiPolygon(singleGeometries.map{case Polygon(coordinates,crs) => coordinates },crs))
+
+    override def convert(f: Coordinates => Coordinates,crs:CRS): MultiPolygon = MultiPolygon(coordinates.map(_.map(_.map(f))),crs)
+
 
   }
 
@@ -225,6 +241,8 @@ object GeoJson {
       val newGeometries = geometries.flatMap(_.removeSimple(toDelete))
       if(newGeometries.nonEmpty) Some(GeometryCollection(newGeometries,crs)) else None
     }
+
+    override def convert(f: Coordinates => Coordinates, crs: CRS): Geometry = GeometryCollection(geometries.map(_.convert(f,crs)),crs)
   }
 
   object Geometry {
@@ -250,6 +268,21 @@ object GeoJson {
         case "polygon" => c.downField("coordinates").as[Seq[Seq[Coordinates]]].map{ coords => Polygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
         case "multipolygon" => c.downField("coordinates").as[Seq[Seq[Seq[Coordinates]]]].map{ coords => MultiPolygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
         case "geometrycollection" => c.downField("geometries").as[Seq[Geometry]].map{ geoms => GeometryCollection(geoms,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+      }
+    }
+
+    def fromSimple(geoms:Seq[SingleGeometry]):Geometry = {
+
+      val crs = geoms.map(_.crs).distinct.toList match {
+        case crs :: Nil => crs
+        case _ => throw new Exception("Multiple CRS not supported")
+      }
+
+      geoms.map(_.geomName).distinct.toList match {
+        case "POINT" :: Nil => MultiPoint.fromPoints(geoms.map{ case p:Point => p})
+        case "LINESTRING" :: Nil => MultiLineString.fromLines(geoms.map{ case p:LineString => p})
+        case "POLYGON" :: Nil => MultiPolygon.fromPolygons(geoms.map{ case p:Polygon => p})
+        case _ => GeometryCollection(geoms,crs)
       }
     }
   }

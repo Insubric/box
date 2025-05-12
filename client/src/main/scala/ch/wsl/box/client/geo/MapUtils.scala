@@ -161,17 +161,21 @@ object MapUtils extends Logging {
   def vectorSourceGeoms(vectorSource:sourceMod.Vector[_],defaultProjection:String): Option[FeatureCollection] = {
     val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
 
-    val json = convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
+    for{
+      json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
+      // Maunually attach CRS since the standard in not well defined
+      j <- attachCRS(json,CRS(defaultProjection))
+      result <- FeatureCollection.decode(j).toOption
+    } yield result
+  }
 
-    // Maunually attach CRS since the standard in not well defined
-    val jsonWithCRS = json.flatMap { jsWithoutProjection =>
-      jsWithoutProjection.hcursor.downField("features").withFocus { featJs =>
+  def attachCRS(json:Json,crs:CRS):Option[Json] = {
+    val jsonWithCRS = json.hcursor.downField("features").withFocus { featJs =>
         featJs.as[Seq[Json]].toOption.toSeq.flatten.map { feat =>
-          feat.deepMerge(Json.fromFields(Map("geometry" -> Json.fromFields(Map("crs" -> CRS(defaultProjection).asJson)))))
+          feat.deepMerge(Json.fromFields(Map("geometry" -> Json.fromFields(Map("crs" -> crs.asJson)))))
         }.asJson
       }.top
-    }
-    jsonWithCRS.flatMap(j => FeatureCollection.decode(j).toOption)
+    jsonWithCRS
   }
 
   def factorGeometries(geometries:Seq[Geometry],features:MapParamsFeatures, crs:CRS):Option[Geometry] = {
@@ -227,6 +231,5 @@ object MapUtils extends Logging {
     }
     ol
   }
-
 
 }

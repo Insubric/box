@@ -1,5 +1,6 @@
 package ch.wsl.box.client.geo
 
+import ch.wsl.box.client.geo.handlers.Shp
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.model.shared.GeoJson.Geometry
@@ -12,6 +13,7 @@ import scalatags.JsDom.all._
 import ch.wsl.typings.ol.renderFeatureMod
 import ch.wsl.typings.ol.viewMod.FitOptions
 import org.scalajs.dom
+import org.scalajs.dom.html.Input
 
 import scala.concurrent.ExecutionContext
 
@@ -20,6 +22,21 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
   import params._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
+
+
+  def shpUplHandler = { (e:Event) =>
+    e.target.asInstanceOf[Input].files.toSeq.headOption match {
+      case Some(value) => {
+
+        new Shp(params.projections).read(value).foreach{_.foreach{ g =>
+          change(Some(g),true)
+          println("upload ok")
+        }}
+
+      }
+      case None => ()
+    }
+  }
 
   def renderControls(nested: Binding.NestedInterceptor): Node = {
 
@@ -37,6 +54,8 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
     goToField.set(None)
     insertCoordinateField.set("")
 
+
+    val uploader:Input =  input(display.none,`type` := "file","upload shp", accept := ".shp", onchange :+= shpUplHandler).render
 
     frag(
 
@@ -76,7 +95,9 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
             params.fullscreen.toggle()
             e.preventDefault()
           }
-        )(Icons.enterFullscreen).render
+        )(Icons.enterFullscreen).render,
+        uploader,
+        button(ClientConf.style.mapButton)( onclick :+= { (e: Event) => uploader.click() } )(Icons.upload).render
       ),
       div(
         nested(showIf(activeControl.transform(c => Seq(Control.VIEW, Control.POINT).contains(c))) {
