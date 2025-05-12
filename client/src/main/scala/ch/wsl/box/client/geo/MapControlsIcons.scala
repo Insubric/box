@@ -1,7 +1,7 @@
 package ch.wsl.box.client.geo
 
-import ch.wsl.box.client.geo.handlers.{GeoJsonImporter, Shp}
-import ch.wsl.box.client.services.{ClientConf, Labels}
+import ch.wsl.box.client.geo.handlers.{GeoJsonImporter, Kml, Shp}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.model.shared.SharedLabels
@@ -15,7 +15,7 @@ import ch.wsl.typings.ol.viewMod.FitOptions
 import org.scalajs.dom
 import org.scalajs.dom.html.Input
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) extends MapControls(params) {
 
@@ -25,21 +25,16 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
 
 
   def shpUplHandler = { (e:Event) =>
-    e.target.asInstanceOf[Input].files.toSeq.headOption match {
-      case Some(value) if value.name.endsWith("shp") => {
-        new Shp(params.projections).read(value).foreach{_.foreach{ g =>
-          change(Some(g),true)
-          println("upload ok")
-        }}
-      }
-      case Some(value) if value.name.endsWith("geojson") => {
-        new GeoJsonImporter(params.projections).read(value).map{_.foreach{ g =>
-          change(Some(g),true)
-          println("upload ok")
-        }}.recover{ case t => t.printStackTrace()}
-      }
-      case _ => ()
+    val geoms = e.target.asInstanceOf[Input].files.toSeq.headOption match {
+      case Some(value) if value.name.endsWith("shp") => new Shp(params.projections).read(value)
+      case Some(value) if value.name.endsWith("geojson") => new GeoJsonImporter(params.projections).read(value)
+      case Some(value) if value.name.endsWith("kml") => new Kml(params.projections).read(value)
+      case _ => Future.successful(None)
     }
+    geoms.map{_.foreach{ g =>
+      change(Some(g),true)
+      println("upload ok")
+    }}.recover{ case t => t.printStackTrace()}
   }
 
   def renderControls(nested: Binding.NestedInterceptor): Node = {
@@ -59,7 +54,7 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
     insertCoordinateField.set("")
 
 
-    val uploader:Input =  input(display.none,`type` := "file","upload shp", accept := ".shp,.geojson", onchange :+= shpUplHandler).render
+    val uploader:Input =  input(display.none,`type` := "file","upload shp", accept := ".shp,.geojson,.kml", onchange :+= shpUplHandler).render
 
     frag(
 
