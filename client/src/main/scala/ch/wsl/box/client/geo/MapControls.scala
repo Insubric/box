@@ -69,7 +69,7 @@ case class MapControlsParams(
                               extra:Option[Json],
                               precision:Option[Double],
                               enableSwisstopo: Boolean,
-                              change: Option[Geometry] => Unit,
+                              change: (Option[Geometry],Boolean) => Unit,
                               formatters:Option[MapFormatters],
                               fullscreen: Property[Boolean]
                             ) {
@@ -363,7 +363,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
       })
     }
 
-    change(geometry())
+    change(geometry(),false)
 
     // when adding a point go back to view mode
     if (

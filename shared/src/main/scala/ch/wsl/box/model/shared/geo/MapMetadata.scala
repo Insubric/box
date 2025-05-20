@@ -20,6 +20,7 @@ case class Box2d(
     Coordinates(xMax, yMin),
     Coordinates(xMin, yMin)
   )), crs)
+  def contains(c:Coordinates):Boolean = xMin <= c.x && xMax >= c.x && yMin <= c.y && yMax >= c.y
 }
 
 object Box2d{

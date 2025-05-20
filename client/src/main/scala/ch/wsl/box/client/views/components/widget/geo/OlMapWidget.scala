@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget.geo
 
 import cats.effect._
 import cats.effect.unsafe.implicits._
+import ch.wsl.box.client.geo.handlers.Shp
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dom._
 import ch.wsl.box.client.geo.{BoxLayer, BoxMapProjections, BoxOlMap, Control, EnabledControls, MapActions, MapControls, MapControlsIcons, MapControlsParams, MapParams, MapParamsLayers, MapStyle, MapUtils}
@@ -23,14 +24,13 @@ import io.udash.bootstrap.tooltip.UdashTooltip
 import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom
 import org.scalajs.dom.{Event, _}
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, Input}
 import scalacss.internal.mutable.StyleSheet
 import scalatags.JsDom
 import scribe.Logging
 import ch.wsl.typings.ol._
 import ch.wsl.typings.ol.coordinateMod.{Coordinate, createStringXY}
 import ch.wsl.typings.ol.interactionSelectMod.SelectEvent
-import ch.wsl.typings.ol.sourceVectorMod.VectorSourceEvent
 import ch.wsl.typings.ol.viewMod.FitOptions
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -38,11 +38,13 @@ import scala.scalajs.js
 import scala.util.Try
 import scalacss.ScalatagsCss._
 import scalacss.ProdDefaults._
-import ch.wsl.typings.ol.formatMod.WKT
+import ch.wsl.typings.ol.formatMod.{GeoJSON, WKT}
 import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
 import ch.wsl.typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
+import ch.wsl.typings.ol.extentMod.Extent
+import ch.wsl.typings.ol.formatFeatureMod.ReadOptions
 import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
 import ch.wsl.typings.ol.mapMod.MapOptions
@@ -79,7 +81,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   val options: MapParams = MapWidgetUtils.options(field)
 
-
+  override def killWidget(): Unit = {
+    super.killWidget()
+    dataListener.foreach(_.cancel())
+  }
 
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
   val defaultProjection = proj.defaultProjection
@@ -122,21 +127,26 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var view: viewMod.default = null
 
 
-  def registerListener() = {
+  private var dataListener:Option[Registration] = None
 
-      if (!data.get.isNull) {
-        val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(data.get).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-        vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
-        view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
-      } else {
-        view.fit(defaultProjection.getExtent())
-      }
+  def registerListener(initUpdate:Boolean) = {
+      dataListener = Some(data.listen({ _ =>
+        if (!data.get.isNull) {
+          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(data.get).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+          vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
+          view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
+        } else {
+          view.fit(defaultProjection.getExtent())
+        }
+      },false))
   }
 
   import GeoJson._
 
-  def changedFeatures(newData:Option[Geometry]) = {
+  def changedFeatures(newData:Option[Geometry], forceTriggerListeners:Boolean) = {
+    if(!forceTriggerListeners) dataListener.foreach(_.cancel())
     data.set(newData.asJson)
+    if(!forceTriggerListeners) registerListener(false)
   }
 
   var mapControls = Option.empty[MapControls]
@@ -202,7 +212,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       baseLayer.set(options.baseLayers.toSeq.flatten.find(_.name == bs))
     })
 
-    registerListener()
+    registerListener(true)
 
     (map,vectorSource)
 
@@ -264,7 +274,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullScreen),
       mapStyleElement,
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
-      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+      TextInput(data.bitransform(_.string.take(5))(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       nested(produce(data) { geo =>
         mapControls.toSeq.flatMap(_.renderControls(nested))
       }),
