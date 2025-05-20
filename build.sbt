@@ -267,11 +267,13 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
 lazy val sharedJVM: Project = shared.jvm.settings(
   name := "box-shared-jvm",
   scalaVersion := Settings.versions.scala213,
+  publishTo := sonatypeCentralPublishToBundle.value
 )
 
 lazy val sharedJS: Project = shared.js.settings(
   name := "box-shared-js",
   scalaVersion := Settings.versions.scala213,
+  publishTo := sonatypeCentralPublishToBundle.value
 )
 
 
