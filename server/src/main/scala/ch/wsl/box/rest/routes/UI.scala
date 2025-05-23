@@ -136,8 +136,8 @@ object UI {
             |"theme_color" : "${services.config.mainColor}",
             |"background_color" : "${services.config.mainColor}",
             |"display" : "fullscreen",
-            |"scope" : "/",
-            |"start_url" : "/",
+            |"scope" : "${services.config.basePath}",
+            |"start_url" : "${services.config.basePath}",
             |"name" : "${services.config.name}",
             |"short_name" : "${services.config.shortName}",
             |"icons": [
