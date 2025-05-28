@@ -74,4 +74,4 @@ node_modules
 LOCAL_README.md
 
 #let sbt handle the depenencies
-#client/package-lock.json
+client/package-lock.json

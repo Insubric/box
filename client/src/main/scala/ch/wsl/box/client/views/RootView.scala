@@ -146,8 +146,7 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
   )
 
   override def renderChild(view: Option[View]): Unit = {
-    import io.udash.wrappers.jquery._
-    jQ(child).children().remove()
+    child.innerHTML = ""
     view.foreach(_.getTemplate.applyTo(child))
   }
 }
