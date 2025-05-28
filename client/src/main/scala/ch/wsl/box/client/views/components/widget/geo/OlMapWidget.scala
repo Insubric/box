@@ -138,7 +138,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
         } else {
           view.fit(defaultProjection.getExtent())
         }
-      },false))
+      },initUpdate))
   }
 
   import GeoJson._
