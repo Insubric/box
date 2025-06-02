@@ -131,6 +131,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   def registerListener(initUpdate:Boolean) = {
       dataListener = Some(data.listen({ _ =>
+        vectorSource.clear(true)
         if (!data.get.isNull) {
           val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(data.get).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
           vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
