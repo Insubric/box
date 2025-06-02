@@ -116,7 +116,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         record.data
       }
 
-      val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
+      val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> io.circe.parser.parse(x._2).getOrElse(Json.fromString(x._2)))))
+
+      BrowserConsole.log(dataWithQueryParams)
 
       val stateModel = EntityFormModel(
         name = state.entity,
