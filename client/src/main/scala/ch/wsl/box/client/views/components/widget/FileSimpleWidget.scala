@@ -121,7 +121,8 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
               headerFactory = None,
               bodyFactory = Some((interceptor) => {
                 if(mime == "application/pdf") {
-                  iframe(attr("src").bind(url.transform(f => "http://localhost:8080/pdf/web/viewer.html?file="+f)), ClientConf.style.fullWidth, ClientConf.style.fullHeight).render
+                  div(Routes.baseUri)
+                  iframe(attr("src").bind(url.transform(f => s"${Routes.baseUri}pdf/web/viewer.html?file="+f)), ClientConf.style.fullWidth, ClientConf.style.fullHeight).render
                 } else {
                   img(nested(src.bind(url))).render
                 }
