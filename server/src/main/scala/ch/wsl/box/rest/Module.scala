@@ -30,7 +30,8 @@ object DefaultModule extends Module {
     .bind[FullConfig].to[FullConfigFileOnlyImpl]
     .bind[ServicesWithoutGeneration].toEagerSingleton
     .onShutdown { s =>
-      s.connection.close()
+      s.connection.dbConnection.close()
+      s.connection.adminDbConnection.close()
     }
 
   val injector = newDesign
@@ -52,7 +53,8 @@ object DefaultModule extends Module {
     .bind[Services].toEagerSingleton
     .onShutdown{s =>
       Await.result(s.actorSystem.terminate(),10.seconds)
-      s.connection.close()
+      s.connection.dbConnection.close()
+      s.connection.adminDbConnection.close()
     }
 
 
