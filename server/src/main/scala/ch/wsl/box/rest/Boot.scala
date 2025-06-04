@@ -88,7 +88,8 @@ class Box(name:String,version:String)(implicit services: Services) {
              |""".stripMargin)
         binding.whenTerminationSignalIssued.map{ _ =>
           println("Shutting down server...")
-          services.connection.close()
+          services.connection.dbConnection.close()
+          services.connection.adminDbConnection.close()
           println("DB connections closed")
           true
         }
