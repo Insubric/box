@@ -93,7 +93,8 @@ object CodeGeneratorWriter{
 
    boxFilesAll.registry.writeToFile(outFolder, s"$pkg.boxentities", "", "GenRegistry.scala")
 
-   connection.close()
+   connection.dbConnection.close()
+   connection.adminDbConnection.close()
 
  }
 
