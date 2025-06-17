@@ -166,13 +166,21 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   import io.circe.syntax._
 
-  val saveKey:KeyHandler = (event:KeyboardEvent,handler:HotkeysEvent) => {
-    event.preventDefault()
-    save().map{ case (id,d) => afterSave(id,d)}
-    false
-  }
-
-  ch.wsl.typings.hotkeysJs.mod.default("ctrl+s",saveKey)
+//  val saveKey:KeyHandler = (event:KeyboardEvent,handler:HotkeysEvent) => {
+//    event.preventDefault()
+//    save().map{ case (id,d) => afterSave(id,d)}
+//    false
+//  }
+//
+//  val hotkeysOptions = ch.wsl.typings.hotkeysJs.mod.Options().setCapture(true).setKeydown(true).setElement(document)
+  document.addEventListener("keydown", (event:KeyboardEvent) => {
+    // Check for Ctrl+S
+    if (event.ctrlKey && event.key == "s") {
+      event.preventDefault()
+      save().map{ case (id,d) => afterSave(id,d)}
+    }
+  })
+//  ch.wsl.typings.hotkeysJs.mod.default("ctrl+s",hotkeysOptions,saveKey)
 
   override def onClose(): Unit = {
     if(Navigate.canGoAway) {
