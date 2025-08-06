@@ -31,7 +31,7 @@ object BoxForm {
                          description: Option[String] = None,
                          layout: Option[Json] = None,
                          tabularFields: Option[String] = None,
-                         query: Option[String] = None,
+                         query: Option[Json] = None,
                          exportfields: Option[String] = None,
                          guest_user:Option[String] = None,
                          edit_key_field:Option[String] = None,
@@ -59,7 +59,7 @@ object BoxForm {
     val exportfields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
     val edit_key_field: Rep[Option[String]] = column[Option[String]]("edit_key_field", O.Default(None))
-    val query: Rep[Option[String]] = column[Option[String]]("query", O.Default(None))
+    val query: Rep[Option[Json]] = column[Option[Json]]("query", O.Default(None))
     val props: Rep[Option[String]] = column[Option[String]]("props", O.Default(None))
     val params: Rep[Option[Json]] = column[Option[Json]]("params", O.Default(None))
     val public_list: Rep[Boolean] = column[Boolean]("public_list", O.Default(false))

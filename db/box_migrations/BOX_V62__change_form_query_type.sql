@@ -1,0 +1,1 @@
+alter table form alter "query" type jsonb using "query"::jsonb;

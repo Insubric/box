@@ -1,6 +1,6 @@
 package ch.wsl.box.rest.metadata.box
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionalField, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, Widget, WidgetsNames}
 import ch.wsl.box.rest.metadata.box.Constants.{FORM_FIELD_CHILDS, FORM_FIELD_FILE, FORM_FIELD_I18N, FORM_FIELD_STATIC, FORM_I18N}
 import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
@@ -59,15 +59,23 @@ object CommonField {
   )
 
   def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
-    widget = Some(WidgetsNames.code),
     condition = Some(ConditionalField("lookupEntity",tables.asJson)),
-    params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
+    widget = Some(WidgetsNames.popupWidget),
+    params = Some(Json.obj(
+      "widget" -> WidgetsNames.adminQueryBuilder.asJson,
+      "entity" -> s"${Widget.REF}lookupEntity".asJson,
+      "avoidShorten" -> Json.True
+    ))
   )
 
   def foreignQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
-    widget = Some(WidgetsNames.code),
     condition = Some(ConditionalField("foreign_entity",tables.asJson)),
-    params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
+    widget = Some(WidgetsNames.popupWidget),
+    params = Some(Json.obj(
+      "widget" -> WidgetsNames.adminQueryBuilder.asJson,
+      "entity" -> s"${Widget.REF}foreign_entity".asJson,
+      "avoidShorten" -> Json.True
+    ))
   )
 
   val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input), tooltip = Some("Use keyword `arrayIndex` to substitute the value with the index of the array (when this field is part of a child)"))

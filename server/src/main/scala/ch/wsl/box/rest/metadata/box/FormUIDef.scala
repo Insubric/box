@@ -39,8 +39,12 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.textarea)),
       JSONField(JSONFieldTypes.STRING,"query",true,
-        widget = Some(WidgetsNames.code),
-        params = Some(Json.obj("language" -> "json".asJson, "height" -> 100.asJson, "fullWidth" -> false.asJson))
+        widget = Some(WidgetsNames.popupWidget),
+        params = Some(Json.obj(
+          "widget" -> WidgetsNames.adminQueryBuilder.asJson,
+          "entity" -> s"${Widget.REF}entity".asJson,
+          "avoidShorten" -> Json.True
+        ))
       ),
       JSONField(JSONFieldTypes.STRING,"guest_user",true,
         widget = Some(WidgetsNames.select),

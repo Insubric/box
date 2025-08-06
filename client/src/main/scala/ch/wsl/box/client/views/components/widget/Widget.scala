@@ -247,15 +247,15 @@ case class WidgetParams(
   }
 
   def fieldParams:Option[ReadableProperty[Json]] = field.params.map{ staticParams =>
-    if(staticParams.toString().contains(WidgetParams.REF)) {
+    if(staticParams.toString().contains(ch.wsl.box.model.shared.Widget.REF)) {
 
       _allData.transform{ data =>
         def mapJson(js:Json):Json = js.fold(
           js,
           _ => js,
           _ => js,
-          str => if(str.startsWith(WidgetParams.REF)) {
-            data.js(str.stripPrefix(WidgetParams.REF))
+          str => if(str.startsWith(ch.wsl.box.model.shared.Widget.REF)) {
+            data.js(str.stripPrefix(ch.wsl.box.model.shared.Widget.REF))
           } else js,
           arr => Json.fromValues(arr.map(mapJson)),
           obj => obj.mapValues(mapJson).asJson
@@ -273,7 +273,6 @@ case class WidgetParams(
 
 object WidgetParams{
 
-  val REF = "$ref:"
   def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,

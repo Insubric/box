@@ -1543,6 +1543,14 @@ object GlobalStyleFactory{
         width(100.px)
       )
     )
+
+    val queryBuilderContainer = style(
+      unsafeChild("input, select")(
+        float.none,
+        width(200 px)
+      )
+    )
+
 //
 //    val mapPopup = style(
 //      border.solid,
