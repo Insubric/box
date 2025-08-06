@@ -5,7 +5,7 @@ import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.styles.GlobalStyleFactory.GlobalStyles
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, Layout, LayoutBlock, WidgetsNames}
+import ch.wsl.box.model.shared.{DistributedLayout, JSONField, JSONFieldTypes, Layout, LayoutBlock, StackedLayout, WidgetsNames}
 import io.udash.bindings.modifiers.Binding
 import scalatags.JsDom
 import io.circe._
@@ -25,13 +25,16 @@ import scribe.Logging
 import ch.wsl.typings.gridstack.mod._
 import ch.wsl.typings.gridstack.distTypesMod._
 import ch.wsl.typings.gridstack.gridstackStrings
+import ch.wsl.typings.std.global.{HTMLInputElement, HTMLSelectElement}
 import io.udash.bootstrap.utils.BootstrapStyles.Form
 import io.udash.bootstrap.utils.BootstrapTags
 import org.scalajs.dom.html.Input
 
+import java.util.UUID
 import scala.scalajs.js
 import js.JSConverters._
 import scala.scalajs.js.Object.entries
+import scala.util.Try
 
 
 object LayoutWidget extends ComponentWidgetFactory {
@@ -82,14 +85,14 @@ object LayoutWidget extends ComponentWidgetFactory {
       val result = GridStackWidget()
         .setW(block.width)
         .setH(block.height.getOrElse(4).toDouble)
-        .setContent(div(margin := 5,
-//          input(placeholder := "Title"),
-//          select(
-//            option("StackedLayout"),
-//            option("DistributedLayout"),
-//            option("TableLayout"),
-//            option("MultirowTableLayout")
-//          )
+        .setContent(div(style := "display: flex;",margin := 5,
+          input(style := "float:none; width: auto",id := s"title-${UUID.randomUUID()}",placeholder := "Title"),
+          select(
+            id := s"blockRendering-${UUID.randomUUID()}",
+            style := "float:none; width: auto",
+            option("StackedLayout", if(block.layoutType == StackedLayout) selected := "selected" else Seq[Modifier]()),
+            option("DistributedLayout", if(block.layoutType == DistributedLayout) selected := "selected" else Seq[Modifier]())
+          )
         ).render.outerHTML)
         .setSubGridOpts(innerOptions)
       result
@@ -160,7 +163,13 @@ object LayoutWidget extends ComponentWidgetFactory {
 
         def isGrid(v:js.UndefOr[Double]):Option[Int] = if(layoutMode.get == "Grid") v.map(_.toInt).toOption else None
 
-        val blocks = grid.save().asInstanceOf[js.Array[GridStackWidget]].map( g =>
+        val blocks = grid.save().asInstanceOf[js.Array[GridStackWidget]].map { g =>
+          BrowserConsole.log(g)
+
+          val html = parser.parseFromString(g.content.getOrElse(""),MIMEType.`text/html`)
+          val title = Try(document.getElementById(html.getElementsByTagName("input").head.id).asInstanceOf[HTMLInputElement].value).toOption
+          val lt = Try(document.getElementById(html.getElementsByTagName("select").head.id).asInstanceOf[HTMLSelectElement].value).toOption
+
           LayoutBlock(
             title = None,
             width = g.w.map(_.toInt).getOrElse(12),
@@ -168,31 +177,24 @@ object LayoutWidget extends ComponentWidgetFactory {
             x = isGrid(g.x),
             y = isGrid(g.y),
             fields = {
-              for{
+              for {
                 sub <- g.subGridOpts.toList
                 children <- sub.children.toList
                 child <- children.toList
               } yield {
-                Left(parser.parseFromString(child.content.getOrElse(""),MIMEType.`text/html`).firstChild.innerText)
+                Left(parser.parseFromString(child.content.getOrElse(""), MIMEType.`text/html`).firstChild.innerText)
               }
             },
             tab = None,
-            tabGroup = None)
-        )
+            tabGroup = None,
+            layoutType = lt match {
+              case Some("StackedLayout") => StackedLayout
+              case Some("DistributedLayout") => DistributedLayout
+              case None => StackedLayout
+            }
+          )
+        }
 
-//        val blocks = grid.getGridItems().sortWith(sortBlocks).map { block =>
-//          LayoutBlock(
-//            title = None,
-//            width = block.gridstackNode.toOption.flatMap(_.w.toOption).map(_.toInt).getOrElse(6),
-//            fields = {
-//              for {
-//                subBlock <- block.gridstackNode
-//                subGrid <- subBlock.subGrid
-//              } yield subGrid.getGridItems().sortWith(sortBlocks).toSeq.map { field => field.innerText }
-//            }.getOrElse(Seq()).map( x => Left(x)),
-//            tab = None,
-//            tabGroup = None)
-//        }
         Layout(blocks = blocks.toSeq)
 
     }
