@@ -20,11 +20,14 @@ import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
-import org.scalajs.dom.{Event, HTMLDivElement, MutationObserver, MutationObserverInit, document}
+import org.scalajs.dom.{DOMParser, Event, HTMLDivElement, HTMLElement, MIMEType, MutationObserver, MutationObserverInit, document}
 import scribe.Logging
 import ch.wsl.typings.gridstack.mod._
 import ch.wsl.typings.gridstack.distTypesMod._
 import ch.wsl.typings.gridstack.gridstackStrings
+import io.udash.bootstrap.utils.BootstrapStyles.Form
+import io.udash.bootstrap.utils.BootstrapTags
+import org.scalajs.dom.html.Input
 
 import scala.scalajs.js
 import js.JSConverters._
@@ -62,6 +65,7 @@ object LayoutWidget extends ComponentWidgetFactory {
 
       val innerOptions = GridStackOptions()
         .setColumn(1)
+        .setColumnOpts(Responsive().setColumnMax(1))
         .setCellHeight(50)
         .setAcceptWidgets(".field")
         .setMargin(10)
@@ -77,15 +81,37 @@ object LayoutWidget extends ComponentWidgetFactory {
 
       val result = GridStackWidget()
         .setW(block.width)
-        .setH(stdFields.length + 1)
+        .setH(block.height.getOrElse(4).toDouble)
+        .setContent(div(margin := 5,
+//          input(placeholder := "Title"),
+//          select(
+//            option("StackedLayout"),
+//            option("DistributedLayout"),
+//            option("TableLayout"),
+//            option("MultirowTableLayout")
+//          )
+        ).render.outerHTML)
         .setSubGridOpts(innerOptions)
       result
 
     }
 
+
+    val layoutMode = Property("Grid")
+
     private def _afterRender(container:HTMLDivElement,fieldList:HTMLDivElement,layoutJs:Json): Option[GridStack] = {
 
+      val renderCB:js.Function2[HTMLElement,GridStackWidget,Unit] = (el,w) => {
+        el.innerHTML = w.content.getOrElse("")
+      }
+
+      GridStack.renderCB = Some(renderCB).orUndefined
+
       Layout.fromJs(layoutJs).toOption.map{ layout =>
+
+          val isGrid = layout.blocks.forall(b => b.x.isDefined && b.y.isDefined && b.height.isDefined)
+          if(isGrid) layoutMode.set("Grid")
+          else layoutMode.set("Auto")
 
           val inLayout:Seq[String] = layout.blocks.flatMap(_.fields.flatMap(_.left.toOption))
 
@@ -98,24 +124,25 @@ object LayoutWidget extends ComponentWidgetFactory {
 
           val offLayout:Seq[String] = allFields.get.diff(inLayout)
 
-          val innerOptions = GridStackOptions()
+          val fieldListOptions = GridStackOptions()
             .setColumn(1)
+            .setColumnOpts(Responsive().setColumnMax(1))
             .setCellHeight(50)
             .setAcceptWidgets(".field")
             .setMargin(10)
             .setMinRow(4)
             .setChildren(offLayout.map(renderField).toJSArray)
             .setItemClass("field")
-            .setDisableOneColumnMode(true)
 
-          GridStack.addGrid(fieldList, innerOptions)
+          GridStack.addGrid(fieldList, fieldListOptions)
 
           val options = GridStackOptions()
             .setAcceptWidgets(false)
+            .setColumnOpts(Responsive().setColumnMax(12))
             .setMargin(5)
-            .setMinRow(2)
-            .setCellHeight(50)
-            .setDisableOneColumnMode(true)
+            .setMinRow(4)
+            .setCellHeight(25)
+            .setSizeToContent(false)
             .setChildren(layout.blocks.map(renderBlock).toJSArray)
 
           GridStack.addGrid(container, options)
@@ -124,30 +151,48 @@ object LayoutWidget extends ComponentWidgetFactory {
 
     }
 
-    private def sortBlocks(first:GridItemHTMLElement,second:GridItemHTMLElement):Boolean = {
-      {for{
-        fx <- first.gridstackNode.flatMap(_.x)
-        fy <- first.gridstackNode.flatMap(_.y)
-        sx <- second.gridstackNode.flatMap(_.x)
-        sy <- second.gridstackNode.flatMap(_.y)
-      } yield fy <= sy && fx <= sx}.getOrElse(false)
-    }
+
+    val parser = new DOMParser()
 
     private def gridToLayout(grid:GridStack):Layout = {
+        BrowserConsole.log(grid.getGridItems())
+        BrowserConsole.log(grid.save().asInstanceOf[js.Any])
 
-        val blocks = grid.getGridItems().sortWith(sortBlocks).map { block =>
+        def isGrid(v:js.UndefOr[Double]):Option[Int] = if(layoutMode.get == "Grid") v.map(_.toInt).toOption else None
+
+        val blocks = grid.save().asInstanceOf[js.Array[GridStackWidget]].map( g =>
           LayoutBlock(
             title = None,
-            width = block.gridstackNode.toOption.flatMap(_.w.toOption).map(_.toInt).getOrElse(6),
+            width = g.w.map(_.toInt).getOrElse(12),
+            height = isGrid(g.h),
+            x = isGrid(g.x),
+            y = isGrid(g.y),
             fields = {
-              for {
-                subBlock <- block.gridstackNode
-                subGrid <- subBlock.subGrid
-              } yield subGrid.getGridItems().sortWith(sortBlocks).toSeq.map { field => field.innerText }
-            }.getOrElse(Seq()).map( x => Left(x)),
+              for{
+                sub <- g.subGridOpts.toList
+                children <- sub.children.toList
+                child <- children.toList
+              } yield {
+                Left(parser.parseFromString(child.content.getOrElse(""),MIMEType.`text/html`).firstChild.innerText)
+              }
+            },
             tab = None,
             tabGroup = None)
-        }
+        )
+
+//        val blocks = grid.getGridItems().sortWith(sortBlocks).map { block =>
+//          LayoutBlock(
+//            title = None,
+//            width = block.gridstackNode.toOption.flatMap(_.w.toOption).map(_.toInt).getOrElse(6),
+//            fields = {
+//              for {
+//                subBlock <- block.gridstackNode
+//                subGrid <- subBlock.subGrid
+//              } yield subGrid.getGridItems().sortWith(sortBlocks).toSeq.map { field => field.innerText }
+//            }.getOrElse(Seq()).map( x => Left(x)),
+//            tab = None,
+//            tabGroup = None)
+//        }
         Layout(blocks = blocks.toSeq)
 
     }
@@ -161,7 +206,7 @@ object LayoutWidget extends ComponentWidgetFactory {
       val container = div(BootstrapStyles.Grid.row).render
 
 
-      val aaa:js.Function2[Event,js.Array[GridStackNode],Unit] = (e:Event,items:js.Array[GridStackNode]) => {
+      val onChange:js.Function2[Event,js.Array[GridStackNode],Unit] = (e:Event,items:js.Array[GridStackNode]) => {
         val layout = grid.map(gridToLayout)
         BrowserConsole.log(layout.asJson)
         listener.foreach(_.cancel())
@@ -182,13 +227,13 @@ object LayoutWidget extends ComponentWidgetFactory {
             observer.disconnect()
             grid = _afterRender(blocksContainer,extraFieldsContainer,layoutJs)
             grid.foreach{ g =>
-              g.on(gridstackStrings.change,aaa)
+              g.on(gridstackStrings.change,onChange)
               val subGrids = for{
                 items <- g.getGridItems().toSeq
                 nodes <- items.gridstackNode.toList
                 subGrid <- nodes.subGrid.toList
               } yield subGrid
-              subGrids.map(_.on(gridstackStrings.change + " " + gridstackStrings.drop,aaa))
+              subGrids.map(_.on(gridstackStrings.change,onChange))
             }
           }
         })
@@ -201,18 +246,26 @@ object LayoutWidget extends ComponentWidgetFactory {
 
       },true))
 
+
+
       div(
-        button("Add block", ClientConf.style.boxButton, onclick := ((e: Event) => {
-          grid.foreach{ g =>
+        div( style := "display: flex; align-items: center;",
+          RadioButtons(layoutMode, Seq("Grid","Auto").toSeqProperty)(
+            els => div(style := "display:flex;",els.map {
+              case (i: Input, l: String) => label(style := "display: flex; margin-right: 10px; margin-bottom: 0", BootstrapTags.dataLabel := l)(i, span(marginLeft := 5,l))
+            }).render
+          ),
+          button("Add block", ClientConf.style.boxButton, onclick := ((e: Event) => {
+            grid.foreach{ g =>
 
-            val block = g.addWidget( renderBlock(LayoutBlock(None, 6, Seq())))
+              val block = g.addWidget( renderBlock(LayoutBlock(None, 6,Some(4),None,None, Seq())))
 
-            block.gridstackNode.flatMap(_.subGrid).foreach(_.on("added removed change",aaa))
-            println("AAA")
+              block.gridstackNode.flatMap(_.subGrid).foreach(_.on("added removed change",onChange))
 
-          }
-          e.preventDefault()
-        })),
+            }
+            e.preventDefault()
+          }))
+        ),
         container
       )
 

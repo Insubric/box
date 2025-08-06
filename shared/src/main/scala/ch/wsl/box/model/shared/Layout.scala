@@ -44,6 +44,9 @@ object Layout extends Logging {
   implicit val layoutBlockEncoder: Encoder[LayoutBlock] = new Encoder[LayoutBlock] {
     final def apply(a: LayoutBlock): Json = Json.obj(
       ("width", a.width.asJson),
+      ("height", a.height.asJson),
+      ("x", a.x.asJson),
+      ("y", a.y.asJson),
       ("fields", a.fields.asJson),
       ("title", a.title.asJson),
       ("tab", a.tab.asJson),
@@ -61,6 +64,9 @@ object Layout extends Logging {
     final def apply(c: HCursor): Decoder.Result[LayoutBlock] =
       for {
         width <- c.downField("width").as[Int]
+        height = c.downField("height").as[Int]
+        x = c.downField("x").as[Int]
+        y = c.downField("y").as[Int]
         fields <- c.downField("fields").as[Seq[Either[String,SubLayoutBlock]]]
         title = c.downField("title").as[Either[String,I18n]]
         tab = c.downField("tab").as[String]
@@ -80,7 +86,7 @@ object Layout extends Logging {
           }
         }
 
-        LayoutBlock(title.toOption,width,fields,lt,tab.toOption,tabGroup.toOption)
+        LayoutBlock(title.toOption,width,height.toOption,x.toOption,y.toOption,fields,lt,tab.toOption,tabGroup.toOption)
       }
   }
 
@@ -126,7 +132,7 @@ object Layout extends Logging {
   }
 
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
-    LayoutBlock(None,12,fields.map(x => Left(x.name)),StackedLayout)
+    LayoutBlock(None,12,None,None,None,fields.map(x => Left(x.name)),StackedLayout)
   ))
 }
 
@@ -145,6 +151,9 @@ case object MultirowTableLayout extends LayoutType
 case class LayoutBlock(
                    title: Option[Either[String,I18n]],
                    width:Int,
+                   height: Option[Int],
+                   x: Option[Int],
+                   y: Option[Int],
                    fields:Seq[Either[String,SubLayoutBlock]],
                    layoutType:LayoutType = StackedLayout,
                    tab: Option[String] = None,

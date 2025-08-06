@@ -146,7 +146,16 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   private def renderJsonMetadata(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     def renderBlocks(b:Seq[WidgetBlock]) = b.map{ case WidgetBlock(block,widget) =>
-      div(BootstrapCol.md(block.width), ClientConf.style.block)(
+
+      val gridSystem:Modifier = (block.height,block.x,block.y) match {
+        case (Some(h),Some(x),Some(y)) => style := s"""
+                                               grid-area: ${y + 1} / ${x + 1} / ${y+h+1} / ${x + block.width + 1};
+                                               overflow: auto
+                                          """
+        case _ => Seq[Modifier](BootstrapCol.md(block.width),ClientConf.style.block)
+      }
+
+      div(gridSystem)(
         div(
           block.title.flatMap(Internationalization.either(services.clientSession.lang())) match {
             case Some(value) => h3(Labels(value))
@@ -157,40 +166,61 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
       )
     }
 
-    div(
-        div(ClientConf.style.jsonMetadataRendered,BootstrapStyles.Grid.row)(
-          renderBlocks(blocks.filter(_.layoutBlock.isDefined).filterNot(_.layoutBlock.flatMap(_.tabGroup).isDefined).map(x => WidgetBlock(x.layoutBlock.get,x.widget))),
-          blocks.filter(_.layoutBlock.flatMap(_.tabGroup).isDefined).groupBy(_.layoutBlock.map(_.tabGroup).get).toSeq.map{ case (tabGroup,blks) =>
-            val tabs = blks.map(_.layoutBlock.get.tab).distinct
-            val tabKey = SelectedTabKey(metadata.objId,tabGroup)
-            val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
-            div(BootstrapCol.md(blks.map(_.layoutBlock.get.width).max),
-              ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
-                tabs.map { tabId =>
-                  val title:String = blocks.find(_.layoutBlock.exists(_.tab == tabId))
-                    .flatMap(_.layoutBlock.flatMap(_.title).flatMap(Internationalization.either(services.clientSession.lang()))).orElse(tabId).getOrElse("")
 
-                  li(BootstrapStyles.Navigation.item,
-                    a(BootstrapStyles.Navigation.link,
-                      BootstrapStyles.active.styleIf(selectedTab.transform(_ == tabId)),
-                      onclick :+= { (e: Event) =>
-                        selectedTab.set(tabId);
-                        tabId.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
-                        e.preventDefault() },
-                      title
-                    ).render
-                  ).render
-                }
-              ),
-              nested(produce(selectedTab) { tabName =>
-                renderBlocks(blks.filter(_.layoutBlock.get.tab == tabName).map(x => WidgetBlock.ofTab(x.layoutBlock.get,x.widget))).render
-              })
-            )
+    val (tabsBlocks,regularBlocks) = blocks.flatMap(x => x.layoutBlock.map(lb => WidgetBlock(lb,x.widget))).partition(_.block.tabGroup.isDefined)
+
+    def renderTabs() = tabsBlocks.groupBy(_.block.tabGroup).toSeq.map{ case (tabGroup,blks) =>
+      val tabs = blks.map(_.block.tab).distinct
+      val tabKey = SelectedTabKey(metadata.objId,tabGroup)
+      val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
+      div(BootstrapCol.md(blks.map(_.block.width).max),
+        ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
+          tabs.map { tabId =>
+            val title:String = blocks.find(_.layoutBlock.exists(_.tab == tabId))
+              .flatMap(_.layoutBlock.flatMap(_.title).flatMap(Internationalization.either(services.clientSession.lang()))).orElse(tabId).getOrElse("")
+
+            li(BootstrapStyles.Navigation.item,
+              a(BootstrapStyles.Navigation.link,
+                BootstrapStyles.active.styleIf(selectedTab.transform(_ == tabId)),
+                onclick :+= { (e: Event) =>
+                  selectedTab.set(tabId);
+                  tabId.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
+                  e.preventDefault() },
+                title
+              ).render
+            ).render
           }
         ),
-        Debug(currentData,b => b, s"original data ${metadata.name}"),
-        Debug(data,b => b, s"data ${metadata.name}")
+        nested(produce(selectedTab) { tabName =>
+          renderBlocks(blks.filter(_.block.tab == tabName)).render
+        })
+      )
+    }
+
+    val isNewGridSystem = regularBlocks.forall(b => b.block.y.isDefined && b.block.x.isDefined && b.block.height.isDefined)
+
+    val grid:Modifier = if(isNewGridSystem) {
+      val rows = regularBlocks.map(b => b.block.y.get + b.block.height.get ).max + 1
+      (style := s"""
+              display: grid;
+              grid-template-columns: repeat(12, 1fr);
+              grid-template-rows: repeat($rows, 25px);
+              grid-column-gap: 5px;
+              grid-row-gap: 5px;
+          """)
+    } else {
+      BootstrapStyles.Grid.row
+    }
+
+    div(
+      div(ClientConf.style.jsonMetadataRendered,grid)(
+        renderBlocks(regularBlocks),
+        renderTabs()
+      ),
+      Debug(currentData,b => b, s"original data ${metadata.name}"),
+      Debug(data,b => b, s"data ${metadata.name}")
     )
+
   }
 
 

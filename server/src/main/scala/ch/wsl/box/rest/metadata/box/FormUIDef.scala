@@ -97,7 +97,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4,Seq(
+        LayoutBlock(None,4,None,None,None,Seq(
           SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
               SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","entity","query","description","guest_user","public_list","edit_key_field","show_navigation","props","params").map(Left(_)))
@@ -105,14 +105,14 @@ object FormUIDef {
             Left("")
           ))
         ).map(Right(_))),
-        LayoutBlock(Some(Left("Actions")),4,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
-        LayoutBlock(Some(Left("I18n")),4,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Table Info")),12,Seq("tabularFields","exportfields").map(Left(_))),
-        LayoutBlock(Some(Left("Fields")),12,Seq("fields").map(Left(_))),
-        LayoutBlock(Some(Left("Not DB fields")),12,Seq("fields_no_db").map(Left(_))),
-        LayoutBlock(Some(Left("Linked forms")),12,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some(Left("Layout")),12,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("Actions")),4,None,None,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,None,None,None,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Table Info")),12,None,None,None,Seq("tabularFields","exportfields").map(Left(_))),
+        LayoutBlock(Some(Left("Fields")),12,None,None,None,Seq("fields").map(Left(_))),
+        LayoutBlock(Some(Left("Not DB fields")),12,None,None,None,Seq("fields_no_db").map(Left(_))),
+        LayoutBlock(Some(Left("Linked forms")),12,None,None,None,Seq("fields_child").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,None,None,None,Seq("fields_static").map(Left(_))),
+        LayoutBlock(Some(Left("Layout")),12,None,None,None,Seq("layout").map(Left(_))),
       )
     ),
     entity = "form",
@@ -162,17 +162,17 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,Seq(
+        LayoutBlock(None,8,None,None,None,Seq(
           SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
               SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
             ),
           ))
         ).map(Right(_))),
-        LayoutBlock(Some(Left("I18n")),4,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Linked forms")),12,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some(Left("Layout")),12,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("I18n")),4,None,None,None,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Linked forms")),12,None,None,None,Seq("fields_child").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,None,None,None,Seq("fields_static").map(Left(_))),
+        LayoutBlock(Some(Left("Layout")),12,None,None,None,Seq("layout").map(Left(_))),
       )
     ),
     entity = "form",
@@ -223,7 +223,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,Seq(
+        LayoutBlock(None,6,None,None,None,Seq(
           "name",
           "type",
           "widget",
@@ -240,7 +240,7 @@ object FormUIDef {
           "params",
           "roles"
         ).map(Left(_))),
-        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "v_field",
@@ -287,7 +287,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,Seq(
+        LayoutBlock(None,6,None,None,None,Seq(
           "name",
           "type",
           "widget",
@@ -303,7 +303,7 @@ object FormUIDef {
           "conditionValues",
           "params"
         ).map(Left(_))),
-        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "v_field",
@@ -393,7 +393,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,Seq(
+        LayoutBlock(None,6,None,None,None,Seq(
           "name",
           "type",
           "widget",
@@ -408,7 +408,7 @@ object FormUIDef {
           "conditionValues",
           "params"
         ).map(Left(_))),
-        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "field",
@@ -463,7 +463,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,Seq(
+        LayoutBlock(None,6,None,None,None,Seq(
           "name",
           "type",
           "widget",
@@ -477,7 +477,7 @@ object FormUIDef {
           "params",
           "read_only"
         ).map(Left(_))),
-        LayoutBlock(None,6,Seq("field_i18n").map(Left(_))),
+        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
       )
     ),
     entity = "field",
@@ -521,7 +521,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,Seq("lang","label","foreign_label_columns","dynamic_label","placeholder","tooltip").map(Left(_))),
+        LayoutBlock(None,12,None,None,None,Seq("lang","label","foreign_label_columns","dynamic_label","placeholder","tooltip").map(Left(_))),
       )
     ),
     entity = "field_i18n",
@@ -555,7 +555,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,Seq("lang","label","view_table").map(Left(_))),
+        LayoutBlock(None,12,None,None,None,Seq("lang","label","view_table").map(Left(_))),
       )
     ),
     entity = "form_i18n",
@@ -636,7 +636,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,Seq(
+        LayoutBlock(None,12,None,None,None,Seq(
           "uuid",
           "form_uuid",
           "order",
@@ -722,7 +722,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,Seq(
+        LayoutBlock(None,12,None,None,None,Seq(
           "uuid",
           "form_uuid",
           "order",

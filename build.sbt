@@ -173,7 +173,7 @@ lazy val client: Project = (project in file("client"))
       "xlsx-js-style" -> "1.2.0",
       "jspdf" -> "2.5.1",
       "jspdf-autotable" -> "3.5.28",
-      "gridstack" -> "8.3.0",
+      "gridstack" -> "12.2.2",
       "jspreadsheet-ce" -> "git://github.com/jspreadsheet/ce.git#2e7389f8f6a84d260603bbac06f00bb404e1ba49", //v5.0.0
       "jsuites" -> "5.9.1",
       "@electric-sql/pglite" -> "0.2.17",
