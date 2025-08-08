@@ -168,7 +168,7 @@ lazy val client: Project = (project in file("client"))
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
-      "choices.js" -> "10.2.0",
+      "choices.js" -> "11.1.0",
       "autocompleter" -> "7.0.1",
       "xlsx-js-style" -> "1.2.0",
       "jspdf" -> "2.5.1",

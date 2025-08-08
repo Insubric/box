@@ -39,7 +39,7 @@ import scalatags.JsDom.all.a
 import scalatags.generic
 import scribe.Logging
 import ch.wsl.typings.choicesJs.anon.PartialOptions
-import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesInputChoiceMod.InputChoice
 import io.udash.bootstrap.tooltip.UdashTooltip
 
 import scala.concurrent.Future
@@ -670,12 +670,12 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     }
 
     def filterFieldLookup(lookup:JSONFieldLookup) = {
-      def choises(lookups:JSONLookups):Seq[Choice] = lookup match {
+      def choises(lookups:JSONLookups):Seq[InputChoice] = lookup match {
         case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
-           lookups.lookups.map(l => Choice(l.value,l.id.string))
+           lookups.lookups.map(l => InputChoice(l.value,l.id.string))
         }
         case JSONFieldLookupExtractor(extractor) => Seq()
-        case JSONFieldLookupData(data) => data.map(x => Choice(x.value,x.id.string))
+        case JSONFieldLookupData(data) => data.map(x => InputChoice(x.value,x.id.string))
       }
 
       val el = select().render
@@ -700,7 +700,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           l.find(_.fieldName == field.get.name).foreach{ fl =>
             choicesJs.clearChoices()
             val c = choises(fl)
-            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+            choicesJs.asInstanceOf[js.Dynamic].setChoices(c.toJSArray)
             if(filterValue.get.nonEmpty) {
               choicesJs.setChoiceByValue(filterValue.get)
             }

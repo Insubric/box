@@ -17,8 +17,8 @@ import org.scalajs.dom.{Event, MutationObserver, MutationObserverInit, Node, doc
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import ch.wsl.typings.choicesJs.anon.PartialOptions
-import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
 import ch.wsl.typings.choicesJs.mod
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesInputChoiceMod.InputChoice
 
 import scala.scalajs.js
 import js.JSConverters._
@@ -80,8 +80,8 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           observer.disconnect()
           val options = PartialOptions()
           val items = params.prop.get.as[Seq[String]] match {
-            case Left(value) => Seq[Choice | String]().toJSArray
-            case Right(value) => value.asInstanceOf[Seq[Choice | String]].toJSArray
+            case Left(value) => Seq[InputChoice | String]().toJSArray
+            case Right(value) => value.asInstanceOf[Seq[InputChoice | String]].toJSArray
           }
 
           options.setItems(items)
@@ -94,8 +94,8 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           })
 
           lookup.listen(values => {
-            val choices = values.toSeq.map(x => Choice(x.value,x.id.string)).toJSArray.asInstanceOf[js.Array[Choice | ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]]
-            choicesJs.setChoices(choices)
+            val choices = values.toSeq.map(x => InputChoice(x.value,x.id.string)).toJSArray
+            choicesJs.asInstanceOf[js.Dynamic].setChoices(choices)
           },true)
         }
       })
