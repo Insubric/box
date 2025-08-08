@@ -62,6 +62,13 @@ case class JSONQuery(
   }
 
   def variables:Set[String] = filter.flatMap(_.fieldValue).distinct.toSet
+
+  def asString = Seq(
+    filter.headOption.map( _ => filter.map(_.asString).mkString(", ")),
+    sort.headOption.map(_ => sort.map(_.asString).mkString(", ")),
+    paging.map(l => "⇥ " + l.pageLength.toString)
+  ).flatten.mkString("\n")
+
 }
 
 /**
@@ -103,6 +110,8 @@ case class JSONQueryFilter(
     }
   )
 
+  def asString:String = s"${column} ${operator.getOrElse("=")} ${fieldValue.map("ref:" + _).orElse(value).getOrElse("")}"
+
 }
 
 object JSONQueryFilter{
@@ -139,7 +148,15 @@ object JSONQueryFilter{
   * @param column
   * @param order valid values are asc/desc
   */
-case class JSONSort(column:String,order:String)
+case class JSONSort(column:String,order:String) {
+  def asString:String = {
+    val i = order match {
+      case Sort.ASC => "↓"
+      case Sort.DESC => "↑"
+    }
+    s"$i $column"
+  }
+}
 
 /**
   * Created by andreaminetti on 16/03/16.
@@ -242,11 +259,11 @@ object Filter extends Logging {
     case _ => Seq(Filter.EQUALS, Filter.NOT)
   }
 
-  def options(field:JSONField):Seq[String] = {
+  def options(field:JSONField,reduceLookup:Boolean = true):Seq[String] = {
     val nullFilters = if(field.nullable) Seq(Filter.IS_NULL, Filter.IS_NOT_NULL) else Seq()
     field.lookup match {
-      case None => basicOptions(field.`type`) ++ nullFilters
-      case Some(lookup) => Seq(Filter.EQUALS, Filter.NOT) ++ nullFilters // ++ lookup.lookup.values.toSeq
+      case Some(lookup) if reduceLookup => Seq(Filter.EQUALS, Filter.NOT) ++ nullFilters // ++ lookup.lookup.values.toSeq
+      case _ => basicOptions(field.`type`) ++ nullFilters
     }
   }
 

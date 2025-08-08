@@ -189,8 +189,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
       val defaultQuery: Option[JSONQuery] = for{
         q <- form.query
-        json <- parse(q).right.toOption
-        jsonQuery <- json.as[JSONQuery].right.toOption
+        jsonQuery <- q.as[JSONQuery].toOption
       } yield jsonQuery
 
 
