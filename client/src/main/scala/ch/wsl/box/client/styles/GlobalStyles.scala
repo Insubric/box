@@ -1107,6 +1107,26 @@ object GlobalStyleFactory{
       zIndex(5)
     )
 
+    val adminFormEditAction = style(
+      color(conf.colors.main),
+      backgroundColor.transparent,
+      opacity(0.6),
+      &.hover(
+        backgroundColor(conf.colors.main),
+        color(conf.colors.mainText),
+        opacity(1),
+      ),
+      borderRadius(50 px),
+      position.absolute,
+      right(10 px),
+      marginTop(-35 px),
+      height(30 px),
+      width(30 px),
+      border.`0`,
+      fontSize(15 px),
+      zIndex(5)
+    )
+
     val showHide = style(
       overflow.hidden,
       opacity(0),

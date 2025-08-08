@@ -1,6 +1,7 @@
 package ch.wsl.box.client.views.components
 
 
+import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.ClientSession.SelectedTabKey
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
@@ -22,9 +23,10 @@ import scala.concurrent.Future
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import io.udash.bindings.modifiers.Binding
+import io.udash.bootstrap.utils.UdashIcons
 import scalacss.ScalatagsCss._
 import io.udash.css.CssView._
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, window}
 /**
   * Created by andre on 4/25/2017.
   */
@@ -217,6 +219,13 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
         renderBlocks(regularBlocks),
         renderTabs()
       ),
+      if(services.clientSession.getRoles().contains("box_admin") && metadata.kind == EntityKind.FORM.kind) {
+        button(ClientConf.style.adminFormEditAction, i(UdashIcons.FontAwesome.Solid.pen), onclick := { (e: Event) =>
+          e.preventDefault()
+          val routes = Routes(EntityKind.BOX_FORM.kind, "form", false)
+          window.open(routes.edit(s"form_uuid::${metadata.objId}").url(applicationInstance))
+        })
+      } else Seq[Modifier](),
       Debug(currentData,b => b, s"original data ${metadata.name}"),
       Debug(data,b => b, s"data ${metadata.name}")
     )
