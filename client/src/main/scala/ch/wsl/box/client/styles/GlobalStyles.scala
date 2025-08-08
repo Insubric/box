@@ -1565,10 +1565,15 @@ object GlobalStyleFactory{
     )
 
     val queryBuilderContainer = style(
-      unsafeChild("input, select")(
+      unsafeChild("input")(
+        float.none,
+        width(200 px)
+      ),
+      unsafeChild("select")(
         float.none,
         width(200 px)
       )
+
     )
 
 //

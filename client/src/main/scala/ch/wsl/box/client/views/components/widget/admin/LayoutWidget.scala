@@ -5,7 +5,7 @@ import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.styles.GlobalStyleFactory.GlobalStyles
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
-import ch.wsl.box.model.shared.{DistributedLayout, JSONField, JSONFieldTypes, Layout, LayoutBlock, StackedLayout, WidgetsNames}
+import ch.wsl.box.model.shared.{DistributedLayout, JSONField, JSONFieldTypes, JSONQuery, Layout, LayoutBlock, StackedLayout, WidgetsNames}
 import io.udash.bindings.modifiers.Binding
 import scalatags.JsDom
 import io.circe._
@@ -33,6 +33,7 @@ import org.scalajs.dom.html.Input
 import java.util.UUID
 import scala.scalajs.js
 import js.JSConverters._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.Object.entries
 import scala.util.Try
 
@@ -49,7 +50,10 @@ object LayoutWidget extends ComponentWidgetFactory {
 
     override def field: JSONField = params.field
 
-    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div("BLA")
+    override def toUserReadableData(json: Json)(implicit ex: ExecutionContext): Future[Json] = Future.successful(Json.fromString("Form layout"))
+
+
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div("Not available for read-only")
 
 
     private def renderField(name:String) = {

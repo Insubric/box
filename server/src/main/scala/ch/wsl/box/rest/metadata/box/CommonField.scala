@@ -124,10 +124,10 @@ object CommonField {
 
 
   val formName = JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.input))
-  val formProps = JSONField(JSONFieldTypes.STRING,"props",true,label = Some("Props"), tooltip = Some("Comma separed list of fields that are extracted from parent form, it may be useful for conditional fields"), widget = Some(WidgetsNames.input))
-  val formDescription =JSONField(JSONFieldTypes.STRING,"description",true,widget = Some(WidgetsNames.twoLines))
-  val formLayout = JSONField(JSONFieldTypes.STRING,"layout",true, widget = Some(WidgetsNames.adminLayoutWidget),label = Some(""),
-    params = Some(Json.obj("language" -> "json".asJson, "height" -> 600.asJson))
+  val formProps = JSONField(JSONFieldTypes.STRING,"props",true,label = Some("Props"), tooltip = Some("Comma separed list of fields that are extracted from parent form, it may be useful for conditional fields"), widget = Some(WidgetsNames.hidden))
+  val formDescription =JSONField(JSONFieldTypes.STRING,"description",true,widget = Some(WidgetsNames.textarea))
+  val formLayout = JSONField(JSONFieldTypes.JSON,"layout",true, widget = Some(WidgetsNames.popupWidget),label = Some("Layout"),
+    params = Some(Json.obj("widget" -> WidgetsNames.adminLayoutWidget.asJson,"language" -> "json".asJson, "height" -> 600.asJson))
   )
 
   val params = JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code))

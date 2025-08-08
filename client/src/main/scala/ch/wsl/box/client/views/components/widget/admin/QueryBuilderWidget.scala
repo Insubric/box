@@ -49,7 +49,12 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
 
     override protected def edit(nested: Binding.NestedInterceptor): JsDom.all.Modifier = {
 
-      val query:Property[JSONQuery] = params.prop.bitransform(_.as[JSONQuery].getOrElse(JSONQuery.empty))(_.asJson)
+      val query:Property[Option[JSONQuery]] = params.prop.bitransform(_.as[JSONQuery].toOption)(_.asJson)
+
+      def getQuery = query.get match {
+        case Some(value) => value
+        case None => JSONQuery.empty
+      }
 
       val columns:SeqProperty[JSONField] = SeqProperty(Seq())
 
@@ -73,34 +78,34 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
 
       def addFilter():Unit = {
 
-        query.set(
-          query.get.copy(filter = query.get.filter ++ Seq(JSONQueryFilter.withValue(firstColumn,Some(Filter.EQUALS),"")))
-        )
+        query.set(Some(
+          getQuery.copy(filter = getQuery.filter ++ Seq(JSONQueryFilter.withValue(firstColumn,Some(Filter.EQUALS),"")))
+        ))
       }
 
       def removeFilter(i:ReadableProperty[Int])():Unit = {
-        query.set(
-          query.get.copy(filter = query.get.filter.zipWithIndex.filterNot(_._2 == i.get).map(_._1))
-        )
+        query.set(Some(
+          getQuery.copy(filter = getQuery.filter.zipWithIndex.filterNot(_._2 == i.get).map(_._1))
+        ))
       }
 
 
       def addOrder():Unit = {
-        query.set(
-          query.get.copy(sort = query.get.sort ++ Seq(JSONSort(firstColumn,Sort.ASC)))
-        )
+        query.set(Some(
+          getQuery.copy(sort = getQuery.sort ++ Seq(JSONSort(firstColumn,Sort.ASC)))
+        ))
       }
 
       def removeOrder(i:ReadableProperty[Int])():Unit = {
-        query.set(
-          query.get.copy(sort = query.get.sort.zipWithIndex.filterNot(_._2 == i.get).map(_._1))
-        )
+        query.set(Some(
+          getQuery.copy(sort = getQuery.sort.zipWithIndex.filterNot(_._2 == i.get).map(_._1))
+        ))
       }
 
       def orderSwitch(_i:ReadableProperty[Int],offset:Int)():Unit = {
 
         val current = _i.get
-        val s = query.get.sort
+        val s = getQuery.sort
 
         val newSort = s.zipWithIndex.map {
           case (elem,i)  if i == current => s(current + offset)
@@ -108,9 +113,9 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
           case (elem,_) => elem
         }
 
-        query.set(
-          query.get.copy(sort = newSort)
-        )
+        query.set(Some(
+          getQuery.copy(sort = newSort)
+        ))
       }
 
 
@@ -177,7 +182,7 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
         val order = row.bitransform(_.order)(x => row.get.copy(order = x))
 
         val first = i.transform(_ == 0)
-        val last = i.combine(query)((i,q) => i == q.sort.length -1)
+        val last = i.combine(query)((i,q) => q.forall( q => i == q.sort.length -1))
 
         div(style := "display: flex; align-items: center;",
           Select(column, columns)(fieldLabel),
@@ -186,14 +191,14 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
         )
       }
 
-      val filters = query.bitransformToSeq(_.filter)(x => query.get.copy(filter = x.toList) )
-      val orders = query.bitransformToSeq(_.sort)(x => query.get.copy(sort = x.toList) )
-      val limit = query.bitransform(_.paging.map(_.pageLength.toString).getOrElse("")){ l =>
+      val filters = query.bitransformToSeq(_.toList.flatMap(_.filter))(x => query.get.map(_.copy(filter = x.toList)) )
+      val orders = query.bitransformToSeq(_.toList.flatMap(_.sort))(x => query.get.map(_.copy(sort = x.toList) ))
+      val limit = query.bitransform(_.flatMap(_.paging.map(_.pageLength.toString)).getOrElse("")){ l =>
         val lim = l match {
           case "" => None
           case s: String => l.toIntOption
         }
-        query.get.copy(paging = lim.map(l => JSONQueryPaging(l)))
+        query.get.map(_.copy(paging = lim.map(l => JSONQueryPaging(l))))
       }
 
 

@@ -38,7 +38,7 @@ object FormUIDef {
         default = Some("false")
       ),
       JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.textarea)),
-      JSONField(JSONFieldTypes.STRING,"query",true,
+      JSONField(JSONFieldTypes.JSON,"query",true,
         widget = Some(WidgetsNames.popupWidget),
         params = Some(Json.obj(
           "widget" -> WidgetsNames.adminQueryBuilder.asJson,
@@ -101,22 +101,25 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4,None,None,None,Seq(
-          SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
-            Right(
-              SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","entity","query","description","guest_user","public_list","edit_key_field","show_navigation","props","params").map(Left(_)))
-            ),
-            Left("")
-          ))
-        ).map(Right(_))),
-        LayoutBlock(Some(Left("Actions")),4,None,None,None,Seq("form_actions","table_action_title","form_navigation_actions").map(Left(_))),
+        LayoutBlock(Some(Left("Base Info")),4,None,None,None,Seq(
+          "name",
+          "entity",
+          "edit_key_field",
+          "query",
+          "layout",
+          "description",
+          "guest_user",
+          "public_list",
+          "props",
+          "params"
+        ).map(Left(_))),
         LayoutBlock(Some(Left("I18n")),4,None,None,None,Seq("form_i18n").map(Left(_))),
+        LayoutBlock(Some(Left("Actions")),4,None,None,None,Seq("show_navigation","form_actions","table_action_title","form_navigation_actions").map(Left(_))),
         LayoutBlock(Some(Left("Table Info")),12,None,None,None,Seq("tabularFields","exportfields").map(Left(_))),
         LayoutBlock(Some(Left("Fields")),12,None,None,None,Seq("fields").map(Left(_))),
         LayoutBlock(Some(Left("Not DB fields")),12,None,None,None,Seq("fields_no_db").map(Left(_))),
         LayoutBlock(Some(Left("Linked forms")),12,None,None,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,None,None,None,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some(Left("Layout")),12,None,None,None,Seq("layout").map(Left(_))),
+        LayoutBlock(Some(Left("Static elements")),12,None,None,None,Seq("fields_static").map(Left(_)))
       )
     ),
     entity = "form",
