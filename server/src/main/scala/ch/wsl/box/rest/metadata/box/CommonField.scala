@@ -130,6 +130,7 @@ object CommonField {
     params = Some(Json.obj("widget" -> WidgetsNames.adminLayoutWidget.asJson,"language" -> "json".asJson, "height" -> 600.asJson))
   )
 
+  val formParamsLayout = JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.adminFormParamsLayout))
   val params = JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code))
 
   val formFieldChild = JSONField(JSONFieldTypes.CHILD,"fields_child",true,

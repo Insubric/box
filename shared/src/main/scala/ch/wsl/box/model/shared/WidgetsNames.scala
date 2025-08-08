@@ -57,6 +57,7 @@ object WidgetsNames {
   val executeFunction = "executeFunction"
   val adminLayoutWidget = "adminLayoutWidget"
   val adminQueryBuilder = "adminQueryBuilder"
+  val adminFormParamsLayout = "adminFormParamsLayout"
 
   val mapping= Map(
     NUMBER -> Seq(

@@ -51,6 +51,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   def _afterRender(): Unit = {
     logger.info("Editor after render")
 
+    BrowserConsole.log(container)
     if(container != null) {
 
       logger.info(language)
@@ -58,7 +59,10 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
 
       editor = Some(ch.wsl.typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
         .setLanguage(language)
+        .setAutomaticLayout(true)
       ))
+
+      BrowserConsole.log(editor.get)
 
       editor.foreach(_.setValue(data.get.string))
 

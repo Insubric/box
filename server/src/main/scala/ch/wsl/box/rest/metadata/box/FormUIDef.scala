@@ -22,7 +22,7 @@ object FormUIDef {
       CommonField.formDescription,
       CommonField.formLayout,
       CommonField.formProps,
-      CommonField.params,
+      CommonField.formParamsLayout,
       JSONField(JSONFieldTypes.STRING,"entity",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(

@@ -160,7 +160,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
       div(gridSystem)(
         div(
           block.title.flatMap(Internationalization.either(services.clientSession.lang())) match {
-            case Some(value) => h3(Labels(value))
+            case Some(value) => h3(marginLeft := 15, Labels(value))
             case None => frag()
           }, //renders title in blocks
           widget.render(write, nested)

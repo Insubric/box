@@ -85,10 +85,12 @@ object PopupWidget extends ComponentWidgetFactory  {
         )).render
       ).render
 
-      val body = (x:NestedInterceptor) => div(
-        div(
-          widget.render(write,x)
-        )
+      val body = (i:NestedInterceptor) => div(
+        i(showIf(modalStatus.transform(_ == Status.Open)) {
+          div(
+            widget.render(write, i)
+          ).render
+        })
       ).render
 
       val footer = (x:NestedInterceptor) => div(
