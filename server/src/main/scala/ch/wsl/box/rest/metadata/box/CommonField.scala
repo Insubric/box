@@ -53,9 +53,13 @@ object CommonField {
     widget = Some(WidgetsNames.input)
   )
 
-  def foreignValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_value_field",false,
+  def foreignValueField(tables:Seq[String],fields:Map[String, Seq[String]]) =  JSONField(JSONFieldTypes.STRING,"foreign_value_field",false,
     condition = Some(ConditionalField("foreign_entity",tables.asJson)),
-    widget = Some(WidgetsNames.input)
+    widget = Some(WidgetsNames.select),
+    lookup = Some(JSONFieldLookup.withExtractor(
+      "foreign_entity",
+      fields.map{ case (t,f) => t.asJson ->  f.map(x => JSONLookup(x.asJson,Seq(x)))}
+    ))
   )
 
   def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,

@@ -4,7 +4,7 @@ import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.views.components.widget.InputWidgetFactory.Input
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
-import ch.wsl.box.model.shared.{EntityKind, Filter, JSONField, JSONQuery, JSONQueryFilter, JSONQueryPaging, JSONSort, Sort, WidgetsNames}
+import ch.wsl.box.model.shared.{EntityKind, Filter, JSONField, JSONID, JSONQuery, JSONQueryFilter, JSONQueryPaging, JSONSort, Sort, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.syntax.EncoderOps
@@ -61,14 +61,22 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
       import ch.wsl.box.client.Context._
       import Implicits.executionContext
 
+      def fetchFieldForEntity(entity:String):Unit  = {
+        services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,false).foreach { m =>
+          columns.set(m.fields)
+        }
+      }
+
       params.fieldParams.foreach{x =>
         x.listen({ p =>
-          p.getOpt("entity") match {
-            case Some(entity) => services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,false).foreach{ m =>
-              columns.set(m.fields)
+          p.getOpt("entity").foreach(fetchFieldForEntity)
+
+          p.jsOpt("form").foreach{ f =>
+            services.rest.get(EntityKind.BOX_FORM.kind,services.clientSession.lang(),"form",JSONID.fromMap(Seq(("form_uuid",f)))).foreach { m =>
+              m.getOpt("entity").map(fetchFieldForEntity)
             }
-            case None => ()
           }
+
         },true)
 
       }

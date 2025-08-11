@@ -19,6 +19,7 @@ import scalatags.JsDom.all._
 import ch.wsl.typings.choicesJs.anon.PartialOptions
 import ch.wsl.typings.choicesJs.mod
 import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesInputChoiceMod.InputChoice
+import org.scalajs.dom
 
 import scala.scalajs.js
 import js.JSConverters._
@@ -37,6 +38,8 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
   case class MultipleLookupWidgetImpl(params: WidgetParams) extends  LookupWidget {
 
+
+    override def array: Boolean = true
 
     override def allData: ReadableProperty[Json] = params.allData
 
@@ -70,22 +73,22 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
       multipleSelect
     }
 
-    // TODO still buggy
     def multipleSelect = {
-      val el = select().render
+      val el = select(multiple).render
 
 
       val observer = new MutationObserver({(mutations,observer) =>
         if(document.contains(el)) {
           observer.disconnect()
           val options = PartialOptions()
-          val items = params.prop.get.as[Seq[String]] match {
-            case Left(value) => Seq[InputChoice | String]().toJSArray
-            case Right(value) => value.asInstanceOf[Seq[InputChoice | String]].toJSArray
-          }
 
-          options.setItems(items)
+          options
+            .setRemoveItemButton(true)
+            .setDuplicateItemsAllowed(false)
           val choicesJs = new mod.default(el,options)
+
+          dom.window.asInstanceOf[js.Dynamic].choices = choicesJs
+
           el.addEventListener("change",(e:Event) => {
             (choicesJs.getValue(true):Any) match {
               case list: js.Array[String] => params.prop.set(list.asJson)
@@ -94,8 +97,13 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           })
 
           lookup.listen(values => {
-            val choices = values.toSeq.map(x => InputChoice(x.value,x.id.string)).toJSArray
-            choicesJs.asInstanceOf[js.Dynamic].setChoices(choices)
+            val currentSelected = params.prop.get.as[Seq[Json]].getOrElse(Seq())
+            val choices = values.map{x =>
+              val selected = currentSelected.contains(x.id)
+              InputChoice(x.value,convertJsonToJs(x.id)).setSelected(selected)
+            }.toJSArray
+            BrowserConsole.log(choices)
+            choicesJs.asInstanceOf[js.Dynamic].setChoices(choices,"value","label",true)
           },true)
         }
       })
@@ -112,6 +120,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
+        bind(params.prop),
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip(multipleSelect)._1,
       )

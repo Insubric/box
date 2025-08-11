@@ -197,7 +197,7 @@ object FormUIDef {
   )
 
 
-  def field(tables:Seq[String]) = JSONMetadata(
+  def field(tables:Seq[String],fields:Map[String, Seq[String]]) = JSONMetadata(
     objId = FORM_FIELD,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder",
@@ -211,7 +211,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
       JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       CommonField.foreignEntity(tables),
-      CommonField.foreignValueField(tables),
+      CommonField.foreignValueField(tables,fields),
       CommonField.foreignQuery(tables),
       CommonField.roles,
       CommonField.default,
@@ -262,7 +262,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def field_no_db(tables:Seq[String]) = JSONMetadata(
+  def field_no_db(tables:Seq[String],fields:Map[String, Seq[String]]) = JSONMetadata(
     objId = FORM_FIELD_NOT_DB,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder noDB",
@@ -276,7 +276,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
       JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       CommonField.foreignEntity(tables),
-      CommonField.foreignValueField(tables),
+      CommonField.foreignValueField(tables,fields),
       CommonField.foreignQuery(tables),
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
@@ -325,7 +325,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def field_childs(forms:Seq[BoxForm.BoxForm_row]) = JSONMetadata(
+  def field_childs(forms:Seq[BoxForm.BoxForm_row],fields:Map[String, Seq[String]]) = JSONMetadata(
     objId = FORM_FIELD_CHILDS,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder childs",
@@ -372,18 +372,28 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_key_columns",false,
         label = Some("Child key fields"),
-        widget = Some(WidgetsNames.inputMultipleText),
+        widget = Some(WidgetsNames.multipleLookup),
         condition = Some(ConditionalField("widget",Seq(
           WidgetsNames.simpleChild,
           WidgetsNames.tableChild,
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
-        ).asJson))
+        ).asJson)),
+        lookup = Some(JSONFieldLookup.withExtractor(
+          "child_form_uuid",
+          {
+            forms.map( f => f.form_uuid.get.asJson -> fields.get(f.entity).toList.flatten.map(x => JSONLookup(x.asJson,Seq(x))))
+          }.toMap
+        ))
       ),
       JSONField(JSONFieldTypes.JSON,"childQuery",true,
-        widget = Some(WidgetsNames.code),
-        params = Some(Json.obj("language" -> "json".asJson, "height" -> 200.asJson)),
+        widget = Some(WidgetsNames.popupWidget),
+        params = Some(Json.obj(
+          "widget" -> WidgetsNames.adminQueryBuilder.asJson,
+          "form" -> s"${Widget.REF}child_form_uuid".asJson,
+          "avoidShorten" -> Json.True
+        )),
         condition = Some(ConditionalField("widget",Seq(
           WidgetsNames.linkedForm,
           WidgetsNames.simpleChild,
@@ -430,7 +440,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def field_static(tables:Seq[String],functions:Seq[String]) = JSONMetadata(
+  def field_static(tables:Seq[String],functions:Seq[String],fields:Map[String, Seq[String]]) = JSONMetadata(
     objId = FORM_FIELD_STATIC,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder static",
@@ -451,7 +461,7 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
       CommonField.foreignEntity(tables),
-      CommonField.foreignValueField(tables),
+      CommonField.foreignValueField(tables,fields),
       JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,label=Some("Parent field"),
         widget = Some(WidgetsNames.inputMultipleText),
         condition = Some(ConditionalField("widget",Seq(WidgetsNames.lookupLabel).asJson))
