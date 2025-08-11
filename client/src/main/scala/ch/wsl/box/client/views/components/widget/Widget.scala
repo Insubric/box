@@ -125,9 +125,9 @@ trait Widget extends Logging {
   final def render(write:Boolean,nested:Binding.NestedInterceptor):Modifier = {
     load()
     if(write && !field.readOnly) {
-      edit(nested)
+      Seq(edit(nested),attr("data-box-field") := field.name,attr("data-box-class") := "widget")
     } else {
-      show(nested)
+      Seq(show(nested),attr("data-box-field") := field.name,attr("data-box-class") := "widget")
     }
   }
 

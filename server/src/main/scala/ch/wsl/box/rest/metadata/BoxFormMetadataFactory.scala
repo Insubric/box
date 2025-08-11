@@ -33,7 +33,7 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
     users <- getUsers()
     functions <- getFunctions()
   } yield Seq(
-    FormUIDef.main(tablesAndViews,users.sortBy(_.username)),
+    FormUIDef.main(tablesAndViews,users.sortBy(_.username),fields),
     FormUIDef.page(users.sortBy(_.username)),
     FormUIDef.field(tablesAndViews,fields),
     FormUIDef.field_no_db(tablesAndViews,fields),

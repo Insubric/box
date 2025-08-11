@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.views.components.widget.admin.{FormParamLayoutWidget, LayoutWidget, QueryBuilderWidget}
-import ch.wsl.box.client.views.components.widget.array.{ChoicesWidget, MultiWidget}
+import ch.wsl.box.client.views.components.widget.array.{ChoicesWidget, MultiWidget, TwoListWidget}
 import ch.wsl.box.client.views.components.widget.boolean.SelectBooleanWidget
 import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory, TrasparentChild}
 import ch.wsl.box.client.views.components.widget.geo.{MapChild, MapPointWidget, OlMapListWidget, OlMapWidget}
@@ -79,6 +79,7 @@ object WidgetRegistry extends Logging {
 
     ChoicesWidget,
     MultipleLookupWidget,
+    TwoListWidget,
 
     MultiWidget,
 

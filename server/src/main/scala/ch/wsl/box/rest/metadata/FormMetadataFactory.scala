@@ -183,7 +183,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
       if(formI18n.isEmpty) logger.warn(s"Form ${form.name} (form_id: ${form.form_uuid}) has no translation to $lang")
 
-      val definedTableFields = form.tabularFields.toSeq.flatMap(_.split(",").map(_.trim))
+      val definedTableFields = form.tabularFields.getOrElse(Seq()).map(_.trim)
       val missingKeyTableFields = keys.filterNot(k => definedTableFields.contains(k))
       val tableFields = missingKeyTableFields ++ definedTableFields
 
@@ -296,7 +296,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         keys,
         keyStrategy,
         defaultQuery,
-        form.exportfields.map(_.split(",").map(_.trim).toSeq).getOrElse(tableFields),
+        form.exportfields.getOrElse(tableFields).map(_.trim),
         formI18n.flatMap(_.view_table),
         formActions,
         static = form.entity == FormMetadataFactory.STATIC_PAGE,

@@ -13,6 +13,7 @@ import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.client.views.elements.Offline
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, JsonNumber, JsonObject}
 import io.udash.bindings.modifiers.Binding
@@ -34,11 +35,13 @@ import scalatags.JsDom
 import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
 import ch.wsl.typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
+import org.scalajs.dom
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
+import scala.scalajs.js
 import scala.scalajs.js.timers.setTimeout
 import scala.util.{Failure, Success, Try}
 
@@ -173,12 +176,57 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 //  }
 //
 //  val hotkeysOptions = ch.wsl.typings.hotkeysJs.mod.Options().setCapture(true).setKeydown(true).setElement(document)
+
+  def focusField = document.activeElement.closest("*[data-box-class='widget']").asInstanceOf[dom.HTMLElement].dataset("boxField")
+
   document.addEventListener("keydown", (event:KeyboardEvent) => {
     // Check for Ctrl+S
     if (event.ctrlKey && event.key == "s") {
       event.preventDefault()
       save().map{ case (id,d) => afterSave(id,d)}
     }
+
+    if (event.ctrlKey && event.key == "c") {
+      if(
+        window.getSelection().isCollapsed && //any part of the page is selected
+        Try(document.activeElement.asInstanceOf[js.Dynamic].selectionStart == document.activeElement.asInstanceOf[js.Dynamic].selectionEnd).getOrElse(true)
+      ) {
+        event.preventDefault()
+        model.subProp(_.data).get.jsOpt(focusField).foreach { js =>
+          window.navigator.clipboard.writeText(js.noSpaces)
+        }
+      }
+    }
+
+    if (event.ctrlKey && event.key == "v") {
+      document.activeElement match {
+        case element: HTMLInputElement => ()
+        case element: HTMLTextAreaElement => ()
+        case element:dom.HTMLElement => {
+          event.preventDefault()
+          println("PasingAAAA")
+          window.navigator.clipboard.readText().toFuture.foreach{ str =>
+            println(str)
+            val focus = focusField
+            println(focus)
+            val metadata = model.subProp(_.metadata).get
+
+            for{
+              m <- metadata
+              f <- m.fields.find(_.name == focus)
+              js <- JSONUtils.toJs(str,f)
+            } yield {
+              BrowserConsole.log(js)
+              val d = model.subProp(_.data)
+              d.set(d.get.deepMerge(Json.fromFields(Map(focus -> js))))
+            }
+
+          }
+        }
+      }
+    }
+
+
   })
 //  ch.wsl.typings.hotkeysJs.mod.default("ctrl+s",hotkeysOptions,saveKey)
 

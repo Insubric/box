@@ -1458,6 +1458,49 @@ object GlobalStyleFactory{
       )
     )
 
+    val twoListContainer = style(
+      backgroundColor(Colors.GreyExtra),
+      padding(10 px),
+      margin(5 px),
+      overflow.auto,
+      maxHeight(500 px)
+    )
+
+    val twoListLeft = style(
+      unsafeChild(".right") (
+        display.none
+      )
+    )
+
+    val twoListRight = style(
+      unsafeChild(".left") (
+        display.none
+      )
+    )
+
+    val twoListElement = style(
+      lineHeight(31 px),
+      border.solid,
+      borderColor(conf.colors.main),
+      borderWidth(2 px),
+      borderRadius(5 px),
+      textAlign.center,
+      fontWeight.bold
+    )
+
+    val twoListButton = style(
+      lineHeight(21 px),
+      padding(3 px,10 px, 7 px,15 px),
+      fontSize(14 px),
+      display.inlineBlock,
+      border.`0`,
+      color(conf.colors.main),
+      &.hover(
+        backgroundColor(conf.colors.main),
+        color.white
+      )
+    )
+
     val childAddButtonBoxed = style(
       width(100 %%),
       border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),

@@ -211,15 +211,16 @@ object LayoutWidget extends ComponentWidgetFactory {
 
       val container = div(BootstrapStyles.Grid.row).render
 
-
-      val onChange:js.Function2[Event,js.Array[GridStackNode],Unit] = (e:Event,items:js.Array[GridStackNode]) => {
+      def reload() = {
         val layout = grid.map(gridToLayout)
-        BrowserConsole.log(layout.asJson)
         listener.foreach(_.cancel())
         params.prop.set(layout.asJson)
-        BrowserConsole.log(layout.asJson)
         listener.foreach(_.restart())
       }
+
+      val onChange:js.Function2[Event,js.Array[GridStackNode],Unit] = (_,_) => reload()
+      val onChange_dropped:GridStackDroppedHandler = (_,_,_) => reload()
+
 
 
 
@@ -234,12 +235,18 @@ object LayoutWidget extends ComponentWidgetFactory {
             grid = _afterRender(blocksContainer,extraFieldsContainer,layoutJs)
             grid.foreach{ g =>
               g.on(gridstackStrings.change,onChange)
+              g.on(gridstackStrings.added,onChange)
+              g.on(gridstackStrings.removed,onChange)
+              g.on_dropped(gridstackStrings.dropped,onChange_dropped)
               val subGrids = for{
                 items <- g.getGridItems().toSeq
                 nodes <- items.gridstackNode.toList
                 subGrid <- nodes.subGrid.toList
               } yield subGrid
               subGrids.map(_.on(gridstackStrings.change,onChange))
+              subGrids.map(_.on(gridstackStrings.added,onChange))
+              subGrids.map(_.on(gridstackStrings.removed,onChange))
+              subGrids.map(_.on_dropped(gridstackStrings.dropped,onChange_dropped))
             }
           }
         })

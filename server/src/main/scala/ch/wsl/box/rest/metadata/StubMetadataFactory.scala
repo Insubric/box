@@ -33,9 +33,9 @@ object StubMetadataFactory {
           description = None,
           entity = entity,
           layout = Some(metadata.layout.asJson),
-          tabularFields = Some(metadata.tabularFields.mkString(",")),
+          tabularFields = Some(metadata.tabularFields.toList),
           query = None,
-          exportfields = Some(metadata.exportFields.mkString(",")),
+          exportfields = Some(metadata.exportFields.toList),
           show_navigation = true
         )
 

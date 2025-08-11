@@ -30,9 +30,9 @@ object BoxForm {
                          entity:String,
                          description: Option[String] = None,
                          layout: Option[Json] = None,
-                         tabularFields: Option[String] = None,
+                         tabularFields: Option[List[String]] = None,
                          query: Option[Json] = None,
-                         exportfields: Option[String] = None,
+                         exportfields: Option[List[String]] = None,
                          guest_user:Option[String] = None,
                          edit_key_field:Option[String] = None,
                          show_navigation:Boolean,
@@ -55,8 +55,8 @@ object BoxForm {
     val description: Rep[Option[String]] = column[Option[String]]("description", O.Default(None))
     /** Database column layout SqlType(text), Default(None) */
     val layout: Rep[Option[Json]] = column[Option[Json]]("layout", O.Default(None))
-    val tabularFields: Rep[Option[String]] = column[Option[String]]("tabularFields", O.Default(None))
-    val exportfields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
+    val tabularFields: Rep[Option[List[String]]] = column[Option[List[String]]]("tabularFields", O.Default(None))
+    val exportfields: Rep[Option[List[String]]] = column[Option[List[String]]]("exportfields", O.Default(None))
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
     val edit_key_field: Rep[Option[String]] = column[Option[String]]("edit_key_field", O.Default(None))
     val query: Rep[Option[Json]] = column[Option[Json]]("query", O.Default(None))

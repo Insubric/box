@@ -11,7 +11,7 @@ object FormUIDef {
   import io.circe.syntax._
   import Constants._
 
-  def main(tables:Seq[String], users:Seq[BoxUser_row]) = JSONMetadata(
+  def main(tables:Seq[String], users:Seq[BoxUser_row],fields:Map[String, Seq[String]]) = JSONMetadata(
     objId = FORM,
     kind = EntityKind.BOX_FORM.kind,
     name = "form",
@@ -37,7 +37,17 @@ object FormUIDef {
         widget = Some(WidgetsNames.checkbox),
         default = Some("false")
       ),
-      JSONField(JSONFieldTypes.STRING,"tabularFields",false,widget = Some(WidgetsNames.textarea)),
+      JSONField(JSONFieldTypes.ARRAY_STRING,"tabularFields",false,widget = Some(WidgetsNames.twoList),
+        lookup =  Some(JSONFieldLookup.withExtractor(
+          "entity",
+          fields.map{ case (t,f) => t.asJson ->  f.map(x => JSONLookup(x.asJson,Seq(x)))}
+        ))
+      ).asPopup,
+      JSONField(JSONFieldTypes.ARRAY_STRING,"exportfields",true,widget = Some(WidgetsNames.twoList),
+        lookup =  Some(JSONFieldLookup.withExtractor(
+          "entity",
+          fields.map{ case (t,f) => t.asJson ->  f.map(x => JSONLookup(x.asJson,Seq(x)))}
+        ))).asPopup,
       JSONField(JSONFieldTypes.JSON,"query",true,
         widget = Some(WidgetsNames.popupWidget),
         params = Some(Json.obj(
@@ -58,7 +68,7 @@ object FormUIDef {
         placeholder = Some("by default primary key is used"),
         tooltip = Some("Manually enter the fields that should be used as primary key. This is useful mainly for updatable views where the primary key of the entity cannot be calculated. Fields are separated with comma")
       ),
-      JSONField(JSONFieldTypes.STRING,"exportfields",true,widget = Some(WidgetsNames.textarea)),
+
       JSONField(JSONFieldTypes.CHILD,"fields",true,
         child = Some(Child(FORM_FIELD,"fields",Seq("form_uuid"),Seq("form_uuid"),
           Some(JSONQuery.sortByKeys(Seq("name")).filterWith(

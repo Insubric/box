@@ -22,6 +22,7 @@ object WidgetsNames {
   val multi = "multi"
   val inputMultipleText = "inputMultipleText"
   val multipleLookup = "multipleLookup"
+  val twoList = "twoList"
   val twoLines = "twoLines"
   val popup = "popup"
   val popupWidget = "popupWidget"
@@ -159,13 +160,16 @@ object WidgetsNames {
       input,
       multipleLookup,
       multi,
+      twoList,
       hidden,
       dynamicWidget,
-      popupWidget
+      popupWidget,
+
     ),
     ARRAY_STRING -> Seq(
       inputMultipleText,
       multipleLookup,
+      twoList,
       multi,
       input,
       hidden,
