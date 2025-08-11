@@ -98,12 +98,15 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
           lookup.listen(values => {
             val currentSelected = params.prop.get.as[Seq[Json]].getOrElse(Seq())
-            val choices = values.map{x =>
-              val selected = currentSelected.contains(x.id)
-              InputChoice(x.value,convertJsonToJs(x.id)).setSelected(selected)
-            }.toJSArray
-            BrowserConsole.log(choices)
-            choicesJs.asInstanceOf[js.Dynamic].setChoices(choices,"value","label",true)
+            val choices: Seq[InputChoice] = currentSelected.flatMap{ cs =>
+              values.find(_.id == cs).map{ x =>
+                InputChoice(x.value,convertJsonToJs(x.id)).setSelected(true)
+              }
+            } ++
+            values.filterNot(x => currentSelected.contains(x.id)).map{x =>
+              InputChoice(x.value,convertJsonToJs(x.id))
+            }
+            choicesJs.asInstanceOf[js.Dynamic].setChoices(choices.toJSArray,"value","label",true)
           },true)
         }
       })
@@ -120,7 +123,6 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.mediumBottomMargin,
-        bind(params.prop),
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip(multipleSelect)._1,
       )

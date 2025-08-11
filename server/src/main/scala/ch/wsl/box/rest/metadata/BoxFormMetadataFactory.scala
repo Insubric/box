@@ -39,7 +39,7 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
     FormUIDef.field_no_db(tablesAndViews,fields),
     FormUIDef.field_childs(forms.sortBy(_.name),fields),
     FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),
-    FormUIDef.fieldI18n(services.config.langs),
+    FormUIDef.fieldI18n(services.config.langs,fields),
     FormUIDef.formI18n(viewsOnly,services.config.langs),
     FormUIDef.form_actions(functions.map(_.name)),
     FormUIDef.form_navigation_actions(functions.map(_.name)),
@@ -87,16 +87,16 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
         FormUIDef.field_no_db(tablesAndViews,fields),
         FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),
         FormUIDef.field_childs(forms,fields),
-        FormUIDef.fieldI18n(services.config.langs),
+        FormUIDef.fieldI18n(services.config.langs,fields),
         FormUIDef.formI18n(viewsOnly,services.config.langs),
         FormUIDef.form_actions(functions.map(_.name)),
         FormUIDef.form_navigation_actions(functions.map(_.name))
       )
-      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),FormUIDef.field_childs(forms,fields),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs))
-      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs))
-      case f if f.objId == FORM_FIELD_NOT_DB => Seq(FormUIDef.fieldI18n(services.config.langs))
-      case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs))
-      case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n(services.config.langs))
+      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),FormUIDef.field_childs(forms,fields),FormUIDef.fieldI18n(services.config.langs,fields),FormUIDef.formI18n(viewsOnly,services.config.langs))
+      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
+      case f if f.objId == FORM_FIELD_NOT_DB => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
+      case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
+      case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
       case f if f.objId == FUNCTION => Seq(FunctionUIDef.field(tablesAndViews),FunctionUIDef.fieldI18n(services.config.langs),FunctionUIDef.functionI18n(services.config.langs))
       case f if f.objId == FUNCTION_FIELD => Seq(FunctionUIDef.fieldI18n(services.config.langs))
       case f if f.objId == NEWS => Seq(NewsUIDef.newsI18n(services.config.langs))

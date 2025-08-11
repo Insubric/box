@@ -143,7 +143,12 @@ object CommonField {
       "",
       true
     )),
-    widget = Some(WidgetsNames.tableChild)
+    widget = Some(WidgetsNames.tableChild),
+    params = Some(Json.fromFields(Map(
+      "props" -> Json.fromFields(Map(
+        "entity" -> s"${Widget.REF}entity".asJson
+      ))
+    )))
   )
   val formFieldStatic = JSONField(JSONFieldTypes.CHILD,"fields_static",true,
     child = Some(Child(FORM_FIELD_STATIC,"fields_static",Seq("form_uuid"),Seq("form_uuid"),
@@ -158,6 +163,20 @@ object CommonField {
     widget = Some(WidgetsNames.tableChild)
   )
 
+
+  val fieldi18n = JSONField(
+    JSONFieldTypes.CHILD,
+    "field_i18n",
+    true,
+    child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"",true)),
+    widget = Some(WidgetsNames.tableChild),
+    params = Some(Json.fromFields(Map(
+      "props" -> Json.fromFields(Map(
+        "widget" -> s"${Widget.REF}widget".asJson,
+        "foreign_entity" -> s"${Widget.REF}foreign_entity".asJson
+      ))
+    )))
+  )
 
 
 }

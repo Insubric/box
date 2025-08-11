@@ -209,7 +209,7 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.fieldi18n,
       CommonField.foreignEntity(tables),
       CommonField.foreignValueField(tables,fields),
       CommonField.foreignQuery(tables),
@@ -274,7 +274,7 @@ object FormUIDef {
       CommonField.widget,
       CommonField.typ(false,false),
       JSONField(JSONFieldTypes.BOOLEAN,"required",true,widget = Some(WidgetsNames.checkbox)),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.fieldi18n,
       CommonField.foreignEntity(tables),
       CommonField.foreignValueField(tables,fields),
       CommonField.foreignQuery(tables),
@@ -344,7 +344,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.CHILD)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.fieldi18n,
       JSONField(JSONFieldTypes.STRING,"child_form_uuid",false,
         label = Some("Child form"),
         widget = Some(WidgetsNames.select),
@@ -360,7 +360,7 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,
         label = Some("Parent key fields"),
-        widget = Some(WidgetsNames.inputMultipleText),
+        widget = Some(WidgetsNames.multipleLookup),
         condition = Some(ConditionalField("widget",Seq(
           WidgetsNames.simpleChild,
           WidgetsNames.tableChild,
@@ -368,7 +368,11 @@ object FormUIDef {
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
-        ).asJson))
+        ).asJson)),
+        lookup =  Some(JSONFieldLookup.withExtractor(
+          "entity",
+          fields.map{ case (t,f) => t.asJson ->  f.map(x => JSONLookup(x.asJson,Seq(x)))}
+        ))
       ),
       JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_key_columns",false,
         label = Some("Child key fields"),
@@ -459,7 +463,7 @@ object FormUIDef {
         widget = Some(WidgetsNames.hidden),
         default = Some(JSONFieldTypes.STATIC)
       ),
-      JSONField(JSONFieldTypes.CHILD,"field_i18n",true,child = Some(Child(FORM_FIELD_I18N,"field_i18n",Seq("field_uuid"),Seq("field_uuid"),Some(JSONQuery.sortByKeys(Seq("lang"))),"widget",true)), widget = Some(WidgetsNames.tableChild)),
+      CommonField.fieldi18n,
       CommonField.foreignEntity(tables),
       CommonField.foreignValueField(tables,fields),
       JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,label=Some("Parent field"),
@@ -509,7 +513,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def fieldI18n(langs:Seq[String]) = JSONMetadata(
+  def fieldI18n(langs:Seq[String],fields:Map[String, Seq[String]]) = JSONMetadata(
     objId = FORM_FIELD_I18N,
     kind = EntityKind.BOX_FORM.kind,
     name = "FieldI18n builder",
@@ -529,10 +533,20 @@ object FormUIDef {
         WidgetsNames.richTextEditor,
         WidgetsNames.redactor
       )),
-      JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_label_columns",true,label = Some("Foreign label field"), tooltip = Some("Label in external table"), widget = Some(WidgetsNames.inputMultipleText),
-        condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.multipleLookup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input,WidgetsNames.multi,WidgetsNames.popupWidget).asJson))
+      JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_label_columns",true,
+        label = Some("Foreign label field"),
+        tooltip = Some("Label in external table"),
+        widget = Some(WidgetsNames.multipleLookup),
+        condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.multipleLookup,WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.input,WidgetsNames.multi,WidgetsNames.popupWidget).asJson)),
+        lookup = Some(JSONFieldLookup.withExtractor(
+          "foreign_entity",
+          fields.map{ case (t,f) => t.asJson ->  f.map(x => JSONLookup(x.asJson,Seq(x)))}
+        ))
       ),
-      JSONField(JSONFieldTypes.STRING,"dynamic_label",true,label = Some("Dynamic label"), tooltip = Some("Another field in the same form"), widget = Some(WidgetsNames.input),
+      JSONField(JSONFieldTypes.STRING,"dynamic_label",true,
+        label = Some("Dynamic label"),
+        tooltip = Some("Another field in the same form"),
+        widget = Some(WidgetsNames.hidden),
         condition = Some(ConditionalField("widget",Seq(WidgetsNames.linkedForm,WidgetsNames.lookupForm,WidgetsNames.lookupLabel,WidgetsNames.multi,WidgetsNames.popupWidget).asJson))
       )
     ),
