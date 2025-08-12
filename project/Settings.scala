@@ -40,7 +40,7 @@ object Settings {
 
     //HTTP actors
     val akka = "2.6.4"
-    val akkaHttp = "10.2.7"
+    val akkaHttp = "10.2.10"
     val akkaHttpJson = "1.39.2"
 
     //Testing
@@ -75,6 +75,7 @@ object Settings {
     val scalaJsonSchema = "0.2.6"
 
     val kantan = "0.6.1"
+
 
   }
 
@@ -171,6 +172,9 @@ object Settings {
     "com.typesafe" %% "ssl-config-core" % "0.6.1",
     "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
     "org.apache.xmlgraphics" % "batik-codec" % "1.16",
+    "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
+    "com.softwaremill.sttp.client4" %% "circe" % "4.0.9"
+
     //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
     //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"

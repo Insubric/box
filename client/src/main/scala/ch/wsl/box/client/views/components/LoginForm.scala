@@ -34,7 +34,7 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
     button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,"SSO",
       onclick :+= ((e:Event) => {
         e.preventDefault()
-        window.location.href = "http://localhost:8180/auth/realms/master/protocol/openid-connect/auth?client_id=box&response_type=code&state=fj8o3n7bdy1op5&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthenticate"
+        window.location.href = "https://gitlabext.wsl.ch/oauth/authorize?client_id=727650337ebe44f844b5d5d60911e9320b532941fdd8e0a9a74f159e17212d54&scope=openid&response_type=code&state=fj8o3n7bdy1op5&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthenticate"
 
         })
     )

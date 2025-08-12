@@ -122,17 +122,19 @@ create or replace view v_roles
 as
 
 with recursive roles as (
-    SELECT r.rolname,b.rolname as parent
+    SELECT r.rolname,b.rolname as parent,coalesce(u.access_level_id,-1) as access_level_id
     FROM pg_roles r
              join pg_auth_members m on m.member = r.oid
              JOIN pg_roles b ON m.roleid = b.oid
+             left join users u on u.username = r.rolname
     WHERE r.rolname !~ '^pg_'::text
     union distinct
 
-    select r.rolname,b.rolname as parent from roles r
+    select r.rolname,b.rolname as parent,-1 as access_level_id from roles r
                                                   join pg_auth_members m on m.member = (select oid from pg_roles where rolname = r.parent)
                                                   JOIN pg_roles b ON m.roleid = b.oid
-), parent_roles as (select rolname, array_agg(parent) as parents
+
+), parent_roles as (select rolname, array_agg(parent) as parents,max(access_level_id) as access_level_id
                     from roles
                     group by rolname
 )
@@ -146,9 +148,11 @@ SELECT r.rolname,
        r.rolvaliduntil,
        coalesce(pr.parents,array[]::text[]) AS memberof,
        r.rolreplication,
-       r.rolbypassrls
+       r.rolbypassrls,
+       coalesce(greatest(pr.access_level_id,u.access_level_id),-1) as access_level_id
 FROM pg_roles r
          left join parent_roles pr on r.rolname = pr.rolname
+         left join users u on u.username = r.rolname
 WHERE r.rolname !~ '^pg_'::text
 ORDER BY r.rolname;
 

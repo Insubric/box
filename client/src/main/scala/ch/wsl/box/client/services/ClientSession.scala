@@ -119,7 +119,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def refreshSession():Future[Boolean] = {
-    rest.me().map(_createSession).recover{case t:Throwable =>
+    rest.me().map(createSession).recover{case t:Throwable =>
       logger.warn(s"Session non valid")
       dom.window.sessionStorage.removeItem(USER)
       Notification.closeWebsocket()
@@ -153,7 +153,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
       ui <- rest.ui()
     } yield {
       UI.load(ui)
-      _createSession(me)
+      createSession(me)
     }
 
     fut.recover{ case t =>
@@ -165,7 +165,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  private def _createSession(user:CurrentUser) = {
+  def createSession(user:CurrentUser) = {
     dom.window.sessionStorage.setItem(USER,user.username)
     roles = user.roles
 

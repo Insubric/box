@@ -4,6 +4,7 @@ import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.geo.GeoDataRequest
+import ch.wsl.box.model.shared.oidc.UserInfo
 import io.circe.Json
 import org.scalajs.dom
 import org.scalajs.dom.File

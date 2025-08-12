@@ -2,8 +2,8 @@ package ch.wsl.box.client.views
 
 import ch.wsl.box.client.services.Navigate
 import ch.wsl.box.client.{AdminState, AuthenticateState, Context, IndexState}
+import ch.wsl.box.model.shared.CurrentUser
 import io.udash.{Presenter, View, ViewFactory}
-import typings.std.global.URLSearchParams
 import org.scalajs.dom._
 
 class AuthenticateView {
@@ -22,14 +22,15 @@ object AuthenticateView extends ViewFactory[AuthenticateState.type]{
 class AdminPresenter() extends Presenter[AuthenticateState.type] {
 
   import ch.wsl.box.client.Context._
+  import Implicits._
 
   override def handleState(state: AuthenticateState.type): Unit = {
     val params = new URLSearchParams(window.location.search)
-    val code = params.get("code").asInstanceOf[String]
+    val code = params.get("code")
 
       for {
         result <- services.rest.authenticate(code)
-        session <- services.clientSession.createSession(result.preferred_username)
+        _ =  services.clientSession.createSession(CurrentUser(result.preferred_username,Seq()))
       } yield {
         Context.applicationInstance.goTo(IndexState,true)
       }

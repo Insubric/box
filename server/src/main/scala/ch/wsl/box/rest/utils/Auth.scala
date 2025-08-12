@@ -14,8 +14,6 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 import slick.jdbc.GetResult
 
-class Auth()(implicit services:Services) extends Logging {
-
 object Auth extends Logging {
 
   def adminUserProfile(implicit services: Services) = UserProfile(
@@ -23,8 +21,7 @@ object Auth extends Logging {
   )
 
 
-  def checkAuth(name: String, password: String)(implicit executionContext: ExecutionContext, services: Services): Future[Boolean] =
-    Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run{
+  def checkAuth(name: String, password: String)(implicit executionContext: ExecutionContext, services: Services): Future[Boolean] = Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run{
       sql"""select 1""".as[Int]
     }.map { _ =>
       true
@@ -66,7 +63,7 @@ object Auth extends Logging {
       sql"""select memberOf from #$boxSchema.v_roles where lower(rolname)=lower($name)""".as[Seq[String]](GetResult { r => r.<<[Seq[String]] })
 
     }.map {
-      _.head
+      _.headOption.getOrElse(Seq())
     }
   }
 
