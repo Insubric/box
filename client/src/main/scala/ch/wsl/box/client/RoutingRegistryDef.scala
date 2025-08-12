@@ -4,21 +4,28 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientSession, Labels, Notification}
 import io.udash._
 import org.scalajs.dom
-import org.scalajs.dom.window
 import scribe.Logging
+
+import scala.scalajs.js
 
 class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   import Context._
   def matchUrl(url: Url): RoutingState = {
-    val localUrl = if(dom.window.location.hash.startsWith("#/")) dom.window.location.hash.stripPrefix("#") else url.value
+    val _localUrl = {if(dom.window.location.hash.startsWith("#/")) dom.window.location.hash.stripPrefix("#") else url.value}
+      .takeWhile(_ != '?')
+      .stripSuffix("/")
+
+    val localUrl = if(_localUrl == null || js.isUndefined(_localUrl) || _localUrl.isEmpty) "/" else _localUrl
+
+
     logger.info(s"match URL $localUrl logged: ${services.clientSession.isSet(ClientSession.USER)}")
     services.clientSession.isSet(ClientSession.USER) match {
-      //case true => loggedInUrl2State.applyOrElse (url.value.stripSuffix ("/"), (x: String) => ErrorState)
-      case true => loggedInUrl2State.applyOrElse ( localUrl.stripSuffix ("/"), (x: String) => {
+      case true => loggedInUrl2State.applyOrElse ( localUrl.stripPrefix("/public"), (x: String) => {
+        logger.warn(s"Not found $localUrl")
         Notification.add(Labels.error.notfound + " " + localUrl)
         IndexState
       })
-      case false => loggedOutUrl2State.applyOrElse (localUrl.stripSuffix ("/"), (x: String) => {
+      case false => loggedOutUrl2State.applyOrElse (localUrl, (x: String) => {
         logger.info(s"here $localUrl")
         ErrorState
       })
@@ -26,7 +33,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   }
 
   def matchState(state: RoutingState): Url = {
-    logger.info(s"match STATE ${services.clientSession.isSet(ClientSession.USER)}")
+    logger.info(s"match STATE logged:${services.clientSession.isSet(ClientSession.USER)} state:$state")
     services.clientSession.isSet(ClientSession.USER) match {
       case true => Url(loggedInState2Url.apply(state))
       case false => Url(loggedOutState2Url.apply(state))
@@ -35,11 +42,11 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
 
 
   private val (loggedInUrl2State, loggedInState2Url) = bidirectional {
-    case "" => IndexState
-    case "/entities" => EntitiesState("entity","",Layouts.std)
-    case "/tables" => EntitiesState("table","",Layouts.std)
-    case "/views" => EntitiesState("view","",Layouts.std)
-    case "/forms" => EntitiesState("form","",Layouts.std)
+    case "/" => IndexState
+    case "/entities" => EntitiesState("entity","",false,Layouts.std)
+    case "/tables" => EntitiesState("table","",false,Layouts.std)
+    case "/views" => EntitiesState("view","",false,Layouts.std)
+    case "/forms" => EntitiesState("form","",false,Layouts.std)
     case "/functions"  => DataListState(DataKind.FUNCTION,"")
     case "/exports"  => DataListState(DataKind.EXPORT,"")
     case "/box" / "export" / exportFunction  => DataState(DataKind.EXPORT,exportFunction)
@@ -48,19 +55,24 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std)
     case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std)
     case "/box" / kind / entity / "child" / childEntity => MasterChildState(kind,entity,childEntity)
-    case "/box" / kind / entity => EntityTableState(kind,entity,None)
-    case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query))
+    case "/box" / kind / entity => EntityTableState(kind,entity,None,false)
+    case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query),false)
     case "/translations"  => TranslatorState
     case "/admin"  => AdminState
     case "/admin" / "box-definition"  => AdminBoxDefinitionState
     case "/admin" / "translations" / from / to  => AdminTranslationsState(from,to)
     case "/admin" / "conf"  => AdminConfState
     case "/admin" / "ui-conf"  => AdminUiConfState
+    case "/admin" / "db-repl"  => AdminDBReplState
   }
 
+
+  //localhost:8080/public/box/form/tree
   private val (loggedOutUrl2State, loggedOutState2Url) = bidirectional {
-    case "" => LoginState("")
+    case "/" => LoginState("")
+    case "/authenticate"  => AuthenticateState
     case "/logout" => LogoutState
+    case "/public" / "box" / kind / entity  => EntityTableState(kind,entity,None,true)
     case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
     case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank)
     case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std)
@@ -86,6 +98,6 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "translations" / from / to  => LoginState2params("/admin/translations/$from/$to",from,to)
     case "/admin" / "conf"  => LoginState("/admin/conf")
     case "/admin" / "ui-conf"  => LoginState("/admin/ui-conf")
-    case "/authenticate"  => AuthenticateState
+    case "/admin" / "db-repl"  => LoginState("/admin/db-repl")
   }
 }

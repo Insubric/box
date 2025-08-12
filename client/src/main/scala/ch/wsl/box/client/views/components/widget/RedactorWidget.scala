@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.{Json, JsonObject}
@@ -13,8 +14,10 @@ import scalatags.JsDom
 import scribe.Logging
 import io.circe._
 import io.circe.scalajs.convertJsonToJs
+import io.udash.bindings.modifiers.Binding
 import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
 import org.scalajs.dom.html.TextArea
+import scalatags.JsDom.all.{Modifier, span}
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -71,7 +74,7 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
   import scalatags.JsDom.all._
 
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(raw(p.string)).render
   })
 
@@ -106,7 +109,7 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
     true
   }
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     logger.debug(s"field: ${field.name}")
     logger.debug(s"data: ${data.get.toString()}")
 
@@ -117,12 +120,12 @@ case class RedactorWidget(_id: ReadableProperty[Option[String]], field: JSONFiel
       }
     })
 
-    produce(_id) { _ =>
+    nested(produce(_id) { _ =>
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
       div(
         container
       ).render
-    }
+    })
   }
 
 }

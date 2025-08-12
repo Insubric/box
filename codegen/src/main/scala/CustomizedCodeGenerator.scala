@@ -2,9 +2,11 @@ package ch.wsl.box.codegen
 
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
 import ch.wsl.box.services.config.ConfigFileImpl
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import schemagen.SchemaGenerator
+import scribe.{Level, Logger, Priority}
+import scribe.filter.{level, packageName, select}
 import slick.codegen.SourceCodeGenerator
 
 import scala.concurrent.Await
@@ -23,13 +25,12 @@ case class GeneratedFiles(
                        entityActionsRegistry: EntityActionsRegistryGenerator,
                        fileAccessGenerator: FileAccessGenerator,
                        registry: RegistryGenerator,
-                       fieldRegistry: FieldAccessGenerator,
-                       fixFiles: FixFileAccesGenerator
+                       fieldRegistry: FieldAccessGenerator
                          )
 
-case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends BaseCodeGenerator {
+case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:GeneratorParams) extends BaseCodeGenerator {
 
-  def generatedFiles(connection:Connection): GeneratedFiles = {
+  def generatedFiles(): GeneratedFiles = {
 
 
 
@@ -37,13 +38,12 @@ case class CodeGenerator(dbSchema:String,exclude:Seq[String] = Seq()) extends Ba
     val calculatedTables = enabledTables.map(_.name.name).distinct
 
     GeneratedFiles(
-      entities = EntitiesGenerator(connection,dbModel),
+      entities = EntitiesGenerator(connection,dbModel,generatorParams.boxSchema),
       generatedRoutes = RoutesGenerator(calculatedViews, calculatedTables, dbModel),
       entityActionsRegistry = EntityActionsRegistryGenerator(calculatedViews ++ calculatedTables, dbModel),
-      fileAccessGenerator = FileAccessGenerator(dbModel, dbConf),
-      registry = RegistryGenerator(dbModel),
-      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel),
-      fixFiles = FixFileAccesGenerator(dbModel,calculatedTables)
+      fileAccessGenerator = FileAccessGenerator(dbModel),
+      registry = RegistryGenerator(dbModel,dbSchema, generatorParams.postgisSchema),
+      fieldRegistry = FieldAccessGenerator(connection, calculatedTables, calculatedViews, dbModel,generatorParams.boxSchema),
     )
 
   }
@@ -53,115 +53,26 @@ object CustomizedCodeGenerator  {
 
   def main(args: Array[String]):Unit = {
 
+    Logger.root.clearHandlers()
+      .withHandler(minimumLevel = Some(Level.Warn))
+      .replace()
+
+    val dbConf: Config = com.typesafe.config.ConfigFactory.load().as[com.typesafe.config.Config]("db")
+    val conf = new ConfigFileImpl()
+    val params = GeneratorParams(
+      dbConf.as[Seq[String]]("generator.tables"),
+      dbConf.as[Seq[String]]("generator.views"),
+      dbConf.as[Seq[String]]("generator.excludes"),
+      dbConf.as[Seq[String]]("generator.excludeFields"),
+      conf.schemaName,
+      conf.boxSchemaName,
+      conf.postgisSchemaName,
+      conf.langs
+    )
+
     val connection = new ConnectionConfImpl()
 
-    val conf = new ConfigFileImpl()
-
-    Await.result(new SchemaGenerator(connection,conf.langs).run(),120.seconds)
-
-
-
-    val files = CodeGenerator(conf.schemaName).generatedFiles(connection)
-
-    files.fixFiles.createTriggers(connection.dbConnection)
-
-    val boxFilesLimited = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq(
-      "export",
-      "export_field",
-      "export_field_i18n",
-      "export_header_i18n",
-      "export_i18n",
-      "field",
-      "field_file",
-      "field_i18n",
-      "form",
-      "form_actions",
-      "form_navigator_actions",
-      "form_i18n",
-      "function",
-      "function_field",
-      "function_field_i18n",
-      "function_i18n",
-      "labels",
-      "news",
-      "news_i18n"
-    )).generatedFiles(connection)
-
-    val boxFilesAll = CodeGenerator(conf.boxSchemaName.getOrElse("box"),Seq()).generatedFiles(connection)
-
-    files.entities.writeToFile(
-      "ch.wsl.box.jdbc.PostgresProfile",
-      args(0),
-      "ch.wsl.box.generated",
-      "Entities",
-      "Entities.scala"
-    )
-
-    files.generatedRoutes.writeToFile(
-      args(0),
-      "ch.wsl.box.generated",
-      "GeneratedRoutes",
-      "GeneratedRoutes.scala",
-      "Entities"
-    )
-
-    files.entityActionsRegistry.writeToFile(
-      args(0),
-      "ch.wsl.box.generated",
-      "EntityActionsRegistry.scala",
-      "Entities"
-    )
-
-    files.fileAccessGenerator.writeToFile(
-      args(0),
-      "ch.wsl.box.generated",
-      "FileRoutes",
-      "FileRoutes.scala",
-      "Entities"
-    )
-
-    files.fieldRegistry.writeToFile(args(0),"ch.wsl.box.generated","GenFieldRegistry.scala","")
-
-
-    files.registry.writeToFile(args(0),"ch.wsl.box.generated","","GenRegistry.scala")
-
-    boxFilesLimited.entities.writeToFile(
-      "ch.wsl.box.jdbc.PostgresProfile",
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "Entities",
-      "Entities.scala"
-    )
-
-    boxFilesLimited.generatedRoutes.writeToFile(
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "GeneratedRoutes",
-      "GeneratedRoutes.scala",
-      "Entities"
-    )
-
-    boxFilesLimited.entityActionsRegistry.writeToFile(
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "EntityActionsRegistry.scala",
-      "Entities"
-    )
-
-    boxFilesLimited.fileAccessGenerator.writeToFile(
-      args(0),
-      "ch.wsl.box.generated.boxentities",
-      "FileRoutes",
-      "FileRoutes.scala",
-      "Entities"
-    )
-
-    boxFilesAll.fieldRegistry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","GenFieldRegistry.scala","")
-
-
-    boxFilesAll.registry.writeToFile(args(0),"ch.wsl.box.generated.boxentities","","GenRegistry.scala")
-
-    connection.close()
+    CodeGeneratorWriter.write(connection,params,args(0),"ch.wsl.box.generated")
 
   }
 

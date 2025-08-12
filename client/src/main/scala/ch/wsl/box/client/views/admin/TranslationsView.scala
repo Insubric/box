@@ -19,7 +19,7 @@ import org.scalajs.dom.{BlobPropertyBag, Event, File, FileReader}
 import org.scalajs.dom.raw.Blob
 import scalacss.ScalatagsCss._
 import scribe.Logging
-import typings.fileSaver.mod.FileSaverOptions
+import ch.wsl.typings.fileSaver.mod.FileSaverOptions
 
 import scala.scalajs.js
 import scala.util.Try
@@ -46,7 +46,7 @@ object TranslationsViewPresenter extends ViewFactory[AdminTranslationsState]{
 class TranslationsPresenter(viewModel:ModelProperty[TranslationsViewModel]) extends Presenter[AdminTranslationsState] with Logging {
 
   import Context._
-
+  import ch.wsl.box.client.Context.Implicits._
   override def handleState(state: AdminTranslationsState): Unit = {
     for{
       source <- services.rest.translationsFields(state.from)
@@ -63,13 +63,14 @@ class TranslationsPresenter(viewModel:ModelProperty[TranslationsViewModel]) exte
 
   def save() = {
     val model = viewModel.get
+    services.clientSession.loading.set(true)
     services.rest.translationsFieldsCommit(BoxTranslationsFields(
       sourceLang = model.sourceLang,
       destLang = model.destLang,
       translations = model.source.flatMap{s =>
         model.dest.find(_.uuid == s.uuid).map(d => BoxTranslationField(s,d))
       }
-    )).map(_ => true)
+    )).map(_ => services.clientSession.loading.set(false))
   }
 
 
@@ -84,9 +85,9 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
   def viewField(source:Field) = {
 
     val fieldProp = viewModel.subProp(_.dest).bitransform{ seq =>
-      seq.find(_.uuid.intersect(source.uuid).nonEmpty) match {
-        case None => Field(source.uuid,source.name,source.source,"","","","")
-        case Some(f) => f.copy(uuid = f.uuid.union(source.uuid).distinct)
+      seq.find(_.uuid == source.uuid ) match {
+        case None => Field(source.uuid,source.name,source.source,"","","",List(),"")
+        case Some(f) => f
       }
     } { field =>
       viewModel.subProp(_.dest).get.filterNot(_.uuid == source.uuid) ++ Seq(field)
@@ -95,23 +96,23 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
 
 
     div(BootstrapStyles.Grid.row, paddingTop := 15.px, paddingBottom := 15.px, borderBottomStyle.solid, borderBottomWidth := 1.px)(
-      div(BootstrapCol.md(2),fontSize := 10.px, source.name.map(n => {
+      div(BootstrapCol.md(2),fontSize := 10.px, {
         source.source match {
-          case "field_i18n" => div(a(Navigate.click(Routes("form",n.split("\\.").headOption.getOrElse("")).add()),n))
-          case "form_i18n" => div(a(Navigate.click(Routes("form",n).add()),n))
-          case _ => div(n)
+          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse(""),false).add()),source.name))
+          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name,false).add()),source.name))
+          case _ => div(source.name)
         }
-
-      })),
+      }),
       div(BootstrapCol.md(1),source.label),
       div(BootstrapCol.md(1),source.placeholder),
       div(BootstrapCol.md(1),source.tooltip),
       div(BootstrapCol.md(1),source.dynamicLabel),
+      div(BootstrapCol.md(1),source.lookup_columns),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.label)(str => fieldProp.get.copy(label = str)))(ClientConf.style.fullWidth)),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.placeholder)(str => fieldProp.get.copy(placeholder = str)))(ClientConf.style.fullWidth)),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.tooltip)(str => fieldProp.get.copy(tooltip = str)))(ClientConf.style.fullWidth)),
       div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.dynamicLabel)(str => fieldProp.get.copy(dynamicLabel = str)))(ClientConf.style.fullWidth)),
-      div(BootstrapCol.md(2)),
+      div(BootstrapCol.md(1),TextArea(fieldProp.bitransform(_.lookup_columns.mkString(","))(str => fieldProp.get.copy(lookup_columns = str.split(",").map(_.trim).filter(_.nonEmpty).toList)))(ClientConf.style.fullWidth)),
     ).render
   }
 
@@ -120,6 +121,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
     div(BootstrapCol.md(3),b("Placeholder")),
     div(BootstrapCol.md(3),b("Tooltip")),
     div(BootstrapCol.md(3),b("Dynamic label")),
+    div(BootstrapCol.md(3),b("Lookup column")),
   )
 
   private val content = div(BootstrapStyles.Grid.row)(
@@ -130,11 +132,11 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
       button(ClientConf.style.boxButtonImportant,"Save", onclick :+= ((e:Event) => presenter.save()))
     ),
     div(BootstrapCol.md(4),
-      h3("Original"),
+      h3("Original - ",bind(viewModel.subProp(_.sourceLang))),
       header
     ),
     div(BootstrapCol.md(4),
-      h3("Translated"),
+      h3("Translated - ",bind(viewModel.subProp(_.destLang))),
       header
     ),
     div(BootstrapCol.md(2)),

@@ -8,9 +8,9 @@ nav_order: 7
 
 ### Andrea Minetti
 
-[wavein.ch](https://wavein.ch)
+[wsl.ch](https://www.wsl.ch) / [wavein.ch](https://wavein.ch)
 
-[andrea@wavein.ch](mailto:andrea@wavein.ch)
+[andrea.minetti@wsl.ch](mailto:andrea.minetti@wsl.ch) / [andrea@wavein.ch](mailto:andrea@wavein.ch)
 
 [![Linkedin](https://i.stack.imgur.com/gVE0j.png) LinkedIn](https://www.linkedin.com/in/minettiandrea/)
 &nbsp;

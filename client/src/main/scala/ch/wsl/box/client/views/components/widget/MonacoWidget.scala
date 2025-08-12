@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
+import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.udash.properties.single.Property
@@ -11,10 +12,11 @@ import io.udash._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.syntax._
 import io.circe.parser._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.BootstrapStyles
 import org.scalajs.dom.{MutationObserver, MutationObserverInit, document}
 import org.scalajs.dom.html.Div
-import typings.monacoEditor.mod.editor.{IStandaloneCodeEditor, IStandaloneEditorConstructionOptions}
+import ch.wsl.typings.monacoEditor.mod.editor.{IStandaloneCodeEditor, IStandaloneEditorConstructionOptions}
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -24,7 +26,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   import scalacss.ScalatagsCss._
   import io.udash.css.CssView._
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(p.string).render
   })
 
@@ -39,20 +41,30 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
   val language = field.params.flatMap(_.getOpt("language")).getOrElse(defaultLanguage)
   val containerHeight:Int = field.params.flatMap(_.js("height").as[Int].toOption).getOrElse(200)
 
+  val dataListener:Registration = data.listen({js =>
+    Try {
+      editor.foreach(_.setValue(js.string))
+    }
+  },true)
+
+
   def _afterRender(): Unit = {
     logger.info("Editor after render")
+
+    BrowserConsole.log(container)
     if(container != null) {
 
       logger.info(language)
 
 
-      editor = Some(typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
+      editor = Some(ch.wsl.typings.monacoEditor.mod.editor.create(container,IStandaloneEditorConstructionOptions()
         .setLanguage(language)
+        .setAutomaticLayout(true)
       ))
 
-      val dataListener:Registration = data.listen({js =>
-          editor.foreach(_.setValue(js.string))
-      },true)
+      BrowserConsole.log(editor.get)
+
+      editor.foreach(_.setValue(data.get.string))
 
 
       editor.foreach(_.onDidChangeModelContent{e =>
@@ -81,7 +93,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
 
   }
 
-  override protected def edit(): JsDom.all.Modifier = {
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     val observer = new MutationObserver({(mutations,observer) =>
       if(document.contains(container)) {
@@ -90,11 +102,10 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
       }
     })
 
-
-
-    produce(_id) { _ =>
+    nested(produce(_id) { _ =>
 
       editor.foreach(_.dispose())
+      if(container != null) container.remove()
 
       val fullWidth = field.params.flatMap(_.js("fullWidth").asBoolean).forall(x => x) // default true
 
@@ -117,7 +128,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
         div(BootstrapStyles.Visibility.clearfix)
       ).render
 
-    }
+    })
   }
 
 }

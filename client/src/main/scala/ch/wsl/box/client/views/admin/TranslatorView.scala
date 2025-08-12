@@ -22,6 +22,7 @@ object TranslatorViewPresenter extends ViewFactory[TranslatorState.type]{
 class TranslatorPresenter() extends Presenter[TranslatorState.type] {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: TranslatorState.type): Unit = {
 

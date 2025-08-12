@@ -50,9 +50,9 @@ object JdbcConnect extends Logging {
         connection.commit()
         val metadata = getColumnMeta(resultSet.getMetaData)
         val data = getResults(resultSet, metadata)
-        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
+        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping(x.datatype,"string")), data,Seq(), Map())
       } match {
-        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),Seq(),errorMessage = Some(exception.getMessage)))
         case Success(value) => Some(value)
       }
       connection.close()
@@ -70,27 +70,40 @@ object JdbcConnect extends Logging {
     val result = Future{
       // make the connection
       val connection = services.connection.dbConnection.source.createConnection()
-      val result = Try {
-        connection.setAutoCommit(false)
-        // create the statement, and run the select query
-        val roleStatement = connection.createStatement()
-        roleStatement.execute(s"""SET ROLE "${up.name}" """)
 
-        val statement = connection.createStatement()
-        val argsStr = if (args == null) ""
-        else args.map(_.toString()).mkString(",")
+      var oracle_retry = 0
+      val oracle_retry_max = 3
 
-        val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
-        logger.info(query)
-        val resultSet = statement.executeQuery(query)
-        connection.commit()
-        val metadata = getColumnMeta(resultSet.getMetaData)
-        val data = getResults(resultSet, metadata)
-        DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping.getOrElse(x.datatype,"string")), data, Map())
-      } match {
-        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),errorMessage = Some(exception.getMessage)))
+      def executeFunction() = Try {
+          connection.setAutoCommit(false)
+          // create the statement, and run the select query
+          val roleStatement = connection.createStatement()
+          roleStatement.execute(s"""SET ROLE "${up.name}" """)
+
+          val statement = connection.createStatement()
+          val argsStr = if (args == null) ""
+          else args.map(_.toString()).mkString(",")
+
+          val query = s"SELECT * FROM ${services.connection.dbSchema}.$name($argsStr)".replaceAll("'", "\\'").replaceAll("\"", "'")
+          logger.info(query)
+          val resultSet = statement.executeQuery(query)
+          connection.commit()
+          val metadata = getColumnMeta(resultSet.getMetaData)
+          val data = getResults(resultSet, metadata)
+          DataResultTable(metadata.map(_.label),metadata.map(x => TypeMapping.jsonTypesMapping(x.datatype,"string")), data, Seq(), Map())
+      }
+
+      def fetch():Option[DataResultTable] = executeFunction() match {
+
+        case Failure(exception) if exception.getMessage.contains("ORA-08177") && oracle_retry_max >= oracle_retry => { // https://github.com/laurenz/oracle_fdw?tab=readme-ov-file#serialization-errors oracle sometimes fails transaction and ask the user to retry, oracle claims that is not a bug :/
+          oracle_retry = oracle_retry + 1
+          connection.rollback()
+          fetch()
+        }
+        case Failure(exception) => Some(DataResultTable(Seq("Database error"),Seq("string"),Seq(Seq(Json.fromString(exception.getMessage))),Seq(),errorMessage = Some(exception.getMessage)))
         case Success(value) => Some(value)
       }
+      val result = fetch()
       connection.close()
       result
     }
@@ -104,7 +117,7 @@ object JdbcConnect extends Logging {
 
   private def useI18nHeader(lang:String,keys: Seq[String])(implicit ec:ExecutionContext,services:Services):Future[Seq[String]] = Future.sequence{
     keys.map{ key =>
-      services.connection.adminDB.run(BoxLabels.BoxLabelsTable.filter(e => e.key === "export-header." + key && e.lang === lang).result).map { label =>
+      services.connection.adminDB.run(BoxLabels.BoxLabelsTable(services.config.boxSchemaName).filter(e => e.key === "export-header." + key && e.lang === lang).result).map { label =>
         if(label.isEmpty) logger.warn(s"No translation for $key in $lang, insert export-header.$key translation in labels")
         label.headOption.flatMap(_.label).getOrElse(key)
       }
@@ -164,7 +177,7 @@ object JdbcConnect extends Logging {
     case "java.lang.Long" => obj.asInstanceOf[Long].asJson
     case "java.lang.Double" => obj.asInstanceOf[Double].asJson
     case "java.lang.Float" => obj.asInstanceOf[Float].asJson
-    case "java.lang.BigDecimal" => obj.asInstanceOf[BigDecimal].asJson
+    case "java.lang.BigDecimal" | "scala.math.BigDecimal" => obj.asInstanceOf[BigDecimal].asJson
     case "java.lang.Boolean" =>  obj.asInstanceOf[Boolean].asJson
     case "java.sql.Clob" => {
       val clob = obj.asInstanceOf[Clob]
@@ -172,7 +185,7 @@ object JdbcConnect extends Logging {
     }
     case "java.lang.String" => obj.asInstanceOf[String].asJson
     case "java.sql.Timestamp" | "java.time.LocalDateTime" => obj.toString.asJson               //do not issue warnings for timestamp
-    case "java.math.BigDecimal" => obj.toString.asJson                                         //do not issue warnings for BigDecimal
+    case "java.math.BigDecimal" | "scala.math.BigDecimal" => obj.toString.asJson                                         //do not issue warnings for BigDecimal
     case _ => {
       logger.warn(s"datatype: $datatype not found")
       obj.toString.asJson

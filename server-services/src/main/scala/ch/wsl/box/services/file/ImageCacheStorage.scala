@@ -3,6 +3,11 @@ package ch.wsl.box.services.file
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.model.shared.JSONID
 
+/**
+ *
+ * @param rowId JSON id of the row
+ * @param column formatted in the form <tablename>.<columnname>
+ */
 case class FileId(rowId:JSONID,column:String) {
   def name(mime:Option[String],tpe:String):String = {
     val extension = mime match {

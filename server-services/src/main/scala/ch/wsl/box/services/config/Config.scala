@@ -1,9 +1,11 @@
 package ch.wsl.box.services.config
 
 trait Config {
-  def boxSchemaName: Option[String]
+  def boxSchemaName: String
 
   def schemaName: String
+
+  def postgisSchemaName:String
 
   def langs: Seq[String]
 

@@ -1,13 +1,14 @@
 package ch.wsl.box.rest.logic
 
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{IDs, JSONCount, JSONID, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{IDs, JSONCount, JSONDiff, JSONID, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, JSONQueryFilter}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import slick.basic.DatabasePublisher
 
 import scala.concurrent.Future
 import akka.stream.scaladsl.Source
 import ch.wsl.box.jdbc.FullDatabase
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import io.circe.Json
 import slick.dbio.{DBIOAction, Effect, Streaming}
 import slick.lifted.MappedProjection
@@ -16,14 +17,22 @@ import slick.lifted.MappedProjection
 
 trait ViewActions[T] {
 
-  def find(query: JSONQuery=JSONQuery.empty): DBIO[Seq[T]] //enable streaming
+  def findSimple(query:JSONQuery): DBIO[Seq[T]]
+
+  def fetchFields(fields:Seq[String],query:JSONQuery):DBIO[Seq[Json]]
+
+  def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]]
+
+  def distinctOn(fields: Seq[String],query:JSONQuery): DBIO[Seq[Json]]
 
   def getById(id: JSONID=JSONID.empty):DBIO[Option[T]]
 
   def count(): DBIO[JSONCount]
   def count(query: JSONQuery): DBIO[Int]
 
-  def ids(query: JSONQuery): DBIO[IDs]
+  def ids(query: JSONQuery,keys:Seq[String]): DBIO[IDs]
+
+  def lookups(request:JSONLookupsRequest):DBIO[Seq[JSONLookups]]
 }
 
 /**
@@ -42,11 +51,6 @@ trait TableActions[T] extends ViewActions[T] {
 
   def update(id:JSONID, obj: T): DBIO[T]
 
-  def updateIfNeeded(id:JSONID, obj: T): DBIO[T]
+  def updateDiff(diff:JSONDiff):DBIO[Option[T]]
 
-  def upsertIfNeeded(id:Option[JSONID], obj: T): DBIO[T]
-}
-
-trait JsonQuery{
-  def findQuery(query: JSONQuery): Query[MappedProjection[Json, _], Json, Seq]
 }

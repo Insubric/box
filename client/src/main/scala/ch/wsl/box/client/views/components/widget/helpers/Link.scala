@@ -1,6 +1,7 @@
 package ch.wsl.box.client.views.components.widget.helpers
 
 import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.utils.TestHooks
 import io.circe.Json
 import org.scalajs.dom.Event
 import scalatags.JsDom.all._
@@ -11,7 +12,7 @@ import scalacss.ScalatagsCss._
 import io.circe._
 import io.circe.generic.auto._
 
-case class Param(style:String,color:Option[String],background:Option[String])
+case class Param(style:String,color:Option[String],background:Option[String],buttonStyle:Option[String])
 
 trait Link extends Logging {
 
@@ -27,14 +28,25 @@ trait Link extends Logging {
     logger.info(s"Param: $linkParam, json ${params}")
 
     linkParam match {
-      case Some(Param(style,_color,background)) if style == "box" => {
-        a(onclick :+= click,
+      case Some(Param(style,_color,background,_)) if style == "box" => {
+        a(
+          id := TestHooks.linkedFormButton(label.toString),
+          onclick :+= click,
           div(ClientConf.style.boxedLink,
             color := _color.getOrElse(ClientConf.colorLink),
             backgroundColor := background.getOrElse(ClientConf.colorMain),
             label
           )
         )
+      }
+      case Some(Param(style,_,_,bs)) if style == "button" => {
+        val buttonStyle = bs match {
+          case Some("Std") => ClientConf.style.boxButton
+          case Some("Primary") => ClientConf.style.boxButtonImportant
+          case Some("Danger") => ClientConf.style.boxButtonDanger
+          case _ => ClientConf.style.boxButton
+        }
+        button(buttonStyle, onclick :+= click, label)
       }
       case _ =>  a(label, onclick :+= click)
     }

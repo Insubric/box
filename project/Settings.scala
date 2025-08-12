@@ -32,43 +32,45 @@ object Settings {
   object versions {
 
     //General
-    val scala213 = "2.13.8"
-    val ficus = "1.4.7"
+    val scala213 = "2.13.16"
+    val ficus = "1.5.2"
 
     val macWire = "2.3.7"
-    val airframe = "20.12.1"
+    val airframe = "22.9.3"
 
     //HTTP actors
     val akka = "2.6.4"
-    val akkaHttp = "10.1.11"
-    val akkaHttpJson = "1.32.0"
+    val akkaHttp = "10.2.7"
+    val akkaHttpJson = "1.39.2"
 
     //Testing
     val specs2 = "4.3.4"
     val junit = "4.12"
-    val scalatest = "3.2.2"
+    val scalatest = "3.2.13"
     val selenium = "3.14.0"
-    val testcontainersScalaVersion = "0.39.8"
+    val testcontainersScalaVersion = "0.40.10"
 
 
     //json parsers
-    val circe = "0.14.1"
+    val circe = "0.14.3"
 
     //database
     val postgres = "42.2.20"
-    val slick = "3.3.3"
-    val slickPg = "0.19.3"
+    val slick = "3.4.1"
+    val slickPg = "0.21.0"
+    val flyway = "10.7.1"
 
     //frontend
-    val scalaCss = "0.6.1"
+    val scalaCss = "1.0.0"
 
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M18"
+    val udash = "0.9.0-M39"
     val udashJQuery = "3.0.4"
 
-    val scribe = "2.7.12"
+    val scribe = "3.0.2"
+
 
     val scalaJsonSchema = "0.2.6"
 
@@ -95,13 +97,18 @@ object Settings {
     "com.typesafe.slick"       %% "slick"           % versions.slick,
     "com.typesafe.slick"       %% "slick-hikaricp"           % versions.slick,
     "org.postgresql"           %  "postgresql"      % versions.postgres,
-    "com.typesafe"             % "config"           % "1.3.3",
+    "com.typesafe"             % "config"           % "1.4.2",
     "com.iheart"               %% "ficus"           % versions.ficus,
     "com.github.tminglei"      %% "slick-pg"         % versions.slickPg,
     "com.github.tminglei"      %% "slick-pg_jts_lt"     % versions.slickPg,
     "io.circe"                 %% "circe-core" % versions.circe,
     "com.github.tminglei"      %% "slick-pg_circe-json"     % versions.slickPg,
     "org.locationtech.jts" % "jts-core" % "1.16.1",
+    "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion,
+    "org.flywaydb" % "flyway-core" % versions.flyway,
+    "org.flywaydb" % "flyway-database-postgresql" % versions.flyway,
+    "com.outr"                 %% "scribe"           % versions.scribe,
+    "com.outr"                 %% "scribe-slf4j18"           % versions.scribe,
   ))
 
   val codegenDependecies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
@@ -136,9 +143,6 @@ object Settings {
     "com.typesafe.akka"        %% "akka-testkit"     % versions.akka      % "test",
     "com.typesafe.akka"        %% "akka-http-testkit"% versions.akkaHttp  % "test",
     "com.dimafeng"             %% "testcontainers-scala-scalatest" % versions.testcontainersScalaVersion % "test",
-    "com.dimafeng"             %% "testcontainers-scala-postgresql" % versions.testcontainersScalaVersion % "test",
-    "com.outr"                 %% "scribe"           % versions.scribe,
-    "com.outr"                 %% "scribe-slf4j"     % versions.scribe,
     "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
     "javax.servlet"            % "javax.servlet-api" % "3.1.0" % "provided",
     "org.mitre.dsmiley.httpproxy" % "smiley-http-proxy-servlet" % "1.10",
@@ -146,10 +150,8 @@ object Settings {
     "org.jsoup"                % "jsoup"             % "1.12.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
-    "org.locationtech.geotrellis" %% "geotrellis-raster" % "3.6.0-SNAPSHOT",
-    "com.norbitltd" %% "spoiwo" % "1.7.0",
+    "com.norbitltd" %% "spoiwo" % "2.2.1",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
-    "org.flywaydb" % "flyway-core" % "7.9.1",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.apache.tika" % "tika-core" % "1.25",
@@ -158,10 +160,20 @@ object Settings {
     "org.javadelight" % "delight-graaljs-sandbox" % "0.1.2",
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
-    "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
+    "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % Test,
+    "com.vladsch.flexmark" % "flexmark-profile-pegdown" % "0.62.2" % Test,
     "com.github.daddykotex" %% "courier" % "3.0.0-M3a",
-    "org.geotools" % "gt-shapefile" % "23.2",
+    "org.geotools" % "gt-shapefile" % "27.2",
+    "org.geotools" % "gt-epsg-hsql" % "27.2",
+    "org.geotools" % "gt-geopkg" % "27.2",
+    "com.google.zxing" % "core" % "3.5.0",
+    "com.google.zxing" % "javase" % "3.5.0",
+    "com.typesafe" %% "ssl-config-core" % "0.6.1",
+    "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
+    "org.apache.xmlgraphics" % "batik-codec" % "1.16",
+    //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
+    //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"
     //    "com.github.andyglow" %% "scala-jsonschema" % versions.scalaJsonSchema,
 //    "com.github.andyglow" %% "scala-jsonschema-circe-json" % versions.scalaJsonSchema
   ))
@@ -175,10 +187,16 @@ object Settings {
     "com.github.japgolly.scalacss" %%% "core" % versions.scalaCss,
     "com.github.japgolly.scalacss" %%% "ext-scalatags" % versions.scalaCss,
     "io.circe" %%% "circe-scalajs" % versions.circe,
-    "org.scala-js" %%% "scalajs-dom" % "1.0.0",
-    "io.github.cquiroz" %%% "scala-java-time" % "2.0.0",
+    "org.scala-js" %%% "scalajs-dom" % "2.4.0",
+    "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "org.scalatest" %%% "scalatest" % "3.2.5" % Test
+    "org.scalatest" %%% "scalatest" % versions.scalatest % Test,
+    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0",
+    "org.http4s" %%% "http4s-dom" % "0.2.3",
+    "org.http4s" %%% "http4s-client" % "0.23.16",
+    "org.http4s" %%% "http4s-circe" % "0.23.16",
+    //"io.github.cquiroz" %%% "scala-java-locales" % "1.5.1",
+//    "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.5.0"
   ))
 
   /** Dependencies for external JS libs that are bundled into a single .js file according to dependency order */

@@ -1,2 +1,2 @@
 
-alter table box.form_actions add condition jsonb;
+alter table form_actions add condition jsonb;

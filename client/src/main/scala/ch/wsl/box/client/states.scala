@@ -45,14 +45,15 @@ case object AdminConfState extends FinalRoutingState(Some(RootState()))
 case object AdminUiConfState extends FinalRoutingState(Some(RootState()))
 case object AdminBoxDefinitionState extends FinalRoutingState(Some(RootState()))
 case class AdminTranslationsState(from:String,to:String) extends FinalRoutingState(Some(RootState()))
+case object AdminDBReplState extends FinalRoutingState(Some(RootState()))
 
 case object IndexState extends FormState(EntityKind.FORM.kind, "index", "true", Some("static::page"), false, Layouts.std) {
   override def entity: String = UI.indexPage.getOrElse("")
 }
 
-case class EntitiesState(kind:String, currentEntity:String, layout:String = Layouts.std) extends ContainerRoutingState(Some(RootState(layout)))
+case class EntitiesState(kind:String, currentEntity:String, public:Boolean, layout:String = Layouts.std) extends ContainerRoutingState(Some(RootState(layout)))
 
-case class EntityTableState(kind:String, entity:String,query:Option[String]) extends FinalRoutingState(Some(EntitiesState(kind,entity)))
+case class EntityTableState(kind:String, entity:String,query:Option[String], public:Boolean) extends FinalRoutingState(Some(EntitiesState(kind,entity,public)))
 
 abstract class FormState(
                           val kind:String,
@@ -61,7 +62,7 @@ abstract class FormState(
                           _id:Option[String],
                           val public:Boolean,
                           val layout: String
-                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,layout))) {
+                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,public,layout))) {
   def id:Option[String] = _id
   def writeable:Boolean = write == "true"
   def entity = _entity
@@ -94,7 +95,7 @@ case class FormPageState(
 case class MasterChildState(kind:String,
                             masterEntity:String,
                             childEntity:String
-                           ) extends FinalRoutingState(Some(EntitiesState(kind,masterEntity)))
+                           ) extends FinalRoutingState(Some(EntitiesState(kind,masterEntity,false)))
 
 
 object DataKind{

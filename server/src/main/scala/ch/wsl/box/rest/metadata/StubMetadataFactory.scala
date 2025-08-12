@@ -6,6 +6,7 @@ import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxForm_actions, BoxForm_actions_row, BoxForm_i18n_row, BoxForm_row}
 import ch.wsl.box.model.shared.{FormAction, FormActionsMetadata, JSONField, JSONMetadata, Layout, LayoutBlock}
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 
@@ -19,25 +20,22 @@ object StubMetadataFactory {
   import Layout._
   import ch.wsl.box.jdbc.PostgresProfile.api._
 
-  def forEntity(entity:String)(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services):Future[Boolean] = {
+  def forEntity(entity:String)(implicit up:UserProfile, ec:ExecutionContext,services:Services):Future[Boolean] = {
 
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
     val dbio = for{
-      langs <- DBIO.from(Future.sequence(services.config.langs.map{ lang =>
-        EntityMetadataFactory.of(services.connection.dbSchema,entity,lang).map(x => (lang,x))
-      }))
-      metadata = langs.head._2
+      metadata <- DBIO.from(EntityMetadataFactory.of(entity,Registry())) //.map(x => (lang,x))
       form <- {
         val newForm = BoxForm_row(
           form_uuid = None,
           name = entity,
           description = None,
           entity = entity,
-          layout = Some(metadata.layout.asJson.toString()),
-          tabularFields = Some(metadata.tabularFields.mkString(",")),
+          layout = Some(metadata.layout.asJson),
+          tabularFields = Some(metadata.tabularFields.toList),
           query = None,
-          exportFields = Some(metadata.exportFields.mkString(",")),
+          exportfields = Some(metadata.exportFields.toList),
           show_navigation = true
         )
 
@@ -45,10 +43,10 @@ object StubMetadataFactory {
         BoxForm.BoxFormTable.returning(BoxForm.BoxFormTable) += newForm
 
       }
-      formI18n <- DBIO.sequence(langs.map{ lang =>
+      formI18n <- DBIO.sequence(services.config.langs.map{ lang =>
         val newFormI18n = BoxForm_i18n_row(
           form_uuid = form.form_uuid,
-          lang = Some(lang._1),
+          lang = Some(lang),
           label = Some(entity)
         )
 
@@ -62,8 +60,10 @@ object StubMetadataFactory {
             `type` = field.`type`,
             name = field.name,
             widget = field.widget,
-            lookupEntity = field.lookup.map(_.lookupEntity),
-            lookupValueField = field.lookup.map(_.map.valueProperty),
+            foreign_entity = field.remoteLookup.map(_.lookupEntity),
+            foreign_value_field = field.remoteLookup.map(_.map.foreign.valueColumn),
+            local_key_columns = field.remoteLookup.map(_.map.localKeysColumn.toList),
+            foreign_key_columns = field.remoteLookup.map(_.map.foreign.keyColumns.toList),
             default = field.default,
           )
 
@@ -76,8 +76,8 @@ object StubMetadataFactory {
         BoxField.BoxFieldTable.filter(_.form_uuid === form.form_uuid.get ).result
       }
       fieldsI18n <- {
-        val langFields: Seq[(String, JSONMetadata, JSONField)] = langs.flatMap(x => x._2.fields.map(y => (x._1,x._2,y)))
-        DBIO.sequence(langFields.map{ case (lang,metadata,field) =>
+        val langFields: Seq[(String, JSONField)] = services.config.langs.flatMap(l => metadata.fields.map(f => (l,f)))
+        DBIO.sequence(langFields.map{ case (lang,field) =>
 
             val dbField:BoxField.BoxField_row = fields.find(_.name == field.name ).get
 
@@ -87,7 +87,7 @@ object StubMetadataFactory {
               label = field.label,
               placeholder = field.placeholder,
               tooltip = field.tooltip,
-              lookupTextField = field.lookup.map(_.map.textProperty)
+              foreign_label_columns = field.remoteLookup.map(_.map.foreign.labelColumns.toList)
             )
             BoxField.BoxField_i18nTable.returning(BoxField.BoxField_i18nTable) += newFieldI18n
           })

@@ -19,13 +19,14 @@ object LabelUIDef {
           key = "labels",
           mapping = Seq(),
           childQuery = None,
-          props = Seq()
+          props = Seq(),
+          true
         ))
       )
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,Seq("labels").map(Left(_))),
+        LayoutBlock(None,12,None,None,None,Seq("labels").map(Left(_))),
       )
     ),
     entity = FormMetadataFactory.STATIC_PAGE,
@@ -37,7 +38,7 @@ object LabelUIDef {
     query = None,
     exportFields = Seq(),
     view = None,
-    action = FormActionsMetadata.saveOnly,
+    action = FormActionsMetadata.saveOnly(false),
     static = true
   )
 
@@ -53,7 +54,7 @@ object LabelUIDef {
     },
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,(Seq("key")++langs).map(Left(_))),
+        LayoutBlock(None,12,None,None,None,(Seq("key")++langs).map(Left(_))),
       )
     ),
     entity = "v_labels",

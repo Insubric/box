@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 case class LangHelper(lang:String)(implicit ec:ExecutionContext,services:Services) {
   def translationTable:Future[Map[String,String]] = {
     val query = for{
-      label <- BoxLabels.BoxLabelsTable if label.lang === lang
+      label <- BoxLabels.BoxLabelsTable(services.config.boxSchemaName) if label.lang === lang
     } yield label
     services.connection.adminDB.run(query.result).map{_.map{ row =>
       row.key -> row.label.getOrElse("")

@@ -2,16 +2,16 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.information_schema.{PgColumn, PgColumns, PgInformationSchema}
+import ch.wsl.box.information_schema.{PgInformationSchema}
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
-import ch.wsl.box.model.boxentities.BoxField.{BoxFieldFile_row, BoxField_i18n_row, BoxField_row}
+import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_i18nTable, BoxForm_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.{ColType, Registry}
-import ch.wsl.box.rest.utils.{Auth, UserProfile}
+import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -28,7 +28,7 @@ import scala.util.Try
   *
   * mapping from form specs in box schema into JSONForm
   */
-object FormMetadataFactory{
+object FormMetadataFactory extends Logging with MetadataFactory{
   /**
    * Caches
    * cache keys contains lang identifier of the form (id or name) and username,
@@ -36,8 +36,8 @@ object FormMetadataFactory{
    *
    * cache should be resetted when an external field changes
    */
-  private val cacheFormName = scala.collection.mutable.Map[(String, String, String),JSONMetadata]()   //(up.name, form id, lang)
-  private val cacheFormId = scala.collection.mutable.Map[(String, UUID, String),JSONMetadata]()//(up.name, from name, lang)
+  private val cacheFormName = scala.collection.mutable.Map[(String, String),JSONMetadata]()   //(up.name, form id, lang)
+  private val cacheFormId = scala.collection.mutable.Map[(UUID, String),JSONMetadata]()//(up.name, from name, lang)
 
   final val STATIC_PAGE = "box_static_page"
 
@@ -46,34 +46,33 @@ object FormMetadataFactory{
     cacheFormId.clear()
   }
 
-  def resetCacheForEntity(e:String) = {
-    cacheFormId.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{case (k,_) =>
-      cacheFormId.remove(k)
-    }
-    cacheFormName.filter(c => CacheUtils.checkIfHasForeignKeys(e, c._2)).foreach{case (k,_) =>
-      cacheFormName.remove(k)
-    }
+
+  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):Future[Option[(BoxSession,Boolean)]] = {
+
+    for{
+      form <- services.connection.adminDB.run(BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption)
+      user = form.flatMap(_.guest_user)
+      roles <-  user match {
+        case Some(u) => Auth.rolesOf(u)
+        case None => Future.successful(Seq())
+      }
+    } yield user.map(u => (BoxSession(CurrentUser(u,roles)),form.exists(_.public_list)))
   }
 
-  def hasGuestAccess(formName:String)(implicit ec:ExecutionContext, services: Services):DBIO[Option[UserProfile]] = {
-    BoxFormTable.filter(f => f.name === formName && f.guest_user.nonEmpty).result.headOption
-  }.map{_.map{ form =>
-    new Auth().userProfileForUser(form.guest_user.get)
-  }}
 
-
-}
-
-
-
-case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:ExecutionContext,services:Services) extends Logging with MetadataFactory {
-
-  def list: DBIO[Seq[String]] = {
+  def list(implicit ec:ExecutionContext,services:Services): DBIO[Seq[String]] = {
     BoxForm.BoxFormTable.result
   }.map{_.map(_.name)}
 
-  def of(id:UUID, lang:String):DBIO[JSONMetadata] = {
-    val cacheKey = (up.name, id,lang)
+  def filterRoles(user:CurrentUser)(metadata:DBIO[JSONMetadata])(implicit ec:ExecutionContext):DBIO[JSONMetadata] = metadata.map{ m =>
+
+    def filterRole(field:JSONField):Boolean = field.roles.isEmpty || field.roles.intersect(user.roles ++ Seq(user.username)).nonEmpty
+
+    m.copy(fields = m.fields.filter(filterRole))
+  }
+
+  def of(id:UUID, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = filterRoles(user){
+    val cacheKey = (id,lang)
     FormMetadataFactory.cacheFormId.get(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
@@ -83,11 +82,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         } yield form
 
         for {
-          metadata <- getForm(formQuery, lang)
+          metadata <- getForm(formQuery, lang,id.toString)
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormId.put(cacheKey,metadata)
-            FormMetadataFactory.cacheFormName.put((up.name, metadata.name,lang),metadata)
+            FormMetadataFactory.cacheFormName.put((metadata.name,lang),metadata)
           }
           metadata
         }
@@ -96,8 +95,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     }
   }
 
-  def of(name:String, lang:String):DBIO[JSONMetadata] = {
-    val cacheKey = (up.name, name,lang)
+  def of(name:String, lang:String, user:CurrentUser)(implicit ec:ExecutionContext,services:Services):DBIO[JSONMetadata] = filterRoles(user){
+    val cacheKey = (name,lang)
     FormMetadataFactory.cacheFormName.lift(cacheKey) match {
       case Some(r) => DBIO.successful(r)
       case None => {
@@ -107,11 +106,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         } yield form
 
         for {
-          metadata <- getForm(formQuery, lang)
+          metadata <- getForm(formQuery, lang, name)
         } yield {
           if(services.config.enableCache) {
             FormMetadataFactory.cacheFormName.put(cacheKey,metadata)
-            FormMetadataFactory.cacheFormId.put((up.name, metadata.objId,lang),metadata)
+            FormMetadataFactory.cacheFormId.put((metadata.objId,lang),metadata)
           }
           metadata
         }
@@ -122,24 +121,19 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   }
 
-  def children(form:JSONMetadata):DBIO[Seq[JSONMetadata]] = {
-    val result = DBIO.sequence{
-      form.fields.flatMap(_.child).map{ child =>
-        of(child.objId,form.lang)
-      }
-    }
-    val subresults = result.map(x => DBIO.sequence(x.map(children)))
+  def children(form:JSONMetadata,currentUser: CurrentUser,ignoreChilds:Seq[UUID] = Seq())(implicit ec:ExecutionContext,services:Services):DBIO[Seq[JSONMetadata]] = {
+    val childIds: Seq[UUID] = form.fields.flatMap(_.child).map(_.objId)
+
     for{
-      firstLevel <- result
-      secondLevel <- subresults
-      thirdLevel <- secondLevel.map(_.flatten)
+      firstLevel <- DBIO.sequence{childIds.map{ objId => of(objId,form.lang,currentUser)}}
+      secondLevel <- DBIO.sequence(firstLevel.map(y => children(y,currentUser,ignoreChilds ++ childIds)))
     } yield {
-      firstLevel ++ thirdLevel
+      firstLevel ++ secondLevel.flatten
     }
 
   }
 
-  private def keys(form:BoxForm_row):DBIO[Seq[String]] = form.edit_key_field.map{x =>
+  private def keys(form:BoxForm_row)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[String]] = form.edit_key_field.map{x =>
     DBIO.successful(x.split(",").toSeq.map(_.trim))
   }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
@@ -153,7 +147,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     }
   }
 
-  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String) = {
+  private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String,id:String)(implicit ec:ExecutionContext,services:Services) = {
 
     import io.circe.generic.auto._
 
@@ -165,16 +159,18 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
 
     val result = for{
-      (form,formI18n) <- fQuery.result.map(_.head)
+      (form,formI18n) <- fQuery.result.map{_.headOption match {
+        case Some(f) => f
+        case None => throw new Exception(s"Form not found: $id")
+      }}
       fields <- fieldQuery(form.form_uuid.get).result
-      fieldsFile <- DBIO.sequence(fields.map { case (f, _) =>
-          BoxField.BoxFieldFileTable.filter(_.field_uuid === f.field_uuid).result.headOption
-      })
       actions <- BoxForm.BoxForm_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
       navigationActions <- BoxForm.BoxForm_navigation_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
-      columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name))
+      tableActions <- BoxForm.BoxForm_table_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
+      topTableActions <- BoxForm.BoxForm_top_table_actions.filter(_.form_uuid === form.form_uuid.get).sortBy(_.action_order).result
+      columns = fields.map(f => EntityMetadataFactory.fieldType(form.entity,f._1.name,Registry()).getOrElse(ColType.unknown))
       keys <- keys(form)
-      jsonFieldsPartial <- fieldsToJsonFields(fields.zip(fieldsFile).zip(columns), lang)
+      jsonFieldsPartial <- fieldsToJsonFields(fields.zip(columns), lang)
     } yield {
 
 
@@ -187,14 +183,13 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
       if(formI18n.isEmpty) logger.warn(s"Form ${form.name} (form_id: ${form.form_uuid}) has no translation to $lang")
 
-      val definedTableFields = form.tabularFields.toSeq.flatMap(_.split(",").map(_.trim))
+      val definedTableFields = form.tabularFields.getOrElse(Seq()).map(_.trim)
       val missingKeyTableFields = keys.filterNot(k => definedTableFields.contains(k))
       val tableFields = missingKeyTableFields ++ definedTableFields
 
       val defaultQuery: Option[JSONQuery] = for{
         q <- form.query
-        json <- parse(q).right.toOption
-        jsonQuery <- json.as[JSONQuery].right.toOption
+        jsonQuery <- q.as[JSONQuery].toOption
       } yield jsonQuery
 
 
@@ -205,7 +200,7 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         default.copy(blocks = default.blocks.map(_.copy(width = 12)))
       }
 
-      val layout = Layout.fromString(form.layout).getOrElse(defaultLayout)
+      val layout = Layout.fromJson(form.layout).getOrElse(defaultLayout)
 
       val formActions = if(actions.isEmpty) {
         if(form.entity == FormMetadataFactory.STATIC_PAGE) {
@@ -227,7 +222,8 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               confirmText = a.confirm_text,
               executeFunction = a.execute_function,
               condition = a.condition.map(toConditions),
-              html5check = a.html_check
+              html5check = a.html_check,
+              target = a.target.map(Target.fromString).getOrElse(Self)
             )
           },
           navigationActions = navigationActions.map{a =>
@@ -242,6 +238,41 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
               confirmText = a.confirm_text,
               executeFunction = a.execute_function
             )
+          },
+          tableActions = if(tableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.tableActions else {
+            tableActions.map { a =>
+              FormAction(
+                action = Action.fromString(a.action),
+                importance = Importance.fromString(a.importance),
+                afterActionGoTo = a.after_action_goto,
+                label = a.label,
+                updateOnly = a.update_only,
+                insertOnly = a.insert_only,
+                reload = a.reload,
+                confirmText = a.confirm_text,
+                executeFunction = a.execute_function,
+                needDeleteRight = a.need_delete_right,
+                needUpdateRight = a.need_update_right,
+                whenNoUpdateRight = a.when_no_update_right,
+                target = a.target.map(Target.fromString).getOrElse(Self)
+              )
+          }},
+          topTableActions = if(topTableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.topTableActions else {
+            topTableActions.map { a =>
+              FormAction(
+                action = Action.fromString(a.action),
+                importance = Importance.fromString(a.importance),
+                afterActionGoTo = a.after_action_goto,
+                label = a.label,
+                confirmText = a.confirm_text,
+                executeFunction = a.execute_function,
+                needDeleteRight = a.need_delete_right,
+                needUpdateRight = a.need_update_right,
+                needInsertRight = a.need_insert_right,
+                whenNoUpdateRight = a.when_no_update_right,
+                target = a.target.map(Target.fromString).getOrElse(Self)
+              )
+            }
           },
           showNavigation = form.show_navigation
         )
@@ -261,11 +292,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         form.entity,
         lang,
         tableFields,
-        form.tabularFields.toSeq.flatMap(_.split(",").map(_.trim)),
+        definedTableFields,
         keys,
         keyStrategy,
         defaultQuery,
-        form.exportFields.map(_.split(",").map(_.trim).toSeq).getOrElse(tableFields),
+        form.exportfields.getOrElse(tableFields).map(_.trim),
         formI18n.flatMap(_.view_table),
         formActions,
         static = form.entity == FormMetadataFactory.STATIC_PAGE,
@@ -281,11 +312,11 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   }
 
   private def widget(field:BoxField_row,remoteEntity:String,remoteField:String) = field.params.flatMap(_.getOpt("widget")).getOrElse{
-    val jsonType = Registry().fields.field(remoteEntity,remoteField).jsonType
+    val jsonType = Registry().fields.field(remoteEntity,remoteField).getOrElse(ColType.unknown).jsonType
     WidgetsNames.defaults.getOrElse(jsonType,WidgetsNames.input)
   }
 
-  private def linkedForms(field:BoxField_row,field_i18n_row:Option[BoxField_i18n_row]):DBIO[Option[LinkedForm]] = {
+  private def linkedForms(field:BoxField_row,field_i18n_row:Option[BoxField_i18n_row])(implicit ec:ExecutionContext,services:Services):DBIO[Option[LinkedForm]] = {
     val linkedFormOpt = for{
       formId <- field.child_form_uuid
     } yield {
@@ -294,15 +325,14 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
         keys <- keys(lForm(0))
       } yield {
         lForm.map{ value =>
-          val parentFields = field.masterFields.toSeq.flatMap(_.split(",").map(_.trim))
 
           LinkedForm(
             value.name,
-            parentFields,
+            field.local_key_columns.toSeq.flatten,
             keys,
-            lookup = field_i18n_row.flatMap(_.lookupTextField).map{ remoteField =>
+            lookup = field.foreign_value_field.map{ remoteField =>
               LookupLabel(
-                localIds = parentFields,
+                localIds = field.local_key_columns.toSeq.flatten,
                 remoteIds = keys,
                 remoteField = remoteField,
                 remoteEntity = value.entity,
@@ -323,17 +353,17 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
   private def lookupLabel(field:BoxField_row,field_i18n_row: Option[BoxField_i18n_row]):Option[LookupLabel] = {
     for{
-      localIds <- field.masterFields
-      remoteIds <- field.lookupValueField
-      remoteField <- field_i18n_row.flatMap(_.lookupTextField)
-      remoteEntity <- field.lookupEntity
+      localIds <- field.local_key_columns
+      remoteIds <- field.foreign_key_columns
+      remoteField <- field.foreign_value_field
+      remoteEntity <- field.foreign_entity
     } yield {
 
 
 
       LookupLabel(
-        localIds = localIds.split(",").map(_.trim),
-        remoteIds = remoteIds.split(",").map(_.trim),
+        localIds = localIds,
+        remoteIds = remoteIds,
         remoteField = remoteField,
         remoteEntity = remoteEntity,
         widget = widget(field,remoteEntity,remoteField)
@@ -344,12 +374,10 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
   private def condition(field:BoxField_row) = for{
     fieldId <- field.conditionFieldId
     values <- field.conditionValues
-    json <- Try(parse(values).right.get.as[Json].right.get).toOption
-  } yield ConditionalField(fieldId,json)
+  } yield ConditionalField(fieldId,parse(values).toOption.get)
 
-  private def file(ff:BoxFieldFile_row) = FileReference(ff.name_field, ff.file_field, ff.thumbnail_field)
 
-  private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String):DBIO[String] = {
+  private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[String] = {
 
     field.child_form_uuid match {
       case None => DBIO.successful(fieldI18n.flatMap(_.label).getOrElse(field.name))
@@ -363,15 +391,14 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
     }
   }
 
-  private def subform(field:BoxField_row) = field.`type` match {
+  private def subform(field:BoxField_row)(implicit ec:ExecutionContext) = field.`type` match {
     case JSONFieldTypes.CHILD => {
 
       import io.circe.generic.auto._
 
       val childQuery: Option[JSONQuery] = for {
         filter <- field.childQuery
-        json <- parse(filter).right.toOption
-        result <- json.as[JSONQuery].right.toOption
+        result <- filter.as[JSONQuery].toOption
       } yield result
 
       (field.childQuery, childQuery) match {
@@ -383,76 +410,58 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
 
         for {
           id <- field.child_form_uuid
-          local <- field.masterFields
-          remote <- field.childFields
+          local <- field.local_key_columns
+          remote <- field.foreign_key_columns
         } yield {
-          Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""))
+          Child(id, field.name, local, remote, childQuery, props.flatten.headOption.getOrElse(""),field.widget.exists(WidgetsNames.childsWithData))
         }
       }
     }
     case _ => DBIO.successful(None)
   }
 
-  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String): DBIO[Option[JSONFieldLookup]] = {for{
-    refEntity <- field.lookupEntity
-    value <- field.lookupValueField
-
-    text = fieldI18n.flatMap(_.lookupTextField).getOrElse(EntityMetadataFactory.lookupField(refEntity,lang,None))
+  private def lookup(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row])(implicit ec:ExecutionContext,services:Services): Option[JSONFieldLookup] = {for{
+    refEntity <- field.foreign_entity
+    value <- field.foreign_value_field
+    foreignKeyColumns = field.foreign_key_columns.getOrElse(Seq(value))
+    text = fieldI18n.flatMap(_.foreign_label_columns).getOrElse(EntityMetadataFactory.lookupField(Registry(),refEntity,None,foreignKeyColumns))
   } yield {
 
-    import io.circe.generic.auto._
-
-    //implicit def fDb = FullDatabase(up.db,adminDb)
-
-    for{
-      keys <- EntityMetadataFactory.keysOf(services.connection.dbSchema,refEntity)
-      filter = { for{
-        queryString <- field.lookupQuery
-        queryJson <- parse(queryString).right.toOption
-        query <- queryJson.as[JSONQuery].right.toOption
-      } yield query }.getOrElse(JSONQuery.sortByKeys(keys))
-
-      //using up.db because we want policies to be applyed here
-      lookupData <- DBIO.from(up.db.run(Registry().actions(refEntity).find(filter.copy(lang = Some(lang)))))
-      allLookupData <- if(field.params.exists(_.js("allLookup") == Json.True))
-        DBIO.from(up.db.run(Registry().actions(refEntity).find(JSONQuery.empty)))
-      else
-        DBIO.successful(Seq())
-
-    } yield {
-      Some(JSONFieldLookup.fromData(refEntity, JSONFieldMap(value,text,field.masterFields.getOrElse(field.name)), lookupData,allLookupData,field.lookupQuery))
-    }
+      Some(JSONFieldLookup.fromDB(refEntity, JSONFieldMap(JSONFieldMapForeign(value,foreignKeyColumns,text),field.local_key_columns.getOrElse(Seq(field.name))), field.lookupQuery))
 
   }} match {
     case Some(a) => a
-    case None => DBIO.successful(None)
+    case None => None
   }
 
-  private def fieldsToJsonFields(fields:Seq[(((BoxField_row,Option[BoxField_i18n_row]),Option[BoxFieldFile_row]),ColType)], lang:String): DBIO[Seq[JSONField]] = {
+  private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String)(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONField]] = {
 
-    val jsonFields = fields.map{ case (((field,fieldI18n),fieldFile),colType) =>
+    val jsonFields = fields.map{ case ((field,fieldI18n),colType) =>
 
       if(fieldI18n.isEmpty) logger.warn(s"Field ${field.name} (field_id: ${field.field_uuid}) has no translation to $lang")
 
       for{
-        look <- lookup(field, fieldI18n, lang)
         lab <- label(field, fieldI18n, lang)
+        look = lookup(field, fieldI18n)
         linked <- linkedForms(field, fieldI18n)
         subform <- subform(field)
+        mapMetadata <- field.map_uuid match {
+          case Some(value) => MapMetadataFactory.of(value,lang).map(Some(_))
+          case None => DBIO.successful(None)
+        }
       } yield {
         JSONField(
           `type` = field.`type`,
           name = field.name,
-          nullable = colType.required && !field.required.getOrElse(false),
+          nullable = colType.nullable && !field.required.getOrElse(false),
           readOnly = field.read_only,
           label = Some(lab),
           lookup = look,
-          dynamicLabel = if(look.isEmpty) fieldI18n.flatMap(_.lookupTextField) else None,
+          dynamicLabel = fieldI18n.flatMap(_.dynamic_label),
           placeholder = fieldI18n.flatMap(_.placeholder),
           widget = field.widget,
           child = subform,
           default = field.default,
-          file = fieldFile.map(file),
           condition = condition(field),
           tooltip = fieldI18n.flatMap(_.tooltip),
           params = field.params,
@@ -460,10 +469,12 @@ case class FormMetadataFactory()(implicit up:UserProfile, mat:Materializer, ec:E
           lookupLabel = lookupLabel(field,fieldI18n),
           query = for{
             q <- field.childQuery.orElse(field.lookupQuery)
-            js <- parse(q).toOption
-            query <- js.as[JSONQuery].toOption
+            query <- q.as[JSONQuery].toOption
           } yield query,
-          function = field.function
+          function = field.function,
+          minMax = Some(MinMax(min = field.min, max = field.max)),
+          roles = field.roles.getOrElse(Seq()),
+          map = mapMetadata
         )
       }
 

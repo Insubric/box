@@ -15,7 +15,7 @@ class DbWriter(db:UserDatabase)(implicit ec:ExecutionContext) extends Writer {
   override def write[M](record: LogRecord[M], output: LogOutput): Unit = {
     Logger.system.out.print(output)
     db.run{
-      BoxLog.BoxLogsTable += BoxLog_row(None,record.fileName,record.className,record.line.getOrElse(-1),record.message.plainText, record.timeStamp)
+      BoxLog.BoxLogsTable += BoxLog_row(None,record.fileName,record.className,record.line.getOrElse(-1),record.message.toString, record.timeStamp)
     }
 
   }

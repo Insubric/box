@@ -1,1 +1,1 @@
-alter table box.form add column if not exists edit_key_field text;
+alter table form add column if not exists edit_key_field text;

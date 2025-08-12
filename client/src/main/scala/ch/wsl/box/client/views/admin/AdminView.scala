@@ -1,7 +1,7 @@
 package ch.wsl.box.client.views.admin
 
 import ch.wsl.box.client._
-import ch.wsl.box.client.services.{ClientConf, Navigate}
+import ch.wsl.box.client.services.{ClientConf, Navigate, Notification}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.model.shared._
 import io.udash._
@@ -28,6 +28,7 @@ object AdminViewPresenter extends ViewFactory[AdminState.type]{
 class AdminPresenter(viewModel:ModelProperty[AdminViewModel]) extends Presenter[AdminState.type] {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: AdminState.type): Unit = {
     for{
@@ -38,7 +39,15 @@ class AdminPresenter(viewModel:ModelProperty[AdminViewModel]) extends Presenter[
   }
 
   def generateStub(entity: => String) = (e:Event) => {
-    services.rest.generateStub(entity)
+    services.clientSession.loading.set(true)
+    services.rest.generateStub(entity).map{ success =>
+      services.clientSession.loading.set(false)
+      if(success) {
+        Notification.add("Form correctly created")
+      } else {
+        Notification.add("A problem occurred when creating the form")
+      }
+    }
     e.preventDefault()
   }
 }
@@ -58,46 +67,49 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("Box Set-up"),
       ul(ClientConf.style.spacedList,
         li(
-          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"form",None))),
-        ),
-        li(
-          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"page",None))),
-        ),
-        li(
-          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"function",None)))
+          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"form",None,false))),
         ),
         li(
           div(
             p("Generate Form template for"),
-            Select( entityForStub, viewModel.subSeq(_.entities))(Select.defaultLabel).render," ",
-            button(ClientConf.style.boxButtonImportant,"Generate", onclick :+= presenter.generateStub(entityForStub.get))
+            Select(entityForStub, viewModel.subSeq(_.entities))(Select.defaultLabel).render, " ",
+            button(ClientConf.style.boxButtonImportant, "Generate", onclick :+= presenter.generateStub(entityForStub.get))
           )
-        )
-      )
-    ),
-    div(BootstrapCol.md(3),h3("News"),
-      ul(ClientConf.style.spacedList,
-        li(
-          a("News editor", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"news",None)))
-        )
-      )
-    ),
-    div(BootstrapCol.md(3),h3("Conf"),
-      ul(ClientConf.style.spacedList,
-        li(
-          a("Conf", Navigate.click(AdminConfState))
         ),
         li(
-          a("UI Conf", Navigate.click(AdminUiConfState))
+          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"page",None,false))),
         ),
         li(
-          a("Import/Export Definitions", Navigate.click(AdminBoxDefinitionState))
+          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"function",None,false)))
+        ),
+        li(
+          a("PgLite REPL", Navigate.click(AdminDBReplState))
+        ),
+      )
+    ),
+//    div(BootstrapCol.md(3),h3("News"),
+//      ul(ClientConf.style.spacedList,
+//        li(
+//          a("News editor", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"news",None)))
+//        )
+//      )
+//    ),
+    div(BootstrapCol.md(3),h3("Configuration"),
+      ul(ClientConf.style.spacedList,
+        li(
+          a("System", Navigate.click(AdminConfState))
+        ),
+        li(
+          a("Access Level UI", Navigate.click(AdminUiConfState))
+        ),
+        li(
+          a("Import/Export Form Definitions", Navigate.click(AdminBoxDefinitionState))
         ),
         li(
           a("Labels", Navigate.click(FormPageState(EntityKind.BOX_FORM.kind,"labels","true",false)))
         ),
-        div(
-          h4("Translations"),
+        li(
+          "Translations",br,
           "From: ",
           Select( sourceLang, langs)(Select.defaultLabel,width := 50.px).render,
           " to: ",

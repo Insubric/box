@@ -14,7 +14,7 @@ import scalacss.ScalatagsCss._
 import io.circe.generic.auto._
 import org.scalajs.dom.raw.MutationObserver
 import scribe.Logging
-import typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
+import ch.wsl.typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
 
 import scala.util.Try
 
@@ -39,7 +39,7 @@ object ConfViewPresenter extends ViewFactory[AdminConfState.type]{
 class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[AdminConfState.type] {
 
   import Context._
-
+  import ch.wsl.box.client.Context.Implicits._
   override def handleState(state: AdminConfState.type): Unit = {
     services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"conf",10000).map{ confs =>
       val entries = confs.flatMap(js => js.as[ConfEntry].toOption)
@@ -49,7 +49,7 @@ class ConfPresenter(viewModel:ModelProperty[ConfViewModel]) extends Presenter[Ad
 
   val save = (e:Event) => {
 
-    val keys:Seq[JSONID] = viewModel.get.entries.map(x => JSONID.fromMap(Map("key" -> x.key)))
+    val keys:Seq[JSONID] = viewModel.get.entries.map(x => JSONID.fromMap(Map("key" -> Json.fromString(x.key)).toSeq))
     val data:Seq[Json] = viewModel.get.entries.map(_.asJson)
 
     for {
@@ -156,7 +156,7 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
   val observer = new MutationObserver({(mutations,observer) =>
     if(document.contains(mapOptionsContainer)) {
       observer.disconnect()
-      val mapEditor = typings.monacoEditor.mod.editor.create(mapOptionsContainer, IStandaloneEditorConstructionOptions()
+      val mapEditor = ch.wsl.typings.monacoEditor.mod.editor.create(mapOptionsContainer, IStandaloneEditorConstructionOptions()
         .setLanguage("json")
         .setValue(viewModel.get.entries.find(_.key == "map.options").map(_.value).getOrElse(""))
 
@@ -172,7 +172,7 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
 
 
   private val content = div(BootstrapStyles.Grid.row,ClientConf.style.centredContent)(
-    div(BootstrapCol.md(12),h2("Conf")),
+    div(BootstrapCol.md(12),h2("System configuration")),
     div(BootstrapCol.md(12),marginBottom := 30.px,
       h3("Server"),
       hr,
@@ -229,24 +229,24 @@ class ConfView(viewModel:ModelProperty[ConfViewModel], presenter:ConfPresenter) 
       editConf("child.backgroundColor","Backgroud color","#fafafa","",String),
 
     ),
-    div(BootstrapCol.md(12),
-      marginBottom := 30.px,
-      h3("Redactor"),
-      hr,
-      p("Box has native support for ", a(href := "https://imperavi.com/redactor/","redactor"),", since redactor is a commercial product it canno't be embedded in the box package, in order to take advantage of the redactor widget you need to upload here the minified JS/CSS. A restart of the service is needed for the change to have effect"),
-      br,
-      button("redactor.min.js",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorJs.click(); e.preventDefault() }),
-      inputRedactorJs,
-      showIf(redactorJs.transform(_.nonEmpty))( span(" File loaded").render ),
-      br,
-      button("redactor.min.css",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorCss.click(); e.preventDefault()}),
-      inputRedactorCss,
-      showIf(redactorCss.transform(_.nonEmpty))( span(" File loaded").render ),
-      br,
-      showIf(viewModel.subProp(_.entries).transform(x => x.exists(_.key == "redactor.js") && x.exists(_.key == "redactor.css"))) {
-        p("redactor is enabled").render
-      }
-    ),
+//    div(BootstrapCol.md(12),
+//      marginBottom := 30.px,
+//      h3("Redactor"),
+//      hr,
+//      p("Box has native support for ", a(href := "https://imperavi.com/redactor/","redactor"),", since redactor is a commercial product it canno't be embedded in the box package, in order to take advantage of the redactor widget you need to upload here the minified JS/CSS. A restart of the service is needed for the change to have effect"),
+//      br,
+//      button("redactor.min.js",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorJs.click(); e.preventDefault() }),
+//      inputRedactorJs,
+//      showIf(redactorJs.transform(_.nonEmpty))( span(" File loaded").render ),
+//      br,
+//      button("redactor.min.css",ClientConf.style.boxButton, onclick :+= {(e:Event) => inputRedactorCss.click(); e.preventDefault()}),
+//      inputRedactorCss,
+//      showIf(redactorCss.transform(_.nonEmpty))( span(" File loaded").render ),
+//      br,
+//      showIf(viewModel.subProp(_.entries).transform(x => x.exists(_.key == "redactor.js") && x.exists(_.key == "redactor.css"))) {
+//        p("redactor is enabled").render
+//      }
+//    ),
     div(BootstrapCol.md(12),
       marginBottom := 30.px,
       h3("Map"),

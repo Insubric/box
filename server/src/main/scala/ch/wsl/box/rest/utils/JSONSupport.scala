@@ -2,7 +2,6 @@ package ch.wsl.box.rest.utils
 
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 import java.util.Base64
-
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
@@ -10,11 +9,10 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.{ContentTypeRange, HttpEntity}
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
-import ch.wsl.box.model.shared.FileUtils
+import ch.wsl.box.model.shared.{FileUtils}
 import ch.wsl.box.shared.utils.DateTimeFormatters
-import geotrellis.vector.io.json.GeoJsonSupport
 import io.circe.Decoder.Result
-import geotrellis.vector._
+import org.apache.tika.Tika
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -25,7 +23,20 @@ import scala.util.Try
   * this contains the serializer between the JSON and the Scala objects  (in the server)
   *
   */
-object JSONSupport extends GeoJsonSupport {
+object JSONSupport {
+
+  private val tika = new Tika()
+
+  type EncoderWithBytea[T] = Encoder[Array[Byte]] => Encoder[T]
+  implicit class ExtEncoder[T](ewb:EncoderWithBytea[T]) {
+    def full() = ewb(Full.fileFormat)
+    def light() = ewb(Light.fileFormat)
+  }
+
+  implicit def jsonEncWithBytea:EncoderWithBytea[Json] = { e =>
+    implicit def eb = e
+    implicitly[Encoder[Json]]
+  }
 
 
   private def jsonContentTypes: List[ContentTypeRange] =
@@ -35,7 +46,15 @@ object JSONSupport extends GeoJsonSupport {
     Unmarshaller.stringUnmarshaller
       .forContentTypes(jsonContentTypes: _*)
       .flatMap { ctx => mat => json =>
-        decode[A](json).fold(Future.failed, Future.successful)
+        parse(json) match {
+          case Left(fa) => fa.printStackTrace()
+            Future.failed(fa)
+          case Right(value) => value.as[A] match {
+            case Left(fa) => fa.printStackTrace()
+              Future.failed(fa)
+            case Right(value) => Future.successful(value)
+          }
+        }
       }
   }
 
@@ -102,25 +121,19 @@ object JSONSupport extends GeoJsonSupport {
     implicit val fileFormat: Encoder[Array[Byte]] with Decoder[Array[Byte]] = new Encoder[Array[Byte]] with Decoder[Array[Byte]] {
 
       override def apply(a: Array[Byte]): Json = Try {
-        Json.fromString(FileUtils.keep)
+        Json.fromString(FileUtils.keep(tika.detect(a.take(4096))))
       }.getOrElse(Json.Null)
 
 
       override def apply(c: HCursor): Result[Array[Byte]] = Decoder.decodeString.map { s =>
-        Base64.getDecoder.decode(s)
+        if(FileUtils.isKeep(s)) {
+          FileUtils.base.getBytes("UTF-8")
+        } else {
+          Base64.getDecoder.decode(s)
+        }
       }.apply(c)
     }
   }
 
-//  implicit val GeoJSON : Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] = new Encoder[org.locationtech.jts.geom.Geometry] with Decoder[org.locationtech.jts.geom.Geometry] {
-//
-//    override def apply(a: org.locationtech.jts.geom.Geometry): Json = a.asJson
-//  }.getOrElse(Json.Null)
-//
-//
-//  override def apply(c: HCursor): Result[org.locationtech.jts.geom.Geometry] = Decoder.decodeString.map{s =>
-//    GeoJson.parse[org.locationtech.jts.geom.Geometry](s)
-//  }.apply(c)
-//}
 
 }

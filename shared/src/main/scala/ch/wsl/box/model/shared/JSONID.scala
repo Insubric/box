@@ -1,8 +1,13 @@
 package ch.wsl.box.model.shared
 
+import ch.wsl.box.model.shared.JSONID.LOCAL_NEW_KEY
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
+import io.circe.parser
 
+import java.net.{URLDecoder, URLEncoder}
+import java.util.UUID
 import scala.util.Try
 
 /**
@@ -11,54 +16,119 @@ import scala.util.Try
 case class JSONID(id:Vector[JSONKeyValue]) {    //multiple key-value pairs
   def asString = id.map(id => id.asString).mkString(",")
 
+  def prettyPrint(metadata: JSONMetadata) = id.map(id => id.prettyPrint(metadata)).mkString(", ")
+
   def keys: Vector[String] = id.map(_.key)
-  def values: Vector[String] = id.map(_.value)
+  def values: Vector[Json] = id.map(_.value)
 
   def query:JSONQuery = JSONQuery.empty.copy(filter=id.map(_.filter).toList)
+
+  def update(field:String,value:Json):JSONID = this.copy(id = id.map{ keyField =>
+    if(keyField.key == field) JSONKeyValue(field,value)
+    else keyField
+  })
+
+  def toFields:Map[String,Json] = id.map(v => v.key -> v.value).toMap
+
+  def valid:Boolean = id.forall(_.value != Json.Null)
+
+  def isLocalNew: Boolean = id.forall(_.key == LOCAL_NEW_KEY)
 
 }
 
 object JSONID {
+
+  val BOX_OBJECT_ID = "_box_object_id"
+  private val LOCAL_NEW_KEY = "local_new"
+
   def empty = JSONID(Vector())
 
   def toMultiString(ids:Seq[JSONID]) = ids.map(_.asString).mkString("&&")
-  def fromMultiString(str:String):Seq[JSONID] = str.split("&&").toSeq.flatMap(fromString)
+  def fromMultiString(str:String,form:JSONMetadata):Seq[JSONID] = str.split("&&").toSeq.flatMap(s => fromString(s,form))
 
-  def fromString(str:String): Option[JSONID] = Try{
-    JSONID(
-      str.split(",").map(_.trim).map{ k =>
-        val c = k.split("::")
-        if(c.length < 2) {
-          throw new Exception(s"Invalid JSONID, $str")
-        }
-        JSONKeyValue(c(0),c(1))
-      }.toVector
-    )
-  }.toOption
 
-  def fromMap(map:Map[String,String]) = {
-    val jsonIds = map.map{ case (k,v) => JSONKeyValue(k,v)}
-    JSONID(jsonIds.toVector)
+  def fromString(str:String,form:JSONMetadata): Option[JSONID] = {
+    if(form.static) return Some(JSONID(Vector(JSONKeyValue("static",Json.fromString("page")))))
+    Try{
+      JSONID(
+        str.split(",").map(_.trim).map{ k =>
+          val c = k.split("::")
+
+
+          if(c.length < 2) {
+            throw new Exception(s"Invalid JSONID, $str")
+          }
+
+          val key = URLDecoder.decode(c(0),"UTF-8")
+          val value = URLDecoder.decode(c(1),"UTF-8")
+
+          val v = for{
+            field <- form.fields.find(_.name == key)
+            value <- JSONUtils.toJs(value,field.`type`)
+          } yield value
+
+          JSONKeyValue(key,v.get)
+        }.toVector
+      )
+    }.toOption.orElse{ // try local
+      val tokens = str.split("::")
+      for{
+        key <- tokens.lift(0) if key == LOCAL_NEW_KEY
+        value <- tokens.lift(1)
+      } yield JSONID.fromMap(Map(key -> Json.fromString(value)).toSeq)
+    }
+  }
+
+
+
+  def newLocal(): JSONID = JSONID(Vector(JSONKeyValue(LOCAL_NEW_KEY, Json.fromString(UUID.randomUUID().toString))))
+
+  def fromMap(map:Map[String,String],form:JSONMetadata) = {
+    JSONID(map.map{ case (key,strValue) =>
+      val v = for{
+        field <- form.fields.find(_.name == key)
+        value <- JSONUtils.toJs(strValue,field.`type`)
+      } yield value
+      JSONKeyValue(key,v.get)
+    }.toVector)
   }
 
   def fromMap(seq:Seq[(String,Json)]):JSONID = {
-    JSONID(seq.map{ case (k,v) => JSONKeyValue(k,v.string)}.toVector)
+    JSONID(seq.map{ case (k,v) => JSONKeyValue(k,v)}.toVector)
   }
 
-  def fromData(js:Json,form:JSONMetadata):Option[JSONID] = {
+  def fromData(js:Json,form:JSONMetadata,fullyDefined:Boolean = true):Option[JSONID] = {
 
-    val ids = form.keys.map{ k => js.getOpt(k).map(JSONKeyValue(k,_)) }.toVector
+    val ids = form.keys.map{ k => js.jsOpt(k).map(JSONKeyValue(k,_)) }.toVector
 
     ids.forall(_.isDefined) match {
       case true => Some(JSONID(ids.map(_.get)))
+      case false if !fullyDefined => Some(JSONID(ids.flatten))
       case false => None
     }
 
   }
 
+  def fromData(js:Json,keys:Seq[String]) = {
+    fromMap(keys.map{ k =>
+      (k,js.js(k))
+    })
+  }
+
+  def fromBoxObjectId(js:Json,form:JSONMetadata):Option[JSONID] = js.getOpt(BOX_OBJECT_ID).flatMap(x => fromString(x,form))
+
+  def attachBoxObjectId(json:Json,keys:Seq[String]):Json = {
+    json.asObject match {
+      case Some(_) => json.deepMerge(Json.obj(JSONID.BOX_OBJECT_ID -> Json.fromString(fromData(json,keys).asString)))
+      case None => json
+    }
+  }
+
 }
 
-case class JSONKeyValue(key:String, value:String) {
-  def filter = JSONQueryFilter(key,Some(Filter.EQUALS),value)
-  def asString = key + "::" + value
+case class JSONKeyValue(key:String, value:Json) {
+  def filter = JSONQueryFilter.withValue(key,Some(Filter.EQUALS),value.string)
+  def asString = URLEncoder.encode(key,"UTF-8") + "::" + URLEncoder.encode(value.string,"UTF-8")
+
+  def prettyPrint(metadata: JSONMetadata): String = metadata.fields.find(_.name == key).flatMap(_.label).getOrElse(key) + ": " + value.string
 }

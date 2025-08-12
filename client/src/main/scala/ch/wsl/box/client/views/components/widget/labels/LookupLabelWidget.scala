@@ -6,6 +6,7 @@ import ch.wsl.box.model.shared.{EntityKind, JSONField, JSONID, JSONMetadata, Wid
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.properties.single.Property
 import org.scalajs.dom
 import scalatags.JsDom
@@ -38,20 +39,20 @@ object LookupLabelWidget extends ComponentWidgetFactory {
       if(!curr.js(params.field.name).equals(value)) injectValue()
     },true)
 
-    override protected def show(): JsDom.all.Modifier = {
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
 
       div(
-        widget().render(false,Property(true))
+        widget().render(false,nested)
       )
     }
 
 
-    override def showOnTable(): JsDom.all.Modifier = widget().showOnTable()
-    override def editOnTable(): JsDom.all.Modifier = {
-      widget().showOnTable()
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = widget().showOnTable(nested)
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
+      widget().showOnTable(nested)
     }
 
-    override protected def edit(): JsDom.all.Modifier = show()
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
   }
 }

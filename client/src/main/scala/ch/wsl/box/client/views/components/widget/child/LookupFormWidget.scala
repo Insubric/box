@@ -10,6 +10,7 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import org.scalajs.dom.Event
 import scalatags.JsDom
 import scalatags.JsDom.all._
@@ -29,8 +30,8 @@ object LookupFormWidget extends ComponentWidgetFactory {
     val linked: LinkedForm = field.linked.get
 
     val linkedData: ReadableProperty[JSONID] = params.allData.transform { js =>
-      val parentValues = linked.parentValueFields.map(k => js.get(k))
-      JSONID.fromMap(linked.childValueFields.zip(parentValues).toMap)
+      val parentValues = linked.parentValueFields.map(k => js.js(k))
+      JSONID.fromMap(linked.childValueFields.zip(parentValues))
     }
 
     def _params = params
@@ -39,9 +40,9 @@ object LookupFormWidget extends ComponentWidgetFactory {
       case (Some(lookup),_) => new DynamicLookupWidget {
         override def params: WidgetParams = _params.copy(field = _params.field.copy(lookupLabel = Some(lookup)))
 
-        override protected def show(): JsDom.all.Modifier = widget().showOnTable()
+        override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = widget().showOnTable(nested)
 
-        override protected def edit(): JsDom.all.Modifier = show()
+        override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
 
 
       }
@@ -51,25 +52,23 @@ object LookupFormWidget extends ComponentWidgetFactory {
 
 
     def navigate(goTo: Routes => RoutingState) = (e: Event) => {
-      Navigate.to(goTo(Routes(EntityKind.FORM.kind, linked.name)))
+      val blank = params.field.params.exists(_.get("target") == "new_window")
+
+      Navigate.to(goTo(Routes(linked.kind.kind, linked.name,params.public)),blank)
       e.preventDefault()
     }
 
-    override protected def show(): Modifier = produce(linkedData) { case id =>
-      linkRenderer(lab.render(false,Property(true)),field.params,navigate(_.show(id.asString))).render
-    }
+    override protected def show(nested:Binding.NestedInterceptor): Modifier = nested(produce(linkedData) { case id =>
+      linkRenderer(lab.render(false,nested),field.params,navigate(_.show(id.asString))).render
+    })
 
-    override protected def edit(): Modifier = produce(linkedData) { case id =>
-      linkRenderer(lab.render(false,Property(true)),field.params,navigate(_.edit(id.asString))).render
-    }
+    override protected def edit(nested:Binding.NestedInterceptor): Modifier = nested(produce(linkedData) { case id =>
+      linkRenderer(lab.render(false,nested),field.params,navigate(_.edit(id.asString))).render
+    })
 
-    override def showOnTable(): JsDom.all.Modifier =  produce(linkedData) { case id =>
-      a(onclick :+= navigate(_.show(id.asString)),lab.render(false,Property(true))).render
-    }
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier =  div(textAlign.center,show(nested))
 
-    override def editOnTable(): JsDom.all.Modifier =  produce(linkedData) { case id =>
-      a(onclick :+= navigate(_.edit(id.asString)),lab.render(false,Property(true))).render
-    }
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier =  div(textAlign.center,edit(nested))
   }
 
 }

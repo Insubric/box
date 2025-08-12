@@ -1,7 +1,7 @@
 package ch.wsl.box.codegen
 
 import ch.wsl.box.information_schema.PgInformationSchema
-import ch.wsl.box.jdbc.{Connection, TypeMapping}
+import ch.wsl.box.jdbc.{Connection, Managed, TypeMapping}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import slick.model.Model
 
@@ -11,22 +11,27 @@ import scala.concurrent.duration.DurationInt
 
 
 
-case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Seq[String], model:Model) extends slick.codegen.SourceCodeGenerator(model)
+case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Seq[String], model:Model,box_schema:String) extends slick.codegen.SourceCodeGenerator(model)
   with BoxSourceCodeGenerator
   with slick.codegen.OutputHelpers {
 
 
-  def mapEntity(tableName:String):Option[String] = tables.find(_.model.name.table == tableName).map{ table =>
-    s"""  "${table.model.name.table}" -> Map(
+  def entityMapName(tableName:String) = s"${tableName}_map"
+  def mapEntityRef(tableName:String):Option[String] = tables.find(_.model.name.table == tableName).map{ table =>
+    s"""  "${table.model.name.table}" -> ${entityMapName(tableName)},""".stripMargin
+  }
+
+  def mapEntity(tableName:String) = tables.find(_.model.name.table == tableName).map { table =>
+    s"""private def ${entityMapName(tableName)} =  Map(
        |        ${mapField(table).mkString(",\n        ")}
-       |        ),""".stripMargin
+       |)""".stripMargin
   }
 
   def mapField(table:Table):Seq[String] = {
 
     val pgColumns = Await.result(
       connection.dbConnection.run(
-        new PgInformationSchema(table.model.name.schema.getOrElse("public"),table.model.name.table).columns
+        new PgInformationSchema(box_schema,table.model.name.schema.getOrElse("public"),table.model.name.table).columns
       ),
       10.seconds
     )
@@ -38,11 +43,11 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
 
       val jsonType = pgCol.map(_.jsonType).getOrElse(JSONFieldTypes.STRING)
 
-      val required = !pgCol.exists(_.required)
+      val managed = Managed.hasTriggerDefault(table.model.name.table,c.model.name) || pgCol.exists(_.managed)
 
       val nullable = pgCol.exists(_.nullable) || c.model.nullable
 
-      s"""      "${c.model.name}" -> ColType("$scalaType","$jsonType",$required,$nullable)"""
+      s"""      "${c.model.name}" -> ColType("$scalaType","$jsonType",$managed,$nullable)"""
     }
   }
 
@@ -65,9 +70,11 @@ case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Se
        |      ${views.mkString("\"","\",\n      \"","\"")}
        |  )
        |
-       |  val tableFields:Map[String,Map[String,ColType]] = Map(
-       |      ${(tabs++views).flatMap(mapEntity).mkString("\n      ")}
+       |  def tableFields:Map[String,Map[String,ColType]] = Map(
+       |      ${(tabs++views).flatMap(mapEntityRef).mkString("\n      ")}
        |  )
+       |
+       |  ${(tabs++views).flatMap(mapEntity).mkString("\n  ")}
        |
        |
        |}

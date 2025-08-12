@@ -5,6 +5,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.udash._
 import io.circe._
 import io.circe.generic.auto._
+import io.udash.bindings.modifiers.Binding
 import scalatags.JsDom
 import scalatags.JsDom.all._
 
@@ -40,11 +41,11 @@ object DynamicWidget extends ComponentWidgetFactory {
       }
     }
 
-    override protected def show(): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(false,Property(true))).render}
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(widgetProperty){ w => div(w.render(false,nested)).render})
 
 
-    override def showOnTable(): JsDom.all.Modifier = bind(params.prop.transform(_.string))
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(params.prop.transform(_.string)))
 
-    override protected def edit(): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(true,Property(true))).render}
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = produce(widgetProperty){ w => div(w.render(true,nested)).render}
   }
 }

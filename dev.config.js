@@ -1,10 +1,28 @@
 const ScalaJS = require("./scalajs.webpack.config");
-const Merge = require("webpack-merge");
+const { merge } = require('webpack-merge');
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
-const WebApp = Merge(ScalaJS, {
+
+const WebApp = merge(ScalaJS, {
     mode: "development",
+    entry: [
+
+        // Your entry
+        "./client-fastopt.js",
+    ],
+    output: {
+        filename: "client-fastopt-library.js"
+    },
+    devtool: 'source-map',
+    ignoreWarnings: [(warning) => true],
+    resolve: {
+        fallback: {
+            "stream": require.resolve("stream-browserify"),
+            "buffer": require.resolve('buffer'),
+            "crypto": require.resolve('crypto-browserify'), //if you want to use this module also don't forget npm i crypto-browserify
+        }
+    },
     module: {
         rules: [
             {
@@ -20,9 +38,13 @@ const WebApp = Merge(ScalaJS, {
     plugins: [
         new HtmlWebpackPlugin(),
         new MonacoWebpackPlugin({
-            publicPath: "bundle"
+            publicPath: "dev"
         })
-    ]
+    ],
+    optimization: {
+        usedExports: true,
+        sideEffects: true,
+    },
 });
 
 module.exports = WebApp;

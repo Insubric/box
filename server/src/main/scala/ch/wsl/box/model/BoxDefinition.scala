@@ -1,7 +1,6 @@
 package ch.wsl.box.model
 
 import ch.wsl.box.jdbc.UserDatabase
-import ch.wsl.box.model.boxentities.BoxAccessLevel
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.rest.utils.Cache
@@ -21,7 +20,6 @@ case class BoxDefinition(
                         form_i18n: Seq[BoxForm.BoxForm_i18n_row],
                         form_actions: Seq[BoxForm.BoxForm_actions_row],
                         field: Seq[BoxField.BoxField_row],
-                        field_file: Seq[BoxField.BoxFieldFile_row],
                         field_i18n: Seq[BoxField.BoxField_i18n_row],
                         function: Seq[BoxFunction.BoxFunction_row],
                         function_i18n: Seq[BoxFunction.BoxFunction_i18n_row],
@@ -49,7 +47,6 @@ case class BoxDefinitionMerge(
                                form_i18n: MergeElement[BoxForm.BoxForm_i18n_row],
                                form_actions: MergeElement[BoxForm.BoxForm_actions_row],
                                field: MergeElement[BoxField.BoxField_row],
-                               field_file: MergeElement[BoxField.BoxFieldFile_row],
                                field_i18n: MergeElement[BoxField.BoxField_i18n_row],
                                function: MergeElement[BoxFunction.BoxFunction_row],
                                function_i18n: MergeElement[BoxFunction.BoxFunction_i18n_row],
@@ -64,7 +61,7 @@ case class BoxDefinitionMerge(
                              )
 
 object BoxDefinition {
-  def export(db:UserDatabase)(implicit ec:ExecutionContext):Future[BoxDefinition] = {
+  def export(db:UserDatabase,boxSchema:String)(implicit ec:ExecutionContext):Future[BoxDefinition] = {
     val boxDef = for {
       //access_levels <- BoxAccessLevel.BoxAccessLevelTable.result
       //conf <- BoxConf.BoxConfTable.result
@@ -77,13 +74,12 @@ object BoxDefinition {
       form_i18n <- BoxForm.BoxForm_i18nTable.result
       form_actions <- BoxForm.BoxForm_actions.result
       field <- BoxField.BoxFieldTable.result
-      field_file <- BoxField.BoxFieldFileTable.result
       field_i18n <- BoxField.BoxField_i18nTable.result
       function <- BoxFunction.BoxFunctionTable.result
       function_i18n <- BoxFunction.BoxFunction_i18nTable.result
       function_field <- BoxFunction.BoxFunctionFieldTable.result
       function_field_i18n <- BoxFunction.BoxFunctionField_i18nTable.result
-      labels <- BoxLabels.BoxLabelsTable.result
+      labels <- BoxLabels.BoxLabelsTable(boxSchema).result
       news <- BoxNews.BoxNewsTable.result
       news_i18n <- BoxNews.BoxNews_i18nTable.result
 //      ui <- BoxUITable.BoxUITable.result
@@ -101,7 +97,6 @@ object BoxDefinition {
       form_i18n,
       form_actions,
       field,
-      field_file,
       field_i18n,
       function,
       function_i18n,
@@ -144,7 +139,6 @@ object BoxDefinition {
       merge(_.form_i18n, _.uuid == _.uuid, _ == _),
       merge(_.form_actions, _.uuid == _.uuid, _ == _),
       merge(_.field, _.field_uuid == _.field_uuid, _ == _),
-      merge(_.field_file, _.field_uuid == _.field_uuid, _ == _),
       merge(_.field_i18n, _.uuid == _.uuid, _ == _),
       merge(_.function, _.function_uuid == _.function_uuid, _ == _),
       merge(_.function_i18n, _.uuid == _.uuid, _ == _),
@@ -180,6 +174,8 @@ object BoxDefinition {
 
     }
 
+    val boxLabelTable = BoxLabels.BoxLabelsTable(services.config.boxSchemaName)
+
     val actions = Seq(
 
       commit[BoxCron.BoxCron_row,BoxCron.BoxCron](
@@ -205,10 +201,6 @@ object BoxDefinition {
       commit[BoxField.BoxField_i18n_row,BoxField.BoxField_i18n](
         _.field_i18n,BoxField.BoxField_i18nTable,
         x => BoxField.BoxField_i18nTable.filter(_.uuid === x.uuid)
-      ),
-      commit[BoxField.BoxFieldFile_row,BoxField.BoxFieldFile](
-        _.field_file,BoxField.BoxFieldFileTable,
-        x => BoxField.BoxFieldFileTable.filter(_.field_uuid === x.field_uuid)
       ),
       commit[BoxField.BoxField_row,BoxField.BoxField](
         _.field,BoxField.BoxFieldTable,
@@ -243,8 +235,8 @@ object BoxDefinition {
         x => BoxFunction.BoxFunctionTable.filter(_.function_uuid === x.function_uuid)
       ),
       commit[BoxLabels.BoxLabels_row,BoxLabels.BoxLabels](
-        _.labels,BoxLabels.BoxLabelsTable,
-        x => BoxLabels.BoxLabelsTable.filter(db => db.key === x.key && db.lang === x.lang),
+        _.labels,boxLabelTable,
+        x => boxLabelTable.filter(db => db.key === x.key && db.lang === x.lang),
       ),
       commit[BoxNews.BoxNews_i18n_row,BoxNews.BoxNews_i18n](
         _.news_i18n,BoxNews.BoxNews_i18nTable,

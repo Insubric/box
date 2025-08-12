@@ -10,11 +10,11 @@ import scala.concurrent.ExecutionContext
 
 
 
-class ViewLabels(langs:Seq[String]) extends Logging {
+class ViewLabels(langs:Seq[String],boxSchema:String) extends Logging {
 
   private val keys = langs.map(l => s"$l.label as $l").mkString(", ")
-  private val joins = langs.map(l => s"left join box.labels $l on keys.key = $l.key and $l.lang='$l'").mkString("\n")
-  private val update = langs.map(l => s"UPDATE box.labels SET label = NEW.$l WHERE key = NEW.key and lang='$l';").mkString("\n")
+  private val joins = langs.map(l => s"left join $boxSchema.labels $l on keys.key = $l.key and $l.lang='$l'").mkString("\n")
+  private val update = langs.map(l => s"UPDATE $boxSchema.labels SET label = NEW.$l WHERE key = NEW.key and lang='$l';").mkString("\n")
 
   private val updateFunction =
     s"""
@@ -26,14 +26,14 @@ class ViewLabels(langs:Seq[String]) extends Logging {
   def addVLabel(connection:Connection)(implicit ec:ExecutionContext) = connection.dbConnection.run {
     val q =
       sqlu"""
-       drop trigger if exists v_labels_update on box.v_labels;
-       drop trigger if exists v_labels_insert on box.v_labels;
-       drop view if exists box.v_labels;
+       drop trigger if exists v_labels_update on #$boxSchema.v_labels;
+       drop trigger if exists v_labels_insert on #$boxSchema.v_labels;
+       drop view if exists #$boxSchema.v_labels;
 
-       create view box.v_labels AS
+       create view #$boxSchema.v_labels AS
        with keys as (
            select distinct key
-           from box.labels
+           from #$boxSchema.labels
        )
        select
               keys.key as key,
@@ -42,28 +42,31 @@ class ViewLabels(langs:Seq[String]) extends Logging {
        #$joins
        ;
 
-       CREATE OR REPLACE FUNCTION box.v_labels_update() RETURNS trigger LANGUAGE plpgsql AS $$$$
+       CREATE OR REPLACE FUNCTION #$boxSchema.v_labels_update() RETURNS trigger LANGUAGE plpgsql AS $$$$
        BEGIN
            #$update
            RETURN NEW;
        END $$$$;
 
-       CREATE OR REPLACE FUNCTION box.v_labels_insert() RETURNS trigger LANGUAGE plpgsql AS $$$$
+       CREATE OR REPLACE FUNCTION #$boxSchema.v_labels_insert() RETURNS trigger LANGUAGE plpgsql AS $$$$
        BEGIN
-           INSERT INTO box.labels (lang, key, label) values #$insert
+           INSERT INTO #$boxSchema.labels (lang, key, label) values #$insert
            RETURN NEW;
        END $$$$;
 
        CREATE TRIGGER v_labels_update
-           INSTEAD OF UPDATE ON box.v_labels
-           FOR EACH ROW EXECUTE PROCEDURE box.v_labels_update();
+           INSTEAD OF UPDATE ON #$boxSchema.v_labels
+           FOR EACH ROW EXECUTE PROCEDURE #$boxSchema.v_labels_update();
 
        CREATE TRIGGER v_labels_insert
-           INSTEAD OF INSERT ON box.v_labels
-           FOR EACH ROW EXECUTE PROCEDURE box.v_labels_insert();
+           INSTEAD OF INSERT ON #$boxSchema.v_labels
+           FOR EACH ROW EXECUTE PROCEDURE #$boxSchema.v_labels_insert();
+
+        grant select,update,insert on #$boxSchema.v_labels to box_translator;
+
        """
 //    q.statements.map(x => println(x))
-    q
+    q.transactionally
   }.map{ i =>
     logger.info(s"Added v_labels view $i")
   }.recover{ case t =>

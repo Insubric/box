@@ -32,6 +32,8 @@ object ColorUtils {
 
     def color = Color.rgb((r * 255).toInt,(g * 255).toInt,(b * 255).toInt)
 
+    def withTrasparency(amount:Double) = Color.rgba((r * 255).toInt,(g * 255).toInt,(b * 255).toInt,amount)
+
 
     lazy val hsl:HSL = rgb2hsl(this)
 

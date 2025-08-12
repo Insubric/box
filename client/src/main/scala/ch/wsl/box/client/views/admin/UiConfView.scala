@@ -14,12 +14,12 @@ import scalacss.ScalatagsCss._
 import io.circe.generic.auto._
 import org.scalajs.dom.raw.MutationObserver
 import scribe.Logging
-import typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
+import ch.wsl.typings.monacoEditor.mod.editor.IStandaloneEditorConstructionOptions
 
 import scala.util.Try
 
 case class UiConfEntry(key:String,value:String,access_level_id:Int) {
-  def id = JSONID.fromMap(Map("key" -> key, "access_level_id" -> access_level_id.toString))
+  def id = JSONID.fromMap(Map("key" -> Json.fromString(key), "access_level_id" -> Json.fromInt(access_level_id)).toSeq)
 }
 case class UiConfEntryCurrent(key:String,value:String)
 case class AccessLevel(access_level_id:Int,access_level:String)
@@ -51,6 +51,7 @@ object UiConfViewPresenter extends ViewFactory[AdminUiConfState.type]{
 class UiConfPresenter(viewModel:ModelProperty[UiConfViewModel]) extends Presenter[AdminUiConfState.type] {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   private def loadEntries() = services.rest.list(EntityKind.BOX_TABLE.kind,services.clientSession.lang(),"ui",10000).map{ confs =>
     confs.flatMap(js => js.as[UiConfEntry].toOption)
@@ -190,7 +191,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
         val observer = new MutationObserver({(mutations,observer) =>
           if(document.contains(container)) {
             observer.disconnect()
-            val editor = typings.monacoEditor.mod.editor.create(container, IStandaloneEditorConstructionOptions()
+            val editor = ch.wsl.typings.monacoEditor.mod.editor.create(container, IStandaloneEditorConstructionOptions()
               .setLanguage(language)
               .setValue(prop.get)
 
@@ -239,7 +240,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
 
 
   private val content = div(BootstrapStyles.Grid.row,ClientConf.style.centredContent)(
-    div(BootstrapCol.md(12),h2("UI Conf")),
+    div(BootstrapCol.md(12),h2("Access level UI Configuration")),
     div(BootstrapCol.md(12),marginBottom := 30.px,
       _editConf(
         "Access Level",
@@ -273,7 +274,7 @@ class UiConfView(viewModel:ModelProperty[UiConfViewModel], presenter:UiConfPrese
           editBoolean("enableAllTables", "All tables", "Show all tables on the header"),
           editBoolean("showEntitiesSidebar", "Entities sidebar", "Show list of entities on the sidebar"),
           editConf("menu", "Menu", placeholder("menu"), "", Code("json",200)),br,
-          editConf("index.html", "Index HTML", placeholder("index.html"), "", Code("html",400)),
+//          editConf("index.html", "Index HTML", placeholder("index.html"), "", Code("html",400)),
           editConf("filters.enable", "Filters Enabled", placeholder("index.html"), "", FiltersConf),
         ).render
       }

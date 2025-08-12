@@ -4,7 +4,7 @@ import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.boxentities.Schema
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.DefaultModule
-import ch.wsl.box.services.Services
+import ch.wsl.box.services.{Services, ServicesWithoutGeneration}
 import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -15,19 +15,18 @@ object DropBox {
 
 
 
-  def fut(db:Database)(implicit ec:ExecutionContext) = {
+  def fut(implicit s:ServicesWithoutGeneration) = {
+    implicit val ex = s.executionContext
     for {
-      _ <- db.run(Schema.box.dropIfExists)
+      _ <- s.connection.dbConnection.run(Schema.box(s.config.boxSchemaName).dropIfExists)
     } yield true
   }
 
   def main(args: Array[String]): Unit = {
     println("Dropping box tables")
-    import scala.concurrent.ExecutionContext.Implicits.global
 
-    DefaultModule.injector.build[Connection] { connection =>
-      Await.result(fut(connection.dbConnection),10 seconds)
-      connection.close()
+    DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { implicit services =>
+      Await.result(fut,10 seconds)
     }
   }
 

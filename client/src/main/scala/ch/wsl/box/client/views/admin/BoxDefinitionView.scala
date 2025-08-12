@@ -18,7 +18,7 @@ import org.scalajs.dom.{BlobPropertyBag, Event, File, FileReader}
 import org.scalajs.dom.raw.Blob
 import scalacss.ScalatagsCss._
 import scribe.Logging
-import typings.fileSaver.mod.FileSaverOptions
+import ch.wsl.typings.fileSaver.mod.FileSaverOptions
 
 import scala.scalajs.js
 import scala.util.Try
@@ -48,6 +48,7 @@ object BoxDefinitionViewPresenter extends ViewFactory[AdminBoxDefinitionState.ty
 class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) extends Presenter[AdminBoxDefinitionState.type] with Logging {
 
   import Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: AdminBoxDefinitionState.type): Unit = {
     for{
@@ -60,14 +61,13 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
   val downloadDefinition = (e:Event) => {
     val out = viewModel.get.currentDefinition.asJson.printWith(Printer.noSpaces)
     val blob = new Blob(js.Array(out),BlobPropertyBag("application/json"))
-    typings.fileSaver.mod.saveAs(blob,"box-definition.json")
+    ch.wsl.typings.fileSaver.mod.saveAs(blob,"box-definition.json")
     e.preventDefault()
   }
 
   def retrocompatibility(bd:BoxDefinition):BoxDefinition = {
 
     def formActionOldFormatConversion(fa:Json, i:Int):Option[Json] = {
-      BrowserConsole.log(io.circe.scalajs.convertJsonToJs(fa))
       fa.asObject.map{ obj =>
         val transformedKey = obj.toList.map{ case (k,v) =>
           if(k == "form_id") ("form_uuid",v) else (k,v)
@@ -77,7 +77,6 @@ class BoxDefinitionPresenter(viewModel:ModelProperty[BoxDefinitionViewModel]) ex
     }
 
     val fa = bd.form_actions.zipWithIndex.flatMap{ case (json,i) => formActionOldFormatConversion(json,i)}
-    fa.map(f => BrowserConsole.log(io.circe.scalajs.convertJsonToJs(f)))
 
     bd.copy(form_actions = fa)
   }

@@ -1,1 +1,1 @@
-alter table box.field add params jsonb;
+alter table field add params jsonb;

@@ -16,19 +16,19 @@ import scala.util.{Failure, Success, Try}
 class SubBlockLayoutTest extends TestBase {
 
   val id = 1
-  val jsonId = JSONID.fromMap(Map("id" -> id.toString))
+  val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
 
   val updatedValue = "test2"
 
   val updatedField = Promise[Assertion]()
 
-  class SBLValues extends Values {
+  class SBLValues extends Values(loggerLevel) {
 
     override def metadata: JSONMetadata = {
       val originalMetadata = super.metadata
-      originalMetadata.copy(layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
+      originalMetadata.copy(layout = Layout(Seq(LayoutBlock(None,12,Seq(
         Left(stringField),
-        Right(SubLayoutBlock(Some("title"),Seq(12),Seq())),
+        Right(SubLayoutBlock(Some(Left("title")),Some(Seq(12)),Seq())),
       )))))
     }
 
@@ -41,7 +41,6 @@ class SubBlockLayoutTest extends TestBase {
     }
 
     override def update(id: JSONID, obj: Json): Json = {
-      println(obj)
 
       Try(obj.get(stringField) shouldBe updatedValue) match {
         case Failure(exception) => updatedField.failure(exception)

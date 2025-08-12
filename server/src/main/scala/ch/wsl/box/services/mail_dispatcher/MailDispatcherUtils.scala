@@ -33,10 +33,10 @@ trait MailDispatcherUtils {
             case Some(x) => Html.render(x,params).map(x => Some(x))
             case None => Future.successful(None)
           }
-        } yield (boxMail.id.get, Mail(boxMail.mail_from,boxMail.mail_to,subject,text,html))
+        } yield (boxMail.id.get, Mail(boxMail.mail_from,boxMail.mail_to,boxMail.mail_cc,boxMail.mail_bcc,subject,text,html,boxMail.reply_to))
       }
       case None => Future.successful{
-        (boxMail.id.get, Mail(boxMail.mail_from,boxMail.mail_to,boxMail.subject,boxMail.text,boxMail.html))
+        (boxMail.id.get, Mail(boxMail.mail_from,boxMail.mail_to,boxMail.mail_cc,boxMail.mail_bcc,boxMail.subject,boxMail.text,boxMail.html,boxMail.reply_to))
       }
     }
 

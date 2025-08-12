@@ -5,7 +5,7 @@ import ch.wsl.box.jdbc.{Connection, FullDatabase}
 import ch.wsl.box.model.boxentities.BoxExportField.{BoxExportField_i18n_row, BoxExportField_row}
 import ch.wsl.box.model.boxentities.{BoxExport, BoxExportField}
 import ch.wsl.box.model.shared._
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import io.circe.Json
 import io.circe.parser.parse
 import scribe.Logging
@@ -34,7 +34,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
 //      ex <- Export.Export.filter(ex => ex.access_role.isEmpty || ex.access_role inSet roles || roles.contains(up.name))
 //    } yield ex
 
-    def checkRole(roles:List[String], access_roles:List[String], accessLevel:Int) =  roles.intersect(access_roles).size>0 || access_roles.isEmpty || access_roles.contains(up.name) || accessLevel == 1000
+    def checkRole(roles:Seq[String], access_roles:Seq[String], accessLevel:Int) =  roles.intersect(access_roles).size>0 || access_roles.isEmpty || access_roles.contains(up.name) || accessLevel == 1000
 
     def query    = for {
        (e, ei18) <- BoxExport.BoxExportTable joinLeft(BoxExport.BoxExport_i18nTable.filter(_.lang === lang)) on(_.export_uuid === _.export_uuid)
@@ -45,7 +45,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
 
 
     for{
-      roles <- up.memberOf
+      roles <- Auth.rolesOf(up.name)
       al <- up.accessLevel
       qr <-  services.connection.adminDB.run(query.result)
     } yield {
@@ -94,7 +94,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
         queryField(export.export_uuid.get).sortBy(_._1.field_uuid).result
       }
 
-      jsonFields <- Future.sequence(fields.map(fieldsMetadata(schema,lang)))
+      jsonFields = fields.map(fieldsMetadata(schema,lang))
 
     } yield {
 
@@ -131,7 +131,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
     }
   }
 
-  private def fieldsMetadata(schema:String, lang:String)(el:(BoxExportField_row, Option[BoxExportField_i18n_row])):Future[JSONField] = {
+  private def fieldsMetadata(schema:String, lang:String)(el:(BoxExportField_row, Option[BoxExportField_i18n_row])):JSONField = {
     import ch.wsl.box.shared.utils.JSONUtils._
 
     val (field,fieldI18n) = el
@@ -139,31 +139,12 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
     if(fieldI18n.isEmpty) logger.warn(s"Export field ${field.name} (export_id: ${field.field_uuid}) has no translation to $lang")
 
 
-    val lookup: Future[Option[JSONFieldLookup]] = {for{
+    val lookup: Option[JSONFieldLookup] = for{
       entity <- field.lookupEntity
       value <- field.lookupValueField
       text <- fieldI18n.flatMap(_.lookupTextField)
+    } yield JSONFieldLookup.fromDB(entity, JSONFieldMap(JSONFieldMapForeign(value,Seq(value),Seq(text)), Seq(field.name)),field.lookupQuery)
 
-    } yield {
-      import io.circe.generic.auto._
-      for {
-
-        keys <-boxDb.adminDb.run(EntityMetadataFactory.keysOf(schema,entity))
-        filter = { for{
-          queryString <- field.lookupQuery
-          queryJson <- parse(queryString).right.toOption
-          query <- queryJson.as[JSONQuery].right.toOption
-        } yield query }.getOrElse(JSONQuery.sortByKeys(keys))
-
-        lookupData <- db.run(Registry().actions(entity).find(filter))
-
-      } yield {
-        Some(JSONFieldLookup.fromData(entity, JSONFieldMap(value, text, field.name), lookupData,Seq()))
-      }
-    }} match {
-        case Some(a) => a
-        case None => Future.successful(None)
-    }
 
     val condition = for{
       fieldId <- field.conditionFieldId
@@ -172,12 +153,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
     } yield ConditionalField(fieldId,json)
 
 
-    for{
-      look <- lookup
-//      lab <- label
-//      placeHolder <- placeholder
-//      tip <- tooltip
-    } yield {
+
       JSONField(
         field.`type`,
         field.name,
@@ -185,16 +161,15 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
         false,
         fieldI18n.flatMap(_.label),
         None,
-        look,
+        lookup,
         fieldI18n.flatMap(_.placeholder),
         field.widget,
         None,
         field.default,
-        None,
         condition
         //      fieldI18n.flatMap(_.tooltip)
       )
-    }
+
 
   }
 

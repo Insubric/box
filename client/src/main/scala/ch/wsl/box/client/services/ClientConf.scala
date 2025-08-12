@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
-import ch.wsl.box.client.styles.{GlobalStyles, StyleConf}
+import ch.wsl.box.client.styles.{GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import io.circe._
 import io.circe.parser._
@@ -15,6 +15,7 @@ import scala.util.Try
 /**
   * Created by andre on 6/8/2017.
   */
+
 
 
 object ClientConf {
@@ -49,6 +50,10 @@ object ClientConf {
   def displayIndexNews: Boolean = Try(conf("display.index.news").toBoolean).getOrElse(false)
   def displayIndexHtml: Boolean = Try(conf("display.index.html").toBoolean).getOrElse(false)
 
+  def menuHamburger: Boolean = Try(conf("menu.hamburger").toBoolean).getOrElse(true)
+
+  def labelAlign: String = Try(conf("label.align")).getOrElse("left")
+
   def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
   def frontendUrl: String = Try(conf("frontendUrl")).getOrElse("http://localhost:8080")
 
@@ -63,20 +68,26 @@ object ClientConf {
   def tableMaxTextLength: Int = Try(conf("table.maxTextLength").toInt).getOrElse(140)
   def requiredFontSize: Int = Try(conf("form.requiredFontSize").toInt).getOrElse(8)
 
+  def inputWidth: Double = Try(conf("form.inputWidth").toDouble).getOrElse(61.8)
+
   def childBorderSize: Int = Try(conf("child.border.size").toInt).getOrElse(1)
   def childBorderColor: String = Try(conf("child.border.color")).getOrElse(StyleConstants.Colors.GreySemi.value)
   def childPaddingSize: Int = Try(conf("child.padding.size").toInt).getOrElse(10)
   def childMarginTopSize: Int = Try(conf("child.marginTop.size").toInt).getOrElse(-1)
   def childBackgroundColor: String = Try(conf("child.backgroundColor")).getOrElse(StyleConstants.Colors.GreyExtra.value)
 
+  def paddingBlocks:Int = Try(conf("form.padding.blocks").toInt).getOrElse(5)
+
   lazy val styleConf = StyleConf(
     colors = Colors(colorMain,colorMainText,colorMainLink,colorLink,colorDanger,colorWarning),
     tableFontSize,
     ChildProperties(childBorderSize, childBorderColor, childPaddingSize, childMarginTopSize, childBackgroundColor),
-    requiredFontSize
+    requiredFontSize,
+    paddingBlocks,
+    inputWidth
   )
 
-  lazy val style = GlobalStyles(styleConf)
+  lazy val style = GlobalStyleFactory.GlobalStyles(styleConf)
 
   def filterPrecisionDatetime: String = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
       case Some("DATE") => JSONFieldTypes.DATE

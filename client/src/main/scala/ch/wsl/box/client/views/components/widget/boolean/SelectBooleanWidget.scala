@@ -10,6 +10,7 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import io.udash.css.CssView._
 import ch.wsl.box.shared.utils.JSONUtils._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
@@ -46,7 +47,7 @@ case class SelectBooleanWidget(field:JSONField, data: Property[Json]) extends Wi
     }
   }
 
-  override def edit() = {
+  override def edit(nested:Binding.NestedInterceptor) = {
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip,UdashTooltip.Placement.Right) _
 
@@ -58,13 +59,13 @@ case class SelectBooleanWidget(field:JSONField, data: Property[Json]) extends Wi
 
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
-      WidgetUtils.toLabel(field),
+      WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
       tooltip(Select.optional[Boolean](booleanModel, SeqProperty(true,false),StringFrag("---"))((s: Boolean) => StringFrag(boolToString(s)), m: _*).render)._1,
       div(BootstrapStyles.Visibility.clearfix)
     )
   }
 
-  override def editOnTable(): JsDom.all.Modifier = {
+  override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     val booleanModel:Property[Option[Boolean]] = Property(None)
     autoRelease(data.sync[Option[Boolean]](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
     Select.optional[Boolean](booleanModel, SeqProperty(true,false),StringFrag("---"))((s: Boolean) => StringFrag(boolToString(s)), ClientConf.style.simpleInput).render

@@ -5,12 +5,13 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{DataKind, DataState, EntityFormState, EntityTableState}
 import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, REST}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
-import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, TableFieldsRenderer}
+import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.model.shared._
 import io.circe.Json
+import io.udash.bindings.modifiers.Binding
 import io.udash.{showIf, _}
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.bootstrap.table.UdashTable
@@ -26,6 +27,7 @@ import scalacss.ScalatagsCss._
 import scalatags.generic.Modifier
 import scalatags.generic
 
+import scala.scalajs.js.URIUtils
 import scala.util.Try
 
 
@@ -52,6 +54,7 @@ object DataViewPresenter extends ViewFactory[DataState] {
 case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataState] with Logging {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   import io.circe.syntax._
   import ch.wsl.box.shared.utils.JSONUtils._
@@ -59,6 +62,9 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
 
   override def handleState(state: DataState): Unit = {
     model.subProp(_.kind).set(state.kind)
+    model.subProp(_.metadata).set(None)
+    model.subProp(_.data).set(Seq())
+    model.subProp(_.headers).set(Seq())
 
     for{
       metadata <- services.rest.dataMetadata(state.kind,state.export,services.clientSession.lang())
@@ -82,7 +88,17 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
   val csv = (e:Event) => {
     logger.info()
     val url = Routes.apiV1(
-      s"/${model.get.kind}/${model.get.metadata.get.name}/${services.clientSession.lang()}?q=${args.toString()}".replaceAll("\n","")
+      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}?q=${URIUtils.encodeURI(args.noSpaces)}".replaceAll("\n","")
+    )
+    logger.info(s"downloading: $url")
+    dom.window.open(url)
+    e.preventDefault()
+  }
+
+  val xls = (e:Event) => {
+    logger.info()
+    val url = Routes.apiV1(
+      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}?format=xls&q=${URIUtils.encodeURI(args.noSpaces)}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)
@@ -90,12 +106,13 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
   }
 
   val query = (e:Event) => {
-
+    services.clientSession.loading.set(true)
     for{
       data <- services.rest.data(model.get.kind,model.get.metadata.get.name,args,services.clientSession.lang())
     } yield {
       model.subProp(_.headers).set(data.headOption.getOrElse(Seq()))
       model.subProp(_.data).set(Try(data.tail).getOrElse(Seq()))
+      services.clientSession.loading.set(false)
     }
     e.preventDefault()
   }
@@ -113,13 +130,13 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
   def shp = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.SHP))
 
   override def getTemplate = div(
-    produce(model.subProp(_.metadata)) {
-      case None => div("loading").render
-      case Some(metadata) => loaded(metadata)
+    produceWithNested(model.subProp(_.metadata)) {
+      case (None,nested) => div("loading").render
+      case (Some(metadata),nested) => loaded(metadata,nested)
     }
   )
 
-  def loaded(metadata: JSONMetadata) = div(
+  def loaded(metadata: JSONMetadata,nested:Binding.NestedInterceptor) = div(
     br,br,
     h3(ClientConf.style.noMargin,
       metadata.label
@@ -128,9 +145,10 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
       div(ClientConf.style.global)(ed.map(_.description.getOrElse[String]("")).getOrElse[String]("")).render
     },
     br,
-    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keys).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(),
+    JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keyFields).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(nested),
     showIf(table) { button(Labels.exports.load,onclick :+= presenter.query,ClientConf.style.boxButton).render },
     showIf(table) { button(Labels.exports.csv,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
+    showIf(table) { button(Labels.exports.xls,onclick :+= presenter.xls,ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(html) { button(Labels.exports.html,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(shp) { button(Labels.exports.shp,onclick :+= presenter.csv,ClientConf.style.boxButton).render },

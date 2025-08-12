@@ -13,21 +13,19 @@ trait RegistryInstance{
   def routes: GeneratedRoutes
   def actions: ActionRegistry
   def fields: FieldRegistry
+  def schema:String
+  def postgisSchema:String
 }
-
-case class GeneratedRegistry(
-                   fileRoutes:GeneratedFileRoutes,
-                   routes: GeneratedRoutes,
-                   actions: ActionRegistry,
-                   fields: FieldRegistry
-                   ) extends RegistryInstance
 
 object Registry extends Logging {
 
   private var _registry:RegistryInstance = null;
+  private var _boxRegistry:RegistryInstance = null;
 
 
   def apply():RegistryInstance = _registry
+
+  def box():RegistryInstance = _boxRegistry
 
   /**
    * Test purposes only
@@ -35,7 +33,7 @@ object Registry extends Logging {
    */
   def set(r:RegistryInstance) = _registry = r
 
-  def load()(implicit services:Services) = {
+  def load() = {
 
     try {
       _registry = Class.forName("ch.wsl.box.generated.GenRegistry")
@@ -46,6 +44,38 @@ object Registry extends Logging {
       case t: Throwable =>
         logger.error(s"Model not generated: run generateModel task before running")
     }
+  }
+
+  def loadBox() = {
+
+    try {
+      _boxRegistry = Class.forName("ch.wsl.box.generated.boxentities.GenRegistry")
+        .newInstance()
+        .asInstanceOf[RegistryInstance]
+      //logger.warn("Using generated registry, use only in development!")
+    } catch {
+      case t: Throwable =>
+        logger.error(s"Model not generated: run generateModel task before running")
+    }
+  }
+
+  def inject(ri:RegistryInstance) { _registry = ri }
+  def injectBox(ri:RegistryInstance) { _boxRegistry = ri }
+
+  def boxSchemaOnly(_schema:String): Unit = {
+    injectBox(new RegistryInstance {
+      override def fileRoutes: GeneratedFileRoutes = ???
+
+      override def routes: GeneratedRoutes = ???
+
+      override def actions: ActionRegistry = ???
+
+      override def fields: FieldRegistry = ???
+
+      override def schema: String = _schema
+
+      override def postgisSchema: String = ???
+    })
   }
 
 }

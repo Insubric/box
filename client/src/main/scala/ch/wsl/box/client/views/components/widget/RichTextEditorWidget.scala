@@ -1,22 +1,24 @@
 package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
-
 import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.client.views.components.widget.RichTextEditorWidget.Mode
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
 import io.circe.syntax._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.properties.single.Property
 import org.scalablytyped.runtime.StringDictionary
 import scalatags.JsDom
 import scribe.Logging
-import typings.quill.mod.{DeltaStatic, Quill, QuillOptionsStatic, Sources}
+import ch.wsl.typings.quill.mod.{DeltaStatic, Quill, QuillOptionsStatic, Sources}
 
 import scala.collection.mutable
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters.JSRichIterableOnce
 import scala.util.Try
 
 case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], mode:Mode) extends Widget with HasData with Logging {
@@ -44,22 +46,27 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
   }
 
 
-  override protected def show(): JsDom.all.Modifier = autoRelease(produce(data){ p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(produce(data){ p =>
     div(raw(p.string)).render
   })
 
-  _id.listen(x => logger.info(s"Rich text widget load with ID: $x"))
 
-  override protected def edit(): JsDom.all.Modifier = {
+
+  override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     logger.debug(s"field: ${field.name} widget mode $mode")
     logger.debug(s"data: ${data.get.toString().take(50)}")
-    produce(_id) { _ =>
+
       val container = div( height := 300.px).render
       val parent = div(container).render
 
 
+      val baseFormats = Seq("bold","color","font","code","italic","link","size","strike","script","underline","blockquote","header","indent","list","align","direction","code-block")
 
+      val formats = mode match {
+        case RichTextEditorWidget.Minimal => baseFormats
+        case RichTextEditorWidget.Full => baseFormats ++ Seq("image")
+      }
 
       val options = QuillOptionsStatic()
         .setPlaceholder(field.placeholder.getOrElse(""))
@@ -68,23 +75,37 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
         .setModules(StringDictionary(
           "toolbar" -> toolbar,
         ))
+        .setFormats(formats.toJSArray)
 
 
 
 
-      val editor = new typings.quill.mod.default(container,options)
+      val editor = new ch.wsl.typings.quill.mod.default(container,options)
 
-      editor.root.innerHTML = data.get.string
+      var registration:Option[Registration] = None
 
-      editor.on_textchange(typings.quill.quillStrings.`text-change`,
-        (delta:DeltaStatic,oldContent:DeltaStatic,source:Sources) => data.set(editor.root.innerHTML.asJson)
-      )
+      def reloadListener(initUpdate:Boolean) {
+        registration = Some(data.listen({ d =>
+          editor.root.innerHTML = d.string
+          editor.update()
+        }, initUpdate))
+      }
+
+      reloadListener(true)
+
+
+      editor.on_textchange(ch.wsl.typings.quill.quillStrings.`text-change`,
+        { (delta: DeltaStatic, oldContent: DeltaStatic, source: Sources) =>
+          registration.foreach(_.cancel())
+          data.set(editor.root.innerHTML.asJson)
+          reloadListener(false)
+        })
 
       div(
         parent
       ).render
 
-    }
+
   }
 
 }

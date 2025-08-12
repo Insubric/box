@@ -23,7 +23,7 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
 
   import akka.http.scaladsl.server.Directives._
 
-  implicit val up = new Auth().adminUserProfile
+  implicit val up = Auth.adminUserProfile
 
   def file:Route = pathPrefix("file") {
     pathPrefix(Segment) { entity =>
@@ -48,14 +48,14 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
   def form:Route = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        val route: Future[Route] = services.connection.adminDB.run(FormMetadataFactory.hasGuestAccess(name)).map {
-          _ match {
-            case Some(userProfile) => {
-              implicit val up = userProfile
-              Form(name, lang, x => Registry().actions(x), FormMetadataFactory(), up.db, EntityKind.FORM.kind).route
+        val route: Future[Route] = FormMetadataFactory.hasGuestAccess(name).map {
+
+            case Some((session,public_list)) => {
+              implicit val s = session
+              Form(name, lang, Registry(), FormMetadataFactory, EntityKind.FORM.kind,public_list).route
             }
-            case None => complete(StatusCodes.BadRequest, "The form is not public")
-          }
+            case _ => complete(StatusCodes.BadRequest, "The form is not public")
+
         }
         onComplete(route) {
           case Success(value) => value
@@ -69,6 +69,7 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
   }
 
   def entityRoute:Route = pathPrefix(Segment) { entity =>
+    import ch.wsl.box.rest.utils.JSONSupport._
     val route: Future[Route] = publicEntities.map{ pe =>
       pe.find(_.entity == entity).map(e => Registry().actions(e.entity)) match {
         case Some(action) => EntityRead(entity,action)
@@ -87,6 +88,11 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
   val route:Route = pathPrefix("public") {
     form ~
     file ~
+    pathPrefix("entity") { // keep same path structure than private API
+      pathPrefix(Segment) { lang =>
+        entityRoute
+      }
+    } ~
     entityRoute
   }
 

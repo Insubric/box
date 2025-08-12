@@ -10,28 +10,37 @@ object Navigate extends Logging {
   private var enabled:Boolean = true
   private var enabler:() => Boolean = () => false
 
+  def canGoAway = enabled
+
   def disable(enabler: () => Boolean = () => false) = {
     this.enabler = enabler
     enabled = false
   }
   def enable() = {enabled = true }
 
-  def to(state:RoutingState) = toAction{ () =>
+  def to(state:RoutingState, blank:Boolean = false) = toAction{ () =>
     logger.debug(s"navigate to $state")
-    Context.applicationInstance.goTo(state)
+    if(blank) {
+       toUrl(state.url(Context.applicationInstance),true)
+    } else {
+      Context.applicationInstance.goTo(state)
+    }
   }
 
-  def toUrl(url:String) = toAction{ () =>
+  def toUrl(url:String, blank:Boolean = false) = toAction{ () =>
     logger.debug(s"navigate to $url")
     url match {
       case "back" => Navigate.back()
-      case url:String => {
+      case url:String if !blank => {
         val state = Context.routingRegistry.matchUrl(Url(url))
         if(Context.applicationInstance.currentState == state) {
           Context.applicationInstance.reload()
         } else {
           Context.applicationInstance.goTo(state)
         }
+      }
+      case url:String if blank => {
+        window.open(url,"_blank")
       }
     }
 

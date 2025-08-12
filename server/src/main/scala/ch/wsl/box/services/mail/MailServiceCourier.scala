@@ -34,9 +34,14 @@ class MailServiceCourier extends MailService {
       case None => Text(mail.text)
     }
 
+    val from = InternetAddress.parse(mail.from).head
+
     mailer(Envelope
-      .from(InternetAddress.parse(mail.from).head)
-      .to(mail.to.flatMap(InternetAddress.parse(_)):_*)
+      .from(from)
+      .replyTo(mail.replyTo.map(m => InternetAddress.parse(m).head).getOrElse(from))
+      .to(mail.to.filterNot(_ == null).flatMap(InternetAddress.parse(_)):_*)
+      .cc(mail.cc.filterNot(_ == null).flatMap(InternetAddress.parse(_)):_*)
+      .bcc(mail.bcc.filterNot(_ == null).flatMap(InternetAddress.parse(_)):_*)
       .subject(mail.subject)
       .content(content)
     ).map(_ => true ).recover{ case e => e.printStackTrace(); false}

@@ -2,15 +2,14 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.{Labels, REST}
-import ch.wsl.box.client.styles.GlobalStyles
-import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONID, JSONLookup, JSONMetadata}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata}
 import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.shared.utils.JSONUtils._
 import scribe.{Logger, Logging}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scalatags.JsDom.all._
+import scalatags.JsDom.all.{span, _}
 import scalatags.JsDom
 import io.udash._
 import io.udash.bindings.Bindings
@@ -21,10 +20,77 @@ import org.scalajs.dom.{Element, window}
 import org.scalajs.dom
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 trait Widget extends Logging {
 
   def field:JSONField
+
+  // conversion from and to label
+
+
+  var loaded = false
+
+  /**
+   * Prepare the widget to be used, i.e. load data for lookups. It get executed only the first time
+   */
+  final def load():Unit = if(!loaded) {
+    loaded = true
+    loadWidget()
+  }
+
+  protected def loadWidget():Unit = ()
+
+  /**
+   * Used to provide the user the human-readable representation of the data, mainly used for lookups
+   * @param json data as stored in the database
+   * @param ex
+   * @return user readable data
+   */
+  def toUserReadableData(json:Json)(implicit ex:ExecutionContext):Future[Json] = Future.successful(json)
+
+
+  /** check if the current property is valid */
+  def valid()(implicit ec: ExecutionContext):Future[Boolean] = Future.successful(true)
+
+  /**
+   * Tasform the label in data
+   * @param str
+   * @param ec
+   * @return
+   */
+  def fromLabel(str:String)(implicit ec:ExecutionContext):Future[Json] = Future.successful{ field.`type` match {
+    case JSONFieldTypes.STRING if str.trim.isEmpty && field.nullable => Json.Null
+    case JSONFieldTypes.STRING => Json.fromString(str)
+    case JSONFieldTypes.NUMBER => str.toDoubleOption.flatMap(Json.fromDouble) match {
+      case Some(v) => v
+      case None => {
+        logger.warn(s" $str not parsed as number")
+        Json.Null
+      }
+    }
+    case JSONFieldTypes.INTEGER => str.toIntOption.map(Json.fromInt) match {
+      case Some(v) => v
+      case None => {
+        logger.warn(s" $str not parsed as integer")
+        Json.Null
+      }
+    }
+    case JSONFieldTypes.BOOLEAN => str.toBooleanOption.map(Json.fromBoolean) match {
+      case Some(v) => v
+      case None => {
+        logger.warn(s" $str not parsed as boolean")
+        Json.Null
+      }
+    }
+    case _ => parser.parse(str).toOption match {
+      case Some(value) => value
+      case None => {
+        logger.warn(s" $str not parsed as json")
+        Json.Null
+      }
+    }
+  }}
 
   def jsonToString(json:Json):String = json.string
 
@@ -42,26 +108,41 @@ trait Widget extends Logging {
 
   def strToNumericArrayJson(str:String):Json = str match {
     case "" => Json.Null
-    case _ => str.asJson.asArray.map(_.map(s => strToNumericJson(s.string))).map(_.asJson).getOrElse(Json.Null)
-  }
-
-  protected def show():Modifier
-  protected def edit():Modifier
-
-  def showOnTable():Modifier = frag("Not implemented")
-  def text():ReadableProperty[String] = Property("Not implemented")
-  def editOnTable():Modifier = frag("Not implemented")
-
-  def render(write:Boolean,conditional:ReadableProperty[Boolean]):Modifier = showIf(conditional) {
-    if(write && !field.readOnly) {
-      div(edit()).render
-    } else {
-      div(show()).render
+    case _ => parser.parse(str).toOption.flatMap(_.asArray) match {
+      case Some(value) => value.asJson
+      case None => Try(str.split(",").map(_.toDouble).asJson).toOption.getOrElse(Json.Null)
     }
   }
 
+  protected def show(nested:Binding.NestedInterceptor):Modifier
+  protected def edit(nested:Binding.NestedInterceptor):Modifier
+
+  def showOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
+  def text():ReadableProperty[String] = Property("Not implemented")
+  def json():ReadableProperty[Json] = text().transform(Json.fromString)
+  def editOnTable(nested:Binding.NestedInterceptor):Modifier = frag("Not implemented")
+
+  final def render(write:Boolean,nested:Binding.NestedInterceptor):Modifier = {
+    load()
+    if(write && !field.readOnly) {
+      Seq(edit(nested),attr("data-box-field") := field.name,attr("data-box-class") := "widget")
+    } else {
+      Seq(show(nested),attr("data-box-field") := field.name,attr("data-box-class") := "widget")
+    }
+  }
+
+  final def renderOnTable(write:Boolean,nested:Binding.NestedInterceptor):Modifier = {
+    load()
+    if(write && !field.readOnly) {
+      editOnTable(nested)
+    } else {
+      showOnTable(nested)
+    }
+  }
+
+
   def beforeSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
-  def afterSave(data:Json, metadata:JSONMetadata):Future[Json] = Future.successful(data)
+
   def afterRender():Future[Boolean] = Future.successful(true)
 
   def reload() = {} //recover autoreleased resources
@@ -85,6 +166,8 @@ trait Widget extends Logging {
     r
   }
 
+  def subForm = false
+
 
 }
 
@@ -92,24 +175,27 @@ object Widget{
   def forString(_field:JSONField,str:String):Widget = new Widget {
     override def field: JSONField = _field
 
-    override protected def show(): JsDom.all.Modifier = str
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = str
 
-    override protected def edit(): JsDom.all.Modifier = str
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = str
   }
 }
 
 trait HasData extends Widget {
   def data:Property[Json]
 
-  override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform(_.string)))
+
+
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(data.transform(_.string)))
 
 
   override def text(): ReadableProperty[String] = data.transform(_.string)
+  override def json(): ReadableProperty[Json] = data
 
 }
 
 
-trait IsCheckBoxWithData extends Widget {
+trait IsCheckBoxWithData extends Widget with HasData {
   def data:Property[Json]
 
   private def checkbox2string(p: Json):JsDom.all.Modifier = {
@@ -120,12 +206,12 @@ trait IsCheckBoxWithData extends Widget {
     }
   }
 
-  override protected def show(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = WidgetUtils.showNotNull(data,nested) { p =>
     div(
       checkbox2string(p) , " ", field.title
     ).render
   }
-  override def showOnTable(): JsDom.all.Modifier = WidgetUtils.showNotNull(data) { p =>
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = WidgetUtils.showNotNull(data,nested) { p =>
     div(
       checkbox2string(p)
     ).render
@@ -137,10 +223,10 @@ trait IsCheckBoxWithData extends Widget {
 
 
 
-case class WidgetCallbackActions(saveAndThen: (Json => Unit) => Unit)
+case class WidgetCallbackActions(save: (((JSONID,Json) => Future[Unit]) => Unit), reload: JSONID => Future[Json])
 
 object WidgetCallbackActions{
-  def noAction = new WidgetCallbackActions(_ => ())
+  def noAction = new WidgetCallbackActions(_ => (), _ => Future.successful(Json.Null))
 }
 
 case class WidgetParams(
@@ -160,17 +246,41 @@ case class WidgetParams(
     _allData.bitransform(_.js(str))((fd:Json) => _allData.get.deepMerge(Json.obj((str,fd))))
   }
 
+  def fieldParams:Option[ReadableProperty[Json]] = field.params.map{ staticParams =>
+    if(staticParams.toString().contains(ch.wsl.box.model.shared.Widget.REF)) {
+
+      _allData.transform{ data =>
+        def mapJson(js:Json):Json = js.fold(
+          js,
+          _ => js,
+          _ => js,
+          str => if(str.startsWith(ch.wsl.box.model.shared.Widget.REF)) {
+            data.js(str.stripPrefix(ch.wsl.box.model.shared.Widget.REF))
+          } else js,
+          arr => Json.fromValues(arr.map(mapJson)),
+          obj => obj.mapValues(mapJson).asJson
+        )
+
+        mapJson(staticParams)
+      }
+    } else {
+      Property(staticParams)
+    }
+
+  }
+
 }
 
 object WidgetParams{
-  def simple(prop:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean):WidgetParams = WidgetParams(
+
+  def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,
     field = field,
     metadata = metadata,
-    _allData = prop,
+    _allData = allData,
     children = Seq(),
-    actions = WidgetCallbackActions.noAction,
+    actions = actions,
     public
   )
 }

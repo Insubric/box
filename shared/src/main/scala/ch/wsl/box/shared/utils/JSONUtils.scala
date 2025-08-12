@@ -1,7 +1,8 @@
 package ch.wsl.box.shared.utils
 
+import ch.wsl.box.model.shared.JSONID.BOX_OBJECT_ID
+import ch.wsl.box.model.shared.{FileUtils, JSONDiff, JSONDiffField, JSONDiffModel, JSONField, JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
-import ch.wsl.box.model.shared.{JSONFieldTypes, JSONID}
 import io.circe._
 import io.circe.syntax.EncoderOps
 import scribe.Logging
@@ -17,18 +18,33 @@ object JSONUtils extends Logging {
   val LANG = "::lang"
   val FIRST = "::first"
 
+  def toJs(value:String,field:JSONField):Option[Json] = toJs(value,field.`type`)
+
   def toJs(value:String,typ:String):Option[Json] = {
     Try {
       val json:Json = typ match {
         case JSONFieldTypes.NUMBER => value.toDouble.asJson
-        case JSONFieldTypes.INTEGER => value.toInt.asJson
+        case JSONFieldTypes.INTEGER => value.toLong.asJson
         case JSONFieldTypes.BOOLEAN => Json.fromBoolean(value.toBoolean)
-        case _ => Json.fromString(value)
+        case JSONFieldTypes.JSON => parser.parse(value) match {
+          case Left(value) => throw new Exception(value.message)
+          case Right(value) => value
+        }
+        case JSONFieldTypes.STATIC => Json.Null
+        case JSONFieldTypes.DATE => DateTimeFormatters.date.parse(value).get.asJson
+        case JSONFieldTypes.DATETIME => DateTimeFormatters.timestamp.parse(value).get.asJson
+        case JSONFieldTypes.TIME => DateTimeFormatters.time.parse(value).get.asJson
+        case JSONFieldTypes.STRING => Json.fromString(value)
+        case _ => parser.parse(value) match {
+          case Left(_) => Json.fromString(value)
+          case Right(value) => value
+        }
       }
       json
     } match {
       case Failure(exception) => {
         logger.warn(exception.getMessage)
+        exception.getStackTrace.foreach(x => logger.warn(x.toString))
         None
       }
       case Success(value) => Some(value)
@@ -63,12 +79,25 @@ object JSONUtils extends Logging {
         num => Value.of(num.toString),
         str => Value.of(str),
         arr => Value.fromSeq(arr.map(_.toMustacheValue)),
-        obj => Value.fromMap(obj.toMap.mapValues(_.toMustacheValue).toMap)
+        obj => Value.fromMap{
+          obj.toMap.flatMap{ case (k,v) =>
+            Map(
+              k -> v.toMustacheValue,
+              k + "$str"-> Value.of(v.noSpaces),
+            )
+          }
+        }
       )
     }
 
     //return JSON value of the given field
     def js(field:String):Json = jsOpt(field).getOrElse(Json.Null)
+    def jsOrDefault(field:JSONField):Json = {
+      jsOpt(field.name).orElse{
+        if(field.default.contains("arrayIndex")) None else
+        field.default.flatMap(d => JSONUtils.toJs(d,field.`type`))
+      }.getOrElse(Json.Null)
+    }
     def jsOpt(field:String):Option[Json] = el.hcursor.get[Json](field).right.toOption
 
     def seq(field:String):Seq[Json] = {
@@ -93,14 +122,18 @@ object JSONUtils extends Logging {
       }
     )
 
-    def ID(fields:Seq[String]):Option[JSONID] = {
+    def filterFields(fields:Seq[JSONField]):Json = el.asObject match {
+      case Some(value) => value.filter{case (k,_) => fields.map(_.name).contains(k)}.asJson
+      case None => el
+    }
 
-      if(fields.forall(x => getOpt(x).isDefined)) {
+    def ID(fields:Seq[JSONField]):Option[JSONID] = {
+      if(fields.forall(x => x.nullable || getOpt(x.name).isDefined)) {
 
         val values = fields map { field =>
-          field -> get(field)
+          field.name -> js(field.name)
         }
-        Some(JSONID.fromMap(values.toMap))
+        Some(JSONID.fromMap(values))
       } else None
     }
 
@@ -118,25 +151,170 @@ object JSONUtils extends Logging {
 
     }
 
-    def removeNonDataFields:Json = {
+    def removeNonDataFields(metadata:JSONMetadata,children:Seq[JSONMetadata],keepStatic:Boolean = true):Json = {
+
+      def layoutFields(fields:Seq[Either[String,SubLayoutBlock]]):Seq[String] = {
+        fields.flatMap {
+          case Left(value) => Seq(value)
+          case Right(value) => layoutFields(value.fields)
+        }
+      }
+
+      val shownFields:Seq[String] = metadata.layout.blocks.flatMap(x => layoutFields(x.fields))
 
       val folder = new Json.Folder[Json] {
         override def onNull: Json = Json.Null
         override def onBoolean(value: Boolean): Json = Json.fromBoolean(value)
         override def onNumber(value: JsonNumber): Json = Json.fromJsonNumber(value)
         override def onString(value: String): Json = Json.fromString(value)
-        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields).filterNot{ //remove empty array elements
+        override def onArray(value: Vector[Json]): Json = Json.fromValues(value.map(_.removeNonDataFields(metadata,children, keepStatic)).filterNot{ //remove empty array elements
           _.as[JsonObject] match {
             case Left(_) => false
             case Right(value) => value.keys.isEmpty
           }})
-        override def onObject(value: JsonObject): Json = Json.fromJsonObject{
-          value.filter(!_._1.startsWith("$")).mapValues(_.removeNonDataFields)
+        override def onObject(value: JsonObject): Json = Json.fromFields{
+          value
+            .filter(!_._1.startsWith("$"))
+            .filter(x => keepStatic || metadata.fields.find(_.name == x._1).exists(_.`type` != JSONFieldTypes.STATIC))
+            //.filter(x => shownFields.concat(metadata.keys).contains(x._1))
+            .toMap.map { case (k,v) =>
+              val m = for{
+                field <- metadata.fields.find(_.name == k)
+                child <- field.child
+                childMetadata <- children.find(_.objId == child.objId)
+              } yield childMetadata
+              val obj = v.removeNonDataFields(m.getOrElse(metadata), children, keepStatic)
+              k -> obj
+            }
         }
       }
 
       Json.Null.deepMerge(el).foldWith(folder).deepDropNullValues
 
+    }
+
+    def dropBoxObjectId:Json = el.fold(
+      el,
+      _ => el,
+      _ => el,
+      _ => el,
+      arr => Json.fromValues(arr.map(x => x.dropBoxObjectId )),
+      value => Json.fromFields(value.toMap.filterNot(_._1 == BOX_OBJECT_ID).map{case (k,v) => k -> v.dropBoxObjectId})
+    )
+
+    def merge(metadata: JSONMetadata, children:Seq[JSONMetadata] = Seq())(other:Json):Json = {
+      el.asObject match {
+        case Some(obj) => {
+          val fields = obj.toMap.map{case (k,js) =>
+            metadata.fields.find(_.name == k) match {
+              case Some(field) if field.`type` == JSONFieldTypes.JSON => k -> other.js(k)
+              case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
+                val met = for{
+                  child <- field.child
+                  childMetadata <- children.find(_.objId == child.objId)
+                } yield  childMetadata
+                met match {
+                  case Some(value) => k -> js.merge(value,children)(other.js(k))
+                  case None => k -> js.deepMerge(other.js(k))
+                }
+              }
+              case _ => k -> js.merge(metadata,children)(other.js(k))
+            }
+          }
+          Json.fromFields(fields)
+        }
+        case None => el.deepMerge(other)
+      }
+    }
+
+    def diff(metadata:JSONMetadata, children:Seq[JSONMetadata])(other:Json):JSONDiff = {
+
+
+      def currentId:Option[JSONID] = JSONID.fromBoxObjectId(el,metadata).orElse(JSONID.fromData(el,metadata))
+
+      def modelForField(field:JSONDiffField):Seq[JSONDiffModel] = Seq(JSONDiffModel(metadata.entity,currentId,Seq(field)))
+
+      def _diff(t:Map[String,Json],o:Map[String,Json]):Seq[JSONDiffModel] = {
+        (t.keys ++ o.keys).toSeq.distinct.map{ k =>
+          (k,t.get(k),o.get(k))
+        }.filterNot(x => x._2 == x._3).filter { case (k,_,_) =>
+          metadata.fields.map(_.name).contains(k)
+        }.flatMap{ case (key,currentValue,newValue) =>
+
+          def handleObject(obj:JsonObject):Seq[JSONDiffModel] = currentValue.flatMap(_.asObject) match {
+            case Some(value) => {
+              metadata.fields.find(_.name == key) match {
+                case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
+                  children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId) match {
+                    case Some(childMetadata) => value.asJson.diff(childMetadata,children)(obj.asJson).models
+                    case None => Seq()
+                  }
+
+                }
+                case Some(field) if field.`type` == JSONFieldTypes.FILE => {
+                  if(newValue.exists(nv => FileUtils.isKeep(nv.string))) Seq() else
+                  modelForField(JSONDiffField(key,currentValue,newValue))
+                }
+                case Some(field) => modelForField(JSONDiffField(key,currentValue,newValue))
+                case None => Seq()
+              }
+
+            }
+            case None => modelForField(JSONDiffField(key,currentValue,newValue,insert = true))
+          }
+
+
+          def handleArray(newArray:Vector[Json]):Seq[JSONDiffModel] = currentValue.flatMap(_.asArray) match {
+            case Some(currentArray) => {
+              metadata.fields.find(_.name == key) match {
+                case Some(field) if field.`type` == JSONFieldTypes.CHILD => {
+                  children.find(_.objId == metadata.fields.find(_.name == key).get.child.get.objId) match {
+                    case Some(childMetadata) => {
+                      val c = currentArray.map(js => (JSONID.fromBoxObjectId(js, childMetadata).map(_.asString), js)).toMap
+                      val n = newArray.map(js => (JSONID.fromBoxObjectId(js, childMetadata).map(_.asString), js)).toMap
+                      (c.keys ++ n.keys).toSeq.distinct.flatMap { jsonId =>
+                        c.get(jsonId).asJson.diff(childMetadata, children)(n.get(jsonId).asJson).models
+                      }
+                    }
+                    case None => Seq()
+                  }
+                }
+                case Some(filed) => modelForField(JSONDiffField(key,currentValue,newValue))
+                case None => Seq()
+              }
+
+            }
+            case None => modelForField(JSONDiffField(key,currentValue,newValue,insert = true))
+          }
+
+
+          newValue.map{_.fold(
+            modelForField(JSONDiffField(key,currentValue,newValue)),
+            bool => modelForField(JSONDiffField(key,currentValue,newValue)),
+            num => modelForField(JSONDiffField(key,currentValue,newValue)),
+            str => metadata.fields.find(f => f.name == key && f.`type` == JSONFieldTypes.FILE) match {
+              case Some(_) if FileUtils.isKeep(str) => Seq()
+              case _ => modelForField(JSONDiffField(key,currentValue,newValue))
+            },
+            handleArray,
+            handleObject
+          )}.getOrElse(modelForField(JSONDiffField(key,currentValue,newValue)))
+
+
+        }
+      }
+
+      val fields = (el.asObject,other.asObject) match {
+        case (Some(t),Some(o)) => JSONDiff(_diff(t.toMap,o.toMap))
+        case (None,Some(obj)) => JSONDiff(Seq(JSONDiffModel(metadata.entity,JSONID.fromData(other,metadata),obj.toMap.map{case (key, value) => JSONDiffField(key,None,Some(value),insert = true)}.toSeq)))
+        case (Some(obj),None) => JSONDiff(Seq(JSONDiffModel(metadata.entity,JSONID.fromData(el,metadata),obj.toMap.map{ case (key, value) => JSONDiffField(key,Some(value),Some(Json.Null),delete = true) }.toSeq)))
+        case _ => throw new Exception("Cannot compare non-object json")
+      }
+      JSONDiff(
+        fields.models.groupBy(x => (x.model,x.id)).map{ case ((model,id),childs) =>
+          JSONDiffModel(model,id,childs.flatMap(_.fields))
+        }.toSeq
+      )
     }
 
   }

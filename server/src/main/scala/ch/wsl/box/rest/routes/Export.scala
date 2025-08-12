@@ -13,18 +13,19 @@ import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object Export extends Data with Logging {
+case class Export()(implicit val up: UserProfile,  val mat: Materializer, val ec: ExecutionContext, val system:ActorSystem, val services:Services) extends Data with Logging {
 
   import ch.wsl.box.shared.utils.JSONUtils._
   import JSONSupport._
   import ch.wsl.box.shared.utils.Formatters._
   import io.circe.generic.auto._
 
+  implicit val db = up.db
 
-  override def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext,services:Services): DataMetadataFactory = new ExportMetadataFactory()
+  override def metadataFactory: DataMetadataFactory = new ExportMetadataFactory()
 
 
-  override def data(function: String, params: Json, lang: String)(implicit up: UserProfile, mat:Materializer, ec: ExecutionContext,system:ActorSystem,services:Services): Future[Option[DataContainer]] = {
+  override def data(function: String, params: Json, lang: String): Future[Option[DataContainer]] = {
     implicit val db = up.db
 
     JdbcConnect.function(function, params.as[Seq[Json]].right.get,lang).map{_.map{ dr =>

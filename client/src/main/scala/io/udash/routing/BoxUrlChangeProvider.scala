@@ -1,12 +1,13 @@
 package io.udash.routing
 
+import ch.wsl.box.client.Context
+import ch.wsl.box.client.services.{BrowserConsole, Labels, Navigate}
 import com.avsystem.commons._
 import io.udash.core.Url
-import io.udash.properties.MutableBufferRegistration
+import io.udash.properties.MutableSetRegistration
 import io.udash.utils.Registration
 import org.scalajs.dom
-import org.scalajs.dom.raw.{HTMLAnchorElement, HashChangeEvent}
-import org.scalajs.dom.{Element, Location}
+import org.scalajs.dom.{Element, HTMLAnchorElement, HashChangeEvent, Location, PopStateEvent}
 
 import scala.scalajs.js
 
@@ -14,10 +15,10 @@ import scala.scalajs.js
 final class BoxUrlChangeProvider extends UrlChangeProvider {
 
   import dom.window
-  import org.scalajs.dom.experimental.{URL => JSUrl}
-  import org.scalajs.dom.raw.{MouseEvent, Node, PopStateEvent}
+  import org.scalajs.dom.{URL => JSUrl}
+  import org.scalajs.dom.{MouseEvent, Node}
 
-  private val callbacks: js.Array[Url => Unit] = js.Array()
+  private val callbacks: MLinkedHashSet[Url => Unit] = MLinkedHashSet.empty
 
   @inline
   private def isSameOrigin(loc: Location, url: JSUrl): Boolean =
@@ -67,16 +68,30 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
         }
     })
 
-    window.addEventListener("popstate", (_: PopStateEvent) => callbacks.foreach(_.apply(currentFragment)))
+    window.addEventListener("popstate", (e: PopStateEvent) => {
+      if(Navigate.canGoAway)
+        callbacks.foreach(_.apply(currentFragment))
+      else {
+        val confirm = window.confirm(Labels.navigation.goAway)
+        if(!confirm) {
+          val url = addBase(Context.applicationInstance.currentState.url(Context.applicationInstance).stripPrefix("#/"))
+          window.history.pushState(null: js.Any, "", url)
+        } else {
+          Navigate.enable()
+          callbacks.foreach(_.apply(currentFragment))
+        }
+
+      }
+    })
   }
 
   override def onFragmentChange(callback: Url => Unit): Registration = {
-    callbacks.push(callback)
-    new MutableBufferRegistration(callbacks, callback, Opt.Empty)
+    callbacks += callback
+    new MutableSetRegistration(callbacks, callback, Opt.Empty)
   }
 
   private def baseUri = {
-    val bu = dom.document.asInstanceOf[js.Dynamic].baseURI.asInstanceOf[String]
+    val bu = dom.document.baseURI
     if(bu.contains("//")) {
       bu.split("/").drop(3).toList match {
         case Nil => "/"
@@ -98,8 +113,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
   }
 
   override def changeFragment(url: Url, replaceCurrent: Boolean): Unit = {
-    val _localUrl = addBase(url.value)
-    val localUrl = if(_localUrl.isEmpty) "/" else _localUrl
+    val localUrl = addBase(url.value)
     (null, "", localUrl) |> (
       if (replaceCurrent) window.history.replaceState(_: js.Any, _: String, _: String)
       else window.history.pushState(_: js.Any, _: String, _: String)

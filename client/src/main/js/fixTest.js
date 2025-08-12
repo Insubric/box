@@ -14,7 +14,7 @@ if (typeof window.URL.createObjectURL === 'undefined') {
 }
 
 
-if (typeof this.global.TextEncoder === 'undefined') {
-    const { TextEncoder } = require('util');
-    this.global.TextEncoder = TextEncoder;
-}
+// if (typeof this.global.TextEncoder === 'undefined') {
+//     const { TextEncoder } = require('util');
+//     this.global.TextEncoder = TextEncoder;
+// }

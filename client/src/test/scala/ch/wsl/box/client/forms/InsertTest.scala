@@ -16,13 +16,13 @@ import scala.util.{Failure, Success, Try}
 class InsertTest extends TestBase {
 
   val id = 1
-  val jsonId = JSONID.fromMap(Map("id" -> id.toString))
+  val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
 
   val updatedValue = "test2"
 
   val updatedField = Promise[Assertion]()
 
-  class SBLValues extends Values {
+  class SBLValues extends Values(loggerLevel) {
 
 
     override def get(_id: JSONID): Json = {
@@ -33,7 +33,6 @@ class InsertTest extends TestBase {
     }
 
     override def update(id: JSONID, obj: Json): Json = {
-      println(obj)
 
       Try(obj.get(stringField) shouldBe updatedValue) match {
         case Failure(exception) => updatedField.failure(exception)

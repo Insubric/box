@@ -20,6 +20,8 @@ object UI {
   def logo = ui.lift("logo")
   def title = ui.lift("title")
   def indexTitle = Labels.home.title(ui.get("index.title"))
+  def loginTopHtml = Labels(ui.lift("login.html.top").getOrElse(""))
+  def loginBottomHtml = Labels(ui.lift("login.html.bottom").getOrElse(""))
   def indexHtml = Labels(ui.lift("index.html").getOrElse(""))
   def indexPage = ui.lift("index.page").filterNot(_.trim == "")
   def footerCopyright = ui.lift("footerCopyright")

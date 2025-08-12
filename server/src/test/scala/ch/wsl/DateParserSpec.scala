@@ -1,6 +1,6 @@
 package ch.wsl
 
-import ch.wsl.box.rest.BaseSpec
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.shared.utils.DateTimeFormatters
 
 class DateParserSpec extends BaseSpec {
@@ -14,7 +14,7 @@ class DateParserSpec extends BaseSpec {
   }
 
   "Range" should "be parsed" in {
-    DateTimeFormatters.toTimestamp("2015-01-01 to 2016-01-01").length shouldBe 2
+    DateTimeFormatters.toTimestamp("2015-01-01 → 2016-01-01").length shouldBe 2
   }
 
 }

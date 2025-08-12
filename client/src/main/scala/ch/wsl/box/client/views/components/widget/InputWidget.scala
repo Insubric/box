@@ -1,9 +1,10 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
-import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
+import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.utils.{Shorten, TestHooks}
+import ch.wsl.box.client.views.components.widget.WidgetUtils.LabelAlign
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, WidgetsNames}
 import io.circe.Json
 import io.circe.syntax._
 import io.udash._
@@ -20,8 +21,11 @@ import io.udash.bootstrap.button.UdashButton
 import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.modal.UdashModal.ModalEvent
 import io.udash.bootstrap.utils.BootstrapStyles.Size
-import org.scalajs.dom.{Event, Node}
+import io.udash.bootstrap.utils.UdashIcons
+import org.scalajs.dom.{Event, HTMLInputElement, HTMLTextAreaElement, KeyboardEvent, Node, document}
 import scribe.Logging
+
+import java.util.UUID
 
 object InputWidgetFactory {
 
@@ -43,13 +47,13 @@ object InputWidgetFactory {
 
   object TextArea extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.textarea
-    override def create(params: WidgetParams): Widget = new InputWidget.Textarea(params.field, params.prop)
+    override def create(params: WidgetParams): Widget = new InputWidget.Textarea(params.field, params.prop,params.metadata)
 
   }
 
   object TwoLines extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.twoLines
-    override def create(params: WidgetParams): Widget = new InputWidget.TwoLines(params.field, params.prop)
+    override def create(params: WidgetParams): Widget = new InputWidget.TwoLines(params.field, params.prop,params.metadata)
 
   }
 
@@ -63,7 +67,7 @@ object InputWidget extends Logging {
 
 
   //used in read-only mode
-  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean, modifiers:Seq[Modifier] = Seq()):Binding = WidgetUtils.showNotNull(prop){ p =>
+  private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean,nested:Binding.NestedInterceptor, labelAlign: LabelAlign, modifiers:Seq[Modifier] = Seq()):Binding = nested(WidgetUtils.showNotNull(prop,nested){ p =>
 
     val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
 
@@ -77,14 +81,14 @@ object InputWidget extends Logging {
 
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if(reallyWithLabel) label(field.title) else {},
+      if(reallyWithLabel) label(WidgetUtils.labelAlignment(labelAlign),field.title) else {},
       div(`class` := TestHooks.readOnlyField(field.name) ,mods, bind(prop.transform(_.string))),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
 
-  }
+  })
 
-  private def editMe(field:JSONField, withLabel:Boolean, skipRequiredInfo:Boolean=false, modifiers:Seq[Modifier] = Seq())(inputRenderer:(Seq[Modifier]) => Node):Modifier = {
+  private def editMe(field:JSONField, withLabel:Boolean, labelAlign: LabelAlign, skipRequiredInfo:Boolean=false, modifiers:Seq[Modifier] = Seq())(inputRenderer:(Seq[Modifier]) => Node):Modifier = {
 
     val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
 
@@ -105,7 +109,7 @@ object InputWidget extends Logging {
                         modifiers
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if(reallyWithLabel) WidgetUtils.toLabel(field, skipRequiredInfo) else {},
+      if(reallyWithLabel) WidgetUtils.toLabel(field,labelAlign,skipRequiredInfo) else {},
       if(reallyWithLabel)
         tooltip(inputRenderer(allModifiers))._1
       else
@@ -123,17 +127,28 @@ object InputWidget extends Logging {
 
 
 
-  class Textarea(val field:JSONField, val data: Property[Json]) extends Widget with HasData {
+  class Textarea(val field:JSONField, val data: Property[Json], metadata:JSONMetadata) extends Widget with HasData {
+
+
 
     val modifiers:Seq[Modifier] = Seq()
 
-    override def edit() = editMe(field,true, false, modifiers){ case y =>
+    val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
+
+    override def edit(nested:Binding.NestedInterceptor) = editMe(field,!noLabel, WidgetUtils.LabelLeft, false, modifiers){ case y =>
       val stringModel = Property("")
+      val textAreaId = UUID.randomUUID().toString
+      stringModel.listen{_ =>
+        val el = document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement]
+        if(el != null) {
+          el.style.height = if (el.scrollHeight > el.clientHeight) el.scrollHeight + "px" else "30px";
+        }
+      }
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
-      val mod = y ++ WidgetUtils.toNullable(field.nullable)
+      val mod = y ++ WidgetUtils.toNullable(field.nullable) ++ Seq(id := textAreaId)
       TextArea(stringModel)(mod:_*).render
     }
-    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data,field,true,modifiers))
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(data,field,true,nested,WidgetUtils.LabelLeft,modifiers)
 
     object Status{
       val Closed = "closed"
@@ -153,12 +168,14 @@ object InputWidget extends Logging {
       )).render
     ).render
 
+    val textAreaId = TestHooks.popupField(field.name,metadata.objId)
+
     val body = (x:NestedInterceptor) => {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,strToJson(field.nullable) _))
       div(
         div(
-          TextArea(stringModel)(WidgetUtils.toNullable(field.nullable), width := 100.pct, height := 300.px)
+          TextArea(stringModel)(WidgetUtils.toNullable(field.nullable), width := 100.pct, height := 300.px, id := textAreaId)
         )
       ).render
     }
@@ -170,7 +187,7 @@ object InputWidget extends Logging {
       }), Labels.popup.close,ClientConf.style.boxButton)
     ).render
 
-    modal = UdashModal(modalSize = Some(Size.Large).toProperty)(
+    modal = UdashModal(modalSize = Some(Size.Small).toProperty)(
       headerFactory = Some(header),
       bodyFactory = Some(body),
       footerFactory = Some(footer)
@@ -179,6 +196,7 @@ object InputWidget extends Logging {
     modal.listen { case ev:ModalEvent =>
       ev.tpe match {
         case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
+        case ModalEvent.EventType.Shown => document.getElementById(textAreaId).asInstanceOf[HTMLTextAreaElement].focus()
         case _ => {}
       }
     }
@@ -191,15 +209,15 @@ object InputWidget extends Logging {
       }
     }
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       div(
-        bind(data.transform{ str =>
+        nested(bind(data.transform{ str =>
           if(str.string.length > 40) {
             str.string.take(37) + "..."
           } else if(str.isString) str.string else ""
-        }),
+        })),
         " ",
-        a(fontSize := 20.px, "✎",onclick :+= ((e:Event) => {
+        a(ClientConf.style.editableTableEditButton, i(UdashIcons.FontAwesome.Regular.edit),onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
         })),
@@ -209,9 +227,9 @@ object InputWidget extends Logging {
 
   }
 
-  class TwoLines(field:JSONField, prop: Property[Json]) extends Textarea(field,prop) {
+  class TwoLines(field:JSONField, prop: Property[Json], metadata:JSONMetadata) extends Textarea(field,prop,metadata) {
 
-    override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2)
+    override val modifiers: Seq[JsDom.all.Modifier] = Seq(rows := 2, width := 50.pct)
   }
 
 
@@ -227,13 +245,10 @@ object InputWidget extends Logging {
       case _ => strToJson(field.nullable)(s)
     }
 
-    override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, WidgetUtils.LabelRight,false){ case y =>
       val stringModel = Property("")
 
       data.sync[String](stringModel)(jsonToString _,fromString _)
-
-      data.listen(prop => println(s"Input property change to: $prop"))
-      stringModel.listen(prop => println(s"String model property change to: $prop"))
 
       if(TestHooks.testing) {
         TestHooks.properties += TestHooks.formField(field.name) -> data
@@ -242,19 +257,38 @@ object InputWidget extends Logging {
       field.`type` match {
         case JSONFieldTypes.NUMBER => NumberInput(stringModel)((y ++ Seq(step := "any")):_*).render
         case JSONFieldTypes.INTEGER => NumberInput(stringModel)(y:_*).render
-        case JSONFieldTypes.ARRAY_NUMBER => NumberInput(stringModel)(y++modifiers:_*).render
+        case JSONFieldTypes.ARRAY_NUMBER => TextInput(stringModel)(y++modifiers:_*).render
         case _ => TextInput(stringModel)(y++modifiers:_*).render
       }
     })
-    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data, field, !noLabel))
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showMe(data, field, !noLabel,nested,WidgetUtils.LabelRight))
 
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
-      val mod:Seq[Modifier] = Seq[Modifier](ClientConf.style.simpleInput) ++ WidgetUtils.toNullable(field.nullable)
-      TextInput(stringModel)(mod:_*).render
+
+      val ph = field.placeholder match{
+        case Some(p) if p.nonEmpty => Seq(placeholder := p)
+        case _ => Seq.empty
+      }
+
+      val inputStyle = field.params.flatMap(_.getOpt("style")) match {
+        case Some("bottomBorder") => Seq[Modifier](ClientConf.style.simpleInputBottomBorder)
+        case _ => Seq[Modifier](ClientConf.style.simpleInput)
+      }
+
+
+
+      val mod:Seq[Modifier] = inputStyle ++ WidgetUtils.toNullable(field.nullable) ++ ph
+      field.`type` match {
+        case JSONFieldTypes.NUMBER => nested(NumberInput(stringModel)((mod ++ Seq(step := "any", onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler)):_*)).render
+        case JSONFieldTypes.INTEGER => nested(NumberInput(stringModel)((mod ++ Seq(step := "1", onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler):_*))).render
+        case _ => nested(TextInput(stringModel)(mod:_*)).render
+      }
     }
+
+    override def json(): _root_.io.udash.ReadableProperty[Json] = data
   }
 
   class IntegerDecimal2(val field:JSONField, val data: Property[Json]) extends Widget with HasData {
@@ -281,30 +315,38 @@ object InputWidget extends Logging {
       }
     }
 
-    override def edit():JsDom.all.Modifier = (editMe(field, !noLabel, false){ case y =>
+    override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, WidgetUtils.LabelRight,false){ case y =>
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(toString _,fromString _))
-      NumberInput(stringModel)((y ++ Seq(step := "0.01")):_*).render
+      nested(NumberInput(stringModel)((y ++ Seq(step := "0.01")):_*)).render
     })
 
-    override protected def show(): JsDom.all.Modifier = autoRelease(showMe(data.transform{ js =>
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(data.transform{ js =>
       if(js.isNumber) {
         js.as[Double].toOption.map(x => "%.2f".format(x / 100.0).asJson).getOrElse(Json.Null)
       } else js
-    }, field, !noLabel))
+    }, field, !noLabel,nested,WidgetUtils.LabelRight)
 
 
-    override def editOnTable(): JsDom.all.Modifier = {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       val stringModel = Property("")
+
+      val ph = field.placeholder match{
+        case Some(p) if p.nonEmpty => Seq(placeholder := p)
+        case _ => Seq.empty
+      }
+
       autoRelease(data.sync[String](stringModel)(toString _,fromString _))
-      NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01").render
+      nested(NumberInput(stringModel)(ClientConf.style.simpleInput,step := "0.01",ph)).render
     }
 
-    override def showOnTable(): JsDom.all.Modifier = autoRelease(bind(data.transform{ js =>
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(data.transform{ js =>
       if(js.isNumber) {
         js.as[Double].toOption.map(x => "%.2f".format(x / 100.0)).getOrElse("")
       } else ""
     }))
+
+    override def json(): _root_.io.udash.ReadableProperty[Json] = data
 
   }
 

@@ -4,6 +4,7 @@ import ch.wsl.box.client.services.Labels
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
 import io.circe.Json
+import io.udash.bindings.modifiers.Binding
 import scalatags.JsDom
 import scalatags.JsDom.all._
 import scalacss.ScalatagsCss._
@@ -28,7 +29,7 @@ case class TitleWidget(level:Int) extends ComponentWidgetFactory {
 
     val _text:String = field.label.getOrElse(Labels(field.name))
 
-    override protected def show(): JsDom.all.Modifier = level match {
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = level match {
       case 1 => h1(_text)
       case 2 => h2(_text)
       case 3 => h3(_text)
@@ -36,7 +37,11 @@ case class TitleWidget(level:Int) extends ComponentWidgetFactory {
       case 5 => h5(_text)
     }
 
-    override protected def edit(): JsDom.all.Modifier = show()
+    override def editOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = div(_text)
+
+    override def showOnTable(nested: Binding.NestedInterceptor): JsDom.all.Modifier = div(_text)
+
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested)
   }
 }
 

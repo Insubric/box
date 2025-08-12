@@ -2,27 +2,28 @@ package ch.wsl.box.information_schema
 
 import ch.wsl.box.jdbc.{FullDatabase, PostgresProfile, UserDatabase}
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import PgInformationSchemaSlick._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object PgInformationSchema{
-  def hasDefault(schema:String,table:String,column:String)(implicit ex:ExecutionContext):DBIO[Boolean] = {
-    pgColumns
-      .filter(e => e.table_name === table && e.table_schema === schema && e.column_name === column)
-      .map(x => x.column_default.nonEmpty).result.map(_.headOption.contains(true))
-  }
-}
+
 /**
   * Created by andreaminetti on 15/03/16.
   */
-class PgInformationSchema(schema:String, table:String, excludeFields:Seq[String]=Seq())(implicit ec:ExecutionContext) {
+class PgInformationSchema(box_schema:String, schema:String, table:String, excludeFields:Seq[String]=Seq())(implicit ec:ExecutionContext) {
 
 
   private val FOREIGNKEY = "FOREIGN KEY"
   private val PRIMARYKEY = "PRIMARY KEY"
 
 
+  val pis = new PgInformationSchemaSlick(box_schema)
+  import pis._
+
+  def hasDefault(column:String):DBIO[Boolean] = {
+    pgColumns
+      .filter(e => e.table_name === table && e.table_schema === schema && e.column_name === column)
+      .map(x => x.column_default.nonEmpty).result.map(_.headOption.contains(true))
+  }
 
   case class PrimaryKey(keys: Seq[String], constraintName: String) {
     def boxKeys = keys
@@ -73,31 +74,33 @@ class PgInformationSchema(schema:String, table:String, excludeFields:Seq[String]
         .map(x => PrimaryKey(x._1, x._2.headOption.getOrElse("")))   //as constraint_name take only first element (should be the same)
   }
 
-  private val fkQ1 = for{
-    constraint <- pgConstraints if constraint.table_name === table && constraint.constraint_type === FOREIGNKEY
-    constraintBind <- pgConstraintsReference if constraint.constraint_name === constraintBind.constraint_name
-    referencingConstraint <- pgConstraints if referencingConstraint.constraint_name === constraintBind.referencing_constraint_name
-  } yield (constraintBind,referencingConstraint)
-
-  private def fkQ2(c:PgConstraintReferences#TableElementType,ref:PgConstraints#TableElementType) = for{
-    usageRef <- pgContraintsUsage if usageRef.constraint_name === c.constraint_name && usageRef.table_name === ref.table_name
-    usage <- pgKeyUsage if usage.constraint_name === c.constraint_name && usage.table_name === table
-  } yield (usage.column_name,usageRef.column_name)
 
 
+  def findFk(field:String):DBIO[Option[ForeignKey]] = {
+    sql"""
+    SELECT
+        array_agg(kcu.column_name::text) as keys,
+        array_agg(rcu.column_name::text) AS "referencingKeys",
+        rcu.table_name::text as "referencingTable",
+        rc.constraint_name::text as "constraintName"
 
-  lazy val fks:DBIO[Seq[ForeignKey]] =  {
+    FROM information_schema.referential_constraints rc
+             LEFT JOIN information_schema.key_column_usage kcu
+                       ON rc.constraint_catalog = kcu.constraint_catalog
+                           AND rc.constraint_schema = kcu.constraint_schema
+                           AND rc.constraint_name = kcu.constraint_name
+             LEFT JOIN information_schema.key_column_usage rcu -- referenced columns
+                       ON rc.unique_constraint_catalog = rcu.constraint_catalog
+                           AND rc.unique_constraint_schema = rcu.constraint_schema
+                           AND rc.unique_constraint_name = rcu.constraint_name
+                           AND rcu.ordinal_position = kcu.position_in_unique_constraint
+    where kcu.table_name = $table and rc.constraint_schema= $schema
+    group by rc.constraint_schema, rc.constraint_name, kcu.table_name, rcu.table_name;
 
-    fkQ1.result.flatMap { references =>
-      DBIO.sequence(references.map { case (c, ref) =>
-        fkQ2(c,ref).result.map{ keys =>
-          ForeignKey(keys.map(_._1),keys.map(_._2),ref.table_name, c.constraint_name)
-        }
-      })
+         """.as[(Seq[String],Seq[String],String,String)].map{ fk =>
+      val r = fk.find(_._1.exists(k => k == field)).map(x => ForeignKey(x._1,x._2,x._3,x._4))
+      r
     }
-
   }
-
-  def findFk(field:String):DBIO[Option[ForeignKey]] = fks.map(_.find(_.keys.exists(_ == field)))
 
 }

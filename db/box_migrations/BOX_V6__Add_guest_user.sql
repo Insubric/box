@@ -1,1 +1,1 @@
-alter table box.form add guest_user text;
+alter table form add guest_user text;

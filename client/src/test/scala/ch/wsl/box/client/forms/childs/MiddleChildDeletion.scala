@@ -10,7 +10,7 @@ import io.circe.syntax._
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
 import scribe.Level
-import typings.std.HTMLButtonElement
+import ch.wsl.typings.std.HTMLButtonElement
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -58,7 +58,7 @@ class MiddleChildDeletion extends TestBase {
     )
   )
 
-  class MCDValues extends Values{
+  class MCDValues extends Values(loggerLevel){
 
     var firstGet = true
 
@@ -73,7 +73,7 @@ class MiddleChildDeletion extends TestBase {
 
 
     override def update(id: JSONID, obj: Json): Json = {
-      assert(expectedData == obj.removeNonDataFields)
+      assert(expectedData == obj.removeNonDataFields(metadata,Seq(childMetadata,subchildMetadata)))
 
       obj
     }
@@ -81,7 +81,7 @@ class MiddleChildDeletion extends TestBase {
     override def metadata: JSONMetadata = JSONMetadata.simple(values.id1,EntityKind.FORM.kind,parentName,"it",Seq(
       JSONField.number("id",nullable = false),
       JSONField.string("parent_text"),
-      JSONField.child(childName,values.id2,"id","parent_id").withWidget(WidgetsNames.tableChild)
+      JSONField.child(childName,values.id2,Seq("id"),Seq("parent_id")).withWidget(WidgetsNames.tableChild)
     ),Seq("id"))
 
 
@@ -101,8 +101,8 @@ class MiddleChildDeletion extends TestBase {
 
   "Middle child" should "be deleted" in {
 
-    val secondChildOpenButton = TestHooks.tableChildButtonId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
-    val secondChildDeleteButton = TestHooks.deleteChildId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", "2")))))
+    val secondChildOpenButton = TestHooks.tableChildButtonId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", Json.fromInt(2))))))
+    val secondChildDeleteButton = TestHooks.deleteChildId(values.id2,Some(JSONID(Vector(JSONKeyValue("id", Json.fromInt(2))))))
 
     for {
       _ <- Main.setupUI()

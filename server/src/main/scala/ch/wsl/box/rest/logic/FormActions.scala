@@ -11,35 +11,33 @@ import io.circe.{Json, JsonNumber, _}
 import io.circe.syntax._
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.routes.enablers.CSVDownload
-import ch.wsl.box.rest.utils.{Timer, UserProfile}
+import ch.wsl.box.rest.utils.{BoxSession, Timer, UserProfile}
 import scribe.Logging
 import slick.basic.DatabasePublisher
 import slick.lifted.Query
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection, Geometry}
 import ch.wsl.box.rest.html.Html
 import ch.wsl.box.rest.metadata.MetadataFactory
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.DateTimeFormatters
-import io.circe.Json.JNumber
+import io.circe.Json.{JNumber, Null}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class ReferenceKey(localField:String,remoteField:String,value:String)
-case class Reference(association:Seq[ReferenceKey])
-
 case class FormActions(metadata:JSONMetadata,
-                       jsonActions: String => TableActions[Json],
+                       registry: RegistryInstance,
                        metadataFactory: MetadataFactory
-                      )(implicit db:FullDatabase, mat:Materializer, ec:ExecutionContext,val services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
+                      )(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext,val services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
 
   import ch.wsl.box.shared.utils.JSONUtils._
 
 
 
-  val jsonAction = jsonActions(metadata.entity)
+  val jsonAction = registry.actions(metadata.entity)
+  val fkTransform = new FKFilterTransfrom(Registry())
 
 
 
@@ -53,28 +51,59 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  private def queryForm(query: JSONQuery):JSONQuery = metadata.query.map{ defaultQuery =>
-    JSONQuery(
-      filter = defaultQuery.filter ++ query.filter,
-      sort = query.sort ++ defaultQuery.sort,
-      paging = query.paging,
-      lang = defaultQuery.lang
-    )
-  }.getOrElse(query)
+
+  private def queryForm(query: JSONQuery):DBIO[JSONQuery] = {
+    val base = metadata.query.map{ defaultQuery =>
+      JSONQuery(
+        filter = defaultQuery.filter ++ query.filter,
+        sort = query.sort ++ defaultQuery.sort,
+        paging = query.paging
+      )
+    }.getOrElse(query)
+    fkTransform.preFilter(metadata,base.filter).map{ fil => base.copy(filter = fil.filters.toList)}
+  }
+
 
   private def streamSeq(query:JSONQuery):DBIO[Seq[Json]] = {
 
-    jsonAction.find(queryForm(query)).flatMap{ rows =>
-      DBIO.sequence(rows.map(expandJson))
-    }
+    for{
+      q <- queryForm(query)
+      rows <- jsonAction.findSimple(q)
+      result <- DBIO.sequence(rows.map(expandJson))
+    } yield result
 
   }
 
 
+  override def distinctOn(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = jsonAction.distinctOn(fields, query)
+
+  override def findSimple(query:JSONQuery): DBIO[Seq[Json]] = {
+
+    for{
+      q <- queryForm(query)
+      rows <- jsonAction.findSimple(q)
+      result <- DBIO.sequence(rows.map(expandJson))
+    } yield result
+
+  }
+
+
+  override def fetchFields(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = for{
+    q <- queryForm(query)
+    result <- jsonAction.fetchFields(fields,q)
+  } yield result
+
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]] = for {
+    q <- queryForm(query)
+    result <- jsonAction.fetchGeom(properties,field, q)
+  } yield result
+
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
-    metadata.view.map(v => Registry().actions(v)) match {
-      case None => streamSeq(query)
-      case Some(v) => v.find(query)
+    queryForm(query).flatMap { q =>
+      metadata.view.map(v => Registry().actions(v)) match {
+        case None => streamSeq(q)
+        case Some(v) => v.findSimple(q)
+      }
     }
   }
 
@@ -104,73 +133,76 @@ case class FormActions(metadata:JSONMetadata,
 
 
 
-  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(queryForm(query)).map{ rows =>
+  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(query).map{ rows =>
+
+    val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
 
     val data: Seq[Seq[Json]] = rows.map { row =>
-      metadata.exportFields.map { f =>
-        listRenderer(row, lookupElements, dropHtml)(f)
+      fields.map { f =>
+        listRenderer(row, lookupElements, dropHtml)(f.name)
       }
     }
-    val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
+    val keys = rows.map(row => JSONID.fromBoxObjectId(row,metadata).map(_.asString))
+
     val geomColumn = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
-    DataResultTable(fields.map(_.title),fields.map(_.`type`),data,geomColumn.map{ case f =>
-      f.name -> rows.flatMap{ row => row.js(f.name).as[Geometry].toOption }
+    DataResultTable(fields.map(_.title),fields.map(_.`type`),data,keys,geomColumn.map{ case f =>
+      f.name -> rows.map{ row => row.js(f.name).as[Geometry].toOption }
     }.toMap)
   }
 
   private def fkDataComplete(tabularFieldsKey:Seq[String], rows:Seq[Json]): DBIO[Option[Seq[(String, Seq[Json])]]] = {
     val tabularFields = metadata.fields.filter(x => tabularFieldsKey.contains(x.name))
-    val lookupFields = tabularFields.filter(_.lookup.isDefined)
+    val lookupFields = tabularFields.filter(_.remoteLookup.isDefined)
 
     DBIO.sequence(lookupFields.map{ lf =>
-      val localFields = lf.lookup.get.map.localValueProperty.split(",").toSeq.map(_.trim)
-      val foreignFields = lf.lookup.get.map.valueProperty.split(",").toSeq.map(_.trim)
+      val localFields = lf.remoteLookup.get.map.localKeysColumn
+      val foreignFields = lf.remoteLookup.get.map.foreign.keyColumns
 
-      val data = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose
+
+      val data: Seq[Seq[String]] = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose.map(_.distinct)
       val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
       val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
-      Registry().actions(lf.lookup.get.lookupEntity).find(fkQuery).map{ fk =>
-        lf.lookup.get.lookupEntity -> fk
+      Registry().actions(lf.remoteLookup.get.lookupEntity).findSimple(fkQuery).map{ fk =>
+        lf.remoteLookup.get.lookupEntity -> fk
       }
     }).map(x => Some(x))
   }
 
   private def noFkData = DBIO.successful(None)
 
+  override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
+    for{
+      result <- DBIO.sequence(request.fields.map(r => fkTransform.singleLookup(metadata,r, request.query)))
+    } yield result
+  }
 
-  def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false):DBIO[Seq[Json]] = {
 
-    _list(queryForm(query)).flatMap{ rows =>
-      val fkData = if(resolveLookup) fkDataComplete(metadata.tabularFields,rows) else noFkData
+  private def __list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Seq[(String,Json)]]] = {
+
+    _list(query).flatMap{ rows =>
+      val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
 
       fkData.map { lookupElements =>
         rows.map { row =>
-          val columns = metadata.tabularFields.map { f =>
+          val columns = fields(metadata).map { f =>
             (f, listRenderer(row, lookupElements.map(_.toMap), dropHtml)(f))
           }
 
-          Json.fromFields(columns)
+          columns
         }
       }
     }
   }
 
+  def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Json]] = __list(query,resolveLookup, dropHtml).map{ rows =>
+    rows.map(Json.fromFields)
+  }
+
 
   def csv(query:JSONQuery,resolveLookup:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
 
-    import kantan.csv._
-    import kantan.csv.ops._
-
-    _list(queryForm(query)).flatMap { rows =>
-
-      val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
-
-      fkData.map{lookupElements =>
-        val csvRows = rows.map { json =>
-          fields(metadata).map(listRenderer(json, lookupElements.map(_.toMap))).map(_.string)
-        }
-        CSVTable(title = metadata.label, header = Seq(), rows = csvRows, showHeader = false)
-      }
+    __list(query,resolveLookup,false,fields).map{ rows =>
+        CSVTable(title = metadata.label, header = Seq(), rows = rows.map(_.map(_._2.string)), showHeader = false)
     }
   }
 
@@ -192,6 +224,22 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
+  def attachEmptyFields(form: JSONMetadata)(jsonToUpdate: Json): Json = {
+
+    val emptyFields = form.fields.flatMap {f =>
+      (f.child,f.condition) match {
+        case (Some(child),Some(condition)) if child.hasData && !condition.check(jsonToUpdate) => {
+          Some(f.name -> Json.fromValues(Seq()))
+        }
+        case _ => None
+      }
+    }
+
+    //jsonToUpdate.deepMerge(Json.fromFields(emptyFields))
+
+    Json.fromFields(emptyFields).deepMerge(jsonToUpdate)
+  }
+
 
 
   def attachParentId(jsonToInsert:Seq[Json],parentJson:Json, child:Child):Seq[Json] = {
@@ -204,25 +252,45 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json]),alwaysApply:Boolean = false): DBIO[Seq[(String,Json)]] = {
+  private def jsonIdDBFields(metadata:JSONMetadata,fields:Seq[JSONField]):Seq[JSONField] = fields.map{ field =>
+    val newField = registry.fields.field(metadata.entity, field.name) match {
+      case Some(col) => {
+        if(col.nullable != field.nullable)
+          field.copy(nullable = col.nullable)
+        else field
+      }
+      case _ => field
+    }
+    newField
+  }
+
+  def subAction[T](e:Json, action: FormActions => ((Option[JSONID],Json) => DBIO[Json])): DBIO[Seq[(String,Json)]] = {
 
     logger.debug(s"Applying sub action to $e")
 
-    val result = metadata.fields.filter(_.child.isDefined).filter { field =>
-      field.condition match {
-        case Some(condition) => alwaysApply || condition.check(e.js(condition.conditionFieldId))
-        case None => true
+
+    val subFields = metadata.fields
+      .filter(f => f.child.exists(_.hasData) && !f.readOnly)
+      .filter{f =>
+        f.condition.map(_.check(e)) match {
+          case Some(true) => true
+          case Some(false) => f.params.exists(_.js("deleteWhenHidden") == Json.True)
+          case None => true
+        }
       }
-    }.map{ field =>
+
+    val result = subFields.map{ field =>
       for {
-        form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
+        form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
         dbSubforms <- getChild(e,form,field.child.get)
-        subs = e.seq(field.name)
+        subs =  e.seq(field.name)
         subJsonWithIndexs = attachArrayIndex(subs,form)
-        subJson = attachParentId(subJsonWithIndexs,e,field.child.get)
-        deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
+        subJsonWithNegativeConditionFields = subJsonWithIndexs.map(attachEmptyFields(form))
+        subJson = attachParentId(subJsonWithNegativeConditionFields,e,field.child.get)
+         deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
-          action(FormActions(form,jsonActions,metadataFactory))(json.ID(form.keys),json)
+          val id = json.ID(jsonIdDBFields(form,form.keyFields))
+          action(FormActions(form,registry,metadataFactory))(id,json)
         })
       } yield field.name -> result.asJson
     }
@@ -242,12 +310,12 @@ case class FormActions(metadata:JSONMetadata,
    * @return number of deleted rows
    */
   def deleteChild(child:JSONMetadata, receivedJson:Seq[Json], dbJson:Seq[Json]): Seq[DBIO[Int]] = {
-    val receivedID = receivedJson.flatMap(_.ID(child.keys))
-    val dbID = dbJson.flatMap(_.ID(child.keys))
+    val receivedID = receivedJson.flatMap(_.ID(jsonIdDBFields(child,child.keyFields)))
+    val dbID = dbJson.flatMap(_.ID(jsonIdDBFields(child,child.keyFields)))
     logger.debug(s"child: ${child.name} received: ${receivedID.map(_.asString)} db: ${dbID.map(_.asString)}")
     dbID.filterNot(k => receivedID.contains(k)).map{ idsToDelete =>
       logger.info(s"Deleting child ${child.name}, with key: $idsToDelete")
-      jsonActions(child.entity).delete(idsToDelete)
+      registry.actions(child.entity).delete(idsToDelete)
     }
   }
 
@@ -255,7 +323,7 @@ case class FormActions(metadata:JSONMetadata,
   def delete(id:JSONID) = {
     for{
       json <- getById(id)
-      subs <- subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json),true)
+      subs <- subAction(json.get,x => (id,json) => x.deleteSingle(id.get,json))
       current <- deleteSingle(id,json.get)
     } yield 1 + subs.length
   }
@@ -264,37 +332,53 @@ case class FormActions(metadata:JSONMetadata,
     inserted <- jsonAction.insert(e)
     childs <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
       for {
-        metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang)))
+        metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
         rows = attachArrayIndex(e.seq(field.name),metadata)
         //attach parent id
         rowsWithId = rows.map{ row =>
           field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
         }
-        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,jsonActions,metadataFactory).insert(row)))
+        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,registry,metadataFactory).insert(row)))
       } yield field.name -> result.asJson
     })
   } yield inserted.deepMerge(Json.fromFields(childs))
 
 
+  private def dbTableFields:Set[String] = registry.fields.tableFields(metadata.entity).keySet
 
   private def insertNullForMissingFields(json:Json):Json = {
-    val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored).map(x => x.name -> Json.Null))
+    val allNullFields = Json.fromFields(metadata.fields.filter(_.isDbStored(dbTableFields)).map(x => x.name -> Json.Null))
     allNullFields.deepMerge(json)
   }
 
-  def update(id:JSONID, e:Json):DBIO[Json] = {
-    for{
-      result <- jsonAction.update(id,insertNullForMissingFields(e))
-      childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
-    } yield result.deepMerge(Json.fromFields(childs))
+  private def updateOneLevel(id:JSONID, e:Json):DBIO[Json] = {
+    logger.info(s"UPDATE BY ID $id")
+
+    val dataWithoutChilds = e.filterFields(metadata.fields.filter(f => f.isDbStored(dbTableFields) && f.`type` != JSONFieldTypes.CHILD))
+
+    for {
+      current <- jsonAction.getById(id)
+      newRow <- current match {
+        case Some(value) => DBIO.successful(value)
+        case None => jsonAction.insert(dataWithoutChilds)
+      }
+      diff = newRow.diff(JSONMetadata.layoutOnly(metadata), Seq())(dataWithoutChilds)
+      result <- jsonAction.updateDiff(diff)
+    } yield result.orElse(current).getOrElse(dataWithoutChilds)
   }
 
-  def updateIfNeeded(id:JSONID, e:Json) = {
+  def update(id:JSONID, e:Json):DBIO[Json] = {
+
+    val _mapData = e.filterFields(metadata.fields.filter(_.map.isDefined))
+    val mapData =  _mapData.asObject.toList.flatMap(_.values).flatMap(_.as[FeatureCollection].toOption)
 
     for{
-      result <- jsonAction.updateIfNeeded(id,insertNullForMissingFields(e))
-      childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records
-    } yield result.deepMerge(Json.fromFields(childs))
+      result <- updateOneLevel(id,insertNullForMissingFields(e))
+      childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
+      _ <- DBIO.sequence(mapData.flatMap(_.features).map(MapActions.save))
+    } yield result
+      .filterFields(metadata.fields) // don't expose data not contained in the current form
+      .deepMerge(Json.fromFields(childs))
   }
 
   def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[Json] = {
@@ -314,11 +398,16 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
+
+
+
+  override def updateDiff(diff: JSONDiff):DBIO[Option[Json]] = ???
+
   private def createQuery(entity:Json, child: Child):JSONQuery = {
     val parentFilter = for{
       m <- child.mapping
     } yield {
-      JSONQueryFilter(m.child,Some(Filter.EQUALS),entity.get(m.parent))
+      JSONQueryFilter.withValue(m.child,Some(Filter.EQUALS),entity.get(m.parent))
     }
 
     val filters = parentFilter ++ child.childQuery.toSeq.flatMap(_.filter)
@@ -330,7 +419,7 @@ case class FormActions(metadata:JSONMetadata,
 
   private def getChild(dataJson:Json, metadata:JSONMetadata, child:Child):DBIO[Seq[Json]] = {
     val query = createQuery(dataJson,child)
-    FormActions(metadata,jsonActions,metadataFactory).streamSeq(query)
+    FormActions(metadata,registry,metadataFactory).findSimple(query)
   }
 
   private def expandJson(dataJson:Json):DBIO[Json] = {
@@ -339,20 +428,21 @@ case class FormActions(metadata:JSONMetadata,
       {(field.`type`,field.child) match {
         case ("static",_) => DBIO.successful(field.name -> field.default.asJson)  //set default value
         case (_,None) => DBIO.successful(field.name -> dataJson.js(field.name))        //use given value
-        case (_,Some(child)) => for{
-          form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(child.objId,metadata.lang)))
+        case (_,Some(child)) if child.hasData => for{
+          form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(child.objId,metadata.lang,session.user)))
           data <- getChild(dataJson,form,child)
         } yield {
           logger.info(s"expanding child ${field.name} : ${data.asJson}")
           field.name -> data.asJson
         }
+        case (_,_) => DBIO.successful(field.name -> Json.Null)
       }}
     }
-    DBIO.sequence(values).map(_.toMap.asJson)
+    DBIO.sequence(values).map(x => JSONID.attachBoxObjectId(x.toMap.asJson,metadata.keys))
   }
 
 
-  override def find(query: JSONQuery) = jsonAction.find(queryForm(query))
+
 
   override def count() = metadata.query match {
     case Some(value) => jsonAction.count(value).map(JSONCount)
@@ -360,32 +450,8 @@ case class FormActions(metadata:JSONMetadata,
   }
   override def count(query: JSONQuery) = jsonAction.count(query)
 
-  override def ids(query: JSONQuery): DBIO[IDs] = {
-    val q = queryForm(query)
-    val fut:DBIO[(Seq[Json],Int)] = metadata.view.map(v => Registry().actions(v)) match {
-      case None => for {
-        data <- jsonAction.find(q)
-        n <- jsonAction.count(q)
-      } yield (data, n)
-      case Some(v) => for {
-        data <- v.find(q)
-        n <- v.count(q)
-      } yield (data, n)
-    }
-
-    fut.map { case (data:Seq[Json], n:Int) =>
-      val last = q.paging match {
-        case None => true
-        case Some(paging) => (paging.currentPage * paging.pageLength) >= n
-      }
-      IDs(
-        last,
-        q.paging.map(_.currentPage).getOrElse(1),
-        data.flatMap{ x => JSONID.fromData(x, metadata).map(_.asString) },
-        n
-      )
-    }
-
-
-  }
+  override def ids(query: JSONQuery,keys:Seq[String]): DBIO[IDs] = for{
+    q <- queryForm(query)
+    result <- registry.actions(metadata.view.getOrElse(metadata.entity)).ids(q,keys)
+  } yield result
 }

@@ -1,11 +1,15 @@
 package ch.wsl.box.client.views.components.widget
 
+import ch.wsl.box.client.views.components.widget.admin.{FormParamLayoutWidget, LayoutWidget, QueryBuilderWidget}
+import ch.wsl.box.client.views.components.widget.array.{ChoicesWidget, MultiWidget, TwoListWidget}
 import ch.wsl.box.client.views.components.widget.boolean.SelectBooleanWidget
 import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory, TrasparentChild}
+import ch.wsl.box.client.views.components.widget.geo.{MapChild, MapPointWidget, OlMapListWidget, OlMapWidget}
+import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, Spreadsheet, TableChildFactory, TrasparentChild}
 import ch.wsl.box.client.views.components.widget.geo.{MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.labels.{HtmlWidget, LinkedFormWidget, LookupLabelWidget, StaticTextWidget, TitleWidget}
-import ch.wsl.box.client.views.components.widget.lookup.{PopupWidgetFactory, SelectWidgetFactory}
-import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget}
+import ch.wsl.box.client.views.components.widget.lookup.{MultipleLookupWidget, PopupSelectWidget, SelectWidgetFactory}
+import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget, UUIDWidget}
 import ch.wsl.box.model.shared.WidgetsNames
 import scribe.Logging
 
@@ -22,9 +26,10 @@ object WidgetRegistry extends Logging {
 
     HiddenWidget,
     LangWidget,
+    UUIDWidget,
     DropdownLangWidget,
 
-    PopupWidgetFactory,
+    PopupSelectWidget,
     SelectWidgetFactory,
 
     LookupLabelWidget,
@@ -49,22 +54,40 @@ object WidgetRegistry extends Logging {
     EditableTable,
     LookupFormWidget,
     LinkedFormWidget,
+    Spreadsheet,
 
     FileSimpleWidgetFactory,
-    FileWidgetFactory,
 
     OlMapWidget,
     OlMapListWidget,
     MapPointWidget,
+    MapChild,
 
     MonacoWidget,
     RichTextEditorWidgetFactory(RichTextEditorWidget.Minimal),
     RichTextEditorWidgetFactory(RichTextEditorWidget.Full),
+    RichTextPopup,
     RedactorFactory,
 
     DynamicWidget,
 
-    ExecuteFunctionWidget
+    ExecuteFunctionWidget,
+
+    SliderWidget,
+
+    RadioWidget,
+
+    ChoicesWidget,
+    MultipleLookupWidget,
+    TwoListWidget,
+
+    MultiWidget,
+
+    PopupWidget,
+
+    LayoutWidget,
+    QueryBuilderWidget,
+    FormParamLayoutWidget
 
   )
 

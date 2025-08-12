@@ -3,13 +3,15 @@ package ch.wsl.box.rest
 
 import ch.wsl.box.jdbc.FullDatabase
 import ch.wsl.box.rest.logic.FormActions
-import ch.wsl.box.model.shared.{JSONID, JSONKeyValue}
+import ch.wsl.box.model.shared.{CurrentUser, JSONID, JSONKeyValue}
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.testmodel.EntityActionsRegistry
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.fixtures.{AppManagedIdFixtures, DbManagedIdFixtures, FormFixtures}
-import ch.wsl.box.rest.utils.UserProfile
+import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import _root_.io.circe.Json
+import ch.wsl.box.BaseSpec
+import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils._
 import org.scalatest.Assertion
@@ -24,18 +26,19 @@ class InsertFormSpec extends BaseSpec {
   val dbManagedLayers = DbManagedIdFixtures.layers.mapValues(stringToJson)
 
 
-  val id = JSONID(Vector(JSONKeyValue("id","1")))
+  val id = JSONID(Vector(JSONKeyValue("id",Json.fromInt(1))))
 
 
 
   def insert(formName:String,id:Option[JSONID],json:Json)(implicit services:Services) = {
 
+    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
     implicit val up = UserProfile(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
-      form <- up.db.run(FormMetadataFactory().of(formName,"it"))
-      actions = FormActions(form,EntityActionsRegistry.apply,FormMetadataFactory())
+      form <- up.db.run(FormMetadataFactory.of(formName,"en",session.user))
+      actions = FormActions(form,Registry(),FormMetadataFactory)
       i <- up.db.run(actions.insert(json).transactionally)
       result <- up.db.run(actions.getById(JSONID.fromData(i,form).get))
     } yield (i,result)
@@ -50,9 +53,9 @@ class InsertFormSpec extends BaseSpec {
       _ <- new FormFixtures("app_").insertForm(up.db)
       (inserted,result) <- insert("app_parent",Some(id),json)
     } yield {
-      inserted shouldBe result.get
-      inserted shouldBe json
-      result.get shouldBe json
+      inserted.dropBoxObjectId shouldBe result.get.dropBoxObjectId
+      inserted.dropBoxObjectId shouldBe json
+      result.get.dropBoxObjectId shouldBe json
     }
   }
 
@@ -65,9 +68,9 @@ class InsertFormSpec extends BaseSpec {
       _ <- new FormFixtures("db_").insertForm(up.db)
       (inserted,result) <- insert("db_parent",None,json)
     } yield {
-      inserted shouldBe result.get
-      assertion(inserted)
-      assertion(result.get)
+      inserted.dropBoxObjectId shouldBe result.get.dropBoxObjectId
+      assertion(inserted.dropBoxObjectId)
+      assertion(result.get.dropBoxObjectId)
     }
   }
 

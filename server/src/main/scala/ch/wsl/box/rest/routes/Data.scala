@@ -22,9 +22,10 @@ import io.circe.syntax._
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{DataResult, DataResultObject, DataResultTable}
+import ch.wsl.box.rest.io.geotools.ShapeFileWriter
 import ch.wsl.box.rest.metadata.DataMetadataFactory
 import ch.wsl.box.rest.io.pdf.Pdf
-import ch.wsl.box.rest.io.shp.ShapeFileWriter
+import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.services.Services
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,29 +40,44 @@ case class DataContainer(result: DataResult, presenter: Option[String], mode: St
 
 }
 
-trait Data extends Logging {
+trait Data extends Logging with HasLookup[Json] {
 
   import ch.wsl.box.shared.utils.JSONUtils._
   import JSONSupport._
   import ch.wsl.box.shared.utils.Formatters._
   import io.circe.generic.auto._
 
-  def metadataFactory(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, services: Services): DataMetadataFactory
+  implicit def up: UserProfile
+  implicit def mat: Materializer
+  implicit def ec: ExecutionContext
+  implicit def services: Services
 
-  def data(function: String, params: Json, lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, system: ActorSystem, services: Services): Future[Option[DataContainer]]
+  implicit def system:ActorSystem
 
-  def render(function: String, params: Json, lang: String)(implicit up: UserProfile, mat: Materializer, ec: ExecutionContext, system: ActorSystem, services: Services) = {
-    import ch.wsl.box.model.boxentities.BoxFunction._
+  def metadataFactory(): DataMetadataFactory
+
+  def data(function: String, params: Json, lang: String): Future[Option[DataContainer]]
+
+  private def xls(function:String,dc:DataContainer) = {
+      val table = XLSTable(function,dc.asTable.headers,dc.asTable.rows.map(_.map(_.string)))
+      XLS.route(table)
+  }
+
+  def render(function: String, params: Json, lang: String) = {
 
     onSuccess(data(function, params, lang)) {
       case Some(dc) if dc.mode == FunctionKind.Modes.TABLE =>
-        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.csv"))) {
-          {
-            import kantan.csv._
-            import kantan.csv.ops._
+        parameter("format".optional) {
+            case Some("xls") => xls(function,dc)
+            case _ => respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.csv"))) {
+              {
+                import kantan.csv._
+                import kantan.csv.ops._
 
-            val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows.map(_.map(_.string))).asCsv(rfc)
-            complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`, ByteString(csv)))
+                val csv = (Seq(dc.asTable.headers) ++ dc.asTable.rows.map(_.map(_.string))).asCsv(rfc)
+                complete(HttpEntity(ContentTypes.`text/csv(UTF-8)`, ByteString(csv)))
+              }
+
           }
         }
       case Some(dc) if dc.mode == FunctionKind.Modes.HTML => {
@@ -89,58 +105,58 @@ trait Data extends Logging {
   }
 
 
-  def route(implicit up: UserProfile, ec: ExecutionContext, mat: Materializer, system: ActorSystem, services: Services): Route = {
-    pathPrefix("list") {
-      //      complete(JSONExportMetadataFactory().list)
-      path(Segment) { lang =>
-        get {
-          complete(metadataFactory.list(lang))
-        }
+  def functionDef(function:String, lang:String) = pathPrefix("def") {
+      get {
+        complete(metadataFactory.defOf(function, lang))
+      }
+  }
+
+  def list(lang:String) = pathPrefix("list") {
+      get {
+        complete(metadataFactory.list(lang))
+      }
+  }
+
+  def metadata(function:String,lang:String) = pathPrefix("metadata") {
+    get {
+      complete(metadataFactory.of(services.connection.dbSchema, function, lang))
+    }
+  }
+
+  def raw(function:String,lang:String) = path("raw") {
+    post {
+      entity(as[Json]) { params =>
+        import ch.wsl.box.model.shared.DataResultTable._
+        complete(data(function, params, lang).map(_.map(_.asTable.asJson)))
+      }
+    }
+  }
+
+  def default(function:String,lang:String) = pathEnd {
+    get {
+      parameters('q) { q =>
+        val params = parse(q).right.get.as[Json].right.get
+        render(function, params, lang)
       }
     } ~
-      pathPrefix(Segment) { function =>
-        pathPrefix("def") {
-          //      complete(JSONExportMetadataFactory().list)
-          path(Segment) { lang =>
-            get {
-              complete(metadataFactory.defOf(function, lang))
-            }
-          }
+      post {
+        entity(as[Json]) { params =>
+          render(function, params, lang)
         }
-      } ~
-      //      pathPrefix("") {
-      pathPrefix(Segment) { function =>
-        pathPrefix("metadata") {
-          path(Segment) { lang =>
-            get {
-              complete(metadataFactory.of(services.connection.dbSchema, function, lang))
-            }
-          }
-        } ~
-          pathPrefix(Segment) { lang =>
-            path("raw") {
-              post {
-                entity(as[Json]) { params =>
-                  import ch.wsl.box.model.shared.DataResultTable._
-                  complete(data(function, params, lang).map(_.map(_.asTable.asJson)))
-                }
-              }
-            } ~
-              pathEnd {
-                get {
-                  parameters('q) { q =>
-                    val params = parse(q).right.get.as[Json].right.get
-                    render(function, params, lang)
-                  }
-                } ~
-                  post {
-                    entity(as[Json]) { params =>
-                      render(function, params, lang)
-                    }
-                  }
-              }
-          }
       }
-    //      }
   }
+
+  def route: Route = {
+    pathPrefix(Segment) { lang =>
+      list(lang) ~
+      pathPrefix(Segment) { function =>
+          lookup(metadataFactory().of(services.connection.dbSchema, function, lang)) ~
+          functionDef(function, lang) ~
+          metadata(function, lang) ~
+          raw(function, lang) ~
+          default(function, lang)
+      }
+    }
+  }
+
 }

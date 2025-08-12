@@ -27,7 +27,7 @@ class RichTextWidgetTest extends TestBase {
     rtfName -> htmlData.asJson
   ).asJson
 
-  class RTValues extends Values{
+  class RTValues extends Values(loggerLevel){
     override def get(id: JSONID): Json = data
 
 

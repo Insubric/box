@@ -1,13 +1,21 @@
 package ch.wsl.box.client.views
 
+import ch.wsl.box.client.Context.services
+import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Notification, UI}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles, Icons}
-import ch.wsl.box.client.utils.{FKEncoder, URLQuery}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
+import ch.wsl.box.client.styles.Icons.Icon
+import ch.wsl.box.client.styles.{BootstrapCol, Icons}
+import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
+import ch.wsl.box.client.viewmodel.Row
+import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
-import ch.wsl.box.client.views.components.{Debug, TableFieldsRenderer}
+import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
+import ch.wsl.box.client.views.elements.Offline
 import ch.wsl.box.model.shared.EntityKind.VIEW
+import ch.wsl.box.model.shared.GeoJson.Polygon
+import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{JSONQuery, _}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
@@ -15,42 +23,59 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.parser._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.bootstrap.table.UdashTable
+import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
 import io.udash.utils.Registration
 import org.scalajs.dom
+import org.scalajs.dom.html.Div
 import scalacss.ScalatagsCss._
-import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.{Element, Event, KeyboardEvent, window}
+import org.scalajs.dom.{Element, Event, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
 import scalacss.internal.Pseudo.Lang
+import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
+import scalatags.generic
 import scribe.Logging
+import ch.wsl.typings.choicesJs.anon.PartialOptions
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesInputChoiceMod.InputChoice
+import io.udash.bootstrap.tooltip.UdashTooltip
 
 import scala.concurrent.Future
-import scala.scalajs.js.URIUtils
+import scala.scalajs.js
+import scala.scalajs.js.{URIUtils, |}
 import scala.util.Try
+import scala.scalajs.js
+import js.JSConverters._
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
 
 case class IDsVM(isLastPage:Boolean,
                     currentPage:Int,
                     ids:Seq[String],
                     count:Int    //stores the number of rows resulting from the query without paging
+
                    )
 
 object IDsVMFactory{
   def empty = IDsVM(true,1,Seq(),0)
 }
 
-case class Row(data: Seq[String])
+
 
 case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
-                            metadata:Option[JSONMetadata], selectedRow:Option[Row], ids: IDsVM, pages:Int, access:TableAccess)
+                            metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: IDsVM, pages:Int, access:TableAccess,
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],public:Boolean)
+
+
+case class VMAction(code:String,action: JSONID => Future[Boolean],icon:Option[Icon],label:String,button_class:String = "primary",confirm:Option[String] = None, reloadAfter:Boolean = false)
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,None,IDsVMFactory.empty,1, TableAccess(false,false,false))
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false)
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -90,6 +115,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
 
   private var filterUpdateHandler: Int = 0
@@ -116,13 +142,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   override def handleState(state: EntityTableState): Unit = {
     fieldListener.foreach(_.cancel())
     services.clientSession.loading.set(true)
-    services.rest.tabularMetadata(state.kind,services.clientSession.lang(),state.entity).map{ metadata =>
+    services.data.tabularMetadata(state.kind,services.clientSession.lang(),state.entity,state.public).map{ metadata =>
       metadata.static match {
         case false => _handleState(state,metadata)
         case true => {
           services.clientSession.loading.set(false)
           Context.applicationInstance.goTo(
-            FormPageState(state.kind,state.entity,"true",false),
+            FormPageState(state.kind,state.entity,"true",state.public),
             true
           )
         }
@@ -135,7 +161,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.loading.set(true)
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
 
-    val urlQuery:Option[JSONQuery] = URLQuery(state.query,emptyFieldsForm)
+    val stateQuery = URLQuery.fromState(state.query)
+    val urlQuery:Option[JSONQuery] = URLQuery.fromQueryParameters(Routes.urlParams.get("q")).orElse(stateQuery)
     services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
     val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
@@ -143,14 +170,23 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     val defaultQuery:JSONQuery = JSONQuery.empty.limit(ClientConf.pageLength)
 
-    val query:JSONQuery = services.clientSession.getQueryFor(state.kind,state.entity,urlQuery) match {
+    val queryWithGeom:JSONQuery = services.clientSession.getQueryFor(state.kind,state.entity,urlQuery) match {
       case Some(jsonquery) => jsonquery      //in case a query is already stored in Session
       case _ => urlQuery.getOrElse(defaultQuery)
     }
 
+    val geomFields = emptyFieldsForm.geomFields.map(_.name)
+    val query = queryWithGeom.copy(filter = queryWithGeom.filter.filterNot(f => geomFields.contains(f.column)))
+
     {for{
-      access <- services.rest.tableAccess(form.entity,state.kind)
-      specificKind <- services.rest.specificKind(state.kind, services.clientSession.lang(), state.entity)
+      access <- { if(!state.public)
+        services.rest.tableAccess(form.entity,state.kind)
+      else Future.successful(TableAccess(false,false,false))
+      }
+      specificKind <- { if(!state.public)
+        services.rest.specificKind(state.kind, services.clientSession.lang(), state.entity)
+      else Future.successful(EntityKind.FORM.kind)
+      }
     } yield {
 
 
@@ -162,7 +198,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         fieldQueries = form.tabularFields.flatMap(x => form.fields.find(_.name == x)).map{ field =>
 
           val operator = query.filter.find(_.column == field.name).flatMap(_.operator).getOrElse(Filter.default(field))
-          val rawValue = query.filter.find(_.column == field.name).map(_.value).getOrElse("")
+          val rawValue = query.filter.find(_.column == field.name).flatMap(_.value).getOrElse("")
           FieldQuery(
             field = field,
             sort = query.sort.find(_.column == field.name).map(_.order).getOrElse(Sort.IGNORE),
@@ -172,10 +208,15 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
           )
         },
         metadata = Some(form),
-        selectedRow = None,
+        selectedRow = Seq(),
         ids = IDsVMFactory.empty,
         pages = Navigation.pageCount(0),
-        access = access
+        access = access,
+        lookups = Seq(),
+        query = Some(query),
+        geoms = Seq(),
+        extent = None,
+        public = state.public
       )
 
       saveIds(IDs(true,1,Seq(),0),query)
@@ -192,46 +233,108 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }}
   }
 
+  val tooltipList = ListBuffer[UdashTooltip]()
 
-  private def extractID(row:Seq[String], fields:Seq[String], keys:Seq[String]):JSONID = {
-    val map = for{
-      key <- keys
-      (field,i) <- fields.zipWithIndex if field == key
-    } yield {
-      key -> row.lift(i).getOrElse("")
+  override def onClose(): Unit = {
+    super.onClose()
+    tooltipList.foreach(_.destroy())
+  }
+
+  def edit(new_window:Boolean)(id: JSONID) = {
+    if (new_window) {
+      window.open(routes.edit(id.asString).url(applicationInstance))
+    } else {
+      Navigate.to(routes.edit(id.asString))
     }
-    JSONID.fromMap(map.toMap)
+    Future.successful(true)
+  }
+
+  def clickOnMap(idString:String) = {
+    if(model.get.access.update)
+      Navigate.to(routes.edit(idString))
+    else
+      Navigate.to(routes.show(idString))
+  }
+
+  model.subProp(_.extent).listen { extent =>
+    reloadRows(1)
+  }
+
+  def show(new_window:Boolean)(id: JSONID) =  {
+    if (new_window) {
+      window.open(routes.show(id.asString).url(applicationInstance))
+    } else {
+      Navigate.to(routes.show(id.asString))
+    }
+    Future.successful(true)
+  }
+
+  def delete(id: JSONID) =  {
+
+    model.get.metadata.map(_.name) match {
+      case Some(name) => services.rest.delete(model.get.kind, services.clientSession.lang(),name,id).map{ count =>
+        Notification.add("Deleted " + count.count + " rows")
+        true
+      }.recover{case _:Throwable => true}
+      case None => Future.successful(true)
+    }
+
   }
 
 
-  def ids(el:Row): JSONID = extractID(el.data,model.subProp(_.metadata).get.toSeq.flatMap(_.tabularFields),model.subProp(_.metadata).get.toSeq.flatMap(_.keys))
 
-  def edit(el: => Row) = (e:Event) => {
-    val k = ids(el)
-    val newState = routes.edit(k.asString)
-    Navigate.to(newState)
-    e.preventDefault()
-  }
+  def actions(new_window:Boolean) = {
 
-  def show(el: => Row) = (e:Event) => {
-    val k = ids(el)
-    val newState = routes.show(k.asString)
-    Navigate.to(newState)
-    e.preventDefault()
-  }
+    val metadata = model.subProp(_.metadata).get
+    metadata.toSeq.flatMap(_.action.table(model.get.access)).map { ta =>
+      ta.action match {
+        case DeleteAction => VMAction("delete",delete,Some(Icons.x),Labels.entity.delete,"danger",Some(Labels.entity.confirmDelete),reloadAfter = true)
+        case EditAction => VMAction("edit",edit(new_window),Some(Icons.pencil_square),Labels.entity.edit)
+        case ShowAction => VMAction("show",show(new_window),Some(Icons.arrow_up_square),Labels.entity.show)
+        case NoAction => {
+          def rowEv(id: JSONID):  Future[Boolean] = {
 
-  def delete(el: => Row) = (e:Event) => {
-    val k = ids(el)
-    val confim = window.confirm(Labels.entity.confirmDelete)
-    if(confim) {
-      model.get.metadata.map(_.name).foreach { name =>
-        services.rest.delete(model.get.kind, services.clientSession.lang(),name,k).map{ count =>
-          Notification.add("Deleted " + count.count + " rows")
-          reloadRows(model.get.ids.currentPage)
+            for {
+              data <- getObj(id)
+              _ <- ta.executeFunction match {
+                case Some(f) => {
+                  services.rest.execute(f, services.clientSession.lang(), data).map { result =>
+                    result.errorMessage match {
+                      case Some(value) => {
+                        Notification.add(value)
+                        services.clientSession.loading.set(false)
+                        false
+                      }
+                      case None => {
+                        services.clientSession.loading.set(false)
+                        true
+                      }
+                    }
+                  }
+                }
+                case None => Future.successful(())
+              }
+            } yield {
+              val url = Routes.getUrl(ta, data, metadata.get.kind, metadata.get.name, Some(id.asString), model.get.access.update)
+              (ta.target, new_window, url) match {
+                case (_,_, None) => ()
+                case (Self, false, Some(url)) => Navigate.toUrl(url)
+                case (_,_, Some(url)) =>  window.open(url)
+              }
+              true
+            }
+
+          }
+          VMAction(ta.label,rowEv,None,Labels(ta.label),confirm = ta.confirmText, reloadAfter = ta.reload)
         }
+
       }
     }
-    e.preventDefault()
+  }
+
+  def hasGeometry():Boolean = {
+    val metadata = model.get.metadata
+    metadata.toSeq.flatMap(_.fields).filter(metadata.toSeq.flatMap(_.exportFields) contains _.name).exists(_.`type`==JSONFieldTypes.GEOMETRY)
   }
 
   def saveIds(ids: IDs, query:JSONQuery) = {
@@ -239,41 +342,108 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     services.clientSession.setIDs(ids)
   }
 
-  private def query():JSONQuery = {
+  def urlOnlyFilter:Option[JSONQuery] = {
+      for {
+        m <- model.subProp(_.metadata).get
+        uq <-  model.subProp(_.urlQuery).get
+      } yield {
+        val qf = uq.filter.filterNot(f => m.tabularFields.contains(f.column))
+        val qs = uq.sort.filterNot(s => m.tabularFields.contains(s.column))
+        JSONQuery.empty
+          .filterWith(qf: _*)
+          .sortWith(qs: _*)
+      }
+  }
+
+  def query(extent:Option[Polygon]):JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
+
+
+
 
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
 
     val filter = fieldQueries.filter(_.filterValue != "").map{ f =>
-      JSONQueryFilter(f.field.name,Some(f.filterOperator),f.filterValue)
+      JSONQueryFilter.withValue(f.field.name,Some(f.filterOperator),f.filterValue)
     }.toList
 
-    JSONQuery(filter, sort, None, Some(services.clientSession.lang()))
+    val qFields = JSONQuery(filter, sort, None)
+    val q = (model.get.metadata,extent) match {
+      case (Some(metadata),Some(ext)) => qFields.withExtent(metadata,ext)
+      case _ => qFields
+    }
+
+    urlOnlyFilter match {
+      case Some(uq) => q.filterWith(q.filter ++ uq.filter:_*).sortWith(q.sort ++ uq.sort:_*)
+      case None => q
+    }
+
+
+
+
+  }
+
+  var reloadCount = 0 // avoid out of order
+
+
+  def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
+  def loadGeoms(extent:Option[Polygon] = None) = {
+    model.get.metadata.foreach{ m =>
+      Future.sequence(m.geomFields.map{ f =>
+        val tableEntity = m.view.getOrElse(m.entity)
+        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys),model.subProp(_.public).get)
+
+      }).foreach{ geoms =>
+        model.subProp(_.geoms).set(geoms.flatten)
+      }
+
+    }
   }
 
   def reloadRows(page:Int): Future[Unit] = {
 
+    reloadCount = reloadCount + 1
+    val currentCount = reloadCount
+
     services.clientSession.loading.set(true)
+
+    val extent = model.subProp(_.extent).get
 
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
-
-    val q = query().copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
-    val qEncoded = FKEncoder(model.get.metadata.toSeq.flatMap(_.fields),q)
+    val qOrig = query(extent)
+    val newQuery = !model.subProp(_.query).get.contains(qOrig)
+    model.subProp(_.query).set(Some(qOrig))
+    val q = qOrig.copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
 
     //start request in parallel
-    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, qEncoded)
-    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, qEncoded)
+    val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get)
+    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
+    if(hasGeometry() && !defaultClose) {
+      loadGeoms(extent)
+    }
+
+    def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
+      case Some(m) => {
+        val fields = m.tableLookupFields.map(_.name)
+        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(fields,qOrig),model.get.public)
+      }
+      case None => Future.successful(Seq())
+    }
 
     val r = for {
       csv <- csvRequest
       ids <- idsRequest
+      lookups <- if(newQuery) lookupReq(csv) else Future.successful( model.subProp(_.lookups).get)
     } yield {
-      model.subProp(_.rows).set(csv.map(Row(_)))
-      model.subProp(_.ids).set(IDsVM.fromIDs(ids))
-      model.subProp(_.pages).set(Navigation.pageCount(ids.count))
-      saveIds(ids, q)
-      services.clientSession.loading.set(false)
+      if(currentCount == reloadCount) {
+        model.subProp(_.lookups).set(lookups)
+        model.subProp(_.rows).set(csv)
+        model.subProp(_.ids).set(IDsVM.fromIDs(ids))
+        model.subProp(_.pages).set(Navigation.pageCount(ids.count))
+        saveIds(ids, q)
+        services.clientSession.loading.set(false)
+      }
     }
 
     r.recover{ _ => services.clientSession.loading.set(false) }
@@ -281,6 +451,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     r
 
   }
+
+
 
 
   def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {
@@ -322,9 +494,18 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
   }
 
-  def selected(row: => Row) = (e:Event) => {
-    onSelect(model.get.fieldQueries.map(_.field).zip(row.data))
-    model.subProp(_.selectedRow).set(Some(row))
+  def toggleSelection(row: => Row) = (e:Event) => {
+
+    row.id.foreach { id =>
+      val currentSel = model.subProp(_.selectedRow).get
+      if (currentSel.contains(id)) {
+        model.subProp(_.selectedRow).set(currentSel.filterNot(_ == id))
+      } else {
+        //not used yet, was for parent child relationships
+        onSelect(model.get.fieldQueries.map(_.field).zip(row.data))
+        model.subProp(_.selectedRow).set(currentSel ++ Seq(id))
+      }
+    }
     e.preventDefault()
   }
 
@@ -352,6 +533,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
+  val downloadGeoPackage = (e: Event) => {
+    download("gpkg")
+    e.preventDefault()
+  }
+
   val downloadXLS = (e:Event) => {
     download("xlsx")
     e.preventDefault()
@@ -364,16 +550,47 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val exportFields = model.get.metadata.map(_.exportFields).getOrElse(Seq())
     val fields = model.get.metadata.map(_.fields).getOrElse(Seq())
 
-    val queryWithFK = FKEncoder(fields,query())
 
-    val queryNoLimits = queryWithFK.copy(paging = None)
+    val queryNoLimits = query(None).copy(paging = None)
 
 
     val url = Routes.apiV1(
-      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${queryNoLimits.asJson.toString()}".replaceAll("\n","")
+      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)}".replaceAll("\n","")
     )
     logger.info(s"downloading: $url")
     dom.window.open(url)
+  }
+
+  def getObj(id:JSONID):Future[Json] = {
+    services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name,id)
+  }
+
+  def resetFilters() = {
+    model.subProp(_.extent).set(None)
+    model.subProp(_.fieldQueries).set(model.subProp(_.fieldQueries).get.map(_.copy(filterValue = "")))
+  }
+
+  def selectAll() = {
+    val count = model.subProp(_.ids).get.count
+    val q = model.subProp(_.query).get match {
+      case Some(value) => value.limit(count)
+      case None => JSONQuery.empty.limit(count)
+    }
+
+    for {
+     ids <- services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q, model.subProp(_.public).get)
+    } yield model.subProp(_.selectedRow).set(ids.ids.flatMap(i => JSONID.fromString(i,model.subProp(_.metadata).get.get)))
+  }
+
+  def resetSelection() = {
+    model.subProp(_.selectedRow).set(Seq())
+  }
+
+  def isFiltered(query:Option[JSONQuery]):Boolean = query.exists{ q =>
+    model.subProp(_.metadata).get match {
+      case Some(m) => q.filter.exists(f => m.tabularFields.contains(f.column))
+      case None => q.filter.nonEmpty
+    }
   }
 
 
@@ -383,6 +600,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
   import ch.wsl.box.shared.utils.JSONUtils._
+  import ch.wsl.box.client.Context.Implicits._
 
 
 
@@ -423,16 +641,20 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def filterField(filterValue: Property[String], field:Option[JSONField], filterOperator:String):Modifier = {
+
+
+  def filterField(filterValue: Property[String], field:Option[JSONField], filterOperator:String,nested:Binding.NestedInterceptor):Modifier = {
 
     filterValue.listen(v => logger.info(s"Filter for ${field.map(_.name)} changed in: $v"))
 
-    field.map(_.`type`) match {
-      case Some(JSONFieldTypes.TIME) => DateTimeWidget.Time(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string)).edit()
-      case Some(JSONFieldTypes.DATE) => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit()
+
+
+    def filterFieldStd = field.map(_.`type`) match {
+      case Some(JSONFieldTypes.TIME) => DateTimeWidget.Time(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null)).edit(nested)
+      case Some(JSONFieldTypes.DATE) => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
       case Some(JSONFieldTypes.DATETIME) => ClientConf.filterPrecisionDatetime match{
-        case JSONFieldTypes.DATE => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit()
-        case _ => DateTimeWidget.DateTime(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),true).edit()
+        case JSONFieldTypes.DATE => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
+        case _ => DateTimeWidget.DateTime(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
       }
       case Some(JSONFieldTypes.NUMBER) | Some(JSONFieldTypes.INTEGER) if field.flatMap(_.widget).contains(WidgetsNames.integerDecimal2) && !Seq(Filter.BETWEEN, Filter.IN, Filter.NOTIN).contains(filterOperator) => {
         if(Try(filterValue.get.toDouble).toOption.isEmpty) filterValue.set("")
@@ -447,15 +669,320 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       case _ => TextInput(filterValue)(ClientConf.style.fullWidth)
     }
 
+    def filterFieldLookup(lookup:JSONFieldLookup) = {
+      def choises(lookups:JSONLookups):Seq[InputChoice] = lookup match {
+        case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
+           lookups.lookups.map(l => InputChoice(l.value,l.id.string))
+        }
+        case JSONFieldLookupExtractor(extractor) => Seq()
+        case JSONFieldLookupData(data) => data.map(x => InputChoice(x.value,x.id.string))
+      }
+
+      val el = select().render
+
+
+      val observer = new MutationObserver({ (mutations, observer) =>
+        observer.disconnect()
+        val options = PartialOptions()
+          .setRemoveItemButton(true)
+          .setShouldSort(false)
+          .setItemSelectText("")
+        val choicesJs = new ch.wsl.typings.choicesJs.mod.default(el, options)
+        el.addEventListener("change", (e: Event) => {
+          (choicesJs.getValue(true): Any) match {
+            case list: js.Array[String] => println(list)
+            case a: String => filterValue.set(a)
+            case _ => filterValue.set("")
+          }
+        })
+
+        model.subProp(_.lookups).listen({l =>
+          l.find(_.fieldName == field.get.name).foreach{ fl =>
+            choicesJs.clearChoices()
+            val c = choises(fl)
+            choicesJs.asInstanceOf[js.Dynamic].setChoices(c.toJSArray)
+            if(filterValue.get.nonEmpty) {
+              choicesJs.setChoiceByValue(filterValue.get)
+            }
+          }
+
+        },true)
+
+        filterValue.listen{ fv =>
+          if(fv.isEmpty && choicesJs.getValue(true).toString.nonEmpty) {
+            choicesJs.clearStore()
+          }
+        }
+
+      })
+      observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+      el
+    }
+
+    field.flatMap(_.lookup) match {
+      case Some(value) => filterFieldLookup(value)
+      case None => filterFieldStd
+    }
+
   }
 
-  override def getTemplate: scalatags.generic.Modifier[Element] = {
+  var map:Option[Div] = None
+
+  def showMap(metadata:JSONMetadata) = (show:ReadableProperty[Boolean]) => showIf(show){
+    if(presenter.hasGeometry()) {
+
+      if(model.subProp(_.geoms).get.isEmpty)
+        presenter.loadGeoms(model.subProp(_.extent).get)
+
+      if(window.innerWidth < 600)  { // is mobile
+        map = Some(div(height := (window.innerHeight - 50).px).render)
+      } else {
+        map = Some(div(height := (window.innerHeight - 105).px).render)
+      }
+
+
+      val observer = new MutationObserver({ (mutations, observer) =>
+        map match {
+          case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
+            observer.disconnect()
+            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent))
+          }
+          case None => observer.disconnect()
+        }
+      })
+      observer.observe(document, MutationObserverInit(childList = true, subtree = true))
+      map.get
+    } else {
+      map = None
+      div().render
+    }
+  }
+
+
+
+  override def getTemplate: generic.Modifier[Element] = div(
+    produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
+      if (presenter.hasGeometry()) {
+        div(new TwoPanelResize(presenter.defaultClose)(showMap(metadata.getOrElse(JSONMetadata.stub)),mainContent(metadata,nested))).render
+      } else {
+        div(mainContent(metadata,nested)).render
+      }
+    }
+  )
+
+
+  def mainActions(metadata:Option[JSONMetadata]) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
+
+    Seq(
+      div(ClientConf.style.noMobile)(
+        releaser(produce(model.subProp(_.name)) { m =>
+          div({
+            val out: Seq[Modifier] = metadata.toSeq.flatMap(_.action.topTable(a)).map { ta =>
+
+              val importance: StyleA = ta.importance match {
+                case Primary => ClientConf.style.boxButtonImportant
+                case Danger => ClientConf.style.boxButtonDanger
+                case Std => ClientConf.style.boxButton
+              }
+
+              ta.action match {
+                case SaveAction => ???
+                case EditAction => ???
+                case ShowAction => ???
+                case CopyAction => ???
+                case RevertAction => ???
+                case DeleteAction => ???
+                case NoAction => {
+                  button(importance,
+                    id := TestHooks.actionButton(ta.label),
+                    onclick :+= { (e: Event) =>
+                      val execute = ta.confirmText match {
+                        case Some(msg) => window.confirm(msg)
+                        case None => true
+                      }
+                      if (execute) {
+                        val function = ta.executeFunction match {
+                          case Some(f) => services.rest.execute(f, services.clientSession.lang(), Json.Null).map { result =>
+                            result.errorMessage match {
+                              case Some(value) => {
+                                Notification.add(value)
+                                services.clientSession.loading.set(false)
+                                false
+                              }
+                              case None => true
+                            }
+                          }
+                          case None => Future.successful(())
+                        }
+                        function.foreach { _ =>
+                          Routes.getUrl(ta, Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
+                            case Some(url) => Navigate.toUrl(url)
+                            case None => {
+                              Context.applicationInstance.reload()
+                            }
+                          }
+                        }
+                      }
+
+                      e.preventDefault()
+                    })(Labels(ta.label))
+                }
+                case BackAction => ???
+              }
+            }
+            out
+
+          }).render
+        })
+      ),
+      div(
+        releaser(produce(model.subProp(_.name)) { m =>
+
+          button(id := TestHooks.mobileTableAdd, ClientConf.style.mobileBoxAction, Navigate.click(Routes(model.subProp(_.kind).get, m,model.subProp(_.public).get).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+        })
+      ),
+    ).render
+  }
+
+  def actionButton(els: => Seq[JSONID],mod:Modifier*)(action:VMAction) = {
+    val b = a(
+      mod,
+      cls := s"action ${action.button_class} " + TestHooks.tableActionButton(action.code),
+      onclick :+= { (e:Event) =>
+        val execute = action.confirm match {
+          case Some(msg) => window.confirm(msg)
+          case None => true
+        }
+        if (execute) {
+          services.clientSession.loading.set(true)
+          Future.sequence(els.map(action.action)).foreach{ _ =>
+            if(action.reloadAfter) {
+              presenter.reloadRows(model.subProp(_.ids.currentPage).get)
+            }
+            services.clientSession.loading.set(false)
+          }
+        }
+        e.preventDefault()
+      }
+    )(action.icon.getOrElse(action.label)).render
+
+    if(action.icon.isDefined) {
+      presenter.tooltipList.addOne(
+        UdashTooltip(
+          trigger = Seq(UdashTooltip.Trigger.Hover),
+          delay = UdashTooltip.Delay(250 millis, 0 millis),
+          placement = UdashTooltip.Placement.Auto,
+          title = action.label
+        )(b)
+      )
+    }
+
+    b
+  }
+
+  def rowActions(el:ReadableProperty[Row]) = {
+
+    div(ClientConf.style.tableCellActions)(
+      presenter.actions(false).map(actionButton(el.get.id.toSeq))
+    )
+
+
+  }
+
+  def tableContent(metadata:Option[JSONMetadata]) = {
+    UdashTable(model.subSeq(_.rows))(
+
+      headerFactory = Some(_ => {
+        frag(
+          tr(
+            td(ClientConf.style.smallCells,verticalAlign.middle, colspan := 2)(
+              mainActions(metadata)
+            ),
+            metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ field =>
+              val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field.name))
+              val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field.name))
+              val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
+              val order:ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
+
+              td(ClientConf.style.smallCells,verticalAlign.middle)(
+                a(
+                  onclick :+= presenter.sort(fieldQuery),
+                  span(bind(title), ClientConf.style.tableHeader), " ",
+                  span(whiteSpace.nowrap,span(produce(sort){
+                    case Sort.ASC => Icons.asc.render
+                    case Sort.DESC => Icons.desc.render
+                    case _ => frag().render
+                  })," ", bind(order))
+                )
+              ).render
+            }
+          ),
+          tr(
+            td(ClientConf.style.smallCells, colspan := 2)(Labels.entity.filters),
+            metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { _field =>
+              val fieldQuery:Property[Option[FieldQuery]] = model.subProp(_.fieldQueries).bitransform(_.find(_.field.name == _field.name)){ el =>
+                model.subProp(_.fieldQueries).get.map{old =>
+                  if(old.field.name == _field.name && el.isDefined) el.get else old
+                }
+              }
+              val filterValue:Property[String] = fieldQuery.bitransform(_.map(_.filterValue).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterValue = value)))
+              val operator:Property[String] = fieldQuery.bitransform(_.map(_.filterOperator).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterOperator = value)))
+
+              td(ClientConf.style.smallCells)(
+                filterOptions(metadata,_field.name,operator),
+                produceWithNested(operator) { (op,nested) =>
+                  div(position.relative, filterField(filterValue, Some(_field), op,nested)).render
+                }
+              ).render
+
+            }
+          )
+        ).render
+      }),
+      rowFactory = (el, nested) => {
+        val selected = model.subProp(_.selectedRow).transform(_.exists( i => el.get.id.contains(i)))
+
+        val row = tr(
+          id := ElementId.tableRow(el.get.id.map(_.asString).getOrElse("")),
+          ClientConf.style.rowStyle, onclick :+= presenter.toggleSelection(el.get),
+          td(ClientConf.style.smallCells)(
+            Offline(el.transform(_.isLocal)),
+          ),
+          td(ClientConf.style.smallCells)(
+            rowActions(el)
+          ),
+          for {(f, i) <- metadata.toSeq.flatMap(_.tabularFields).zipWithIndex} yield {
+
+            val value = el.get.data.lift(i).getOrElse("")
+            metadata.flatMap(_.fields.find(_.name == f)) match {
+              case Some(field) if field.`type` == JSONFieldTypes.GEOMETRY => None
+              case Some(field) => Some(td(ClientConf.style.smallCells)(TableFieldsRenderer(
+                value,
+                field,
+                model.subProp(_.lookups).get
+              )).render)
+              case None => Some(td().render)
+            }
+          }
+        ).render
+
+        selected.listen({
+          case true => row.classList.add("selected")
+          case false => row.classList.remove("selected")
+        },true)
+
+        row
+      }
+    ).render
+  }
+
+  def mainContent(metadata:Option[JSONMetadata],nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
 
     val pagination = {
 
-      div(ClientConf.style.boxNavigationLabel,
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),Labels.navigation.first,_.Float.left()),
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),Labels.navigation.previous,_.Float.left()),
+      div(ClientConf.style.navigationBlock,
+        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),i(UdashIcons.FontAwesome.Solid.fastBackward)),
+        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),i(UdashIcons.FontAwesome.Solid.caretLeft)),
         span(
           " " + Labels.navigation.page + " ",
           bind(model.subProp(_.ids.currentPage)),
@@ -463,138 +990,55 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           bind(model.subProp(_.pages)),
           " "
         ),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),Labels.navigation.last,_.Float.right()),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),Labels.navigation.next,_.Float.right()),
-        div(Labels.navigation.recordFound," ",bind(model.subProp(_.ids.count)))
+        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),i(UdashIcons.FontAwesome.Solid.caretRight)),
+        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),i(UdashIcons.FontAwesome.Solid.fastForward)),
+
       )
     }
 
-    produce(model.subProp(_.metadata)) { metadata =>
+
       div(
-        div(BootstrapStyles.Float.left(),
-          h3(ClientConf.style.noMargin, labelTitle(metadata))
-        ),
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea,
-          pagination.render
-        ),
-        div(BootstrapStyles.Visibility.clearfix),
-        produceWithNested(model.subProp(_.access)) { (a, releaser) =>
-          if (a.insert)
-            div(BootstrapStyles.Float.left())(
-              releaser(produce(model.subProp(_.name)) { m =>
-                div(
-                  button(ClientConf.style.boxButtonImportant, Navigate.click(Routes(model.subProp(_.kind).get, m).add()))(Labels.entities.`new`)
-                ).render
-              })
-            ).render
-          else Seq()
-        },
-        div(BootstrapStyles.Visibility.clearfix),
-        div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
-          UdashTable(model.subSeq(_.rows))(
-
-            headerFactory = Some(_ => {
-              frag(
-                tr(
-                  td(ClientConf.style.smallCells)(),
-                  metadata.toSeq.flatMap(_.tabularFields).map{ field =>
-                    val fieldQuery:ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field))
-                    val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field))
-                    val sort:ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
-                    val order:ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
-
-                    td(ClientConf.style.smallCells)(
-                      a(
-                        onclick :+= presenter.sort(fieldQuery),
-                        span(bind(title), ClientConf.style.tableHeader), " ",
-                        span(whiteSpace.nowrap,span(produce(sort){
-                          case Sort.ASC => Icons.asc.render
-                          case Sort.DESC => Icons.desc.render
-                          case _ => frag().render
-                        })," ", bind(order))
-                      )
-                    ).render
-                  }
-                ),
-                tr(
-                  td(ClientConf.style.smallCells)(Labels.entity.filters),
-                  metadata.toSeq.flatMap(_.tabularFields).map { field =>
-                    val fieldQuery:Property[Option[FieldQuery]] = model.subProp(_.fieldQueries).bitransform(_.find(_.field.name == field)){ el =>
-                      model.subProp(_.fieldQueries).get.map{old =>
-                        if(old.field.name == field && el.isDefined) el.get else old
-                      }
-                    }
-                    val filterValue:Property[String] = fieldQuery.bitransform(_.map(_.filterValue).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterValue = value)))
-                    val operator:Property[String] = fieldQuery.bitransform(_.map(_.filterOperator).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterOperator = value)))
-                    val jsonField = metadata.flatMap(_.fields.find(_.name == field))
-
-                    td(ClientConf.style.smallCells)(
-                      filterOptions(metadata,field,operator),
-                      produce(operator) { op =>
-                        div(position.relative, filterField(filterValue, jsonField, op)).render
-                      }
-                    ).render
-
-                  }
-                )
+        div(ClientConf.style.spaceBetween,
+          div(
+            h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
+          ),
+          div(display.flex,flexDirection.row,alignItems.center,
+            div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count)))),
+            nested(showIf(model.subProp(_.query).transform(presenter.isFiltered)){
+                a(ClientConf.style.chipLink,Labels.navigation.recordsFiltered," \uD83D\uDDD9", onclick :+= ((e:Event) => {
+                  presenter.resetFilters()
+                  e.preventDefault()
+                })
               ).render
             }),
-            rowFactory = (el, nested) => {
-              val key = presenter.ids(el.get)
-              val hasKey = metadata.exists(_.keys.nonEmpty)
-              val selected = model.subProp(_.selectedRow).transform(_.exists(_ == el.get))
-
-              def show = a(
-                cls := "primary action",
-                onclick :+= presenter.show(el.get)
-              )(Labels.entity.show)
-
-              def edit = a(
-                cls := "primary action",
-                onclick :+= presenter.edit(el.get)
-              )(Labels.entity.edit)
-
-              def delete = a(
-                cls := "danger action",
-                onclick :+= presenter.delete(el.get)
-              )(Labels.entity.delete)
-
-              def noAction = p(color := "grey")(Labels.entity.no_action)
-
-              tr((`class` := "info").attrIf(selected), ClientConf.style.rowStyle, onclick :+= presenter.selected(el.get),
-                td(ClientConf.style.smallCells)(
-                  (hasKey, model.get.access.update, model.get.access.delete) match {
-                    case (false, _, _) => noAction
-                    case (true, false, false) => show
-                    case (true, false, true) => Seq(show, span(" "), delete)
-                    case (true, true, true) => Seq(edit, span(" "), delete)
-                    case (true, true, false) => Seq(edit)
-                  }
-                ),
-
-                for {(f, i) <- metadata.toSeq.flatMap(_.tabularFields).zipWithIndex} yield {
-
-                  val value = el.get.data.lift(i).getOrElse("")
-                  metadata.flatMap(_.fields.find(_.name == f)) match {
-                    case Some(field) => td(ClientConf.style.smallCells)(TableFieldsRenderer(
-                      value,
-                      field,
-                      key,
-                      routes
-                    )).render
-                    case None => td().render
-                  }
-
-                }
-
+            a(ClientConf.style.chipLink,Labels.navigation.selectAll, onclick :+= ((e:Event) => {
+              presenter.selectAll()
+              e.preventDefault()
+            }))
+          ),
+          div(
+            nested(showIf(model.subProp(_.selectedRow).transform(_.nonEmpty)){
+              div(
+                Labels.navigation.recordsSelected,nested(bind(model.subProp(_.selectedRow).transform(_.length))),
+                presenter.actions(true).map(actionButton(model.subProp(_.selectedRow).get,ClientConf.style.chipLink)),
+                a(ClientConf.style.chipLink,Labels.navigation.removeSelection," \uD83D\uDDD9", onclick :+= ((e:Event) => {
+                  presenter.resetSelection()
+                  e.preventDefault()
+                })),
               ).render
-            }
-          ).render,
-
+            })
+          ),
+          pagination.render
+        ),
+        div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
+          tableContent(metadata),
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
-          if (metadata.toSeq.flatMap(_.fields).filter(metadata.toSeq.flatMap(_.exportFields) contains _.name).exists(_.`type`==JSONFieldTypes.GEOMETRY)) {
-            button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp)
+          if (presenter.hasGeometry()) {
+            Seq(
+              button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
+              button(`type` := "button", onclick :+= presenter.downloadGeoPackage, ClientConf.style.boxButton, Labels.entity.geoPackage)
+            )
           } else frag(),
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {
             p("loading...").render
@@ -603,7 +1047,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         ),
         Debug(model)
       ).render
-    }
+
   }
 
 

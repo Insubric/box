@@ -9,15 +9,14 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 import akka.util.ByteString
-import ch.wsl.box.model.BoxActionsRegistry
-import ch.wsl.box.model.shared.{EntityKind, LoginRequest, UserInfo}
+import ch.wsl.box.model.shared.{EntityKind, LoginRequest}
 import ch.wsl.box.rest.logic.{LangHelper, NewsLoader, TableAccess, UIProvider}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.routes._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, Cache}
 import com.softwaremill.session.SessionDirectives.{invalidateSession, optionalSession, setSession, touchRequiredSession}
-import com.softwaremill.session.SessionManager
+import com.softwaremill.session.{InMemoryRefreshTokenStorage, SessionManager}
 import com.softwaremill.session.SessionOptions._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +33,12 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   import ch.wsl.box.rest.utils.JSONSupport._
   import io.circe.generic.auto._
 
-  def boxSetSessionCookie(v: BoxSession) = setSession(oneOff, usingCookies, v)
+
+
+  def boxSetSessionCookie(v: BoxSession) = {
+    implicit def refreshTokenStorage = services.refreshTokenStorage
+    setSession(oneOff, usingCookies, v)
+  }
   def boxSetSessionHeader(v: BoxSession) = setSession(oneOff, usingHeaders, v)
 
 
@@ -66,6 +70,9 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
         val usernamePassword = BoxSession.fromLogin(request)
         usernamePassword.checkLogin(request.password) match {
           case Some(up) => boxSetSessionCookie(usernamePassword) {
+        val session = BoxSession.fromLogin(request)
+        onComplete(session){
+          case Success(Some(s)) => boxSetSessionCookie(s) {
             complete("ok")
           }
           case _ => complete(StatusCodes.Unauthorized, "nok")
@@ -160,6 +167,9 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
         val usernamePassword = BoxSession.fromLogin(request)
         usernamePassword.checkLogin(request.password) match {
           case Some(up) => boxSetSessionHeader(usernamePassword) {
+        val session = BoxSession.fromLogin(request)
+        onComplete(session) {
+          case Success(Some(s)) => boxSetSessionHeader(s) {
             complete("ok")
           }
           case _ => complete(StatusCodes.Unauthorized, "nok")
@@ -176,10 +186,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
         case Some(session) => complete(
           {
             for {
-              accessLevel <- session.userProfile match {
-                case Some(value) => value.accessLevel
-                case None => Future.successful(UIProvider.NOT_LOGGED_IN)
-              }
+              accessLevel <- session.userProfile.accessLevel
               ui <- UIProvider.forAccessLevel(accessLevel)
             } yield ui
           }
@@ -195,7 +202,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
           val boxFile = session match {
             case None => UIProvider.fileForAccessLevel(fileName,UIProvider.NOT_LOGGED_IN)
             case Some(session) => for {
-              accessLevel <- session.userProfile.get.accessLevel
+              accessLevel <- session.userProfile.accessLevel
               ui <- UIProvider.fileForAccessLevel(fileName,accessLevel)
             } yield ui
           }
@@ -211,7 +218,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   def version = path("version") {
     get {
       complete(
-        BoxBuildInfo.version
+        _root_.boxInfo.BoxBuildInfo.version
       )
     }
   }
@@ -249,7 +256,10 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
       uiFile ~
       Cache.resetRoute() ~
       new PublicArea().route ~
-      new PrivateArea().route
+      new PrivateArea().route ~
+      extractUnmatchedPath{ path =>
+        complete(StatusCodes.NotFound,s"$path not found")
+      }
   }
 
 }

@@ -4,9 +4,10 @@ import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import ch.wsl.box.model.shared.{DataResultTable, JSONQuery}
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeWS}
+import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeUtils, RuntimeWS}
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
 import _root_.io.circe.Json
+import ch.wsl.box.BaseSpec
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.services.Services
 
@@ -15,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class RuntimeFunctionSpec extends BaseSpec {
 
 
-  val dr = DataResultTable(Seq("aa"),Seq(Seq(Json.fromString("aa"),Json.fromString("bb"))))
+  val dr = DataResultTable(Seq("aa"),Seq("string"),Seq(Seq(Json.fromString("aa"),Json.fromString("bb"))))
 
   val context = Context(
       Json.Null,
@@ -27,13 +28,17 @@ class RuntimeFunctionSpec extends BaseSpec {
       new RuntimePSQL {
 
 
+        override def table(name: String, query: JSONQuery, keys: Option[Seq[String]])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, mat: Materializer, services: Services): Future[Option[DataResultTable]] = ???
+
         override def dynFunction(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = ???
 
         override def function(name: String, parameters: Seq[Json])(implicit lang: Lang, ec: ExecutionContext, up: UserProfile, services: Services): Future[Option[DataResultTable]] = {
           Future.successful(Some(dr))
         }
 
-        def table(name:String, query:JSONQuery = JSONQuery.empty)(implicit lang:Lang, ec:ExecutionContext, up:UserProfile, mat:Materializer,services:Services):Future[Option[DataResultTable]] = ???
+      },
+      new RuntimeUtils {
+        override def qrCode(url: String): String = ???
       }
     )
 
@@ -41,16 +46,20 @@ class RuntimeFunctionSpec extends BaseSpec {
 
     implicit val up = UserProfile(services.connection.adminUser)
 
+    val orig = DataResultTable(Seq(),Seq(),Seq(Seq(Json.fromString("test"))))
+
     val code =
       """
-        |Future.successful(DataResultTable(Seq(),Seq(Seq(Json.fromString("test")))))
+        |Future.successful(DataResultTable(Seq(),Seq(),Seq(Seq(Json.fromString("test")))))
       """.stripMargin
 
     assert(true)
 
     val f = RuntimeFunction("test1",code)
     f(context,"en").map{ result =>
-      assert(result.asInstanceOf[DataResultTable].rows.head.head == Json.fromString("test"))
+      val dt = result.asInstanceOf[DataResultTable]
+      dt shouldBe orig
+      dt.rows.head.head shouldBe Json.fromString("test")
     }
   }
 
@@ -77,7 +86,7 @@ class RuntimeFunctionSpec extends BaseSpec {
       """
         |for{
         |  result <- context.ws.get("http://wavein.ch")
-        |} yield DataResultTable(Seq(result),Seq())
+        |} yield DataResultTable(Seq(result),Seq(),Seq())
       """.stripMargin
     val f = RuntimeFunction("test3",code)
     f(RuntimeFunction.context(Json.Null),"en").map{ result =>
@@ -96,7 +105,7 @@ class RuntimeFunctionSpec extends BaseSpec {
       """
         |for{
         |  result <- context.ws.post("https://postman-echo.com/post","data","application/x-www-form-urlencoded; charset=UTF-8")
-        |} yield DataResultTable(Seq(result),Seq())
+        |} yield DataResultTable(Seq(result),Seq(),Seq())
       """.stripMargin
     val f = RuntimeFunction("test4",code)
     f(RuntimeFunction.context(Json.Null),"en").map{ result =>

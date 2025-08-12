@@ -21,9 +21,11 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   TestHooks.testing = true
 
-  Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Debug)).replace()
+  Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(Level.Warn)).replace()
 
-  def values = new Values()
+
+  def loggerLevel:Level = Level.Error
+  def values = new Values(loggerLevel)
 
   def rest:REST = new RestMock(values)
 
@@ -39,34 +41,39 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
   def formLoaded():Future[Boolean] = {
     val promise = Promise[Boolean]
     TestHooks.addOnLoad(() => {
-      promise.success(true)
+      if(!promise.isCompleted)
+        promise.success(true)
     })
     promise.future
   }
 
   def login: Future[Boolean] = Context.services.clientSession.login("test", "test")
 
-  def waitLoggedIn: Future[Boolean] = waitElement({ () => document.getElementById(TestHooks.logoutButton)},"Logout button")
-
-  private def waiter(w:() => Boolean,name:String = ""):Future[Boolean] = {
-    val promise = Promise[Boolean]()
+  private def waiter(w:() => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
+    val promise = Promise[Assertion]()
     logger.info("Waiter")
     val timeout = window.setTimeout({() =>
       println(s"Errored html: \n ${document.body.innerHTML}")
-      promise.failure(new TimeoutException(s"Element $name not found after 10 seconds"))
-    },10000)
+      promise.success(fail(s"Element $name not found after $patience seconds"))
+    },patience*1000)
     val observer = new MutationObserver({(mutations,observer) =>
       logger.info("Observer")
       if(w()) {
         window.clearTimeout(timeout)
         observer.disconnect()
-        Try(promise.success(true))
+        window.setTimeout(() =>
+          Try(promise.success(assert(true))),
+          0
+        )
       }
     })
     if(w()) {
       window.clearTimeout(timeout)
       observer.disconnect()
-      Try(promise.success(true))
+      window.setTimeout(() =>
+        Try(promise.success(assert(true))),
+        0
+      )
     }
     observer.observe(document,MutationObserverInit(childList = true, subtree = true))
     promise.future
@@ -78,17 +85,20 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     promise.future
   }
 
-  def waitId(id:String,name:String = ""): Future[Boolean] = waitElement({ () =>
+  def waitId(id:String,name:String = ""): Future[Assertion] = waitElement({ () =>
     document.getElementById(id)
   },if(name.isEmpty) s"Wait for id: $id" else name)
 
-  def waitNotId(id:String,name:String = ""): Future[Boolean] = waitNotElement({ () =>
+  def waitNotId(id:String,name:String = ""): Future[Assertion] = waitNotElement({ () =>
     document.getElementById(id)
   },if(name.isEmpty) s"Wait for not id: $id" else name)
 
-  def waitElement(elementExtractor:() => Element,name:String): Future[Boolean] = waiter(() => document.contains(elementExtractor()),name)
+  def waitElement(elementExtractor:() => Element,name:String,patience:Int = 10): Future[Assertion] = waiter(() => document.contains(elementExtractor()),name, patience)
 
-  def waitNotElement(elementExtractor:() => Element,name:String): Future[Boolean] = waiter(() => !document.contains(elementExtractor()),name)
+  def waitNotElement(elementExtractor:() => Element,name:String): Future[Assertion] = waiter(() => !document.contains(elementExtractor()),name)
+
+
+  def waitLoggedIn: Future[Assertion] = waitElement({ () => document.getElementById(TestHooks.logged)},"Logged div")
 
   def shouldBe(condition: Boolean): Assertion = {
     if(!condition) {
@@ -97,7 +107,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     condition shouldBe true
   }
 
-  def formChanged: Future[Boolean] = waitId(TestHooks.dataChanged)
-  def formUnchanged: Future[Boolean] = waitNotId(TestHooks.dataChanged)
+  def formChanged: Future[Assertion] = waitId(TestHooks.dataChanged)
+  def formUnchanged: Future[Assertion] = waitNotId(TestHooks.dataChanged)
 
 }

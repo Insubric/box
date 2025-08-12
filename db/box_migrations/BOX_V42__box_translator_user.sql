@@ -1,9 +1,19 @@
-create role box_translator;
-grant select,update,insert on box.form_i18n to box_translator;
-grant select,update,insert on box.field_i18n to box_translator;
-grant select,update,insert on box.v_labels to box_translator;
+do
+$do$
+    begin
+        if exists (select from pg_roles where rolname = 'box_translator') then
+            raise notice 'skip box_translation creation';
+        else
+            create role box_translator;
+        end if;
+    end
+$do$;
 
-create function box.add_translator_user(_username text, _password text) returns void
+grant select,update,insert on form_i18n to box_translator;
+grant select,update,insert on field_i18n to box_translator;
+
+
+create function add_translator_user(_username text, _password text) returns void
     language plpgsql
 as
 $$

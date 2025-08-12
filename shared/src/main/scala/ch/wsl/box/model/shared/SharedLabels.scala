@@ -57,6 +57,10 @@ object SharedLabels extends LabelsCollection {
 
   object navigation extends LabelsCollection{
     def recordFound = "navigation.recordFound"
+    def recordsFiltered = "navigation.recordsFiltered"
+    def recordsSelected = "navigation.recordsSelected"
+    def removeSelection = "navigation.removeSelection"
+    def selectAll = "navigation.selectAll"
     def goAway = "navigation.goAway"
     def first = "navigation.first"
     def last = "navigation.last"
@@ -84,7 +88,10 @@ object SharedLabels extends LabelsCollection {
       loading,
       page,
       record,
-      of
+      of,
+      recordsSelected,
+      selectAll,
+      removeSelection
     )
   }
 
@@ -128,6 +135,7 @@ object SharedLabels extends LabelsCollection {
   object form extends LabelsCollection{
     def required = "form.required"
     def save = "form.save"
+    def save_local = "form.save_local"
     def save_add = "form.save_add"
     def save_table = "form.save_table"
     def addDate = "form.add_date"
@@ -142,6 +150,7 @@ object SharedLabels extends LabelsCollection {
     def all = Seq(
       required,
       save,
+      save_local,
       save_add,
       save_table,
       addDate,
@@ -186,6 +195,7 @@ object SharedLabels extends LabelsCollection {
     def select = "exports.select"
     def load = "exports.load"
     def csv = "exports.csv"
+    def xls = "exports.xls"
     def pdf = "exports.pdf"
     def html = "exports.html"
     def shp = "exports.shp"
@@ -195,6 +205,7 @@ object SharedLabels extends LabelsCollection {
       select,
       load,
       csv,
+      xls,
       pdf,
       html,
       shp
@@ -214,6 +225,7 @@ object SharedLabels extends LabelsCollection {
     def csv = "table.csv"
     def xls = "table.xls"
     def shp = "table.shp"
+    def geopackage = "table.geopackage"
     def all = Seq(
       filters,
       actions,
@@ -226,7 +238,8 @@ object SharedLabels extends LabelsCollection {
       confirmRevert,
       csv,
       xls,
-      shp
+      shp,
+      geopackage
     )
   }
 

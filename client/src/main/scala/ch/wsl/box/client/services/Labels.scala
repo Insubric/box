@@ -46,6 +46,10 @@ object Labels {
 
   object navigation{
     def recordFound = get(SharedLabels.navigation.recordFound)
+    def recordsFiltered = get(SharedLabels.navigation.recordsFiltered)
+    def recordsSelected = get(SharedLabels.navigation.recordsSelected)
+    def removeSelection = get(SharedLabels.navigation.removeSelection)
+    def selectAll = get(SharedLabels.navigation.selectAll)
     def goAway = get(SharedLabels.navigation.goAway)
     def first = get(SharedLabels.navigation.first)
     def last = get(SharedLabels.navigation.last)
@@ -116,6 +120,7 @@ object Labels {
     def select = get(SharedLabels.exports.select)
     def load = get(SharedLabels.exports.load)
     def csv = get(SharedLabels.exports.csv)
+    def xls = get(SharedLabels.exports.xls)
     def pdf = get(SharedLabels.exports.pdf)
     def html = get(SharedLabels.exports.html)
     def shp = get(SharedLabels.exports.shp)
@@ -139,6 +144,7 @@ object Labels {
     def csv = get(SharedLabels.entity.csv)
     def xls = get(SharedLabels.entity.xls)
     def shp = get(SharedLabels.entity.shp)
+    def geoPackage = get(SharedLabels.entity.geopackage)
   }
 
   object header{

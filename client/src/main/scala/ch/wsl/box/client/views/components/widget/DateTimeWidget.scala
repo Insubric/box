@@ -1,5 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
+import ch.wsl.box.client.Context
+
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
@@ -9,9 +11,10 @@ import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.DateTimeFormatters
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.datepicker.UdashDatePicker.Placement
 import io.udash.properties.single.Property
 import org.scalajs.dom.raw.HTMLInputElement
@@ -19,8 +22,13 @@ import org.scalajs.dom.{Event, KeyboardEvent}
 import scalacss.internal.StyleA
 import scalatags.JsDom
 import scribe.Logging
-import typings.flatpickr.optionsMod.{DateOption, Hook}
+import ch.wsl.typings.flatpickr.anon.kinkeyCustomLocaledefault
+import ch.wsl.typings.flatpickr.distTypesLocaleMod.{CustomLocale, Locale}
+import ch.wsl.typings.flatpickr.distTypesOptionsMod.Hook
+import ch.wsl.typings.flatpickr.mod.flatpickr.Options.DateOption
 
+import java.util
+import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.util.Try
 import scala.scalajs.js.JSConverters._
@@ -45,16 +53,39 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   val data:Property[Json]
   val id:ReadableProperty[Option[String]]
   val range:Boolean
+  val allData:ReadableProperty[Json]
+
+  /**
+   * Tasform the label in data
+   *
+   * @param str
+   * @param ec
+   * @return
+   */
+  override def fromLabel(str: String)(implicit ec: ExecutionContext): Future[Json] = Future.successful{
+   dateTimeFormatters.parse(str).map(x => dateTimeFormatters.format(x).asJson).getOrElse(Json.Null)
+  }
 
   val format = field.params.flatMap(_.getOpt("format"))
 
+  val defaultFrom = field.params.flatMap(_.getOpt("defaultFrom"))
+
   val fullWidth = field.params.exists(_.js("fullWidth") == true.asJson)
-  val style = fullWidth match {
-    case true => ClientConf.style.dateTimePickerFullWidth
-    case false => ClientConf.style.dateTimePicker
+
+  private val locale: CustomLocale = {
+    val l = Context.services.clientSession.lang() match {
+      case "it" => ch.wsl.typings.flatpickr.distL10nItMod.default.it.get
+      case "fr" => ch.wsl.typings.flatpickr.distL10nFrMod.default.fr.get
+      case "de" => ch.wsl.typings.flatpickr.distL10nDeMod.default.de.get
+      case _ => ch.wsl.typings.flatpickr.distL10nMod.default.default
+    }
+    l.setFirstDayOfWeek(1)
+    l.setRangeSeparator(" → ")
+    l
   }
-  override def edit() = editMe()
-  override protected def show(): JsDom.all.Modifier = showMe(field.title)
+
+  override def edit(nested:Binding.NestedInterceptor) = editMe()
+  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(field.title,nested)
 
   val formatted:ReadableProperty[String] = data.transform{ js =>
     dateTimeFormatters.parse(js.string).map(v => dateTimeFormatters.format(v,format) ).getOrElse("")
@@ -94,7 +125,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
     val result = if(range) {
-      val tokens = str.split("to").map(_.trim)
+
+      val tokens = str.split(locale.rangeSeparator.getOrElse("to")).map(_.trim)
       if(tokens.length > 1)
         tokens.flatMap(t => strToTime(t,false))
       else
@@ -109,20 +141,28 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
 
-  override def showOnTable(): JsDom.all.Modifier = {
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     format match {
-      case Some(formatter) => bind(data.transform{js =>
+      case Some(formatter) => nested(bind(data.transform{js =>
+
+        val locale = Context.services.clientSession.lang() match {
+          case "it" => java.util.Locale.ITALIAN
+          case "de" => java.util.Locale.GERMAN
+          case "fr" => java.util.Locale.FRENCH
+          case _ => java.util.Locale.ENGLISH
+        }
+
         dateTimeFormatters.parse(js.string)
-          .map(x => dateTimeFormatters.format(x,Some(formatter)))
+          .map{x => dateTimeFormatters.format(x,Some(formatter),Some(locale))}
           .getOrElse(js.string)
-      })
-      case None => bind(data.transform(_.string))
+      }))
+      case None => nested(bind(data.transform(_.string)))
     }
   }
 
-  protected def showMe(modelLabel:String):Modifier = autoRelease(WidgetUtils.showNotNull(data){ p =>
+  protected def showMe(modelLabel:String,nested:Binding.NestedInterceptor):Modifier = autoRelease(WidgetUtils.showNotNull(data,nested){ p =>
     div(ClientConf.style.smallBottomMargin, if (modelLabel.length > 0) label(modelLabel) else {},
-      div(BootstrapStyles.Float.right(), bind(formatted)),
+      div(BootstrapStyles.Float.right(), nested(bind(formatted))),
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   })
@@ -132,20 +172,20 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      if (field.title.length > 0) WidgetUtils.toLabel(field, false) else {},
-      tooltip(picker())._1,
+      if (field.title.length > 0) WidgetUtils.toLabel(field,WidgetUtils.LabelRight, false) else {},
+      tooltip(picker(fullWidth))._1,
       div(BootstrapStyles.Visibility.clearfix)
     ).render
   }
 
 
-  override def editOnTable(): JsDom.all.Modifier = picker()
+  override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = picker(true)
 
-  protected def picker():HTMLInputElement = {
+  protected def picker(fullwidth:Boolean):HTMLInputElement = {
 
 
 
-    var flatpicker:typings.flatpickr.instanceMod.Instance = null
+    var flatpicker:ch.wsl.typings.flatpickr.mod.flatpickr.Instance = null
 
     def handleDate(d:Json,force:Boolean = false): Unit = {
       if(range) {
@@ -157,6 +197,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
           case None => flatpicker.clear(force)
         }
       }
+    }
+
+    val style = fullwidth match {
+      case true => ClientConf.style.dateTimePickerFullWidth
+      case false => ClientConf.style.dateTimePicker
     }
 
     val picker = input(
@@ -173,7 +218,15 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       },
       onclick := { (e:Event) =>
         if(data.get == Json.Null) {
-          data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
+          val defaultDate = for{
+            field <- defaultFrom
+            jsDate <- allData.get.jsOpt(field)
+          } yield jsDate
+
+          defaultDate match {
+            case Some(date) => handleDate(date,true)
+            case None => data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
+          }
         }
       },
       onblur := { (e: Event) =>
@@ -185,7 +238,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-    def setListener(immediate: Boolean, flatpicker:typings.flatpickr.instanceMod.Instance) = {
+    def setListener(immediate: Boolean, flatpicker:ch.wsl.typings.flatpickr.distTypesInstanceMod.Instance) = {
       changeListener = data.listen({ d =>
         logger.info(s"Changed model to $d")
         handleDate(d)
@@ -194,12 +247,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-
+    //scala.scalajs.js.Function4[scala.scalajs.js.Array[ch.wsl.typings.flatpickr.globalsMod.global.Date],String,ch.wsl.typings.flatpickr.instanceMod.Instance,Any | Unit,Unit]
     val onChange:Hook = (
-                          selectedDates:js.Array[typings.flatpickr.globalsMod.global.Date],
+                          selectedDates:js.Array[ch.wsl.typings.flatpickr.distTypesGlobalsMod.global.Date],
                           dateStr:String,
-                          instance: typings.flatpickr.instanceMod.Instance,
-                          _data:js.UndefOr[js.Any]) => {
+                          instance: ch.wsl.typings.flatpickr.distTypesInstanceMod.Instance,
+                          _data:js.UndefOr[Any]) => {
       changeListener.cancel()
       logger.info(s"flatpickr on change $dateStr, selectedDates: $selectedDates $instance ${_data}")
       if(dateStr == "") {
@@ -214,14 +267,14 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 
 
-
-    val options = typings.flatpickr.optionsMod.Options()
+    val options = ch.wsl.typings.flatpickr.distTypesOptionsMod.Options()
       .setAllowInput(true)
       .setDisableMobile(true)
+      .setLocale(locale)
       .setOnChange(onChange)
 
     if(range) {
-      options.setMode(typings.flatpickr.flatpickrStrings.range)
+      options.setMode(ch.wsl.typings.flatpickr.flatpickrStrings.range)
     }
 
     fieldType match {
@@ -230,7 +283,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       case FieldTypes.Time => options.setEnableTime(true).setTime_24hr(true).setNoCalendar(true).setDateFormat("H:i")
     }
 
-    flatpicker = typings.flatpickr.mod.default(picker,options)
+    flatpicker = ch.wsl.typings.flatpickr.mod.default(picker,options)
 
     setListener(true,flatpicker)
 
@@ -244,35 +297,35 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 object DateTimeWidget {
 
 
-  case class Date(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], range:Boolean = false) extends DateTimeWidget[LocalDate] {
+  case class Date(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDate] {
     override val fieldType = FieldTypes.Date
     override val dateTimeFormatters: DateTimeFormatters[LocalDate] = DateTimeFormatters.date
   }
 
   object Date extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.datepicker
-    override def create(params: WidgetParams): Widget = Date(params.id,params.field,params.prop)
+    override def create(params: WidgetParams): Widget = Date(params.id,params.field,params.prop,params.allData)
   }
 
 
 
-  case class DateTime(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], range:Boolean = false) extends DateTimeWidget[LocalDateTime] {
+  case class DateTime(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDateTime] {
     override val fieldType = FieldTypes.DateTime
     override val dateTimeFormatters: DateTimeFormatters[LocalDateTime] = DateTimeFormatters.timestamp
   }
 
   object DateTime extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.datetimePicker
-    override def create(params: WidgetParams): Widget = DateTime(params.id,params.field,params.prop)
+    override def create(params: WidgetParams): Widget = DateTime(params.id,params.field,params.prop,params.allData)
   }
 
 
   object Time extends ComponentWidgetFactory {
     override def name: String = WidgetsNames.timepicker
-    override def create(params: WidgetParams): Widget = Time(params.id,params.field,params.prop)
+    override def create(params: WidgetParams): Widget = Time(params.id,params.field,params.prop,params.allData)
   }
 
-  case class Time(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], range:Boolean = false) extends DateTimeWidget[LocalTime] {
+  case class Time(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalTime] {
     override val fieldType = FieldTypes.Time
     override val dateTimeFormatters: DateTimeFormatters[LocalTime] = DateTimeFormatters.time
   }

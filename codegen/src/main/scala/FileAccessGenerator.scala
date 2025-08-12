@@ -9,7 +9,7 @@ import scala.util.Try
 
 
 
-case class FileAccessGenerator(model:Model,conf:Config) extends slick.codegen.SourceCodeGenerator(model)
+case class FileAccessGenerator(model:Model) extends slick.codegen.SourceCodeGenerator(model)
   with BoxSourceCodeGenerator
   with slick.codegen.OutputHelpers {
 
@@ -31,7 +31,7 @@ case class FileAccessGenerator(model:Model,conf:Config) extends slick.codegen.So
        |    case "$table.$bytea" => File("$table.$bytea",$tableTableQuery,new FileHandler[$tableTableRow] {
        |        override def inject(row: $tableTableRow, file: Array[Byte]) = row.copy($bytea = $inj)
        |        override def extract(row: $tableTableRow) = $ext
-       |    }).route""".stripMargin
+       |    })(ec ,materializer, db, services, Entities.encode$tableTableRow,up).route""".stripMargin
 
   }
 

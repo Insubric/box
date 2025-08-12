@@ -1,1 +1,1 @@
-alter table box.form_actions add column  if not exists html_check bool not null default true;
+alter table form_actions add column  if not exists html_check bool not null default true;

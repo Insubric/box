@@ -3,18 +3,19 @@ package ch.wsl.box.services.config
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
-import com.typesafe.config.ConfigFactory
+import ch.wsl.box.viewmodel.MatomoConfig
+import com.typesafe.config.{ConfigFactory, ConfigValue, ConfigValueFactory}
+import net.ceedubs.ficus.Ficus._
 import scribe.{Level, Logging}
 
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Try
-import net.ceedubs.ficus.Ficus._
 
 class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
-  private var conf: Map[String, String] = Map()
+  private var _conf: Map[String, String] = Map()
 
   def load() = {
 
@@ -28,7 +29,7 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
       }.toMap
     }, 200 seconds)
 
-    conf = tempConf.filterNot(_._1 == "langs") ++ Map(
+    _conf = tempConf.filterNot(_._1 == "langs") ++ Map(
       "langs" -> langs.mkString(","),
       "frontendUrl" -> frontendUrl
     )
@@ -39,7 +40,7 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
 
   def refresh() = load()
 
-  def clientConf:Map[String, String] = conf.filterNot{ case (k,v) =>
+  def clientConf:Map[String, String] = _conf.filterNot{ case (k,v) =>
     Set(
       "host",
       "port",
@@ -54,36 +55,37 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     ).contains(k)}
 
 
-  def fksLookupLabels = ConfigFactory.parseString( Try(conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
+  def fksLookupLabels = ConfigFactory.parseString( Try(_conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
 
-  def fksLookupRowsLimit = Try(conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
+  def fksLookupRowsLimit = Try(_conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
 
 
   def akkaHttpSession = {
-    val cookieName = Try(conf("cookie.name")).getOrElse("_boxsession_myapp")
-    val maxAge = Try(conf("max-age")).getOrElse("2000")
-    val serverSecret = Try(conf("server-secret")).getOrElse {
+    val cookieName = Try(_conf("cookie.name")).getOrElse("_boxsession_myapp")
+    val maxAge = Try(_conf("max-age")).getOrElse("2000")
+    val serverSecret = Try(_conf("server-secret")).getOrElse {
       logger.warn("Set server secret in box.conf table, use the default value only for development")
       "changeMe530573985739845704357308s70487s08970897403854s038954s38754s30894387048s09e8u408su5389s5"
     }
 
-    ConfigFactory.parseString(
-      s"""akka.http.session {
-         |  cookie {
-         |    name = "$cookieName"
-         |  }
-         |  max-age = $maxAge seconds
-         |  encrypt-data = true
-         |  server-secret = "$serverSecret"
-         |}""".stripMargin)
 
-  }.withFallback(ConfigFactory.load())
+    conf.withValue("akka.http.session.cookie.name",ConfigValueFactory.fromAnyRef(cookieName))
+      .withValue("akka.http.session.refresh-token.cookie.name",ConfigValueFactory.fromAnyRef(s"_refreshtoken_$cookieName"))
+      .withValue("akka.http.session.server-secret",ConfigValueFactory.fromAnyRef(serverSecret))
+      .withValue("akka.http.session.max-age",ConfigValueFactory.fromAnyRef(java.time.Duration.ofSeconds(maxAge.toLongOption.getOrElse(3600L))))
 
-  def host = Try(conf("host")).getOrElse("0.0.0.0")
-  def port = Try(conf("port").toInt).getOrElse(8080)
-  def origins = Try(conf("origins")).map(_.split(",").toSeq.map(_.trim)).getOrElse(Seq[String]())
+  }
 
-  def loggerLevel = Try(conf("logger.level")).getOrElse("warn").toLowerCase match {
+  def host = Try(_conf("host")).getOrElse("0.0.0.0")
+  def port = Try(_conf("port").toInt).getOrElse(8080)
+  def origins = Try(_conf("origins")).map(_.split(",").toSeq.map(_.trim)).getOrElse(Seq[String]())
+
+  override def mainColor: String = _conf("color.main")
+  override def name: String = _conf.getOrElse("name","Box framework")
+  override def shortName: String = _conf.getOrElse("name.short", "Box")
+  override def initials: String = _conf.getOrElse("initials",shortName.split(" ").map(_.take(1)).mkString("").toUpperCase)
+
+  def loggerLevel = Try(_conf("logger.level")).getOrElse("warn").toLowerCase match {
     case "trace" => Level.Trace
     case "debug" => Level.Debug
     case "info" => Level.Info
@@ -91,23 +93,23 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case "error" => Level.Error
   }
 
-  def logDB = Try(conf("log.db").equals("true")).getOrElse(false)
+  def logDB = Try(_conf("log.db").equals("true")).getOrElse(false)
 
 
   def enableCache:Boolean = {
-    val result = Try(conf("cache.enable").equals("true")).getOrElse(true)
+    val result = Try(_conf("cache.enable").equals("true")).getOrElse(true)
     result
   }
 
   def enableRedactor:Boolean = {
-    Try(conf("redactor.js")).toOption.exists(_.nonEmpty) &&
-      Try(conf("redactor.css")).toOption.exists(_.nonEmpty)
+    Try(_conf("redactor.js")).toOption.exists(_.nonEmpty) &&
+      Try(_conf("redactor.css")).toOption.exists(_.nonEmpty)
   }
 
-  def redactorJs = Try(conf("redactor.js")).getOrElse("")
-  def redactorCSS = Try(conf("redactor.css")).getOrElse("")
+  def redactorJs = Try(_conf("redactor.js")).getOrElse("")
+  def redactorCSS = Try(_conf("redactor.css")).getOrElse("")
 
-  def filterPrecisionDatetime = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
+  def filterPrecisionDatetime = Try(_conf("filter.precision.datetime").toUpperCase).toOption match {
     case Some("DATE") => JSONFieldTypes.DATE
     case Some("DATETIME") => JSONFieldTypes.DATETIME
     case _ => JSONFieldTypes.DATETIME //for None or wrong values
@@ -118,6 +120,11 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case JSONFieldTypes.DATETIME => ((x: LocalDateTime) => x)
     case _ => ((x: LocalDateTime) => x)
   }
+
+  override def matomo: Option[MatomoConfig] = for{
+    site_id <- _conf.get("matomo.site_id")
+    tracker_url <- _conf.get("matomo.tracker_url")
+  } yield MatomoConfig(site_id, tracker_url)
 
   val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
 }

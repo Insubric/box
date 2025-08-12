@@ -9,21 +9,22 @@ import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.logic._
-import ch.wsl.box.rest.utils.{Cache, JSONSupport, UserProfile}
-import io.circe.Json
+import ch.wsl.box.rest.utils.{BoxSession, Cache, JSONSupport, Lang, UserProfile}
+import io.circe.{Json, JsonObject}
 import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.boxentities.BoxSchema
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.io.shp.ShapeFileWriter
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
-import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.immutable
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /**
@@ -32,13 +33,11 @@ import scala.util.{Failure, Success}
 case class Form(
                  name:String,
                  lang:String,
-                 jsonActions: String => TableActions[Json], //EntityActionsRegistry().tableActions
-                 metadataFactory: MetadataFactory, //JSONFormMetadataFactory(),
-                 db:UserDatabase,
+                 registry: RegistryInstance,
+                 metadataFactory: MetadataFactory,
                  kind:String,
-                 public: Boolean = false,
-                 schema:Option[String] = None
-               )(implicit up:UserProfile, ec: ExecutionContext, mat:Materializer,services:Services) extends enablers.CSVDownload with Logging {
+                 show_list: Boolean = true
+               )(implicit session:BoxSession, val ec: ExecutionContext, val mat:Materializer, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[Json] with Exporters {
 
     import JSONSupport._
     import Light._
@@ -55,25 +54,19 @@ case class Form(
     import ch.wsl.box.model.shared.EntityKind
     import de.heikoseeberger.akkahttpcirce.ErrorAccumulatingCirceSupport
 
-
+    implicit val l = Lang(lang)
+    implicit val up = session.userProfile
+    val db = up.db
     implicit val implicitDB = db
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
-    val metadata: DBIO[JSONMetadata] = metadataFactory.of(name,lang)
+    def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang,session.user)),10.seconds)
+   private def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
-
-   private def actions[T](f:FormActions => T):Future[T] = for{
-      form <- boxDb.adminDb.run(metadata)
-      formActions = FormActions(form,jsonActions,metadataFactory)
-    } yield {
-      f(formActions)
-    }
-
-
-    private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
+  private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {
           case Some(fields) => m.fields.filter(field => fields.contains(field.name))
-          case None => m.fields.filter(field => m.tabularFields.contains(field.name))
+          case None => m.fields.filter(field => m.tabularFields.contains(field.name) || m.exportFields.contains(field.name))
         }
     }
 
@@ -86,20 +79,20 @@ case class Form(
 
   }
 
-    def tabularMetadata(fields:Option[Seq[String]] = None) = metadata.flatMap{ m =>
-      val filteredFields = m.view match {
-        case None => DBIO.successful(_tabMetadata(fields,m))
-        case Some(view) => DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),view,lang).map{ vm =>
-          viewTableMetadata(fields.getOrElse(m.tabularFields),m,vm)
+    def tabularMetadata(fields:Option[Seq[String]] = None): DBIO[JSONMetadata] = {
+      val filteredFields = metadata.view match {
+        case None => DBIO.successful(_tabMetadata(fields,metadata))
+        case Some(view) => DBIO.from(EntityMetadataFactory.of(view,registry).map{ vm =>
+          viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
         })
       }
 
-      filteredFields.map( ff => m.copy(fields = ff ))
+      filteredFields.map( ff => metadata.copy(fields = ff ))
 
     }
 
     def privateOnly(r: => Route):Route = {
-      if(public) {
+      if(!show_list) {
         complete(StatusCodes.Unauthorized,"Not authorized to do that action without authentication")
       } else {
         r
@@ -107,54 +100,26 @@ case class Form(
     }
 
 
-  def xls = path("xlsx") {
-    get {
-      privateOnly {
-        parameters('q) { q =>
-          val query = parse(q).right.get.as[JSONQuery].right.get
-          val io = for {
-            metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-            formActions = FormActions(metadata, jsonActions, metadataFactory)
-            data <- formActions.list(query, true, true)
-            xlsTable = XLSTable(
-              title = name,
-              header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef)),
-              rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
-            )
-          } yield {
-            XLS.route(xlsTable)
-          }
-          onSuccess(db.run(io))(x => x)
-        }
-      }
-    }
-  }
-
   def csvTable(query:JSONQuery):Future[CSVTable] = {
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
-      formActions = FormActions(metadata, jsonActions, metadataFactory)
+      formActions = FormActions(metadata, registry, metadataFactory)
       csv <- db.run(formActions.csv(query, false))
     } yield csv
   }
 
-  def csvTable(q:String,fk:Option[String],fields:Option[String]):DBIO[CSVTable] = {
+  def csvTable(q:String,fk:Option[String],fields:Option[String]):Future[CSVTable] = {
     val query = parse(q).right.get.as[JSONQuery].right.get
-    val tabMetadata = tabularMetadata(fields.map(_.split(",").map(_.trim).toSeq))
+    //val formActions = FormActions(metadata, registry, metadataFactory)
     for {
-      metadata <- DBIO.from(boxDb.adminDb.run(tabMetadata))
-      formActions = FormActions(metadata, jsonActions, metadataFactory)
-      fkValues <- fk match {
-        case Some(ExportMode.RESOLVE_FK) => Lookup.valuesForEntity(metadata).map(Some(_))
-        case _ => DBIO.successful(None)
-      }
-      csv <- formActions.csv(query, true, _.exportFields)
+      metadata <- boxDb.adminDb.run(tabularMetadata())
+      formActions = FormActions(metadata, registry, metadataFactory)
+      csv <- db.run(formActions.csv(query, true, _.exportFieldsNoGeom.map(_.name)))
     } yield csv.copy(
       showHeader = true,
-      header = metadata.exportFields.map(ef => metadata.fields.find(_.name == ef).map(_.title).getOrElse(ef))
+      header = metadata.exportFieldsNoGeom.map(_.title)
     )
   }
-
 
   def csv:Route = path("csv") {
     post {
@@ -166,104 +131,81 @@ case class Form(
     } ~ get {
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-          onSuccess(db.run(csvTable(q,fk,fields)))(csv => CSV.download(csv))
+          onSuccess(csvTable(q,fk,fields))(csv => CSV.download(csv))
         }
       }
     }
   }
 
-  def shp:Route = path("shp") {
-    get {
-      parameters('q) { q =>
-        val query = parse(q).right.get.as[JSONQuery].right.get
-        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
-          complete {
-            for {
-              metadata <- boxDb.adminDb.run(tabularMetadata())
-              formActions = FormActions(metadata, jsonActions, metadataFactory)
-              data <- db.run(formActions.dataTable(query, None))
-              shapefile <- ShapeFileWriter.writeShapeFile(name,data)
-            }  yield {
-              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
+  def resetCacheOnBox() = if(registry.schema == Registry.box().schema) {
+    Cache.reset()
+  }
+
+  def updateDiff = put {
+      entity(as[JSONDiff]) { e =>
+        complete {
+          for {
+            json <- db.run{
+              actions.updateDiff(e).transactionally
             }
+          } yield {
+            resetCacheOnBox()
+            json
           }
         }
       }
-    }
   }
 
-  def lookup:Route = pathPrefix("lookup") {
-    path(Segment) { field =>
-      post {
-        entity(as[JSONQuery]) { query =>
-          complete {
-            for{
-              m <- boxDb.adminDb.run(metadata)
-              lookups <- {
-                m.fields.find(_.name == field).flatMap(_.lookup) match {
-                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
-                  case None => throw new Exception(s"$field has no lookup")
-                }
-              }
-            } yield lookups
-          }
-        }
-      }
-    }
-  }
 
   def _get(ids:Seq[JSONID]) = get {
-    privateOnly {
-      complete(actions { fs =>
-        db.run(fs.getById(ids.head).transactionally).map { record =>
+
+      complete({
+        db.run(actions.getById(ids.head).transactionally).map { record =>
           logger.info(record.toString)
           HttpEntity(ContentTypes.`application/json`, record.asJson)
         }
       })
-    }
+
   }
 
   def _delete(ids:Seq[JSONID]) = delete {
-    privateOnly {
       complete {
-        actions { fs =>
+
+          val action = DBIO.sequence(ids.map(id => actions.delete(id))).transactionally
+          //println(action.statements.mkString("\n"))
           for {
-            count <- db.run(DBIO.sequence(ids.map(id => fs.delete(id))).transactionally)
+            count <- db.run(action)
           } yield JSONCount(count.sum)
-        }
+
       }
-    }
   }
 
   def update(ids:Seq[JSONID]) = put {
-    privateOnly {
       entity(as[Json]) { e =>
         complete {
-          actions { fs =>
+
             val values = e.as[Seq[Json]].getOrElse(Seq(e))
             val result = for {
               jsonId <- db.run{
-                DBIO.sequence(values.zip(ids).map{ case (x,id) => fs.upsertIfNeeded(Some(id), x)}).transactionally
+                DBIO.sequence(values.zip(ids).map{ case (x,id) => actions.update(id, x)}).transactionally
               }
             } yield {
-              if(schema == BoxSchema.schema) {
-                Cache.reset()
-              }
+              resetCacheOnBox()
               if(jsonId.length == 1) jsonId.head.asJson else jsonId.asJson
             }
 
             result.recover{ case t:Throwable => t.printStackTrace()}
 
             result
-          }
+
         }
       }
-    }
   }
 
-    def route = pathPrefix("id") {
+
+  def route = pathPrefix("id") {
       path(Segment) { strId =>
-        JSONID.fromMultiString(strId) match {
+        JSONID.fromMultiString(strId,metadata) match {
           case ids if ids.nonEmpty =>
               _get(ids) ~
               update(ids) ~
@@ -280,7 +222,7 @@ case class Form(
     path("metadata") {
       get {
         complete {
-          boxDb.adminDb.run(metadata)
+          metadata
         }
       }
     } ~
@@ -294,21 +236,21 @@ case class Form(
     path("schema") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(m => new JSONSchemas().of(m)))
+          boxDb.adminDb.run(new JSONSchemas().of(metadata))
         }
       }
     } ~
     path("children") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap{ f => metadataFactory.children(f)})
+          boxDb.adminDb.run(metadataFactory.children(metadata,session.user))
         }
       }
     } ~
     path("keys") {
       get {
         complete {
-          boxDb.adminDb.run(metadata.flatMap(f => EntityMetadataFactory.keysOf(schema.getOrElse(services.connection.dbSchema),f.entity)))
+          boxDb.adminDb.run( EntityMetadataFactory.keysOf(registry.schema,metadata.entity))
         }
       }
     } ~
@@ -318,9 +260,7 @@ case class Form(
           entity(as[JSONQuery]) { query =>
             complete {
               for {
-                metadata <- boxDb.adminDb.run(tabularMetadata())
-                formActions = FormActions(metadata, jsonActions, metadataFactory)
-                data <- db.run(formActions.ids(query))
+                data <- db.run(actions.ids(query,metadata.keys))
               } yield data
             }
           }
@@ -330,11 +270,7 @@ case class Form(
     path("count") {
       get {
         complete {
-          actions{a =>
-
-            db.run(a.count())
-
-          }
+            db.run(actions.count())
         }
       }
     } ~
@@ -346,7 +282,7 @@ case class Form(
             complete {
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-                formActions = FormActions(metadata, jsonActions, metadataFactory)
+                formActions = FormActions(metadata, registry, metadataFactory)
                 result <- formActions.list(query, true)
               } yield {
                 result
@@ -359,21 +295,25 @@ case class Form(
         }
       }
     } ~
-    lookup ~
-    xls ~
-    csv ~
-    shp ~
+    lookup(Future.successful(metadata)) ~
+    lookups(actions) ~
     pathEnd {
-        post {
-          entity(as[Json]) { e =>
-            complete {
-              actions{ fs =>
-                db.run(fs.insert(e).transactionally)
-              }
-            }
+      post {
+        entity(as[Json]) { e =>
+          complete {
+            db.run(actions.insert(e).transactionally)
           }
         }
+      }
+    } ~
+    privateOnly {
+      xls ~
+      csv ~
+      shp ~
+      geoPkg ~
+      GeoData(db, actions)
     }
+
 
 
 }

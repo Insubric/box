@@ -13,23 +13,27 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import ch.wsl.box.jdbc.{Connection, FullDatabase}
-import ch.wsl.box.model.shared.{JSONCount, JSONData, JSONID, JSONQuery, XLSTable}
-import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup}
+import ch.wsl.box.model.shared.{GeoJson, GeoTypes, JSONCount, JSONData, JSONDiff, JSONID, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.rest.logic.{DbActions, FormActions, JSONTableActions, Lookup, ViewActions}
 import ch.wsl.box.rest.utils.{JSONSupport, Lang, UserProfile}
 import com.typesafe.config.{Config, ConfigFactory}
 import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.rest.io.shp.ShapeFileWriter
+import ch.wsl.box.model.UpdateTable
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
+import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.utils.JSONSupport.EncoderWithBytea
 import ch.wsl.box.services.Services
 import io.circe.parser.decode
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Decoder, Encoder, Json, JsonObject}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 
@@ -38,17 +42,16 @@ import scala.util.{Failure, Success}
  */
 
 
-case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false, schema:Option[String] = None)
-                                                            (implicit
-                                                             enc: Encoder[M],
-                                                             dec:Decoder[M],
-                                                             mat:Materializer,
-                                                             up:UserProfile,
-                                                             ec: ExecutionContext,services:Services) extends enablers.CSVDownload with Logging {
+case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](name:String, table:TableQuery[T], lang:String="en", isBoxTable:Boolean = false)
+                                                                                                 (implicit
+                                                                                                  enc: EncoderWithBytea[M],
+                                                                                                  dec:Decoder[M],
+                                                                                                  val mat:Materializer,
+                                                                                                  up:UserProfile,
+                                                                                                  val ec: ExecutionContext, val services:Services) extends enablers.CSVDownload with Logging with HasLookup[M] {
 
 
   import JSONSupport._
-  import Light._
   import akka.http.scaladsl.model._
   import akka.http.scaladsl.server.Directives._
   import ch.wsl.box.shared.utils.Formatters._
@@ -61,14 +64,16 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
   implicit val customConfig: Configuration = Configuration.default.withDefaults
   implicit val l = Lang(lang)
+  implicit def encoder = enc.light()
 
     implicit val db = up.db
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
+  val registry = table.baseTableRow.registry
 
     val dbActions = new DbActions[T,M](table)
     val jsonActions = JSONTableActions[T,M](table)
-    val limitLookupFromFk: Int = services.config.fksLookupRowsLimit
+
 
 
     import io.circe.syntax._
@@ -76,19 +81,23 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     import JSONData._
 
 
+  lazy val jsonMetadata:JSONMetadata = {
+    val fut = EntityMetadataFactory.of(name, registry)
+    Await.result(fut,20.seconds)
+  }
+
   def xls:Route = path("xlsx") {
     get {
       parameters('q) { q =>
         val query = parse(q).right.get.as[JSONQuery].right.get
         val io = for {
-          metadata <- DBIO.from(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang))
           //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
-          data <- jsonActions.find(query)
+          data <- jsonActions.findSimple(query)
         } yield {
           val table = XLSTable(
             title = name,
-            header = metadata.fields.map(_.name),
-            rows = data.map(row => metadata.exportFields.map(cell => row.get(cell)))
+            header = jsonMetadata.fields.map(_.name),
+            rows = data.map(row => jsonMetadata.exportFields.map(cell => row.get(cell)))
           )
           XLS.route(table)
         }
@@ -115,6 +124,24 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     }
   }
 
+  def geoPkg: Route = path("gpkg") {
+    get {
+      parameters('q) { q =>
+        val query = parse(q).right.get.as[JSONQuery].right.get
+        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.gpkg"))) {
+          complete {
+            for {
+              data <- PSQLImpl.table(name, query)
+              shapefile <- GeoPackageWriter.write(name, data.get)
+            } yield {
+              HttpResponse(entity = HttpEntity(MediaTypes.`application/octet-stream`, shapefile))
+            }
+          }
+        }
+      }
+    }
+  }
+
   def kind:Route = path("kind") {
     get {
       complete{EntityKind.VIEW.kind}
@@ -123,13 +150,13 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
 
   def metadata:Route = path("metadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk) }
+      complete{ jsonMetadata }
     }
   }
 
   def tabularMetadata:Route = path("tabularMetadata") {
     get {
-      complete{ EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk) }
+      complete{ jsonMetadata }
     }
   }
 
@@ -143,7 +170,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     post {
       entity(as[JSONQuery]) { query =>
         complete {
-          db.run(dbActions.ids(query))
+          db.run(dbActions.ids(query,jsonMetadata.keys))
           //                EntityActionsRegistry().viewActions(name).map(_.ids(query))
         }
       }
@@ -164,7 +191,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     post {
       entity(as[JSONQuery]) { query =>
         logger.info("list")
-        complete(db.run(dbActions.find(query)))
+        complete(db.run(jsonActions.findSimple(query)))
       }
     }
   }
@@ -175,7 +202,11 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
         logger.info("csv")
         import kantan.csv._
         import kantan.csv.ops._
-        complete(Source.fromPublisher(db.stream(dbActions.find(query)).mapResult(x => Seq(x.values()).asCsv(rfc))).log("csv"))
+        onComplete(db.run(dbActions.findSimple(query))) {
+          case Success(q) => complete(q.map(x => x.values()).asCsv(rfc))
+          case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+        }
+
       }
     } ~
       respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment,Map("filename" -> s"$name.csv"))) {
@@ -184,10 +215,18 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
             import kantan.csv._
             import kantan.csv.ops._
             val query = parse(q).right.get.as[JSONQuery].right.get
-            val csv = Source.fromFuture(EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name,lang, limitLookupFromFk).map{ metadata =>
-              Seq(metadata.fields.map(_.name)).asCsv(rfc)
-            }).concat(Source.fromPublisher(db.stream(dbActions.find(query))).map(x => Seq(x.values()).asCsv(rfc))).log("csv")
-            complete(csv)
+
+            val csvString = for{
+              metadata <- EntityMetadataFactory.of(name, registry)
+              data <- db.run(dbActions.findSimple(query))
+            } yield (Seq(metadata.fields.map(_.name)) ++ data.map(_.values())).asCsv(rfc)
+
+            onComplete(csvString) {
+              case Success(csv) => complete(csv)
+              case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+            }
+
+
           }
         }
       }
@@ -210,18 +249,31 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
   }
 
   def getById(id:JSONID):Route = get {
-    onComplete(db.run(dbActions.getById(id))) {
+    onComplete(db.run(jsonActions.getById(id))) {
       case Success(data) => {
-        complete(data)
+        data match {
+          case Some(value) => complete(value)
+          case None => complete(StatusCodes.NotFound, s"Id ${id.asString} not found")
+        }
       }
       case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
     }
   }
 
+  def updateDiff(ids:Seq[JSONID]):Route = put {
+    entity(as[JSONDiff]) { e =>
+      onComplete(db.run(dbActions.updateDiff(e).transactionally)) {
+        case Success(row) => complete{row.asJson}
+        case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+      }
+    }
+  }
+
+
   def update(ids:Seq[JSONID]):Route = put {
     entity(as[Json]) { e =>
       val rows = e.as[M].toOption.map(Seq(_)).orElse(e.as[Seq[M]].toOption).get
-      onComplete(db.run(DBIO.sequence(rows.zip(ids).map{case (x,id) => dbActions.upsertIfNeeded(Some(id), x)}).transactionally)) {
+      onComplete(db.run(DBIO.sequence(rows.zip(ids).map{case (x,id) => dbActions.update(id, x)}).transactionally)) {
         case Success(entities) => complete{
           if(entities.length == 1) entities.head.asJson else entities.asJson
         }
@@ -230,6 +282,8 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     }
   }
 
+
+
   def deleteById(ids:Seq[JSONID]):Route = delete {
     onComplete(db.run(DBIO.sequence(ids.map( id => dbActions.delete(id))).transactionally)) {
       case Success(affectedRow) => complete(JSONCount(affectedRow.sum))
@@ -237,30 +291,11 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
     }
   }
 
-  def lookup:Route = path("lookup") {
-    path(Segment) { field =>
-      post {
-        entity(as[JSONQuery]) { query =>
-          complete {
-            for{
-              m <- EntityMetadataFactory.of(schema.getOrElse(services.connection.dbSchema),name, lang, limitLookupFromFk)
-              lookups <- {
-                m.fields.find(_.name == field).flatMap(_.lookup) match {
-                  case Some(l)  => db.run(Lookup.values(l.lookupEntity, l.map.valueProperty, l.map.textProperty, query))
-                  case None => throw new Exception(s"$field has no lookup")
-                }
-              }
-            } yield lookups
-          }
-        }
-      }
-    }
-  }
 
   def route:Route = pathPrefix(name) {
         pathPrefix("id") {
           path(Segment) { strId =>
-            JSONID.fromMultiString(strId) match {
+            JSONID.fromMultiString(strId,jsonMetadata) match {
               case ids if ids.nonEmpty =>
                   getById(ids.head) ~
                   update(ids) ~
@@ -269,7 +304,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
             }
         }
       } ~
-      lookup ~
+      lookup(Future.successful(jsonMetadata)) ~
       kind ~
       metadata ~
       tabularMetadata ~
@@ -280,6 +315,9 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product]
       xls ~
       csv ~
       shp ~
+      geoPkg ~
+      GeoData(db,dbActions) ~
+      lookups(dbActions) ~
       pathEnd{      //if nothing is specified  return the first 50 rows in JSON format
         default ~
         insert

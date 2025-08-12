@@ -1,0 +1,62 @@
+name: Box CI Client
+
+on:
+  [push, pull_request]
+
+jobs:
+  pre_job:
+    # continue-on-error: true # Uncomment once integration is finished
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          # All of these options are optional, so you can remove them if you are happy with the defaults
+          skip_after_successful_duplicate: 'true'
+          paths_ignore: '["**/README.md", "**/docs/**"]'
+  test:
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      # define Java options for both official sbt and sbt-extras
+      JAVA_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
+      JVM_OPTS: -Xms4G -Xmx4G -Xss10M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
+      NODE_OPTIONS: --max-old-space-size=2048
+      SBT_NATIVE_CLIENT: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Find tag
+        run: export BUILD_CODE=`git describe --tags`
+      - name: Setup testspace
+        uses: testspace-com/setup-testspace@v1
+        with:
+          domain: Insubric
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Setup sbt launcher
+        uses: sbt/setup-sbt@v1
+      - name: Node 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Setup client test env
+        run: npm install
+      - name: Run tests client
+        env:
+          AUTOMATE_USERNAME: ${{secrets.AUTOMATE_USERNAME}}
+          AUTOMATE_ACCESS_KEY: ${{secrets.AUTOMATE_ACCESS_KEY}}
+        run: |
+          export PATH=./node_modules/.bin:$PATH
+          sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/test
+      - name: Push server result to testspace
+        run: testspace client/target/test-reports/*.xml
+        if: ${{ needs.pre_job.outputs.should_skip != 'true' }}

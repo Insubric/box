@@ -1,19 +1,25 @@
 package ch.wsl.box.client.views
 
+import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
-import ch.wsl.box.client.services.{ClientConf, Labels, Navigate, Navigation, Navigator, Notification}
-import ch.wsl.box.client.styles.{BootstrapCol, GlobalStyles}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification, Record}
+import ch.wsl.box.client.styles.{BootstrapCol, Fade}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
+import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
+import ch.wsl.box.client.views.elements.Offline
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
+import ch.wsl.box.shared.utils.JSONUtils
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, JsonNumber, JsonObject}
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.badge.UdashBadge
 import io.udash.bootstrap.utils.BootstrapStyles.Color
+import io.udash.bootstrap.utils.UdashIcons
 import io.udash.{showIf, _}
 import io.udash.bootstrap.{BootstrapStyles, UdashBootstrap}
 import io.udash.component.ComponentId
@@ -28,9 +34,14 @@ import scala.concurrent.{Future, Promise}
 import scalatags.JsDom
 import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
+import ch.wsl.typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
+import org.scalajs.dom
 
+import java.util.UUID
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
+import scala.scalajs.js
 import scala.scalajs.js.timers.setTimeout
 import scala.util.{Failure, Success, Try}
 
@@ -38,12 +49,14 @@ import scala.util.{Failure, Success, Try}
   * Created by andre on 4/24/2017.
   */
 
-case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean)
+case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], originalData:Json,data:Json,
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean, localData:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
-  implicit val blank: Blank[EntityFormModel] =
-    Blank.Simple(EntityFormModel("","",None,None,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true))
+
+  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false,false)
+
+  implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
 
 object EntityFormViewPresenter extends ViewFactory[FormState] {
@@ -58,6 +71,7 @@ object EntityFormViewPresenter extends ViewFactory[FormState] {
 case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Presenter[FormState] with Logging {
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: FormState): Unit = {
 
@@ -68,46 +82,53 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     services.clientSession.loading.set(true)
 
-    val reloadMetadata = {
-      val currentModel = model.get
-
-      !(currentModel.kind == state.kind &&
-        currentModel.name == state.entity &&
-        currentModel.metadata.isDefined)
-    }
-
     model.subProp(_.kind).set(state.kind)
     model.subProp(_.name).set(state.entity)
     model.subProp(_.id).set(state.id)
     model.subProp(_.insert).set(state.id.isEmpty)
 
 
-
-
     {for{
-      metadata <- if(reloadMetadata) services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public) else Future.successful(model.get.metadata.get)
-      children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind) && reloadMetadata) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
-      data <- state.id match {
+      metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public)
+      children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind)) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
+      record <- state.id match {
         case Some(id) => {
-          val jsonId = state.id.flatMap(JSONID.fromString) match {
+          val jsonId = state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
             case Some(value) => value
             case None => throw new Exception(s"cannot parse JsonID ${state.id}")
           }
-          services.rest.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
+          services.data.get(state.kind, services.clientSession.lang(), state.entity,jsonId,state.public)
         }
-        case None => Future.successful{
-          Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*)
-        }
+        case None => Future.successful(Record(Json.Null,false))
       }
     } yield {
 
-      val dataWithQueryParams = data.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> Json.fromString(x._2))))
+      BrowserConsole.log(record.data)
 
-      model.set(EntityFormModel(
+      var insert = false
+
+      //check if data is already present for the given id
+      val dataWithId = if(record.data == Json.Null) { // if not we are going to do an insert
+        insert = true
+        val d = Json.obj(JSONMetadata.jsonPlaceholder(metadata,children).toSeq :_*) // taking the defaults
+        state.id.flatMap(JSONID.fromString(_, metadata)) match {
+          case Some(id) => d.deepMerge(Json.fromFields(id.toFields))
+          case None => d
+        }
+      } else {
+        record.data
+      }
+
+      val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> io.circe.parser.parse(x._2).getOrElse(Json.fromString(x._2)))))
+
+      BrowserConsole.log(dataWithQueryParams)
+
+      val stateModel = EntityFormModel(
         name = state.entity,
         kind = state.kind,
         id = state.id,
         metadata = Some(metadata),
+        originalData = dataWithQueryParams,
         data = dataWithQueryParams,
         "",
         children,
@@ -115,22 +136,26 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         false,
         state.writeable,
         state.public,
-        state.id.isEmpty
-      ))
+        insert,
+        false,
+        localData = record.local_version
+      )
+
+      model.set(stateModel)
 
       resetChanges()
 
 
-      //need to be called after setting data because we are listening for data changes
-      enableGoAway
-
       setNavigation()
 
-      widget.afterRender()
+      widget.afterRender().map{ _ =>
+        enableGoAway("handleState")
+        services.clientSession.loading.set(false)
+        if(!loaded.isCompleted)
+          loaded.success(true)
+      }
 
-      services.clientSession.loading.set(false)
 
-      loaded.success(true)
 
     }}.onComplete {
       case Failure(exception) => {
@@ -144,23 +169,131 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   import io.circe.syntax._
 
+//  val saveKey:KeyHandler = (event:KeyboardEvent,handler:HotkeysEvent) => {
+//    event.preventDefault()
+//    save().map{ case (id,d) => afterSave(id,d)}
+//    false
+//  }
+//
+//  val hotkeysOptions = ch.wsl.typings.hotkeysJs.mod.Options().setCapture(true).setKeydown(true).setElement(document)
+
+  def focusField = document.activeElement.closest("*[data-box-class='widget']").asInstanceOf[dom.HTMLElement].dataset("boxField")
+
+  document.addEventListener("keydown", (event:KeyboardEvent) => {
+    // Check for Ctrl+S
+    if (event.ctrlKey && event.key == "s") {
+      event.preventDefault()
+      save().map{ case (id,d) => afterSave(id,d)}
+    }
+
+    if (event.ctrlKey && event.key == "c") {
+      if(
+        window.getSelection().isCollapsed && //any part of the page is selected
+        Try(document.activeElement.asInstanceOf[js.Dynamic].selectionStart == document.activeElement.asInstanceOf[js.Dynamic].selectionEnd).getOrElse(true)
+      ) {
+        event.preventDefault()
+        model.subProp(_.data).get.jsOpt(focusField).foreach { js =>
+          window.navigator.clipboard.writeText(js.noSpaces)
+        }
+      }
+    }
+
+    if (event.ctrlKey && event.key == "v") {
+      document.activeElement match {
+        case element: HTMLInputElement => ()
+        case element: HTMLTextAreaElement => ()
+        case element:dom.HTMLElement => {
+          event.preventDefault()
+          println("PasingAAAA")
+          window.navigator.clipboard.readText().toFuture.foreach{ str =>
+            println(str)
+            val focus = focusField
+            println(focus)
+            val metadata = model.subProp(_.metadata).get
+
+            for{
+              m <- metadata
+              f <- m.fields.find(_.name == focus)
+              js <- JSONUtils.toJs(str,f)
+            } yield {
+              BrowserConsole.log(js)
+              val d = model.subProp(_.data)
+              d.set(d.get.deepMerge(Json.fromFields(Map(focus -> js))))
+            }
+
+          }
+        }
+      }
+    }
+
+
+  })
+//  ch.wsl.typings.hotkeysJs.mod.default("ctrl+s",hotkeysOptions,saveKey)
+
+  override def onClose(): Unit = {
+    if(Navigate.canGoAway) {
+      logger.debug("onClose")
+      changesListener.cancel()
+      Try {
+        if (widget != null) {
+          widget.killWidget()
+        }
+      }
+      model.set(EntityFormModel.empty, true)
+      enableGoAway("onClose")
+      ch.wsl.typings.hotkeysJs.mod.default.unbind()
+    }
+
+  }
 
   private var _form:HTMLFormElement = scalatags.JsDom.all.form().render
 
   def setForm(form:HTMLFormElement)= { _form = form }
 
-  def saveAndReload(check:Boolean = true)(action:Json => Unit):Unit = {
-    save(check){ id =>
-      reload(id).map{ data =>
-        action(data)
-        if(!model.subProp(_.id).get.flatMap(JSONID.fromString).contains(id)) {
-          goTo(id.asString)
-        }
+
+  def saveToDb(data:Json):Future[(JSONID,Record)] = {
+
+    val m = model.get
+    val metadata = m.metadata.get
+    val originalId = JSONID.fromData(m.originalData,metadata)
+
+    logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
+    for {
+      result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
+        case Some(id) if !model.subProp(_.insert).get => services.data.update (m.kind, services.clientSession.lang(), m.name, originalId.getOrElse(id), data,m.public)
+        case _ => services.data.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
       }
+    } yield {
+      logger.debug(s"saveAction::Result")
+      (JSONID.fromData(result,metadata,false).getOrElse(JSONID.empty),Record(result,false))
     }
   }
 
-  def save(check:Boolean = true)(action:JSONID => Unit):Unit  = {
+  def saveLocally(data:Json):Future[(JSONID,Record)] = {
+
+    val m = model.get
+    val metadata = m.metadata.get
+    val originalId = JSONID.fromData(m.originalData,metadata)
+
+
+    val id:JSONID = JSONID.fromString(m.id.getOrElse(""), metadata) match {
+      case Some(value) => value
+      case None => JSONID.newLocal()
+    }
+
+    val record = LocalRecord(id.asString,m.kind,m.name,data,Some(m.originalData))
+
+    logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
+    for {
+      result <- DB.localRecord.save(record)
+    } yield {
+      logger.debug(s"saveAction::Result")
+      (JSONID.fromString(result.pk.jsonid,metadata).get,Record(result.data,true))
+    }
+  }
+
+
+  def save(check:Boolean = true,saveAction: Json => Future[(JSONID,Record)] = saveToDb):Future[(JSONID,Record)]  = {
 
     services.clientSession.loading.set(true)
 
@@ -175,36 +308,19 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
       logger.warn(s"Form validation failed")
 
-      return
+      return Future.failed(new Exception("Validation failed"))
     }
 
     val m = model.get
     val metadata = m.metadata.get
     val data:Json = m.data
 
-    def saveAction(data:Json):Future[(JSONID,Json)] = {
-
-      logger.info(s"saveAction id:${m.id} ${JSONID.fromString(m.id.getOrElse(""))}")
-      for {
-        result <- JSONID.fromString(m.id.getOrElse("")) match {
-          case Some(id) if !model.subProp(_.insert).get => services.rest.update (m.kind, services.clientSession.lang(), m.name, id, data,m.public)
-          case _ => services.rest.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
-        }
-      } yield {
-        logger.debug("saveAction::Result")
-        (JSONID.fromData(result,metadata).getOrElse(JSONID.empty),result)
-      }
-
-    }
-
-
 
     {for{
       updatedData <- widget.beforeSave(data,metadata)
-      (newId,resultBeforeAfterSave) <- saveAction(updatedData.removeNonDataFields)
-      afterSaveResult <- widget.afterSave(resultBeforeAfterSave,metadata)
-    } yield {
+      (newId,resultAfterAction) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
 
+    } yield {
       logger.debug(s"""outcome
 
                  Save outcome:
@@ -213,41 +329,79 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
                  afterBeforeSave: $updatedData
 
-                 afterSave: $resultBeforeAfterSave
+                 afterSave: $resultAfterAction
 
-                 afterAfterSave: $afterSaveResult
 
                  """)
 
-      enableGoAway
-      model.subProp(_.insert).set(false)
-      services.clientSession.loading.set(false)
+      enableGoAway("save")
+      val currentState = model.get
 
-      action(newId)
+      val newData = currentState.data.deepMerge(resultAfterAction.data)
+
+
+
+      (newId,Record(newData,resultAfterAction.local_version))
 
 
     }}.recover{ case e =>
       e.getStackTrace.foreach(x => logger.error(s"file ${x.getFileName}.${x.getMethodName}:${x.getLineNumber}"))
       e.printStackTrace()
       services.clientSession.loading.set(false)
-//        e match {
-//          case sql:SQLExceptionReport
-//        }
+      throw e
     }
 
+  }
+
+  def afterSave(id:JSONID,data:Record) = {
+    val currentState = model.get
+    if(!model.get.id.contains(id.asString)) {
+        val state = applicationInstance.currentState.asInstanceOf[EntityFormState]
+        Navigate.to(state.copy(_id = Some(id.asString)))
+    } else {
+      model.set(currentState.copy(
+        data = data.data,
+        originalData = data.data,
+        id = Some(id.asString),
+        insert = false,
+        changed = false,
+        localData =  data.local_version
+      ))
+      childChanged.set(false)
+      resetChanges()
+    }
+
+    services.clientSession.loading.set(false)
   }
 
   def reload(id:JSONID): Future[Json] = {
     services.clientSession.loading.set(true)
     for{
-      resultSaved <- services.rest.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
-      result <- {
+      resultSaved <- services.data.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
+      result <- if(!model.get.id.contains(id.asString)) {
+        Future.successful{
+          val state = applicationInstance.currentState.asInstanceOf[EntityFormState]
+          Navigate.to(state.copy(_id = Some(id.asString)))
+          Json.Null
+        }
+      } else {
+
+
+
         val promise = Promise[Json]()
         reset()
-        model.subProp(_.data).set(resultSaved)
+
+        model.set(model.get.copy(
+          data = resultSaved.data,
+          originalData = resultSaved.data,
+          id = Some(id.asString),
+          localData = resultSaved.local_version
+        ))
+
         resetChanges()
-        model.subProp(_.id).set(Some(id.asString), true)
-        enableGoAway
+
+
+        enableGoAway("reload")
         widget.afterRender().foreach{ _ =>
           services.clientSession.loading.set(false)
           promise.success(model.subProp(_.data).get)
@@ -258,7 +412,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def revert() = {
-    model.subProp(_.id).get.flatMap(JSONID.fromString) match {
+    model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)) match {
       case Some(id) => reload(id)
       case None => logger.warn("Cannot revert with no ID")
     }
@@ -268,11 +422,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
       for{
         name <- model.get.metadata.map(_.name)
-        key <- model.get.id.flatMap(JSONID.fromString)
+        key <- model.get.id.flatMap(x => JSONID.fromString(x,model.get.metadata.get))
       } yield {
-        services.rest.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
+        services.data.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")
-          Navigate.to(Routes(model.get.kind, name).entity(name))
+          Navigate.to(Routes(model.get.kind, name,model.subProp(_.public).get).entity(name))
         }
       }
 
@@ -280,8 +434,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def reset(): Unit = {
     model.subProp(_.data).set(Json.Null)
+    model.subProp(_.originalData).set(Json.Null)
     model.subProp(_.id).set(None)
-    enableGoAway
+    enableGoAway("reset")
   }
 
   def duplicate():Unit = {
@@ -300,7 +455,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def setNavigation() = {
-    services.navigator.For(model.get.id,model.get.metadata.get).navigation().map{ nav =>
+    services.navigator.For(model.get.id,model.get.metadata.get,model.subProp(_.public).get).navigation().map{ nav =>
       logger.info(s"Navigation $nav")
       model.subProp(_.navigation).set(nav)
     }
@@ -311,22 +466,36 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     override def field: JSONField = JSONField.empty
 
-    override protected def show(): JsDom.all.Modifier = div()
-    override protected def edit(): JsDom.all.Modifier = div()
+    override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div()
+    override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = div()
   }
 
-  private val changed:Property[Boolean] = Property(false)
+  private val childChanged:Property[Boolean] = Property(false)
 
-  changed.listen { hasChanges =>
+  def autoSave = model.get.metadata.flatMap(_.params).exists(_.js("autoSave") == Json.True)
+
+  val debounceSave = Debounce(2000.millis) { (_:Unit) =>
+    save().map { case (id, d) => afterSave(id, d) }
+  }
+
+  val changesListener = childChanged.listen { hasChanges =>
     if(hasChanges) {
       avoidGoAway
+      if(autoSave)
+        debounceSave()
+
     } else {
-      enableGoAway
+      enableGoAway("changeListener")
     }
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),WidgetCallbackActions(saveAndReload()),changed,model.subProp(_.public).get)
+    val actions = WidgetCallbackActions((f:(JSONID,Json) => Future[Unit]) => save().foreach{ case (id,data) =>
+      f(id,data.data).foreach{ _ =>
+        afterSave(id,data)
+      }
+    },reload)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,childChanged,model.subProp(_.public).get)
     widget
   }
 
@@ -338,7 +507,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
   def navigate(n: navigator.For => Future[Option[String]]) = {
-    n(navigator.For(model.get.id, model.get.metadata.get)).map(_.map(goTo))
+    n(navigator.For(model.get.id, model.get.metadata.get,model.subProp(_.public).get)).map(_.map(goTo))
   }
 
   def next() = navigate(_.next())
@@ -355,7 +524,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def goTo(id:String) = {
     val m = model.get
-    val r = Routes(m.kind,m.name)
+    val r = Routes(m.kind,m.name,m.public)
     val newState = if(model.get.write) {
       r.edit(id)
     } else {
@@ -371,16 +540,16 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     model.subProp(_.changed).set(true)
     window.onbeforeunload = { (e:BeforeUnloadEvent) =>
       if(Context.applicationInstance.currentState.isInstanceOf[EntityFormState] || Context.applicationInstance.currentState.isInstanceOf[EntityTableState]) {
+        e.preventDefault()
         Labels.navigation.goAway
       }
     }
   }
-  def enableGoAway = {
+  def enableGoAway(where:String) = {
+    logger.debug(s"enableGoAway from $where")
     Navigate.enable()
     model.subProp(_.changed).set(false)
-    window.onbeforeunload = { (e:BeforeUnloadEvent) =>
-      widget.killWidget()
-    }
+    window.onbeforeunload = { (e:BeforeUnloadEvent) => }
   }
 
   val showNavigation:ReadableProperty[Boolean] = model.subProp(_.public).transform(x => !x)
@@ -394,41 +563,68 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
 
-    def executeFuntion():Future[Boolean] = action.executeFunction match {
+    def afterGoto(url:String) = {
+      action.target match {
+        case Self => Navigate.toUrl(url)
+        case NewWindow => {
+          window.open(url)
+        }
+      }
+    }
+
+    def executeFunction():Future[Option[Boolean]] = action.executeFunction match {
       case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
         result.errorMessage match {
           case Some(value) => {
             Notification.add(value)
             services.clientSession.loading.set(false)
-            false
+            Some(false)
           }
-          case None => true
+          case None => Some(true)
         }
       }
-      case None => Future.successful(true)
+      case None => Future.successful(None)
+    }
+
+    def afterSaveAction(combined:(JSONID,Record)):Future[Unit] = {
+
+      val (id,data) = combined
+
+      def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(id.asString), model.get.write) match {
+        case Some(url) => {
+          logger.warn(s"Navigating to $url")
+          //reset()
+          afterGoto(url)
+        }
+        case None => afterSave(id,data)
+      }
+
+      executeFunction().map {
+        case Some(true) => {
+          if (action.reload) {
+            reload(id)
+          }
+          onSuccess
+        }
+        case None => onSuccess
+        case Some(false) => afterSave(id,data)
+
+      }
     }
 
     def callBack() = action.action match {
-      case SaveAction => save(action.html5check){ _id =>
-        executeFuntion().map { functionOk =>
-          if(functionOk) {
-            if (action.reload) {
-              reload(_id)
-            }
-            action.getUrl(model.get.data, model.get.kind, model.get.name, Some(_id.asString), model.get.write).foreach { url =>
-              logger.info(url)
+      case SaveAction =>  save(action.html5check,saveToDb).map(afterSaveAction)
+      case SaveLocalAction =>  save(action.html5check,saveLocally).map(afterSaveAction)
+      case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
+        executeFunction().map {
+          case Some(true) => {
+            if (Navigate.canGoAway)
               reset()
-              Navigate.toUrl(url)
-            }
+            afterGoto(url)
           }
-        }
-      }
-      case NoAction => action.getUrl(model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-        executeFuntion().map { functionOk =>
-          if(functionOk) {
-            reset()
-            Navigate.toUrl(url)
-          }
+          case None => afterGoto(url)
+          case Some(false) => ()
+
         }
       }
       case CopyAction => duplicate()
@@ -452,6 +648,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     (ev: Event) => {
       logger.info(s"Execution action $action")
+      model.subProp(_.showActionPanelMobile).set(false)
       confirm(callBack)
       ev.preventDefault()
     }
@@ -489,7 +686,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       }
 
 
-    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && _id.isEmpty) || (!action.insertOnly && !action.updateOnly)) {
+    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && model.subProp(_.insert).get) || (!action.insertOnly && !action.updateOnly)) {
       val actionButton = button(
         id := TestHooks.actionButton(action.label),
         importance,
@@ -498,7 +695,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       action.condition match {
         case Some(conditions) => {
           showIf(model.subProp(_.data).transform{ js => conditions.forall{ cond =>
-            cond.check(js.js(cond.conditionFieldId))
+            cond.check(js)
           }})( actionButton )
         }
         case None => actionButton
@@ -507,31 +704,40 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
   }
 
+  case class StepperOption(steps:Seq[String],current:String)
+
+
+  def stepper(s:StepperOption) = {
+    div(margin := "20px",
+      Stepper.render(s.steps.map(st => Stepper.Step(st,"","")),s.steps.indexOf(s.current))
+    )
+  }
+
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
     def recordNavigation = showIf(presenter.showNavigation){
 
           def navigation = model.subModel(_.navigation)
 
-          div(
-            div(ClientConf.style.boxNavigationLabel,
-              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.firstPage, Labels.navigation.firstPage, _.Float.left()),
-              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.prevPage, Labels.navigation.previousPage, _.Float.left()),
-              span(
-                ClientConf.style.boxNavigationLabel,
-                " " + Labels.navigation.page + " ",
-                bind(model.subProp(_.navigation.currentPage)),
-                " " + Labels.navigation.of + " ",
-                bind(model.subProp(_.navigation.pages)),
-                " "
-              ),
-              Navigation.button(navigation.subProp(_.hasNextPage), presenter.lastPage, Labels.navigation.lastPage, _.Float.right()),
-              Navigation.button(navigation.subProp(_.hasNextPage), presenter.nextPage, Labels.navigation.nextPage, _.Float.right())
-            ),
-            div(BootstrapStyles.Visibility.clearfix),
-            div(ClientConf.style.boxNavigationLabel,
-              Navigation.button(navigation.subProp(_.hasPrevious), presenter.first, Labels.navigation.first, _.Float.left()),
-              Navigation.button(navigation.subProp(_.hasPrevious), presenter.prev, Labels.navigation.previous, _.Float.left()),
+//            div(ClientConf.style.boxNavigationLabel,
+//              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.firstPage, Labels.navigation.firstPage, _.Float.left()),
+//              Navigation.button(navigation.subProp(_.hasPreviousPage), presenter.prevPage, Labels.navigation.previousPage, _.Float.left()),
+//              span(
+//                ClientConf.style.boxNavigationLabel,
+//                " " + Labels.navigation.page + " ",
+//                bind(model.subProp(_.navigation.currentPage)),
+//                " " + Labels.navigation.of + " ",
+//                bind(model.subProp(_.navigation.pages)),
+//                " "
+//              ),
+//              Navigation.button(navigation.subProp(_.hasNextPage), presenter.lastPage, Labels.navigation.lastPage, _.Float.right()),
+//              Navigation.button(navigation.subProp(_.hasNextPage), presenter.nextPage, Labels.navigation.nextPage, _.Float.right())
+//            ),
+//            div(BootstrapStyles.Visibility.clearfix),
+            div(ClientConf.style.navigationBlock,
+              Navigation.button(navigation.subProp(_.hasPrevious), presenter.first, i(UdashIcons.FontAwesome.Solid.fastBackward)),
+              //Navigation.button(navigation.subProp(_.hasPrevious), presenter.prevPage, i(UdashIcons.FontAwesome.Solid.backward)),
+              Navigation.button(navigation.subProp(_.hasPrevious), presenter.prev, i(UdashIcons.FontAwesome.Solid.caretLeft)),
               span(
                 " " + Labels.navigation.record + " ",
                 bind(model.subModel(_.navigation).subProp(_.currentIndex)),
@@ -539,21 +745,25 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 bind(model.subModel(_.navigation).subProp(_.count)),
                 " "
               ),
-              Navigation.button(navigation.subProp(_.hasNext), presenter.last, Labels.navigation.last, _.Float.right()),
-              Navigation.button(navigation.subProp(_.hasNext), presenter.next, Labels.navigation.next, _.Float.right())
-            )
-          ).render
+              Navigation.button(navigation.subProp(_.hasNext), presenter.next, i(UdashIcons.FontAwesome.Solid.caretRight)),
+              //Navigation.button(navigation.subProp(_.hasNext), presenter.nextPage, i(UdashIcons.FontAwesome.Solid.forward)),
+              Navigation.button(navigation.subProp(_.hasNext), presenter.last, i(UdashIcons.FontAwesome.Solid.fastForward)),
+            ).render
     }
 
-    def actions(selector:FormActionsMetadata => Seq[FormAction], position:CssStyleName = BootstrapStyles.Float.left()) = div(
+    def actions(selector:FormActionsMetadata => Seq[FormAction]) = div(
       produceWithNested(model.subProp(_.write)) { (w,realeser) =>
         if(!w) Seq() else
-        div(position)(
+        div(
           realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
-              realeser2(produce(model.subProp(_.id)) { _id =>
-                div(
-                  form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+              realeser2(produceWithNested(model.subProp(_.id)) { case (_id,releaser3) =>
+                div(ClientConf.style.spaceBetween,
+                  releaser3(produce(model.subProp(_.insert)) { _ =>
+                    div(
+                      form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+                    ).render
+                  })
                 ).render
               })
             ).render
@@ -563,37 +773,71 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       div(BootstrapStyles.Visibility.clearfix)
     )
 
-    def formHeader(showId:Boolean) = div(ClientConf.style.formHeader,
-      div(BootstrapStyles.Float.left(),
+    def formHeader(showId:Boolean,metadata:JSONMetadata) = div(ClientConf.style.formHeader,
+      div( ClientConf.style.spaceBetween, marginBottom := 10.px,
         h3(
           ClientConf.style.noMargin,
-          labelTitle,
+          ClientConf.style.formTitle,
+          labelTitle
+        ),
+        div(
+          showIf(model.subProp(_.changed)) {
+            small(id := TestHooks.dataChanged,style := "color: red",Labels.form.changed).render
+          }
+        ),
+        div(
+          ClientConf.style.noMargin,
+          ClientConf.style.formTitle,
           if(showId) {
             showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
-              small(produce(model.subProp(_.id)) { id =>
-                val subTitle = id.map(" - " + _).getOrElse("")
-                span(subTitle).render
-              }).render
+              div(
+                Offline(model.subProp(_.localData)),
+                produce(model.subProp(_.id)) { id =>
+                  id.flatMap(JSONID.fromString(_,metadata)).toSeq.flatMap{ jsonId =>
+                    jsonId.id.flatMap{ k =>
+                      metadata.fields.find(_.name == k.key).flatMap(_.label).map { label =>
+                        span(span(ClientConf.style.formTitleLight, label), " ", k.value.string, " ").render
+                      }
+                    }
+                  }
+                }
+              ).render
             }
           } else frag(),
-          showIf(model.subProp(_.changed)) {
-            small(id := TestHooks.dataChanged,style := "color: red"," - " + Labels.form.changed).render
-          }
-
         )
       ),
-      showIf(model.transform(_.navigation.count > 1)) {
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
-          recordNavigation
-        ).render
-      } ,
-      showIf(presenter.showNavigation) {
-        div(BootstrapStyles.Float.right(), ClientConf.style.navigatorArea)(
-          actions(_.navigationActions,BootstrapStyles.Float.right())
-        ).render
-      },
-      div(BootstrapStyles.Visibility.clearfix),
-      actions(_.actions),
+//      div(ClientConf.style.mobileOnly,
+//        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
+//      ),
+      div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
+        actions(_.actions),
+        div(ClientConf.style.spaceAfter)(
+          showIf(presenter.showNavigation) {
+            div(actions(_.navigationActions)).render
+          },
+          showIf(model.transform(_.navigation.count > 1)) {
+              div(recordNavigation).render
+          }
+        ).render,
+      ),
+      div(ClientConf.style.mobileOnly,
+        showIf(model.transform(_.navigation.count > 1)) {
+          div(ClientConf.style.spaceBetween,recordNavigation).render
+        },
+        button(ClientConf.style.mobileBoxAction)(i(UdashIcons.FontAwesome.Solid.pen), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(true))).render,
+        div(ClientConf.style.mobileOnly,
+          Fade(model.subProp(_.showActionPanelMobile),ClientConf.style.mobileBoxActionPanel){
+            div(
+              actions(_.actions),
+              showIf(presenter.showNavigation) {
+                div(actions(_.navigationActions)).render
+              },
+              button(ClientConf.style.boxIconButton, width := 100.pct, i(UdashIcons.FontAwesome.Solid.angleDown), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(false)))
+            ).render
+          }
+      )
+
+      ),
       produce(model.subProp(_.error)){ error =>
         div(
           if(error.length > 0) {
@@ -606,53 +850,70 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       hr(ClientConf.style.hrThin)
     )
 
-    def formFooter(_maxWidth:Option[Int]) = div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,
-      _maxWidth.map(mw => maxWidth := mw),
-      actions(_.actions),
-      ul(
-        produce(Notification.list){ notices =>
-          notices.map { notice =>
-            li(notice).render
+    def formFooter(_maxWidth:Option[Int]):Modifier = Seq(
+      div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
+        _maxWidth.map(mw => maxWidth := mw),
+        actions(_.actions),
+        ul(
+          produce(Notification.list){ notices =>
+            notices.map { notice =>
+              li(notice).render
+            }
           }
-        }
+        )
+      ),
+      div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
+        _maxWidth.map(mw => maxWidth := mw),
+        actions(_.actions),
+        ul(
+          produce(Notification.list){ notices =>
+            notices.map { notice =>
+              li(notice).render
+            }
+          }
+        )
       )
-    )
+    ).render
 
 
 
     div(
-      produce(model.subProp(_.metadata)){ _form =>
+      produceWithNested(model.subProp(_.metadata)){ (_form,nested) =>
 
         val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
         val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
         val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
         val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
+        val stepperOptions = _form.flatMap(_.params).flatMap(_.js("stepper").as[StepperOption].toOption)
+
         div(
-          if(showHeader) {
-            formHeader(showId).render
+          if(showHeader && _form.isDefined) {
+            formHeader(showId,_form.get).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+
             _form match {
-              case None => p("Loading form")
+              case None => div()
               case Some(f) => {
-
-
 
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
+                  stepperOptions.map(stepper),
                   _maxWidth.map(mw => maxWidth := mw),
-                  presenter.loadWidgets(f).render(model.get.write,Property(true))
+                  onsubmit :+= ((e:Event) => e.preventDefault()),
+                  presenter.loadWidgets(f).render(model.get.write,nested)
                 ).render
                 presenter.setForm(mainForm)
                 mainForm
               }
             },
             if(showFooter) {
-              formFooter(_maxWidth).render
+              formFooter(_maxWidth)
             }
           ).render,
           Debug(model.subProp(_.metadata),b => b, "metadata")
+
         ).render
       }
     )

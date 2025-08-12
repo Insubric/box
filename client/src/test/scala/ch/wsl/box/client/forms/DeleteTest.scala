@@ -17,11 +17,11 @@ import scala.util.{Failure, Success, Try}
 class DeleteTest extends TestBase {
 
   val id = 1
-  val jsonId = JSONID.fromMap(Map("id" -> id.toString))
+  val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
 
   val deletedField = Promise[Assertion]()
 
-  class DTValues extends Values {
+  class DTValues extends Values(loggerLevel) {
     override def get(_id: JSONID): Json = {
       Json.obj(
         "id" -> Json.fromInt(id),
@@ -31,7 +31,6 @@ class DeleteTest extends TestBase {
     }
 
     override def update(id: JSONID, obj: Json): Json = {
-      println(obj)
 
       Try(obj.js(stringField) shouldBe Json.Null) match {
         case Failure(exception) => deletedField.failure(exception)

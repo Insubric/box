@@ -4,10 +4,11 @@ import ch.wsl.box.client.routes.Routes
 
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
-import ch.wsl.box.model.shared.{EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
+import ch.wsl.box.model.shared.{CurrentUser, EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
 import org.scalajs.dom
+import org.scalajs.dom.experimental.URLSearchParams
 import scribe.Logging
 
 import scala.concurrent.Future
@@ -27,14 +28,18 @@ object ClientSession {
   final val LANG = "lang"
   final val LABELS = "labels"
   final val TABLECHILD_OPEN = "tablechild_open"
+  final val SELECTED_TAB = "selected_tab"
   final val URL_QUERY = "urlQuery"
 
   case class TableChildElement(field:String, childFormId:UUID, id:Option[JSONID])
+  case class SelectedTabKey(form:UUID, tabGroup:Option[String])
+  case class SelectedTabElement(key:SelectedTabKey, selected:String)
 }
 
 class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   import Context._
+  import Context.Implicits._
   import io.circe._
   import io.circe.generic.auto._
   import io.circe.parser._
@@ -49,8 +54,22 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   val loading = Property(false)
+  private var roles:Seq[String] = Seq()
 
   logger.info("Loading session")
+
+  val parameters = new URLSearchParams(dom.window.location.search)
+  Try(parameters.get("lang")).toOption.foreach { l =>
+    if (l != null && l != "null" && l.nonEmpty ) {
+      if (l.length > 1) {
+        logger.info(s"Setting language session $l")
+        dom.window.sessionStorage.setItem(LANG, l)
+      }
+      parameters.delete("lang")
+      parameters.toString
+      dom.window.location.href = dom.window.location.href.takeWhile(_ != '?') + {if(parameters.nonEmpty) "?" + parameters else ""}
+    }
+  }
 
 
 
@@ -65,7 +84,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         logger.info("No valid session found")
         if(isSet(ClientSession.USER)) {
           dom.window.sessionStorage.removeItem(USER)
-          dom.window.location.reload(true)
+          dom.window.location.reload()
         }
       }
     }
@@ -99,14 +118,27 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
+  def refreshSession():Future[Boolean] = {
+    rest.me().map(_createSession).recover{case t:Throwable =>
+      logger.warn(s"Session non valid")
+      dom.window.sessionStorage.removeItem(USER)
+      Notification.closeWebsocket()
+      logged.set(false)
+      false
+    }
+  }
+
   def isSet(key:String):Boolean = {
-    Try(dom.window.sessionStorage.getItem(key).size > 0).isSuccess
+    val item = dom.window.sessionStorage.getItem(key)
+    if(item == null) return false
+    item.nonEmpty
   }
 
   def login(username:String,password:String):Future[Boolean] = {
     createSessionUserNamePassword(username,password).map{ valid =>
       logger.info(s"New session, valid: $valid")
       if(valid) {
+        resetAllQueries()
         Context.applicationInstance.reload()
       }
       valid
@@ -114,27 +146,14 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def createSessionUserNamePassword(username:String,password:String):Future[Boolean] = {
-    val fut = for{
-      loginResult <- rest.login(LoginRequest(username,password))
-      s <- createSession(username)
-    } yield s
-
-    fut.recover{case t =>
-      t.printStackTrace()
-      false
-    }
-
-  }
-
-  def createSession(username:String):Future[Boolean] = {
     dom.window.sessionStorage.setItem(USER,username)
     val fut = for{
+      _ <- rest.login(LoginRequest(username,password))
+      me <- rest.me()
       ui <- rest.ui()
     } yield {
       UI.load(ui)
-      Notification.setUpWebsocket()
-      logged.set(true)
-      true
+      _createSession(me)
     }
 
     fut.recover{ case t =>
@@ -144,6 +163,15 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
       t.printStackTrace()
       false
     }
+  }
+
+  private def _createSession(user:CurrentUser) = {
+    dom.window.sessionStorage.setItem(USER,user.username)
+    roles = user.roles
+
+    Notification.setUpWebsocket()
+    logged.set(true)
+    true
   }
 
 
@@ -161,7 +189,6 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         Notification.closeWebsocket()
 
         val oldState = Context.applicationInstance.currentState
-        println(oldState)
         Navigate.to(LoginState(""))
 
         logger.info(oldState.toString)
@@ -207,6 +234,10 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     set(QUERY, queries)
   }
 
+  def resetAllQueries() = {
+    dom.window.sessionStorage.removeItem(QUERY)
+  }
+
   def getURLQuery():Option[JSONQuery] = get[JSONQuery](URL_QUERY)
   def setURLQuery(q: JSONQuery) = set(URL_QUERY,q)
 
@@ -218,7 +249,11 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   def setIDs(ids:IDs) = set(IDS, ids)
   def resetIDs() = set(IDS, None)
 
-
+  def selectedTab(key:SelectedTabKey):Option[String] = get[Seq[SelectedTabElement]](SELECTED_TAB).flatMap(_.find(_.key == key)).map(_.selected)
+  def setSelectedTab(key:SelectedTabKey,tab:String):Unit = set(
+    SELECTED_TAB,
+    (get[Seq[SelectedTabElement]](TABLECHILD_OPEN).toSeq.flatten ++ Seq(SelectedTabElement(key,tab))).distinct
+  )
 
   def isTableChildOpen(tc:TableChildElement):Boolean = get[Seq[TableChildElement]](TABLECHILD_OPEN).toSeq.flatten.contains(tc)
   def setTableChildOpen(tc:TableChildElement) = set(
@@ -251,6 +286,8 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     dom.window.sessionStorage.setItem(LANG,lang)
     Context.applicationInstance.reload()
   }
+
+  def getRoles():Seq[String] = roles
 
 
 

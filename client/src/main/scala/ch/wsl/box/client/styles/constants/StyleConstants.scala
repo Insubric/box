@@ -1,4 +1,5 @@
 package ch.wsl.box.client.styles.constants
+import ch.wsl.box.client.styles.utils.MediaQueries
 import scalacss.Defaults._
 import scalacss.internal.AV
 import scalacss.internal.Macros.Color
@@ -6,8 +7,14 @@ import scalacss.internal.Macros.Color
 object StyleConstants extends StyleSheet.Inline{
   import dsl._
 
+  val mapHoverClass = "mapOver"
 
-  val defaultFontSize = fontSize(14.px)
+  val defaultFontSize = style(
+    MediaQueries.phone(
+      style(fontSize(16.px))
+    ),
+    fontSize(14.px)
+  )
 
   /**
     * SIZES
@@ -64,6 +71,8 @@ object StyleConstants extends StyleSheet.Inline{
     val Yellow = c"#ffd600"
 
     val Cyan = c"#eef4f7"
+
+    val Trasparent = Color("rgba(0,0,0,0)")
   }
 
   /**

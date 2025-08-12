@@ -1,6 +1,7 @@
 package ch.wsl.box.services.config
 
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config
 import com.typesafe.config.ConfigFactory
 import scribe.Level
@@ -41,4 +42,15 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def clientConf: Map[String, String] = Map()
 
   override def refresh(): Unit = {}
+
+
+  override def mainColor: String = "#000000"
+
+  override def name: String = "Box"
+
+  override def shortName: String = "Box"
+
+  override def initials: String = "B"
+
+  override def matomo: Option[MatomoConfig] = None
 }

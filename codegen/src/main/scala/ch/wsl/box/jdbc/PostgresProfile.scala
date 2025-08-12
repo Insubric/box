@@ -2,8 +2,31 @@ package ch.wsl.box.jdbc
 
 
 import com.github.tminglei.slickpg._
+import io.circe.Json
 import slick.basic.Capability
+import slick.dbio.DBIO
 import slick.driver.JdbcProfile
+import slick.jdbc.{PositionedParameters, PositionedResult, SetParameter}
+
+import java.sql.JDBCType
+import java.util.UUID
+
+
+trait UUIDPlainImplicits {
+
+  implicit class PgPositionedResult(val r: PositionedResult) {
+    def nextUUID: UUID = UUID.fromString(r.nextString)
+
+    def nextUUIDOption: Option[UUID] = r.nextStringOption().map(UUID.fromString)
+  }
+
+  implicit object SetUUID extends SetParameter[UUID] {
+    def apply(v: UUID, pp: PositionedParameters) {
+      pp.setObject(v, JDBCType.BINARY.getVendorTypeNumber)
+    }
+  }
+
+}
 
 trait PostgresProfile extends ExPostgresProfile
   with PgArraySupport
@@ -47,6 +70,7 @@ trait PostgresProfile extends ExPostgresProfile
     //    with SimpleRangePlainImplicits
     //    with SimpleHStorePlainImplicits
     with SimpleSearchPlainImplicits
+    with UUIDPlainImplicits
   {
     implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
     implicit val shortListTypeMapper = new SimpleArrayJdbcType[Short]("int2").to(_.toList)

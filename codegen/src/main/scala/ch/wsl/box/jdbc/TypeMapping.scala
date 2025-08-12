@@ -3,23 +3,29 @@ package ch.wsl.box.jdbc
 import slick.model.Column
 import ch.wsl.box.model.shared.WidgetsNames
 import ch.wsl.box.model.shared.JSONFieldTypes
+import scribe.Logging
 
-object TypeMapping {
+object TypeMapping extends Logging {
 
   def apply(model:Column): Option[String] = {
     model.options.find(_.isInstanceOf[slick.sql.SqlProfile.ColumnOption.SqlType]).flatMap {
       tpe =>
         tpe.asInstanceOf[slick.sql.SqlProfile.ColumnOption.SqlType].typeName match {
-          case "hstore" => Option("Map[String, String]")
-          case "varchar" => Option("String")                            // type 2003
-          case "_text" | "text[]" | "_varchar" | "varchar[]" => Option("List[String]")
-          case "_float8" | "float8[]" => Option("List[Double]")
-          case "_float4" | "float4[]" => Option("List[Float]")
-          case "_int8" | "int8[]" => Option("List[Long]")
-          case "_int4" | "int4[]" => Option("List[Int]")
-          case "_int2" | "int2[]" => Option("List[Short]")
-          case "_decimal" | "decimal[]" | "_numeric" | "numeric[]"  => Option("List[scala.math.BigDecimal]")
-          case _ => None
+          case "hstore" => Some("Map[String, String]")
+          case "varchar" => Some("String")                            // type 2003
+          case "_text" | "text[]" | "_varchar" | "varchar[]" => Some("List[String]")
+          case "_float8" | "float8[]" => Some("List[Double]")
+          case "_float4" | "float4[]" => Some("List[Float]")
+          case "_int8" | "int8[]" => Some("List[Long]")
+          case "_int4" | "int4[]" => Some("List[Int]")
+          case "_int2" | "int2[]" => Some("List[Short]")
+          case s:String if s.contains("geometry") => Some("org.locationtech.jts.geom.Geometry")
+          case s:String if s.contains("email") => {
+            Some("String")
+          }
+          case _ => {
+            None
+          }
         }
     }.orElse {
       model.tpe match {
@@ -32,30 +38,34 @@ object TypeMapping {
     }
   }
 
-  val jsonTypesMapping =  Map(
-    "numeric" -> JSONFieldTypes.NUMBER,
-    "integer" -> JSONFieldTypes.INTEGER,
-    "bigint" -> JSONFieldTypes.INTEGER,
-    "smallint" -> JSONFieldTypes.INTEGER,
-    "double precision" -> JSONFieldTypes.NUMBER,
-    "real" -> JSONFieldTypes.NUMBER,
-    "text" -> JSONFieldTypes.STRING,
-    "character varying" -> JSONFieldTypes.STRING,
-    "character" -> JSONFieldTypes.STRING,
-    "boolean" -> JSONFieldTypes.BOOLEAN,
-    "bytea" -> JSONFieldTypes.FILE,
-    "timestamp without time zone" -> JSONFieldTypes.DATETIME,
-    "timestamp with time zone" -> JSONFieldTypes.DATETIME,
-    "time without time zone" -> JSONFieldTypes.TIME,
-    "date" -> JSONFieldTypes.DATE,
-    "interval" -> JSONFieldTypes.INTERVAL,
-    "ARRAY" -> JSONFieldTypes.STRING,                              //todo: works only for visualisation
-    "USER-DEFINED" -> JSONFieldTypes.STRING,
-    "geometry" -> JSONFieldTypes.GEOMETRY,
-    "jsonb" -> JSONFieldTypes.JSON,
-    "name" -> JSONFieldTypes.STRING,
-    "uuid" -> JSONFieldTypes.STRING,
-    "oid" -> JSONFieldTypes.INTEGER
-  )
+  // udt_name
+  def jsonTypesMapping(key:String, orElse:String = null) =  key match {
+    case "numeric" | "double precision" | "real" | "float2" | "float4" | "float8" | "decimal"  => JSONFieldTypes.NUMBER
+    case s"numeric$suffix"  => JSONFieldTypes.NUMBER
+    case "integer" | "bigint" | "smallint" | "oid" | "int2" | "int4" | "int8" => JSONFieldTypes.INTEGER
+    case "text" | "character varying" | "character" | "name" | "uuid" | "citext" | "varchar" | "bpchar" | "char" => JSONFieldTypes.STRING
+    case  s"character$precision"  => JSONFieldTypes.STRING
+    case  s"$prefix.email"  => JSONFieldTypes.STRING
+    case  s"varchar$precision" => JSONFieldTypes.STRING
+    case "boolean" | "bool" => JSONFieldTypes.BOOLEAN
+    case "bytea" => JSONFieldTypes.FILE
+    case s"timestamp$precision without time zone" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision with time zone" => JSONFieldTypes.DATETIME
+    case s"timestampz$precision" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision" => JSONFieldTypes.DATETIME
+    case "time without time zone" | "time" | "timez" => JSONFieldTypes.TIME
+    case "date" => JSONFieldTypes.DATE
+    case "interval" => JSONFieldTypes.INTERVAL
+    case "ARRAY" => JSONFieldTypes.STRING
+    case "USER-DEFINED" => JSONFieldTypes.STRING
+    case s"${prefix}geometry$suffix" => JSONFieldTypes.GEOMETRY
+    case "jsonb" => JSONFieldTypes.JSON
+    case "_varchar" | "_text" | "text[]" | "varchar[]" => JSONFieldTypes.ARRAY_STRING
+    case "double precision[]" | "_float8" | "float8[]" | "_float4" | "float4[]" | "_int8" | "int8[]" | "integer[]" | "_int4" | "int4[]" | "_int2" | "int2[]" | "_decimal" | "decimal[]" | "_numeric" | "numeric[]" => JSONFieldTypes.ARRAY_NUMBER
+    case _ => {
+      logger.warn(s"$key type not mapped")
+      orElse
+    }
+  }
 
 }

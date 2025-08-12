@@ -8,6 +8,7 @@ import scalatags.JsDom
 import scalatags.JsDom.all._
 import io.udash.css.CssView._
 import ch.wsl.box.shared.utils.JSONUtils._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
@@ -35,7 +36,7 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
     case _ => Json.Null
   }
 
-  override def edit() = {
+  override def edit(nested:Binding.NestedInterceptor) = {
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip,UdashTooltip.Placement.Right) _
 
@@ -44,18 +45,18 @@ case class CheckboxWidget(field:JSONField, data: Property[Json]) extends Widget 
     autoRelease(data.sync[Boolean](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
 
     div(ClientConf.style.smallBottomMargin,
-      tooltip(Checkbox(booleanModel)(topElement,ClientConf.style.checkboxWidget).render)._1, " ", if(!noLabel) { WidgetUtils.toLabel(field) } else frag()
+      tooltip(Checkbox(booleanModel)(topElement,ClientConf.style.checkboxWidget).render)._1, " ", if(!noLabel) { WidgetUtils.toLabel(field,WidgetUtils.LabelRight) } else frag()
     )
   }
 
-  override def editOnTable(): JsDom.all.Modifier = {
+  override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
     val booleanModel = Property(false)
 
     autoRelease(data.sync[Boolean](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
     Checkbox(booleanModel)(ClientConf.style.simpleCheckbox).render
   }
 
-
+  override def json(): _root_.io.udash.ReadableProperty[Json] = data
 }
 
 object CheckboxWidget extends ComponentWidgetFactory {

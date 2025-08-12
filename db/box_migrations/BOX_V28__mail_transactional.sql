@@ -1,6 +1,6 @@
 
-drop table if exists box.mails;
-create table if not exists box.mails(
+drop table if exists mails;
+create table if not exists mails(
     id uuid not null default gen_random_uuid() primary key,
     send_at timestamp not null,
     sent_at timestamp,
@@ -13,8 +13,8 @@ create table if not exists box.mails(
     created timestamp not null
 );
 
-drop function if exists box.mail_notification(mail_from text, mail_to text[], subject text, text text, html text);
-create or replace function box.mail_notification(
+drop function if exists mail_notification(mail_from text, mail_to text[], subject text, text text, html text);
+create or replace function mail_notification(
     _mail_from text,
     _mail_to text[],
     _subject text,
@@ -26,7 +26,7 @@ declare
     output text := '';
 begin
 
-    insert into box.mails (send_at,mail_from,mail_to,subject,text,html,created) values
+    insert into mails (send_at,mail_from,mail_to,subject,text,html,created) values
     (now(), _mail_from, _mail_to, _subject, _text, _html, now());
 
     output :=  jsonb_build_object('send_at',now())::text;
@@ -36,7 +36,7 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-create or replace function box.mail_notification(
+create or replace function mail_notification(
     _mail_from text,
     _mail_to text[],
     _subject text,
@@ -49,7 +49,7 @@ declare
     output text := '';
 begin
 
-    insert into box.mails (send_at,mail_from,mail_to,subject,text,html,params,created) values
+    insert into mails (send_at,mail_from,mail_to,subject,text,html,params,created) values
     (now(), _mail_from, _mail_to, _subject, _text, _html,_params, now());
 
     output :=  jsonb_build_object('send_at',now())::text;

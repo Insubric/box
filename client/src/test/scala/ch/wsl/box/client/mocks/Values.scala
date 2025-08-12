@@ -7,9 +7,9 @@ import scribe.Level
 
 import java.util.UUID
 
-class Values {
+class Values(val loggerLevel:Level) {
 
-  def loggerLevel:Level = Level.Debug
+  def loggedUser: Option[String] = Some("postgres")
 
   val headerLangEn = "test header en"
   val headerLangIt = "test header it"
@@ -33,6 +33,7 @@ class Values {
   val testFormTitle = "test form"
 
   val stringField = "string_field"
+  val stringField2 = "string_field2"
   val conditionerField = "test_conditioner"
   val conditionalField = "test_conditional"
   val conditionalValue = "active"
@@ -75,6 +76,11 @@ class Values {
       ),
       JSONField(
         JSONFieldTypes.STRING,
+        name = stringField2,
+        nullable = true
+      ),
+      JSONField(
+        JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
         condition = Some(ConditionalField(conditionerField,Seq(conditionalValue).asJson))
@@ -87,19 +93,21 @@ class Values {
         child = Some(Child(
           objId = id2,
           key = "child",
-          masterFields = "id",
-          childFields = "parent_id",
+          parent = Seq("id"),
+          child = Seq("parent_id"),
           childQuery = None,
-          props = ""
+          props = "",
+          hasData = true
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(
       Left("child"),
       Left(readOnlyField),
       Left(conditionerField),
       Left(conditionalField),
       Left(stringField),
+      Left(stringField2),
     )))),
     entity = "test",
     lang = "it",
@@ -143,14 +151,15 @@ class Values {
         child = Some(Child(
           objId = id3,
           key = "subchild",
-          masterFields = "id",
-          childFields = "child_id",
+          parent = Seq("id"),
+          child = Seq("child_id"),
           childQuery = None,
-          props = ""
+          props = "",
+          hasData = true
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
     entity = "test_child",
     lang = "it",
     tabularFields = Seq("id"),
@@ -185,7 +194,7 @@ class Values {
         nullable = true
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,None,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
     entity = "test_subchild",
     lang = "it",
     tabularFields = Seq("id"),
@@ -200,11 +209,11 @@ class Values {
 
   object ids {
     object main {
-      val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", "1")))
-      val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id", "2")))
+      val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", Json.fromInt(1))))
+      val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(2))))
     }
     object childs {
-      val thirdChild: JSONID = JSONID(Vector(JSONKeyValue("id", "3")))
+      val thirdChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(3))))
     }
 
   }

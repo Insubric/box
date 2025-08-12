@@ -22,12 +22,12 @@ object NewsUIDef {
       JSONField(JSONFieldTypes.STRING,"news_uuid",false),
       JSONField(JSONFieldTypes.DATETIME,"datetime",false, widget = Some(WidgetsNames.datetimePicker)),
       JSONField(JSONFieldTypes.STRING,"author",true, widget = Some(WidgetsNames.input)),
-      JSONField(JSONFieldTypes.CHILD,"news_i18n",true,child = Some(Child(NEWS_I18N,"news_i18n","news_uuid","news_uuid",None,"")), widget = Some(WidgetsNames.tableChild))
+      JSONField(JSONFieldTypes.CHILD,"news_i18n",true,child = Some(Child(NEWS_I18N,"news_i18n",Seq("news_uuid"),Seq("news_uuid"),None,"",true)), widget = Some(WidgetsNames.tableChild))
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4, None, Seq("datetime","author").map(Left(_))),
-        LayoutBlock(Some("Translations"),8, None,Seq("news_i18n").map(Left(_)))
+        LayoutBlock(None,4,None,None,None,  Seq("datetime","author").map(Left(_))),
+        LayoutBlock(Some(Left("Translations")),8,None,None,None, Seq("news_i18n").map(Left(_)))
       )
     ),
 //    layout = parse("""
@@ -57,8 +57,8 @@ object NewsUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,3, None,Seq("lang").map(Left(_))),
-        LayoutBlock(None,9, None,Seq("title","text").map(Left(_))),
+        LayoutBlock(None,3,None,None,None, Seq("lang").map(Left(_))),
+        LayoutBlock(None,9,None,None,None, Seq("title","text").map(Left(_))),
       )
     ),
     entity = "news_i18n",

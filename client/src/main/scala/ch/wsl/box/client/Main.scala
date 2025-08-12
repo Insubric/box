@@ -1,19 +1,25 @@
 package ch.wsl.box.client
 
-import ch.wsl.box.client.services.{ClientConf, Labels, Notification, REST, UI}
-import ch.wsl.box.client.styles.OpenLayersStyles
+import ch.wsl.box.client.db.DB
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
+import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
+import ch.wsl.box.client.views.components.ui.Stepper
 import io.udash.wrappers.jquery._
 import org.scalajs.dom
-import org.scalajs.dom.{Element, WebSocket, document}
+import org.scalajs.dom.{Element, WebSocket, document, window}
 import scribe.{Level, Logger, Logging}
 
 import scala.concurrent.Future
+import scala.scalajs.js
+import scala.scalajs.js.Object.keys
 
 object Main extends Logging {
   import Context._
+  import Context.Implicits._
 
   def main(args: Array[String]): Unit = {
+
 
     Context.init(Module.prod)
 
@@ -40,12 +46,16 @@ object Main extends Logging {
     document.addEventListener("DOMContentLoaded", { (e: dom.Event) =>
       setupUI()
     })
+
+    //window.onerror = ErrorHandler.onError
+
   }
 
   def setupUI(): Future[Unit] = {
 
 
     for {
+      _ <- services.clientSession.refreshSession()
       appVersion <- services.rest.appVersion()
       version <- services.rest.version()
       _ <- services.rest.conf().map{ conf =>
@@ -53,13 +63,15 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
+      _ <- DB.init()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()
         println(s"Setting logger level to ${ClientConf.loggerLevel}")
 
         //loads datetime picker
-        typings.bootstrap.bootstrapRequire
+        ch.wsl.typings.bootstrap.bootstrapRequire
+        //ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
 
 
 
@@ -79,8 +91,44 @@ object Main extends Logging {
         val olStyle = document.createElement("style")
         olStyle.innerText = OpenLayersStyles.render(cssStringRenderer,cssEnv)
 
+        val autocompleteStyle = document.createElement("style")
+        autocompleteStyle.innerText = AutocompleteStyles(ClientConf.styleConf).render(cssStringRenderer,cssEnv)
+
+        val choicesStyle = document.createElement("style")
+        choicesStyle.innerText = new ChoicesStyles(ClientConf.styleConf).render(cssStringRenderer,cssEnv)
+
+        val stepperStyle = document.createElement("style")
+        stepperStyle.innerText = Stepper.style.render(cssStringRenderer,cssEnv)
+
+        val animations = document.createElement("style")
+        animations.innerText =
+          """
+            |@keyframes fade-in {
+            |  from {
+            |    opacity: 0;
+            |  }
+            |  to {
+            |    opacity: 1;
+            |  }
+            |}
+            |
+            |@keyframes fade-out {
+            |  from {
+            |    opacity: 1;
+            |  }
+            |  to {
+            |    opacity: 0;
+            |  }
+            |}
+            |
+            |""".stripMargin
+
+        document.body.appendChild(animations)
         document.body.appendChild(mainStyle)
         document.body.appendChild(olStyle)
+        document.body.appendChild(choicesStyle)
+        document.body.appendChild(autocompleteStyle)
+        document.body.appendChild(stepperStyle)
 
         val app = document.createElement("div")
         document.body.appendChild(app)

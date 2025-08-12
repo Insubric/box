@@ -1,10 +1,9 @@
 package ch.wsl.box.client.views
 
 
-import ch.wsl.box.client.services.{ClientConf, Labels}
-import ch.wsl.box.client.styles.GlobalStyles
+import ch.wsl.box.client.services.{ClientConf, Labels, UI}
 import ch.wsl.box.client.views.components.{LoginData, LoginForm}
-import ch.wsl.box.client.{IndexState, LoginState, LoginStateAbstract}
+import ch.wsl.box.client.{Context, IndexState, LoginState, LoginStateAbstract}
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.form.UdashForm
@@ -25,6 +24,7 @@ case object LoginViewPresenter extends ViewFactory[LoginStateAbstract] {
 case class LoginPresenter() extends Presenter[LoginStateAbstract]  {
 
   import ch.wsl.box.client.Context._
+  import ch.wsl.box.client.Context.Implicits._
 
   override def handleState(state: LoginStateAbstract): Unit = {}
 
@@ -44,6 +44,7 @@ case class LoginView(presenter:LoginPresenter) extends View {
 
 
   override def getTemplate = div(
+    div(BootstrapStyles.container)(raw(UI.loginTopHtml)),
     div(BootstrapStyles.container, height := 400.px)(
       div(BootstrapStyles.Grid.row,
           BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Center),
@@ -59,8 +60,10 @@ case class LoginView(presenter:LoginPresenter) extends View {
           div(BootstrapStyles.Card.body)(
             LoginForm(presenter.login).render
           )
-        )
+        ),
+        Context.pwa.render
       )
-    )
+    ),
+    div(BootstrapStyles.container)(raw(UI.loginBottomHtml)),
   )
 }

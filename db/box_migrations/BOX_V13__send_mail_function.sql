@@ -1,4 +1,4 @@
-create or replace function box.mail_notification(
+create or replace function mail_notification(
     mail_from text,
     mail_to text[],
     subject text,

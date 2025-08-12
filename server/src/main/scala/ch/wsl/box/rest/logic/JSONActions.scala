@@ -13,7 +13,9 @@ import slick.basic.DatabasePublisher
 import ch.wsl.box.jdbc.{FullDatabase, PostgresProfile}
 import slick.lifted.{MappedProjection, TableQuery}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.UpdateTable
 import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.file.FileId
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -24,113 +26,64 @@ import scala.concurrent.{ExecutionContext, Future}
   * Created by andre on 5/19/2017.
   */
 
-class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](entity:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends ViewActions[Json] {
+class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](entity:TableQuery[T])(implicit encoder:EncoderWithBytea[M], decoder: Decoder[M], ec:ExecutionContext, services:Services) extends ViewActions[Json] {
 
   protected val dbActions = new DbActions[T,M](entity)
 
+  private implicit def enc = encoder.light()
 
-  def findQuery(query: JSONQuery): Query[MappedProjection[Json, M], Json, Seq] = dbActions.findQuery(query).map(_ <> (_.asJson, (_:Json) => None))
-  override def find(query: JSONQuery) = findQuery(query).result
+  def findQuery(query: JSONQuery,keys:Seq[String]): DBIO[Query[MappedProjection[Json, M], Json, Seq]] = dbActions.findQuery(query).map(_.map(_ <> (x => JSONID.attachBoxObjectId(x.asJson,keys), (_:Json) => None)))
 
-  override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = {
-    dbActions.getById(id).map { res =>
-      res.map { m =>
-        m.asJson
-      }
-    }
-  }
+
+  override def findSimple(query:JSONQuery ): DBIO[Seq[Json]] = for {
+    keys <- dbActions.keys()
+    result <- dbActions.findSimple(query)
+  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
+
+  override def fetchFields(fields: Seq[String], query: JSONQuery) = dbActions.fetchFields(fields,query)
+
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,GeoJson.Geometry)]] = dbActions.fetchGeom(properties,field, query)
+
+  override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = for{
+    keys <- dbActions.keys()
+    result <- dbActions.getById(id)
+  } yield result.map(x => JSONID.attachBoxObjectId(x.asJson,keys))
 
   override def count() = dbActions.count()
   override def count(query: JSONQuery) = dbActions.count(query)
 
-  override def ids(query:JSONQuery):DBIO[IDs] = {
-    for{
-      data <- dbActions.find(query)
-      keys <- dbActions.keys()   // JSONMetadataFactory.keysOf(table.baseTableRow.tableName)
-      n <- dbActions.count(query)
-    } yield {
 
-      val last = query.paging match {
-        case None => true
-        case Some(paging) =>  (paging.currentPage * paging.pageLength) >= n
-      }
-      import ch.wsl.box.shared.utils.JSONUtils._
-      IDs(
-        last,
-        query.paging.map(_.currentPage).getOrElse(1),
-        data.flatMap{_.asJson.ID(keys).map(_.asString)},
-        n
-      )
-    }
-  }
+  override def distinctOn(fields: Seq[String], query: JSONQuery): DBIO[Seq[Json]] = dbActions.distinctOn(fields, query)
 
+  override def ids(query:JSONQuery,keys:Seq[String]):DBIO[IDs] = dbActions.ids(query,keys)
+
+  override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = dbActions.lookups(request)
 }
 
-case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M],M <: Product](table:TableQuery[T])(implicit encoder: Encoder[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
+case class JSONTableActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTable[M],M <: Product](table:TableQuery[T])(implicit encoder: EncoderWithBytea[M], decoder: Decoder[M], ec:ExecutionContext,services:Services) extends JSONViewActions[T,M](table) with TableActions[Json] with Logging {
 
-
-  private def mergeCurrent(id:JSONID,current:Json,json:Json):Future[Json] = {
-    val fileFields = Registry().fields.tableFields.get(table.baseTableRow.tableName).toSeq.flatMap(_.filter{case (k,v) => v.jsonType == JSONFieldTypes.FILE }.keys)
-    val noKeepImage = fileFields.foldRight(json){ (fileField,js) => if(js.get(fileField) == FileUtils.keep) {
-      Json.fromJsonObject(js.asObject.get.filter(_._1 != fileField))
-    } else js }
-
-    Future.sequence{
-      fileFields.filter(ff => json.get(ff) != FileUtils.keep).map{ field =>
-        services.imageCacher.clear(FileId(id,s"${table.baseTableRow.tableName}.$field"))
-      }
-    }.map { _ =>
-      current.deepMerge(noKeepImage)
-    }
-  }
+  private implicit def enc = encoder.light()
 
   override def update(id:JSONID, json: Json):DBIO[Json] = {
-    for{
-      current <- getById(id) //retrieve values in db
-      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updated <- dbActions.update(id, toM(merged)).map(_.asJson)
-    } yield updated
+    logger.info(s"UPDATE BY ID $id")
+
+    for {
+      current <- getById(id)
+      newRow <- current match {
+        case Some(value) => DBIO.successful(value)
+        case None => dbActions.insert(toM(json)).map(_.asJson)
+      }
+      met <- dbActions.metadata
+      diff = newRow.diff(met, Seq())(json)
+      result <- updateDiff(diff)
+    } yield result.orElse(current).getOrElse(json)
   }
 
-  override def updateIfNeeded(id:JSONID, json: Json):DBIO[Json] = {
-    for{
-      current <- getById(id) //retrieve values in db
-      merged <- DBIO.from(mergeCurrent(id,current.get,json)) //merge old and new json
-      updateCount <- if (toM(current.get) != toM(merged)) {  //check if same
-        dbActions.update(id, toM(merged)).map(_.asJson)            //could also use updateIfNeeded and no check
-      } else DBIO.successful(current.get)
-    } yield {
-      updateCount
-    }
-  }
+
+
+  override def updateDiff(diff: JSONDiff):DBIO[Option[Json]] = dbActions.updateDiff(diff).map(_.map(_.asJson))
 
   override def insert(json: Json):DBIO[Json] = dbActions.insert(toM(json)).map(_.asJson)
-
-  override def upsertIfNeeded(id:Option[JSONID], json: Json):DBIO[Json] = {
-    for{
-      current <- id match {
-        case Some(id) => getById(id)
-        case None => DBIO.successful(None)
-      } //retrieve values in db
-      result <- if (current.isDefined){   //if exists, check if we have to skip the update (if row is the same)
-
-        for{
-          merged <- DBIO.from(mergeCurrent(id.get,current.get,json)) //merge old and new json
-          model = toM(merged)
-          result <- if (toM(current.get) != model) {
-            dbActions.update(id.get, toM(merged)).map(_.asJson)       //could also use updateIfNeeded and no check
-          } else DBIO.successful(current.get)
-        } yield result
-
-
-      } else{
-        insert(json)
-      }
-    } yield {
-      logger.info(s"Inserted $result")
-      result
-    }
-  }
 
   override def delete(id: JSONID):DBIO[Int] = dbActions.delete(id)
 

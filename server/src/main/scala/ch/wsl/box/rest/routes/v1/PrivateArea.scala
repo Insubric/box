@@ -7,20 +7,20 @@ import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpHead
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{BoxActionsRegistry, Translations}
+import ch.wsl.box.model.Translations
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, EntityKind, PDFTable, XLSTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.io.pdf.PDFExport
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.routes.{BoxFileRoutes, Export, Form, Functions, Table, View}
+import ch.wsl.box.rest.routes.{Export, Form, Functions, MapRoute, Table}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import ch.wsl.box.services.Services
-import com.softwaremill.session.SessionDirectives.touchOptionalSession
+import com.softwaremill.session.SessionDirectives.{invalidateSession, touchOptionalSession, touchRequiredSession}
 import com.softwaremill.session.SessionManager
-import com.softwaremill.session.SessionOptions.{oneOff, usingCookiesOrHeaders}
+import com.softwaremill.session.SessionOptions.{oneOff, usingCookies, usingCookiesOrHeaders, usingHeaders}
 import io.circe.Json
 
 import scala.concurrent.ExecutionContext
@@ -35,11 +35,11 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
   import ch.wsl.box.shared.utils.Formatters._
 
   def export(implicit up:UserProfile) = pathPrefix("export") {
-    Export.route
+    Export().route
   }
 
   def function(implicit up:UserProfile) = pathPrefix("function") {
-    Functions.route
+    Functions().route
   }
 
   def file(implicit up:UserProfile) = pathPrefix("file") {
@@ -71,34 +71,50 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
-  def auth(session:BoxSession) = pathPrefix("auth") {
+
+
+
+  def auth = pathPrefix("auth") {
     path("token") {
-      get {
-        respondWithHeader(sessionManager.clientSessionManager.createHeader(session)) {
-          complete("ok")
+      touchRequiredSession(oneOff, usingCookies) { session =>
+        get {
+          respondWithHeader(sessionManager.clientSessionManager.createHeader(session)) {
+            complete("ok")
+          }
         }
       }
     } ~
     path("cookie") {
-      get{
-        setCookie(sessionManager.clientSessionManager.createCookie(session)) {
-          complete("ok")
+      touchRequiredSession(oneOff, usingHeaders) { session =>
+        get {
+          setCookie(sessionManager.clientSessionManager.createCookie(session)) {
+            complete("ok")
+          }
         }
       }
-
     }
   }
+
+
 
   def forms(implicit up:UserProfile) = path(EntityKind.FORM.plural) {
     get {
-      complete(services.connection.adminDB.run(FormMetadataFactory().list))
+      complete(services.connection.adminDB.run(FormMetadataFactory.list))
     }
   }
 
-  def form(implicit up:UserProfile) = pathPrefix(EntityKind.FORM.kind) {
+  def form(implicit s:BoxSession) = pathPrefix(EntityKind.FORM.kind) {
     pathPrefix(Segment) { lang =>
       pathPrefix(Segment) { name =>
-        Form(name, lang,x => Registry().actions(x),FormMetadataFactory(),up.db,EntityKind.FORM.kind).route
+        Form(name, lang,Registry(),FormMetadataFactory,EntityKind.FORM.kind).route
+      }
+    }
+  }
+
+  def map(implicit s: BoxSession) = pathPrefix("map") {
+    pathPrefix(Segment) { lang =>
+      pathPrefix(Segment) { name =>
+        new MapRoute(name,lang).route
       }
     }
   }
@@ -137,6 +153,12 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  def me(implicit up: UserProfile) = path("me") {
+    get {
+      complete(up.curentUser)
+    }
+  }
+
   def translations = pathPrefix("translations") {
     pathPrefix("fields") {
       path(Segment) { lang =>
@@ -160,12 +182,15 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
-  val route = touchOptionalSession(oneOff, usingCookiesOrHeaders) {
+  val route = auth ~
+    touchOptionalSession(oneOff, usingCookiesOrHeaders) {
     case Some(session) => {
-      implicit val up = session.userProfile.get
+      implicit val s = session
+      implicit val up = session.userProfile
       implicit val db = up.db
 
       Access(session).route ~
+        me ~
         export ~
         function ~
         file ~
@@ -175,15 +200,17 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         views ~
         forms ~
         form ~
+        map ~
         news ~
         renderTable ~
         exportCSV ~
         exportXLS ~
         translations ~
-        auth(session) ~
         new WebsocketNotifications().route ~
         Admin(session).route
     }
-    case None => complete(StatusCodes.Unauthorized,"User not authenticated or session expired")
+    case None => invalidateSession(oneOff, usingCookies) {
+      complete(StatusCodes.Unauthorized,"User not authenticated or session expired")
+    }
   }
 }

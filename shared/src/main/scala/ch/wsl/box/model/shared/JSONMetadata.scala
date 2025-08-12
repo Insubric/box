@@ -4,9 +4,9 @@ import io.circe._
 import io.circe.syntax._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json.{Folder, JArray}
+
 import java.io
 import java.util.UUID
-
 import ch.wsl.box.shared.utils.JSONUtils
 import scribe.Logging
 
@@ -40,16 +40,23 @@ case class JSONMetadata(
                          dynamicLabel:Option[String] = None,
                          params:Option[Json] = None
                        ) {
-  def order:Ordering[JSONID] = new Ordering[JSONID] {
-    override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>
-      val keyY = y.id.find(_.key == keyX.key)
-      val field = fields.find(_.name == keyX.key)
-      field.map(_.`type`) match {
-        case Some(JSONFieldTypes.NUMBER) => Try(keyX.value.toDouble.compare(keyY.get.value.toDouble)).getOrElse(-1)
-        case _ => keyX.value.compare(keyY.map(_.value).getOrElse(""))
-      }
-    }.dropWhile(_ == 0).headOption.getOrElse(0)
-  }
+//  def order:Ordering[JSONID] = new Ordering[JSONID] {
+//    override def compare(x: JSONID, y: JSONID): Int = x.id.map{ keyX =>
+//      val keyY = y.id.find(_.key == keyX.key)
+//      val field = fields.find(_.name == keyX.key)
+//      field.map(_.`type`) match {
+//        case Some(JSONFieldTypes.NUMBER) => Try(keyX.value.as[Double].getOrElse(0) - keyY.get.value.as[Double].getOrElse(0))
+//        case _ => keyX.value.string.compare(keyY.map(_.value.string).getOrElse(""))
+//      }
+//    }.dropWhile(_ == 0).headOption.getOrElse(0)
+//  }
+  def table:Seq[JSONField] = tabularFields.flatMap(tf => fields.find(_.name == tf))
+  def tableLookupFields = table.filter(_.lookup.isDefined)
+  lazy val keyFields:Seq[JSONField] = keys.flatMap(k => fields.find(_.name == k))
+
+  def geomFields = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
+
+  def exportFieldsNoGeom = fields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY)
 }
 
 object JSONMetadata extends Logging {
@@ -68,17 +75,11 @@ object JSONMetadata extends Logging {
 
     form.fields.flatMap{ field =>
 
-      val defaultFirstForLookup: Option[Json] = field.nullable match {
-        case false => field.lookup.flatMap(_.lookup.headOption).map(_.id) //get first element
-        case true => field.lookup.flatMap(_.lookup.lift(1)).map(_.id)     //get second element (first should be null)
-      }
 
-      val default = (field.default) match{
-        case Some(JSONUtils.FIRST) => defaultFirstForLookup.map(_.string)
-        case _ => field.default
-      }
 
-      val value:Option[Json] = Try((default, field.`type`) match {
+
+
+      val value:Option[Json] = Try((field.default, field.`type`) match {
         case (Some("arrayIndex"),_) => None
         case (Some("auto"),_) => None
         case (None,JSONFieldTypes.CHILD) => {
@@ -101,6 +102,11 @@ object JSONMetadata extends Logging {
     case Right(sub) => extractFields(sub.fields)
   }
 
+  def layoutOnly(metadata: JSONMetadata):JSONMetadata = {
+    val layoutField = metadata.layout.blocks.flatMap(x => extractFields(x.fields))
+    metadata.copy(fields = metadata.fields.filter(f => layoutField.contains(f.name)))
+  }
+
 
   def simple(id:UUID, kind:String, entity:String, lang:String, fields:Seq[JSONField], keys:Seq[String]):JSONMetadata = JSONMetadata(
     objId = id,
@@ -108,7 +114,7 @@ object JSONMetadata extends Logging {
     kind = kind,
     label = entity,
     fields = fields,
-    layout = Layout(Seq(LayoutBlock(None,12,None,fields.map(x => Left(x.name))))),
+    layout = Layout(Seq(LayoutBlock(None,12,None,None,None,fields.map(x => Left(x.name)),StackedLayout))),
     entity = entity,
     lang = lang,
     tabularFields = fields.map(_.name),
@@ -122,6 +128,8 @@ object JSONMetadata extends Logging {
     static = false,
     dynamicLabel = None
   )
+
+  def stub = simple(UUID.randomUUID(),EntityKind.FORM.kind,"","",Seq(),Seq())
 
   def hasData(json:Json,keys:Seq[String]):Boolean = {
 

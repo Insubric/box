@@ -24,15 +24,21 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import io.circe.generic.extras.semiauto._
        |  import io.circe.generic.extras.Configuration
        |  import ch.wsl.box.rest.utils.JSONSupport._
-       |  import Light._
+       |  import ch.wsl.box.rest.utils.GeoJsonSupport._
        |
        |  import slick.model.ForeignKeyAction
        |  import slick.collection.heterogeneous._
        |  import slick.collection.heterogeneous.syntax._
+       |  import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
+       |  import org.locationtech.jts.geom.Geometry
+       |
+       |  import ch.wsl.box.model.UpdateTable
+       |  import scala.concurrent.ExecutionContext
        |
        |object $container {
        |
        |      implicit val customConfig: Configuration = Configuration.default.withDefaults
+       |      implicit def dec:Decoder[Array[Byte]] = Light.fileFormat
        |
        |      import ch.wsl.box.jdbc.PostgresProfile.api._
        |
@@ -45,7 +51,7 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
 }
 
 //exteded code generator (add route and registry generation)
-case class EntitiesGenerator(connection:Connection,model:Model) extends slick.codegen.SourceCodeGenerator(model) with BoxSourceCodeGenerator with MyOutputHelper with Logging {
+case class EntitiesGenerator(connection:Connection,model:Model,box_schema:String) extends slick.codegen.SourceCodeGenerator(model) with BoxSourceCodeGenerator with MyOutputHelper with Logging {
 
 
 
@@ -65,9 +71,12 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       def encoderDecoder:String =
         s"""
            |val decode$name:Decoder[$name] = Decoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})($name.apply)
-           |val encode$name:Encoder[$name] = Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
-           |  ${columns.map(_.name).mkString("(x.",", x.",")")}
-           |)
+           |val encode$name:EncoderWithBytea[$name] = { e =>
+           |  implicit def byteE = e
+           |  Encoder.forProduct${columns.size}(${model.columns.map(_.name).mkString("\"","\",\"","\"")})(x =>
+           |    ${columns.map(_.name).mkString("(x.",", x.",")")}
+           |  )
+           |}
            |""".stripMargin
 
       override def code = {
@@ -93,21 +102,11 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
           result + s"""
 
     val decode$name:Decoder[$name] = deriveConfiguredDecoder[$name]
-    val encode$name:Encoder[$name] = deriveConfiguredEncoder[$name]
-
-    object ${TableClass.elementType}{
-
-      type ${TableClass.elementType}HList = ${columns.map(_.exposedType).mkString(" :: ")} :: HNil
-
-      def factoryHList(hlist:${TableClass.elementType}HList):${TableClass.elementType} = {
-        val x = hlist.toList
-        ${TableClass.elementType}("""+columns.zipWithIndex.map(x => "x("+x._2+").asInstanceOf["+x._1.exposedType+"]").mkString(",")+s""");
-      }
-
-      def toHList(e:${TableClass.elementType}):Option[${TableClass.elementType}HList] = {
-        Option(( """+columns.map(c => "e."+ c.name + " :: ").mkString("")+s""" HNil))
-      }
+    val encode$name:EncoderWithBytea[$name] = { e =>
+      implicit def byteE = e
+      deriveConfiguredEncoder[$name]
     }
+
                  """
         }
 
@@ -140,8 +139,49 @@ case class EntitiesGenerator(connection:Connection,model:Model) extends slick.co
       override def code: String =  {
         val prns = parents.map(" with " + _).mkString("")
         val args = model.name.schema.map(n => s"""Some("$n")""") ++ Seq("\""+model.name.table+"\"")
+
+        val tableNameFull = model.name.schema.map(s => "\""+s+"\".").getOrElse("") + "\"" + model.name.table + "\""
+        val tableName = model.name.schema.map(s => s+".").getOrElse("") + model.name.table
+
+        val columnsLight = model.columns.map{c =>
+          if(c.tpe == "Array[Byte]") s"""  substring("${c.name}" from 1 for 4096) as "${c.name}" """ else
+            "\"" + c.name + "\""
+        }.mkString(",")
+
+        val getResult = columns.map{c =>
+          c.exposedType match {
+            case "Option[java.util.UUID]" => "r.nextUUIDOption"
+            case "java.util.UUID" => "r.nextUUID"
+            case typ:String if typ.contains("Option[List[") => typ.replace("Option[List[","r.nextArrayOption[").dropRight(1) + ".map(_.toList)"
+            case typ:String if typ.contains("List[") => typ.replace("List[","r.nextArray[") + ".toList"
+            case _ => "r.<<"
+          }
+        }.mkString(",")
+
         s"""
-class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns {
+class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkString(", ")})$prns with UpdateTable[$elementType] {
+
+  def boxGetResult = GR(r => $elementType($getResult))
+
+  def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[$elementType]] = {
+      val kv = keyValueComposer(this)
+      val chunks = fields.flatMap(kv)
+      if(chunks.nonEmpty) {
+        val head = concat(sql\"\"\"update $tableNameFull set \"\"\",chunks.head)
+        val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+        val returning = sql\"\"\" returning $columnsLight \"\"\"
+
+        val sqlActionBuilder = concat(concat(set,where),returning)
+        sqlActionBuilder.as[$elementType](boxGetResult).head.map(x => Some(x))
+      } else DBIO.successful(None)
+    }
+
+    override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[$elementType]] = {
+      val sqlActionBuilder = concat(sql\"\"\"select $columnsLight from $tableNameFull \"\"\",where)
+      sqlActionBuilder.as[$elementType](boxGetResult)
+    }
+
   ${indent(body.map(_.mkString("\n")).mkString("\n\n"))}
 }
         """.trim()
@@ -174,9 +214,7 @@ class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkStri
       private val primaryWithDefault:Boolean = {
         val dbDefault = Await.result(
           connection.dbConnection.run(
-            PgInformationSchema.hasDefault(
-              model.table.schema.getOrElse("public"),
-              model.table.table,
+            new PgInformationSchema(box_schema:String,model.table.schema.getOrElse("public"),model.table.table).hasDefault(
               model.name
             )
           ),

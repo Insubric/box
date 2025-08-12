@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Box Framework</title>
+
+	<link rel="stylesheet" href="dist/reset.css">
+	<link rel="stylesheet" href="dist/reveal.css">
+	<link rel="stylesheet" href="dist/theme/black.css">
+
+	<!-- Theme used for syntax highlighted code -->
+	<link rel="stylesheet" href="plugin/highlight/monokai.css">
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section><!-- 1 min -->
+				<h1 class="r-fit-text">Box Framework</h1>
+				<h2 class="r-fit-text">Out of the Box web applications on top of PostgreSQL</h2>
+				<a href="https://github.com/Insubric/box">https://github.com/Insubric/box</a>
+			</section>
+			<section><!-- 3 min -->
+				<section>
+					<h2>
+						<code class="pgsql" style="text-align: left;" data-trim>
+							select current_user
+						</code>
+					</h2>
+					<p>Andrea Minetti <a href="andrea@wavein.ch">andrea@wavein.ch</a></p>
+					
+				</section>
+				<section>
+					Background mainly in web development, worked in database development in the last few years.
+				</section>
+				<section>
+					
+						<div class="r-hstack" style="justify-content: space-between;">
+							<div>Independent software developer - <a href="https://www.wavein.ch">wavein.ch</a></div>
+							<div style="width: 150px; text-align: center;"><img src="assets/wavein_logo_small.png" height="60"></div>
+						</div>
+						<div class="r-hstack" style="justify-content: space-between;">
+							<div style="text-align: left;">Swiss Federal Institute for Forest Snow and Landscape Research WSL</div>
+							<div style="width: 150px; text-align: center;"><img src="https://dms-media.wavein.ch/wi-dms/wsl_small.png" height="60"></div>
+						</div>
+					
+				</section>
+			</section>
+			<section><!-- 3 min -->
+				<section>
+					<h3>Why box framework?</h3>
+					<p>Problem: how can we quickly create web applications to interact with our DB?</p>
+				</section>
+				<section>
+					<p>Originally developed to allow environmental researchers with basic database skills to
+						manage their own research data</p>
+				</section>
+				<section>
+					<p>Reads the <code>information schema</code> and, with no additional user interaction, provides all necessary basic functionality</p>
+				</section>
+				<section >
+					<img src="assets/login_screen.png" class="r-stretch">
+				</section>
+				<section >
+					<img src="assets/table_screen.png" class="r-stretch">
+				</section>
+				<section >
+					<img src="assets/form_screen.png" class="r-stretch">
+				</section>
+			</section>
+			<section><!-- 3 min -->
+				<section>
+					<h3>Principles</h3>
+					<ul>
+						<li>No application code needed</li>
+						<li>Take advantage of PostgreSQL Features</li>
+						<li>Entire state defined in the database</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Books</h3>
+					<img src="assets/artofpostgresql.jpg" class="r-stretch">
+					<p><small>The Art of PostgreSQL - Dimitri Fontaine</small></p>
+				</section>
+			</section>
+			<section><!-- 3 min -->
+				<section>
+					<h3>Concepts</h3>
+					<ul>
+						<li>Box user == DB user</li>
+						<li>Form/Sub-form concept (One-to-many relationship)</li>
+						<li>Metadata (Auto-generated for db tables/views, UI Builder for forms)</li>
+					</ul>
+				</section>
+			</section>
+			<section><!-- 4 min -->
+				<section>
+					<h3>UI</h3>
+					<ul>
+						<li>Prebuilt widgets</li>
+						<li>GIS support (with SwissTopo Integration)</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Std HTML input</h3>
+					<img src="assets/std_input.png">
+				</section>
+				<section>
+					<h3>Tablechild widget</h3>
+					<img src="assets/tableChild.png">
+				</section>
+				<section>
+					<h3>EditableTable widget</h3>
+					<img src="assets/editableTable.png">
+				</section>
+				<section>
+					<h3>File widget</h3>
+					<img src="assets/file.png">
+				</section>
+				<section>
+					<h3>Map widget</h3>
+					<img src="assets/map.png">
+				</section>
+			</section>
+			<section><!-- 1 min -->
+				<section>
+					<h3>Features</h3>
+					<ul>
+						<li>REST API</li>
+						<li>XLS, CSV, SHP data export</li>
+						<li>Customizable HTML and PDF reports (charts, plots, ... take advantage of javascript
+							ecosystem)</li>
+						<li>Multi-language support</li>
+						<li>SMTP support</li>
+						<li>Public forms</li>
+					</ul>
+				</section>
+			</section>
+			<section>
+				<section><!-- 2 min -->
+					<h3>Implementation</h3>
+					<p>Simple 3 tier architecture</p>
+					<div class="r-hstack" style="justify-content: space-between;">
+						<div>Presentation Layer: scala.js</div>
+						<div style="width: 150px; text-align: center;"><img src="/assets/scalajs.svg" height="60"></div>
+					</div>
+					<div class="r-hstack" style="justify-content: space-between;">
+						<div>Application Layer: scala</div>
+						<div style="width: 150px; text-align: center;"><img src="/assets/scala.png" height="60"></div>
+					</div>
+					<div class="r-hstack" style="justify-content: space-between;">
+						<div>Data Layer: PostgreSQL</div>
+						<div style="width: 150px; text-align: center;"><img src="/assets/postgresql.svg" height="60"></div>
+					</div>
+				</section>
+				<section>
+					<h3>Implementation</h3>
+					<p>On installation, a new box schema is created in the db with all configuration required by the system</p>
+				</section>
+				<section>
+					<h3>Requirements</h3>
+					<ul>
+						<li>PostrgreSQL 13+</li>
+						<li>Java 8+</li>
+						<li>sbt (scala build tool <a href="https://www.scala-sbt.org/download.html">https://www.scala-sbt.org/download.html</a>)</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Bootstrap</h3>
+					<pre>
+						<code>
+							$ sbt new minettiandrea/box.g8
+							$ cd project-name
+							$ sbt installBox
+							$ sbt generateModel
+							$ sbt run
+						</code>
+					</pre>
+				</section>
+			</section>
+			<section><!-- 15 min -->
+				<section>
+					<h1>DEMO</h1>
+				</section>
+				<section >
+					<img src="assets/public.png" class="r-stretch">
+				</section>
+				<section >
+					<img src="assets/schema_artist.png" class="r-stretch">
+				</section>
+				<section >
+					<img src="assets/customer.png" class="r-stretch">
+				</section>
+					
+			</section>
+			<section><!-- 1 min -->
+				<h3>What it is not</h3>
+				<ul>
+					<li>DDL Designer</li>
+					<li>Not suitable for big projects</li>
+				</ul>
+			</section>
+			<section><!-- 1 min -->
+				<h3>Outlook</h3>
+				<ul>
+					<li>Better user management (SSO integration)</li>
+					<li>JSONSchema/OpenAPI native support</li>
+					<li>Offline-first web application</li>
+					<li>Integration with other reporting systems (i.e. R shiny)</li>
+				</ul>
+			</section>
+			<section>
+				<h2>Thank you!</h2>
+				<a href="https://www.boxframework.com">www.boxframework.com</a>
+				<a href="https://github.com/Insubric/box">GitHub</a>
+			</section>
+		</div>
+	</div>
+
+	<script src="dist/reveal.js"></script>
+	<script src="plugin/notes/notes.js"></script>
+	<script src="plugin/markdown/markdown.js"></script>
+	<script src="plugin/highlight/highlight.js"></script>
+	<script>
+		// More info about initialization & config:
+		// - https://revealjs.com/initialization/
+		// - https://revealjs.com/config/
+		Reveal.initialize({
+			hash: true,
+
+			// Learn about plugins: https://revealjs.com/plugins/
+			plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+		});
+	</script>
+</body>
+
+</html>

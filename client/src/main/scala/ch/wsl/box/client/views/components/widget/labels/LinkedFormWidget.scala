@@ -11,6 +11,7 @@ import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe._
 import io.circe.generic.auto._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import org.scalajs.dom.Event
 import scalacss.internal.Color
 import scalatags.JsDom
@@ -30,6 +31,7 @@ object LinkedFormWidget extends ComponentWidgetFactory {
   case class LinkedFormWidgetImpl(params: WidgetParams) extends Widget with Logging with Link {
 
     import ch.wsl.box.client.Context._
+    import ch.wsl.box.client.Context.Implicits._
     import io.udash.css.CssView._
     import scalacss.ScalatagsCss._
 
@@ -38,27 +40,34 @@ object LinkedFormWidget extends ComponentWidgetFactory {
 
     val linkedFormName = field.linked.map(_.name).getOrElse("unknown")
 
-    def navigate(goTo: Routes => RoutingState) =  Navigate.to(goTo(Routes(EntityKind.FORM.kind, linkedFormName)))
+    def navigate(goTo: Routes => RoutingState) =  Navigate.to(goTo(Routes(EntityKind.FORM.kind, linkedFormName,params.public)))
 
     val label = field.label.orElse(field.linked.flatMap(_.label)).orElse(field.linked.map(_.name)).getOrElse("Open")
+
+    def loadAndGo(edit:Boolean,directToForm:Seq[String] => Boolean) = {
+      val query = field.query.getOrElse(JSONQuery.empty).withData(params.allData.get,services.clientSession.lang())
+      services.rest.ids(EntityKind.FORM.kind, services.clientSession.lang(), linkedFormName, query,params.public).map { ids =>
+        services.clientSession.setIDs(ids)
+        if(directToForm(ids.ids)) {
+          if (edit) {
+            ids.ids.headOption match {
+              case Some(value) => navigate(_.edit(value))
+              case None => navigate(_.add())
+            }
+          } else {
+            navigate(_.show(ids.ids.headOption.getOrElse("")))
+          }
+        } else {
+          navigate(_.entity(field.query))
+        }
+      }
+    }
 
     def goto(edit:Boolean):Event => Any = (e: Event) => {
       e.preventDefault()
       field.params.map(_.get("open")) match {
-        case Some("first") => {
-          val query = field.query.getOrElse(JSONQuery.empty)
-          services.rest.ids(EntityKind.FORM.kind,services.clientSession.lang(),linkedFormName,query).map{ ids =>
-            services.clientSession.setIDs(ids)
-            if(edit) {
-              ids.ids.headOption match {
-                case Some(value) => navigate(_.edit(value))
-                case None => navigate(_.add())
-              }
-            } else {
-              navigate(_.show(ids.ids.headOption.getOrElse("")))
-            }
-          }
-        }
+        case Some("first") => loadAndGo(edit,_ => true)
+        case Some("listOrSingle") => loadAndGo(edit,_.length <= 1)
         case Some("new") => {
           if(edit) {
             navigate(_.add())
@@ -68,13 +77,13 @@ object LinkedFormWidget extends ComponentWidgetFactory {
       }
     }
 
-    override protected def show(): Modifier = linkRenderer(label,field.params,goto(false))
+    override protected def show(nested:Binding.NestedInterceptor): Modifier = linkRenderer(label,field.params,goto(false))
 
-    override protected def edit(): Modifier = linkRenderer(label,field.params,goto(true))
+    override protected def edit(nested:Binding.NestedInterceptor): Modifier = linkRenderer(label,field.params,goto(true))
 
-    override def showOnTable(): JsDom.all.Modifier = a(onclick :+= goto(false),label)
+    override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = show(nested) //a(onclick :+= goto(false),label)
 
-    override def editOnTable(): JsDom.all.Modifier = a(onclick :+= goto(true),label)
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = edit(nested) //a(onclick :+= goto(true),label)
   }
 
 }
