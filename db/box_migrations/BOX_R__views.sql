@@ -153,6 +153,6 @@ SELECT r.rolname,
 FROM pg_roles r
          left join parent_roles pr on r.rolname = pr.rolname
          left join users u on u.username = r.rolname
-WHERE r.rolname !~ '^pg_'::text and r.rolname in ('fd_std','andrea.minetti@wsl.ch')
+WHERE r.rolname !~ '^pg_'::text
 ORDER BY r.rolname;
 
