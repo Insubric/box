@@ -80,7 +80,7 @@ case class FormAction(
                       reload:Boolean = false,
                       confirmText:Option[String] = None,
                       executeFunction:Option[String] = None,
-                      condition:Option[Seq[ConditionalField]] = None,
+                      condition:Option[Condition] = None,
                       html5check:Boolean = true,
                       needUpdateRight:Boolean = false,
                       needDeleteRight:Boolean = false,

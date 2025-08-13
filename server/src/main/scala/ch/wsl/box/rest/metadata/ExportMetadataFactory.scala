@@ -146,12 +146,6 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
     } yield JSONFieldLookup.fromDB(entity, JSONFieldMap(JSONFieldMapForeign(value,Seq(value),Seq(text)), Seq(field.name)),field.lookupQuery)
 
 
-    val condition = for{
-      fieldId <- field.conditionFieldId
-      values <- field.conditionValues
-      json <- Try(parse(values).right.get.as[Json].right.get).toOption
-    } yield ConditionalField(fieldId,json)
-
 
 
       JSONField(
@@ -166,7 +160,7 @@ class ExportMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Execut
         field.widget,
         None,
         field.default,
-        condition
+        field.condition.map(Condition.fromJson)
         //      fieldI18n.flatMap(_.tooltip)
       )
 

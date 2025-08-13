@@ -25,7 +25,7 @@ case class JSONField(
                       widget: Option[String] = None,
                       child: Option[Child] = None,
                       default: Option[String] = None,
-                      condition: Option[ConditionalField] = None,
+                      condition: Option[Condition] = None,
                       tooltip: Option[String] = None,
                       params: Option[Json] = None,
                       linked: Option[LinkedForm] = None,
@@ -61,7 +61,7 @@ case class JSONField(
       case _ => false
     }
     query.toSeq.flatMap(_.filter).exists(_.fieldValue.contains(field.name)) ||
-      condition.exists(_.conditionFieldId == field.name) || lookupDependent
+      condition.exists(c => Condition.variables(c).contains(field.name)) || lookupDependent
   }
 
   def dependencyFields(fields: Seq[JSONField]):Seq[JSONField] = fields.filter(_.dependsTo(this))
@@ -173,29 +173,6 @@ object Child{
   def min(field:JSONField):Int = field.params.flatMap(_.js("min").as[Int].toOption).getOrElse(0)
   def max(field:JSONField):Option[Int] = field.params.flatMap(_.js("max").as[Int].toOption)
 
-}
-
-case class NotCondition(not:Seq[Json])
-
-case class ConditionalField(conditionFieldId:String,conditionValues:Json) {
-
-
-  def check(js:Json):Boolean = ConditionalField.check(js.js(conditionFieldId),conditionValues)
-
-
-}
-
-object ConditionalField{
-  def check(js:Json,conditionValues:Json) = {
-    js.equals(conditionValues) || {
-      conditionValues
-        .asArray.map(_.contains(js))
-        .orElse(conditionValues.as[NotCondition].toOption.map(!_.not.contains(js))) match {
-        case Some(value) => value
-        case None => false //throw new Exception(s"Wrong conditions: $conditionValues value $js")
-      }
-    }
-  }
 }
 
 object JSONFieldTypes{

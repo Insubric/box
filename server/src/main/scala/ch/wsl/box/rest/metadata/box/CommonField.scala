@@ -1,6 +1,6 @@
 package ch.wsl.box.rest.metadata.box
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, Widget, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, Condition, JSONField, JSONFieldLookup, JSONFieldTypes, JSONLookup, JSONQuery, JSONQueryFilter, Widget, WidgetsNames}
 import ch.wsl.box.rest.metadata.box.Constants.{FORM_FIELD_CHILDS, FORM_FIELD_FILE, FORM_FIELD_I18N, FORM_FIELD_STATIC, FORM_I18N}
 import ch.wsl.box.rest.runtime.Registry
 import io.circe.Json
@@ -37,7 +37,7 @@ object CommonField {
     lookup = Some(JSONFieldLookup.prefilled(
       tables.map(x => JSONLookup(x.asJson,Seq(x)))
     )),
-    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
+    condition = Some(Condition.inStr("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget)))
   )
 
   def foreignEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_entity",false,
@@ -45,16 +45,16 @@ object CommonField {
     lookup = Some(JSONFieldLookup.prefilled(
       tables.map(x => JSONLookup(x.asJson,Seq(x)))
     )),
-    condition = Some(ConditionalField("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget).asJson))
+    condition = Some(Condition.inStr("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget)))
   )
 
   def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",false,
-    condition = Some(ConditionalField("lookupEntity",tables.asJson)),
+    condition = Some(Condition.inStr("lookupEntity",tables)),
     widget = Some(WidgetsNames.input)
   )
 
   def foreignValueField(tables:Seq[String],fields:Map[String, Seq[String]]) =  JSONField(JSONFieldTypes.STRING,"foreign_value_field",false,
-    condition = Some(ConditionalField("foreign_entity",tables.asJson)),
+    condition = Some(Condition.inStr("foreign_entity",tables)),
     widget = Some(WidgetsNames.select),
     lookup = Some(JSONFieldLookup.withExtractor(
       "foreign_entity",
@@ -63,7 +63,7 @@ object CommonField {
   )
 
   def lookupQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
-    condition = Some(ConditionalField("lookupEntity",tables.asJson)),
+    condition = Some(Condition.inStr("lookupEntity",tables)),
     widget = Some(WidgetsNames.popupWidget),
     params = Some(Json.obj(
       "widget" -> WidgetsNames.adminQueryBuilder.asJson,
@@ -73,7 +73,7 @@ object CommonField {
   )
 
   def foreignQuery(tables:Seq[String]) = JSONField(JSONFieldTypes.JSON,"lookupQuery",true,
-    condition = Some(ConditionalField("foreign_entity",tables.asJson)),
+    condition = Some(Condition.inStr("foreign_entity",tables)),
     widget = Some(WidgetsNames.popupWidget),
     params = Some(Json.obj(
       "widget" -> WidgetsNames.adminQueryBuilder.asJson,
@@ -84,8 +84,7 @@ object CommonField {
 
   val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input), tooltip = Some("Use keyword `arrayIndex` to substitute the value with the index of the array (when this field is part of a child)"))
 
-  val conditionFieldId = JSONField(JSONFieldTypes.STRING,"conditionFieldId",true,widget = Some(WidgetsNames.input))
-  val conditionValues = JSONField(JSONFieldTypes.STRING,"conditionValues",true,
+  val condition = JSONField(JSONFieldTypes.JSON,"condition",true,
     widget = Some(WidgetsNames.code),
     placeholder = Some("[1,2,3]"),
     tooltip = Some("Enter a JSON array with the possibles values"),
@@ -108,7 +107,7 @@ object CommonField {
   val simpleLabel = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.input))
 
   def label(widgetDisabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"label",true, widget = Some(WidgetsNames.dynamicWidget),
-    condition = Some(ConditionalField("widget",WidgetsNames.all.diff(widgetDisabled).asJson)),
+    condition = Some(Condition.inStr("widget",WidgetsNames.all.diff(widgetDisabled))),
     params = Some(Json.obj(
       "selectorField" -> "widget".asJson,
       "widgetMapping" -> Json.obj(
@@ -120,10 +119,10 @@ object CommonField {
   val tooltip = JSONField(JSONFieldTypes.STRING,"tooltip",true, widget = Some(WidgetsNames.input))
   val hint = JSONField(JSONFieldTypes.STRING,"hint",true, widget = Some(WidgetsNames.input))
   def placeholder(widgetEnabled:Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"placeholder",true, widget = Some(WidgetsNames.input),
-    condition = Some(ConditionalField("widget",widgetEnabled.asJson))
+    condition = Some(Condition.inStr("widget",widgetEnabled))
   )
   def lookupTextField(widgetEnabled: Seq[String] = Seq()) = JSONField(JSONFieldTypes.STRING,"lookupTextField",true,label = Some("Dynamic label"), tooltip = Some("It can be a lookup or another field in the same form"), widget = Some(WidgetsNames.input),
-    condition = Some(ConditionalField("widget",widgetEnabled.asJson))
+    condition = Some(Condition.inStr("widget",widgetEnabled))
   )
 
 

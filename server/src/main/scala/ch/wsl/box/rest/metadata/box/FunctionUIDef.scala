@@ -95,8 +95,7 @@ object FunctionUIDef {
       CommonField.lookupValueField(tables),
       CommonField.lookupQuery(tables),
       CommonField.default,
-      CommonField.conditionFieldId,
-      CommonField.conditionValues,
+      CommonField.condition,
     ),
     layout = Layout(
       blocks = Seq(
@@ -110,8 +109,7 @@ object FunctionUIDef {
           "lookupValueField",
           "lookupQuery",
           "default",
-          "conditionFieldId",
-          "conditionValues"
+          "condition"
         ).map(Left(_))),
         LayoutBlock(None,8,None,None,None,Seq("function_field_i18n").map(Left(_))),
       )

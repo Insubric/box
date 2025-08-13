@@ -138,16 +138,6 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     DBIO.successful(x.split(",").toSeq.map(_.trim))
   }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
-  private def toConditions(json:Json):Seq[ConditionalField] = {
-    json.as[Map[String, Json]] match {
-      case Left(value) => {
-        logger.warn(s"Failed to decode condition: ${value.getMessage()} on $json")
-        Seq()
-      }
-      case Right(value) => value.map{ case (k,v) => ConditionalField(k,v)}.toSeq
-    }
-  }
-
   private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String,id:String)(implicit ec:ExecutionContext,services:Services) = {
 
     import io.circe.generic.auto._
@@ -222,7 +212,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               reload = a.reload,
               confirmText = a.confirm_text,
               executeFunction = a.execute_function,
-              condition = a.condition.map(toConditions),
+              condition = a.condition.map(Condition.fromJson),
               html5check = a.html_check,
               target = a.target.map(Target.fromString).getOrElse(Self)
             )
@@ -372,11 +362,6 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     }
   }
 
-  private def condition(field:BoxField_row) = for{
-    fieldId <- field.conditionFieldId
-    values <- field.conditionValues
-  } yield ConditionalField(fieldId,parse(values).toOption.get)
-
 
   private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[String] = {
 
@@ -463,7 +448,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
           widget = field.widget,
           child = subform,
           default = field.default,
-          condition = condition(field),
+          condition = field.condition.map(Condition.fromJson),
           tooltip = fieldI18n.flatMap(_.tooltip),
           params = field.params,
           linked = linked,

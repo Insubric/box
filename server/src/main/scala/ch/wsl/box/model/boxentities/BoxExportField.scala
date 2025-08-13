@@ -19,15 +19,15 @@ object BoxExportField {
 
   case class BoxExportField_row(field_uuid: Option[java.util.UUID] = None, export_uuid: java.util.UUID, `type`: String, name: String, widget: Option[String] = None,
                                 lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery:Option[Json] = None,
-                                default:Option[String] = None, conditionFieldId:Option[String] = None, conditionValues:Option[String] = None)
+                                default:Option[String] = None, condition:Option[Json] = None)
   /** GetResult implicit for fetching Field_row objects using plain SQL queries */
 
   /** Table description of table field. Objects of this class serve as prototypes for rows in queries.
     *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class BoxExportField(_tableTag: Tag) extends profile.api.Table[BoxExportField_row](_tableTag,schema, "export_field") {
-    def * = (Rep.Some(field_uuid), export_uuid, `type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues) <> (BoxExportField_row.tupled, BoxExportField_row.unapply)
+    def * = (Rep.Some(field_uuid), export_uuid, `type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default,condition) <> (BoxExportField_row.tupled, BoxExportField_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(field_uuid), Rep.Some(export_uuid), Rep.Some(`type`),  name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues).shaped.<>({ r=>import r._; _1.map(_=> BoxExportField_row.tupled((_1, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10, _11)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(field_uuid), Rep.Some(export_uuid), Rep.Some(`type`),  name, widget, lookupEntity, lookupValueField, lookupQuery, default,condition).shaped.<>({ r=>import r._; _1.map(_=> BoxExportField_row.tupled((_1, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
@@ -47,8 +47,7 @@ object BoxExportField {
     val lookupQuery: Rep[Option[Json]] = column[Option[Json]]("lookupQuery", O.Default(None))
     /** Database column subform SqlType(int4), Default(None) */
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
-    val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
-    val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
+    val condition: Rep[Option[Json]] = column[Option[Json]]("condition", O.Default(None))
 
     /** Foreign key referencing Form (database name fkey_form) */
     lazy val exportFk = foreignKey("fkey_export", export_uuid, BoxExport.BoxExportTable)(r => r.export_uuid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)

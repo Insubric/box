@@ -45,11 +45,16 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
       case None => Property(true)
       case Some(condition) => {
 
-        val observedData = Property(data.get.js(condition.conditionFieldId))
+        def toObservedData(json:Json):Json = {
+          Json.fromFields(condition.variables.map(c => c -> json.js(c)).toMap)
+        }
 
+        val observedData = Property(
+          toObservedData(data.get)
+        )
 
         data.listen{ d =>
-          val newJs = d.js(condition.conditionFieldId)
+          val newJs = toObservedData(d)
           if( newJs != observedData.get) {
             observedData.set(newJs)
           }
@@ -57,8 +62,8 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
 
         def evaluate(d:Json):Boolean = {
           val value = d
-          val r = ConditionalField.check(value,condition.conditionValues)
-          logger.info(s"evaluating condition for field: ${field.name} against $value with accepted values: ${condition.conditionValues} with result: $r")
+          val r = condition.check(value)
+          logger.debug(s"evaluating condition for field: ${field.name} against $value with condition values: ${condition} with result: $r")
           r
         }
 

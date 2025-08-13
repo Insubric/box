@@ -12,8 +12,7 @@ SELECT fi.type,
        fi.foreign_key_columns,
        fi."childQuery",
        fi."default",
-       fi."conditionFieldId",
-       fi."conditionValues",
+       fi.condition,
        fi.params,
        fi.read_only,
        fi.required,
@@ -40,8 +39,8 @@ create or replace function v_field_ins() returns trigger
 as
 $$
 begin
-    insert into field (type, name, widget, foreign_entity,foreign_value_field, "lookupQuery", local_key_columns, foreign_key_columns, "childQuery", "default", "conditionFieldId", "conditionValues", params, read_only, required, form_uuid, child_form_uuid, function,min,max,roles) values
-        (new.type, new.name, new.widget, new.foreign_entity, new.foreign_value_field, new."lookupQuery", new.local_key_columns, new.foreign_key_columns, new."childQuery", new."default", new."conditionFieldId", new."conditionValues", new.params, new.read_only, new.required, new.form_uuid, new.child_form_uuid, new.function,new.min,new.max, new.roles)
+    insert into field (type, name, widget, foreign_entity,foreign_value_field, "lookupQuery", local_key_columns, foreign_key_columns, "childQuery", "default", condition, params, read_only, required, form_uuid, child_form_uuid, function,min,max,roles) values
+        (new.type, new.name, new.widget, new.foreign_entity, new.foreign_value_field, new."lookupQuery", new.local_key_columns, new.foreign_key_columns, new."childQuery", new."default", new.condition, new.params, new.read_only, new.required, new.form_uuid, new.child_form_uuid, new.function,new.min,new.max, new.roles)
     returning field_uuid into new.field_uuid;
 
     select count(*)>0 into new.entity_field from information_schema.columns where table_name=(select entity from form where form_uuid=new.form_uuid) and column_name=new.name;
@@ -72,8 +71,7 @@ begin
         foreign_key_columns = new.foreign_key_columns,
         "childQuery" = new."childQuery",
         "default" = new."default",
-        "conditionFieldId" = new."conditionFieldId",
-        "conditionValues" = new."conditionValues",
+        condition = new.condition,
         params = new.params,
         read_only = new.read_only,
         required = new.required,

@@ -9,7 +9,7 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.{ContentTypeRange, HttpEntity}
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
-import ch.wsl.box.model.shared.{FileUtils}
+import ch.wsl.box.model.shared.{Condition, FileUtils}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import io.circe.Decoder.Result
 import org.apache.tika.Tika
@@ -101,6 +101,9 @@ object JSONSupport {
       DateTimeFormatters.time.parse(s).get
     }.apply(c)
   }
+
+  implicit val conditionDecoder: Decoder[Condition] = Condition.decoder
+  implicit val conditionEncoder: Encoder[Condition] = Condition.encoder
 
   object Full {
 
