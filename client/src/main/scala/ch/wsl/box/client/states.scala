@@ -33,7 +33,7 @@ case class LoginState2params(url:String,p1:String,p2:String) extends LoginStateA
 case class LoginState3params(url:String,p1:String,p2:String,p3:String) extends LoginStateAbstract(Some(RootState()))
 case class LoginState4params(url:String,p1:String,p2:String,p3:String,p4:String) extends LoginStateAbstract(Some(RootState()))
 
-case object AuthenticateState extends FinalRoutingState(Some(RootState()))
+case class AuthenticateState(provider_id:String) extends FinalRoutingState(Some(RootState()))
 
 case class RootState(layout:String = Layouts.std) extends ContainerRoutingState(None)
 

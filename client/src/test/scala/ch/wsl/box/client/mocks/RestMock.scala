@@ -5,6 +5,7 @@ import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared.GeoTypes.GeoData
 import ch.wsl.box.model.shared.geo.GeoDataRequest
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, Child, CurrentUser, ExportDef, Field, FormActionsMetadata, GeoJson, GeoTypes, IDs, JSONCount, JSONField, JSONFieldMap, JSONFieldTypes, JSONID, JSONKeyValue, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, Layout, LayoutBlock, LoginRequest, NewsEntry, PDFTable, SharedLabels, TableAccess, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
@@ -28,6 +29,8 @@ class RestMock(values:Values) extends REST with Logging {
     case Some(value) => Future.successful(CurrentUser(value,Seq()))
     case None => Future.failed(new Exception("Not logged in"))
   }
+
+  override def authenticate(code: String, provider_id: String)(implicit ec: ExecutionContext): Future[UserInfo] = ???
 
   override def cacheReset()(implicit ec:ExecutionContext): Future[String] = {
     println("cacheReset not implemented")

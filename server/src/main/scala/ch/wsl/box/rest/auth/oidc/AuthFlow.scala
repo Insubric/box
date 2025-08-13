@@ -44,29 +44,28 @@ object AuthFlow {
   //    "session_state": "57b36158-2ad7-4614-80bf-3aa037ab38fe",
   //    "scope": "email profile"
   //  }
-
-  def code(c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],UserInfo]] = {
-
-    val client_id = ???
-    val secret = ???
+  def code(provider:OIDCConf,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],UserInfo]] = {
 
     def authToken = basicRequest
-      .post(uri"https://gitlabext.wsl.ch/oauth/token")
+      .post(uri"${provider.token_url}")
       .body(Map(
         "grant_type" -> "authorization_code",
-        "client_id" -> client_id,
-        "client_secret" -> secret,
+        "client_id" -> provider.client_id,
+        "client_secret" -> provider.client_secret,
         "code" -> c,
-        "redirect_uri" -> s"http://localhost:8080/authenticate"
+        "redirect_uri" -> s"${services.config.frontendUrl}/authenticate/${provider.provider_id}"
       ))
       .response(asJson[OpenIDToken])
       .send(backend)
 
-    def userInfo(token:OpenIDToken) = basicRequest
-      .get(uri"https://gitlabext.wsl.ch/oauth/userinfo")
-      .response(asJson[UserInfo])
-      .auth.bearer(token.access_token)
-      .send(backend)
+    def userInfo(token:OpenIDToken) = {
+      import UserInfo._
+      basicRequest
+        .get(uri"https://gitlabext.wsl.ch/oauth/userinfo")
+        .response(asJson[UserInfo])
+        .auth.bearer(token.access_token)
+        .send(backend)
+    }
 
     for{
       token <- authToken
@@ -79,61 +78,18 @@ object AuthFlow {
   }
 
 
+  def code(provider_id:String,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],UserInfo]] = {
+
+    services.config.openid.find(_.provider_id == provider_id) match {
+      case Some(provider) => code(provider, c)
+      case None => Future.failed(new Exception(s"OIDC Provider $provider_id not found"))
+    }
+
+  }
 
 
 
 
 
 
-//
-//
-//  def sso = path("sso") {
-//    parameters("code") { code =>
-//
-//      val fut =
-//
-//      UserInfo
-//
-//      //        val fut = for{
-//      //          res <- Http().singleRequest(HttpRequest(
-//      //            uri = Uri("https://gitlabext.wsl.ch/oauth/token"),
-//      //            method = HttpMethods.POST,
-//      //            entity = FormData(
-//      //              "grant_type" -> "authorization_code",
-//      //              "client_id" -> "727650337ebe44f844b5d5d60911e9320b532941fdd8e0a9a74f159e17212d54",
-//      //              "client_secret" -> "727650337ebe44f844b5d5d60911e9320b532941fdd8e0a9a74f159e17212d54",
-//      //              "code" -> code,
-//      //              "redirect_uri" -> "http://localhost:8080/authenticate"
-//      //            ).toEntity,
-//      //            protocol = HttpProtocols.`HTTP/1.1`
-//      //          ))
-//      //          tokenString <- res.entity.dataBytes.runFold(ByteString(""))(_ ++ _).map { body =>
-//      //            body.utf8String
-//      //          }
-//      //          token <- Unmarshal(res.entity).to[OpenIDToken]
-//      //          userInfoReq <- Http().singleRequest(HttpRequest(
-//      //           uri = Uri("https://gitlabext.wsl.ch/oauth/userinfo"),
-//      //            headers = Seq(RawHeader("Authorization", s"Bearer ${token.access_token}"))
-//      //          ))
-//      //          userInfoString <- userInfoReq.entity.dataBytes.runFold(ByteString(""))(_ ++ _).map { body =>
-//      //            body.utf8String
-//      //          }
-//      //          userInfo <- Unmarshal(userInfoReq.entity).to[UserInfo]
-//      //        } yield {
-//      //          println(tokenString)
-//      //          println(userInfoString)
-//      //          boxSetSessionCookie(BoxSession(CurrentUser(userInfo.preferred_username,Seq()))) {
-//      //            complete(userInfo)
-//      //          }
-//      //        }
-//      onComplete(fut) {
-//        case Success(value) => value.body match {
-//          case Left(value) => complete(InternalServerError, s"An error occurred: ${value.getMessage}")
-//          case Right(value) => complete(value)
-//        }
-//        case Failure(ex)    => complete(Unauthorized, s"An error occurred: ${ex.getMessage}")
-//      }
-//
-//    }
-//  }
 }

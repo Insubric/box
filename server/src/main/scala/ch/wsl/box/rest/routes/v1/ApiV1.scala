@@ -89,19 +89,20 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   }
 
 
-  def sso = path("sso") {
-    parameters("code") { code =>
-
-        onComplete(AuthFlow.code(code)) {
+  def sso = pathPrefix("sso") {
+    path(Segment) { provider_id =>
+      parameters("code") { code =>
+        onComplete(AuthFlow.code(provider_id,code)) {
           case Success(value) => value match {
             case Left(value) => complete(InternalServerError, s"An error occurred: ${value.getMessage}")
-            case Right(userInfo) => boxSetSessionCookie(BoxSession(CurrentUser(userInfo.preferred_username,Seq()))) {
+            case Right(userInfo) => boxSetSessionCookie(BoxSession(CurrentUser(userInfo.preferred_username, Seq()))) {
               complete(userInfo)
             }
           }
-          case Failure(ex)    => complete(Unauthorized, s"An error occurred: ${ex.getMessage}")
+          case Failure(ex) => complete(Unauthorized, s"An error occurred: ${ex.getMessage}")
         }
 
+      }
     }
   }
 

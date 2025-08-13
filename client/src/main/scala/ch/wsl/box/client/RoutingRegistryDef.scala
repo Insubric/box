@@ -70,7 +70,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
   //localhost:8080/public/box/form/tree
   private val (loggedOutUrl2State, loggedOutState2Url) = bidirectional {
     case "/" => LoginState("")
-    case "/authenticate"  => AuthenticateState
+    case "/authenticate" / provider_id  => AuthenticateState(provider_id)
     case "/logout" => LogoutState
     case "/public" / "box" / kind / entity  => EntityTableState(kind,entity,None,true)
     case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)

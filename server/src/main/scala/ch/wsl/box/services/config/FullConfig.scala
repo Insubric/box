@@ -1,5 +1,6 @@
 package ch.wsl.box.services.config
 
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 
 import java.time.LocalDateTime
@@ -33,5 +34,7 @@ trait FullConfig extends Config {
 
 
   def matomo:Option[MatomoConfig]
+
+  def openid:Seq[OIDCConf]
 
 }

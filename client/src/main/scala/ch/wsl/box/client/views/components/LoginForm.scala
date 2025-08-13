@@ -9,6 +9,9 @@ import io.udash._
 import scalacss.ScalatagsCss._
 import io.udash.css.CssView._
 
+import java.net.URLEncoder
+import java.util.UUID
+
 case class LoginData(username:String,password:String,message:String)
 object LoginData extends HasModelPropertyCreator[LoginData] {
   implicit val blank: Blank[LoginData] = Blank.Simple(LoginData("","",""))
@@ -17,6 +20,8 @@ object LoginData extends HasModelPropertyCreator[LoginData] {
 case class LoginForm(login: ModelProperty[LoginData] => Unit) {
 
   val model = ModelProperty.blank[LoginData]
+
+  import ch.wsl.box.client.Context._
 
   def render = form(
     onsubmit :+= ((e:Event) => {
@@ -31,12 +36,24 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
     label(Labels.login.password),br,
     PasswordInput(model.subProp(_.password))(width := 100.pct),br,br,
     button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,`type` := "submit",Labels.login.button),
-    button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,"SSO",
-      onclick :+= ((e:Event) => {
-        e.preventDefault()
-        window.location.href = "https://gitlabext.wsl.ch/oauth/authorize?client_id=727650337ebe44f844b5d5d60911e9320b532941fdd8e0a9a74f159e17212d54&scope=openid&response_type=code&state=fj8o3n7bdy1op5&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthenticate"
+    if(ClientConf.openid.nonEmpty) {
+      Seq(
+        hr(clear.both),
+        label("Login providers:"), br
+      )
+    } else Seq[Modifier](),
+    ClientConf.openid.map{ openid =>
+      button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,borderRadius := 10.px, borderColor := ClientConf.styleConf.colors.mainColor, borderWidth := 3.px, borderStyle := "solid",
 
+        img(src := openid.logo, maxWidth := 80.px),
+        onclick :+= ((e:Event) => {
+          e.preventDefault()
+          val redirectUri = URLEncoder.encode(s"${ClientConf.frontendUrl}/authenticate/${openid.provider_id}","UTF-8")
+          window.location.href = s"${openid.authorize_url}?client_id=${openid.client_id}&scope=${openid.scope}&response_type=code&state=${UUID.randomUUID()}&redirect_uri=$redirectUri"
         })
-    )
+      )
+    },
+    div(clear.both)
+
   )
 }

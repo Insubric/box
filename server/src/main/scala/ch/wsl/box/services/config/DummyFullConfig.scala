@@ -1,6 +1,7 @@
 package ch.wsl.box.services.config
 
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config
 import com.typesafe.config.ConfigFactory
@@ -53,4 +54,6 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def initials: String = "B"
 
   override def matomo: Option[MatomoConfig] = None
+
+  override def openid: Seq[OIDCConf] = Seq()
 }
