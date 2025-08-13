@@ -1,7 +1,10 @@
 package ch.wsl.box.rest.auth.oidc
 
+import ch.wsl.box.model.shared.{CurrentUser, DbInfo}
 import ch.wsl.box.model.shared.oidc.UserInfo
+import ch.wsl.box.rest.utils.Auth
 import ch.wsl.box.services.Services
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import sttp.client4._
 import sttp.client4.circe.asJson
 import io.circe.generic.auto._
@@ -27,6 +30,16 @@ object AuthFlow {
   val backend = DefaultFutureBackend()
 
 
+  private def currentUserFromUserInfo(provider:OIDCConf,userInfo: UserInfo)(implicit ec:ExecutionContext, services:Services):Future[CurrentUser] = {
+    val dbUser = provider.db_role_claim.flatMap(c => userInfo.claims.getOpt(c))
+                  .getOrElse(userInfo.preferred_username)
+
+    Auth.rolesOf(dbUser).map{ roles =>
+      CurrentUser(DbInfo(dbUser,roles),userInfo.copy(roles = roles))
+    }
+
+  }
+
   //  curl --location --request POST 'http://localhost:8180/auth/realms/master/protocol/openid-connect/token' \
   //    --header 'Content-Type: application/x-www-form-urlencoded' \
   //  --data-urlencode 'grant_type=authorization_code' \
@@ -44,7 +57,7 @@ object AuthFlow {
   //    "session_state": "57b36158-2ad7-4614-80bf-3aa037ab38fe",
   //    "scope": "email profile"
   //  }
-  def code(provider:OIDCConf,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],UserInfo]] = {
+  def code(provider:OIDCConf,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
     def authToken = basicRequest
       .post(uri"${provider.token_url}")
@@ -73,12 +86,16 @@ object AuthFlow {
         case Left(value) => Future.successful(Left(value))
         case Right(value) => userInfo(value).map(_.body)
       }
-    } yield info
+      cu <- info match {
+        case Left(value) => Future.successful(Left(value))
+        case Right(value) => currentUserFromUserInfo(provider,value).map(x => Right(x))
+      }
+    } yield cu
 
   }
 
 
-  def code(provider_id:String,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],UserInfo]] = {
+  def code(provider_id:String,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
     services.config.openid.find(_.provider_id == provider_id) match {
       case Some(provider) => code(provider, c)

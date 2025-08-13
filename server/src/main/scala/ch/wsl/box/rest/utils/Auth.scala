@@ -5,13 +5,14 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import net.ceedubs.ficus.Ficus._
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.CurrentUser
+import ch.wsl.box.model.shared.oidc.UserInfo
+import ch.wsl.box.model.shared.{CurrentUser, DbInfo}
 import ch.wsl.box.services.Services
+import io.circe.Json
 import scribe.Logging
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
-
 import slick.jdbc.GetResult
 
 object Auth extends Logging {
@@ -40,7 +41,7 @@ object Auth extends Logging {
     for{
       validUser <- checkAuth(name,password)
       roles <- if(validUser) rolesOf(name) else Future.successful(Seq())
-    } yield if(validUser) Some(CurrentUser(name,roles)) else None
+    } yield if(validUser) Some(CurrentUser(DbInfo(name,roles),UserInfo(name,name,None,roles,Json.Null))) else None
 
   }
 

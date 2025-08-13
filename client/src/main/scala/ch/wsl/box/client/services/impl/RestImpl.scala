@@ -28,7 +28,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def version()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/version"))
   def appVersion()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/app_version"))
   def validSession()(implicit ec:ExecutionContext) = httpClient.get[Boolean](Routes.apiV1("/validSession"))
-  def me()(implicit ec:ExecutionContext) = httpClient.get[CurrentUser](Routes.apiV1("/me"))
+  def me()(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1("/me"))
   def cacheReset()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/cache/reset"))
 
   def entities(kind:String)(implicit ec:ExecutionContext):Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/${EntityKind(kind).plural}"))
@@ -110,7 +110,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def sendFile(file:File, id:JSONID, entity:String)(implicit ec:ExecutionContext): Future[Int] = httpClient.sendFile[Int](Routes.apiV1(s"/file/$entity/${id.asString}"),file)
 
   //other utilsString
-  def login(request:LoginRequest)(implicit ec:ExecutionContext) = httpClient.post[LoginRequest,Json](Routes.apiV1("/login"),request)
+  def login(request:LoginRequest)(implicit ec:ExecutionContext) = httpClient.post[LoginRequest,UserInfo](Routes.apiV1("/login"),request)
   def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1(s"/sso/$provider_id?code=$code"))
   def logout()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/logout"))
   def labels(lang:String)(implicit ec:ExecutionContext):Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/labels/$lang"))

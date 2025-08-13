@@ -78,11 +78,12 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
             val session = BoxSession.fromLogin(request)
             onComplete(session) {
               case Success(Some(s)) => boxSetSessionCookie(s) {
-                complete("ok")
+                complete(s.user.profile)
               }
               case _ => complete(StatusCodes.Unauthorized, "nok")
             }
           }
+          case None => complete(StatusCodes.Unauthorized, "Username or password not valid")
         }
       }
     }
@@ -95,8 +96,8 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
         onComplete(AuthFlow.code(provider_id,code)) {
           case Success(value) => value match {
             case Left(value) => complete(InternalServerError, s"An error occurred: ${value.getMessage}")
-            case Right(userInfo) => boxSetSessionCookie(BoxSession(CurrentUser(userInfo.preferred_username, Seq()))) {
-              complete(userInfo)
+            case Right(user) => boxSetSessionCookie(BoxSession(user)) {
+              complete(user.profile)
             }
           }
           case Failure(ex) => complete(Unauthorized, s"An error occurred: ${ex.getMessage}")
@@ -115,7 +116,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
             val session = BoxSession.fromLogin(request)
             onComplete(session) {
               case Success(Some(s)) => boxSetSessionHeader(s) {
-                complete("ok")
+                complete(s.user.profile)
               }
               case _ => complete(StatusCodes.Unauthorized, "nok")
             }

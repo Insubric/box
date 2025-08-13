@@ -11,7 +11,8 @@ case class OIDCConf(
                      user_info_url: String,
                      scope: String,
                      client_id: String,
-                     client_secret: String
+                     client_secret: String,
+                     db_role_claim: Option[String]
                    ) {
   def toFrontend = OIDCFrontendConf(
     provider_id,

@@ -115,24 +115,24 @@ execute procedure v_field_upd();
 
 
 
-
+drop view if exists v_roles;
 create or replace view v_roles
-            (rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolconnlimit, rolvaliduntil,
-             memberof, rolreplication, rolbypassrls)
 as
 
 with recursive roles as (
-    SELECT r.rolname,b.rolname as parent,coalesce(u.access_level_id,-1) as access_level_id
+    SELECT r.rolname,b.rolname as parent,greatest(coalesce(u.access_level_id,-1),coalesce(u2.access_level_id,-1)) as access_level_id
     FROM pg_roles r
              join pg_auth_members m on m.member = r.oid
              JOIN pg_roles b ON m.roleid = b.oid
              left join users u on u.username = r.rolname
+             left join users u2 on u2.username = b.rolname
     WHERE r.rolname !~ '^pg_'::text
     union distinct
 
-    select r.rolname,b.rolname as parent,-1 as access_level_id from roles r
+    select r.rolname,b.rolname as parent,greatest(r.access_level_id,coalesce(u.access_level_id,-1)) as access_level_id from roles r
                                                   join pg_auth_members m on m.member = (select oid from pg_roles where rolname = r.parent)
                                                   JOIN pg_roles b ON m.roleid = b.oid
+                                                  left join users u on u.username = b.rolname
 
 ), parent_roles as (select rolname, array_agg(parent) as parents,max(access_level_id) as access_level_id
                     from roles
@@ -153,6 +153,6 @@ SELECT r.rolname,
 FROM pg_roles r
          left join parent_roles pr on r.rolname = pr.rolname
          left join users u on u.username = r.rolname
-WHERE r.rolname !~ '^pg_'::text
+WHERE r.rolname !~ '^pg_'::text and r.rolname in ('fd_std','andrea.minetti@wsl.ch')
 ORDER BY r.rolname;
 

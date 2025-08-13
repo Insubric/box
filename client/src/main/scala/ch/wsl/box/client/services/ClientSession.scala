@@ -4,6 +4,7 @@ import ch.wsl.box.client.routes.Routes
 
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{CurrentUser, EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
@@ -54,7 +55,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   val loading = Property(false)
-  private var roles:Seq[String] = Seq()
+  private var userInfo:Option[UserInfo] = None
 
   logger.info("Loading session")
 
@@ -119,7 +120,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def refreshSession():Future[Boolean] = {
-    rest.me().map(createSession).recover{case t:Throwable =>
+    rest.me().flatMap(createSession).recover{case t:Throwable =>
       logger.warn(s"Session non valid")
       dom.window.sessionStorage.removeItem(USER)
       Notification.closeWebsocket()
@@ -146,32 +147,20 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def createSessionUserNamePassword(username:String,password:String):Future[Boolean] = {
-    dom.window.sessionStorage.setItem(USER,username)
-    val fut = for{
-      _ <- rest.login(LoginRequest(username,password))
-      me <- rest.me()
-      ui <- rest.ui()
-    } yield {
-      UI.load(ui)
-      createSession(me)
-    }
 
-    fut.recover{ case t =>
-      dom.window.sessionStorage.removeItem(USER)
-      Notification.closeWebsocket()
-      logged.set(false)
-      t.printStackTrace()
-      false
-    }
+    rest.login(LoginRequest(username,password)).flatMap(createSession)
+
   }
 
-  def createSession(user:CurrentUser) = {
-    dom.window.sessionStorage.setItem(USER,user.username)
-    roles = user.roles
+  def createSession(user:UserInfo) = {
 
-    Notification.setUpWebsocket()
-    logged.set(true)
-    true
+    rest.ui().map(UI.load).map{ _ =>
+      dom.window.sessionStorage.setItem(USER,user.preferred_username)
+      userInfo = Some(user)
+      Notification.setUpWebsocket()
+      logged.set(true)
+      true
+    }
   }
 
 
@@ -287,7 +276,9 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     Context.applicationInstance.reload()
   }
 
-  def getRoles():Seq[String] = roles
+  def getRoles():Seq[String] = userInfo.map(_.roles).getOrElse(Seq())
+
+  def getUserInfo():Option[UserInfo] = userInfo
 
 
 

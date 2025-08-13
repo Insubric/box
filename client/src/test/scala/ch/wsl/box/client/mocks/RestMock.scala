@@ -25,8 +25,8 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def me()(implicit ec:ExecutionContext): Future[CurrentUser] = values.loggedUser match {
-    case Some(value) => Future.successful(CurrentUser(value,Seq()))
+  override def me()(implicit ec:ExecutionContext): Future[UserInfo] = values.loggedUser match {
+    case Some(value) => Future.successful(userInfo)
     case None => Future.failed(new Exception("Not logged in"))
   }
 
@@ -138,8 +138,9 @@ class RestMock(values:Values) extends REST with Logging {
     ???
   }
 
-  override def login(request: LoginRequest)(implicit ec:ExecutionContext): Future[Json] = Future.successful{
-    Json.True
+  val userInfo = UserInfo("t","t",None,Seq(),Json.Null)
+  override def login(request: LoginRequest)(implicit ec:ExecutionContext): Future[UserInfo] = Future.successful{
+    userInfo
   }
 
   override def logout()(implicit ec:ExecutionContext): Future[String] = {

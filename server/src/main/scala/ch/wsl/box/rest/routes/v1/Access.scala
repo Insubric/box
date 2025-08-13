@@ -23,14 +23,14 @@ case class Access(session:BoxSession)(implicit ec:ExecutionContext,services:Serv
     pathPrefix(EntityKind.BOX_FORM.kind | EntityKind.BOX_TABLE.kind) {
       pathPrefix(Segment) { table =>
         path("table-access") {
-          complete(TableAccess(table,Registry.box().schema,session.user.username,services.connection.adminDB).map(_.asJson))
+          complete(TableAccess(table,Registry.box().schema,session.user.db.username,services.connection.adminDB).map(_.asJson))
         }
       }
     } ~
       pathPrefix(EntityKind.TABLE.kind | EntityKind.VIEW.kind | EntityKind.ENTITY.kind | EntityKind.FORM.kind) {
         pathPrefix(Segment) { table =>
           path("table-access") {
-            complete(TableAccess(table,services.connection.dbSchema,session.user.username,services.connection.adminDB).map(_.asJson))
+            complete(TableAccess(table,services.connection.dbSchema,session.user.db.username,services.connection.adminDB).map(_.asJson))
           }
         }
       }
