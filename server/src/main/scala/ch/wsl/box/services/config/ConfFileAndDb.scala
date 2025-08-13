@@ -3,6 +3,8 @@ package ch.wsl.box.services.config
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config.{ConfigFactory, ConfigValue, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
@@ -13,6 +15,9 @@ import java.time.temporal.ChronoUnit
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Try
+import io.circe.Json
+import io.circe.syntax._
+import io.circe.generic.auto._
 
 class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
   private var _conf: Map[String, String] = Map()
@@ -31,7 +36,8 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
 
     _conf = tempConf.filterNot(_._1 == "langs") ++ Map(
       "langs" -> langs.mkString(","),
-      "frontendUrl" -> frontendUrl
+      "frontendUrl" -> frontendUrl,
+      OIDCFrontendConf.name -> openid.map(_.toFrontend).asJson.noSpaces
     )
 
   }
@@ -127,4 +133,7 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
   } yield MatomoConfig(site_id, tracker_url)
 
   val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
+
+  import net.ceedubs.ficus.readers.ArbitraryTypeReader._
+  override def openid: List[OIDCConf] = Try(conf.as[List[OIDCConf]]("openid")).getOrElse(List())
 }

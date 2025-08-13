@@ -29,9 +29,8 @@ case class LoginPresenter() extends Presenter[LoginStateAbstract]  {
   override def handleState(state: LoginStateAbstract): Unit = {}
 
   def login(model:ModelProperty[LoginData]) = {
-    services.clientSession.login(model.get.username,model.get.password).map{
-      case true => ()
-      case false => model.subProp(_.message).set(Labels.login.failed)
+    services.clientSession.login(model.get.username,model.get.password).recover { case _ =>
+      model.subProp(_.message).set(Labels.login.failed)
     }
   }
 }

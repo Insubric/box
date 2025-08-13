@@ -153,9 +153,9 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
-  def me(implicit up: UserProfile) = path("me") {
+  def me(implicit s: BoxSession) = path("me") {
     get {
-      complete(up.curentUser)
+      complete(s.user.profile)
     }
   }
 

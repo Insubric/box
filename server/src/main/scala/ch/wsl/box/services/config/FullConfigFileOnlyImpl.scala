@@ -1,5 +1,6 @@
 package ch.wsl.box.services.config
 
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config
 import scribe.Level
@@ -53,4 +54,6 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
   override def initials: String = throw new ConfigNotAvailableException
 
   override def matomo: Option[MatomoConfig] = throw new ConfigNotAvailableException
+
+  override def openid: Seq[OIDCConf] = throw new ConfigNotAvailableException
 }

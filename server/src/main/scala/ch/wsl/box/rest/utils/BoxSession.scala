@@ -13,12 +13,8 @@ import scala.util.Try
 
 
 case class BoxSession(user:CurrentUser) {
-  def userProfile(implicit services:Services): UserProfile = UserProfile(user.username)
+  def userProfile(implicit services:Services): UserProfile = UserProfile(user.db.username)
 }
-
-//(implicit services:Services) {
-//  //def userProfile(password:String)(implicit ec:ExecutionContext): Option[UserProfile] = new Auth().getUserProfile(user.usernmame,password)
-//}
 
 object BoxSession {
   implicit def serializer: SessionSerializer[BoxSession, String] = new SingleValueSessionSerializer(

@@ -78,7 +78,7 @@ object Header {
 
   val showMenu = Property(false)
 
-  def user = Option(dom.window.sessionStorage.getItem(ClientSession.USER))
+  def user = services.clientSession.getUserInfo().map(_.name)
 
   def navbar(title:Option[String]) = produce(services.clientSession.logged) { logged =>
     header(

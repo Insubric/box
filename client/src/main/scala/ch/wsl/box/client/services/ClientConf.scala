@@ -6,8 +6,10 @@ import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
 import ch.wsl.box.client.styles.{GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
 import io.circe._
 import io.circe.parser._
+import io.circe.generic.auto._
 import scribe.Level
 
 import scala.util.Try
@@ -101,5 +103,7 @@ object ClientConf {
   def notificationTimeOut: Int = Try(conf("notification.timeout").toInt).getOrElse(6)
 
   def mapOptions: Json = Try(parse(conf("map.options")).right.get).getOrElse(Json.Null)
+
+  def openid:Seq[OIDCFrontendConf] = parse(conf(OIDCFrontendConf.name)).flatMap(_.as[Seq[OIDCFrontendConf]]).getOrElse(Seq())
 
 }

@@ -2,13 +2,14 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.information_schema.{PgInformationSchema}
+import ch.wsl.box.information_schema.PgInformationSchema
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
 import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_i18nTable, BoxForm_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
@@ -56,7 +57,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         case Some(u) => Auth.rolesOf(u)
         case None => Future.successful(Seq())
       }
-    } yield user.map(u => (BoxSession(CurrentUser(u,roles)),form.exists(_.public_list)))
+    } yield user.map(u => (BoxSession(CurrentUser(DbInfo(u,roles),UserInfo(u,u,None,roles,Json.Null))),form.exists(_.public_list)))
   }
 
 
@@ -66,7 +67,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
   def filterRoles(user:CurrentUser)(metadata:DBIO[JSONMetadata])(implicit ec:ExecutionContext):DBIO[JSONMetadata] = metadata.map{ m =>
 
-    def filterRole(field:JSONField):Boolean = field.roles.isEmpty || field.roles.intersect(user.roles ++ Seq(user.username)).nonEmpty
+    def filterRole(field:JSONField):Boolean = field.roles.isEmpty || field.roles.intersect(user.db.roles ++ Seq(user.db.username)).nonEmpty
 
     m.copy(fields = m.fields.filter(filterRole))
   }

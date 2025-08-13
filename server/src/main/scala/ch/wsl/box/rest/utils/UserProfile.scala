@@ -21,10 +21,10 @@ case class UserProfile(name: String)(implicit services:Services) {
   def db = services.connection.dbForUser(name)
 
   def accessLevel(implicit ec:ExecutionContext):Future[Int] = services.connection.adminDB.run{
-    BoxUser.BoxUserTable.filter(_.username === name).result
-  }.map(_.headOption.map(_.access_level_id).getOrElse(-1))
+    sql"""select access_level_id from #$boxSchema.v_roles  where rolname=$name""".as[Int]
+  }.map(_.headOption.getOrElse(-1))
 
-  def curentUser(implicit ec:ExecutionContext) = Auth.rolesOf(name).map(roles => CurrentUser(name,roles))
+  //def curentUser(implicit ec:ExecutionContext) = Auth.rolesOf(name).map(roles => CurrentUser(name,roles))
 
 
 
