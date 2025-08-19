@@ -68,7 +68,7 @@ object MigrateDB {
           update #$schema.flyway_schema_history_box set checksum=-1468940163 where version='37';
           update #$schema.flyway_schema_history_box set checksum=-1162390581 where version='38';
           update #$schema.flyway_schema_history_box set checksum=760066478 where version='39';
-          update #$schema.flyway_schema_history_box set checksum=829529451 where version='40';
+          update #$schema.flyway_schema_history_box set checksum=1592921508 where version='40';
           update #$schema.flyway_schema_history_box set checksum=597865581 where version='41';
           update #$schema.flyway_schema_history_box set checksum=-1556843576 where version='42';
           update #$schema.flyway_schema_history_box set checksum=427677514 where version='43';
