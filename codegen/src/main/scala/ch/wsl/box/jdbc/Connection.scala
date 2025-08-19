@@ -149,7 +149,7 @@ class ConnectionConfImpl extends Connection {
     .withValue("leakDetectionThreshold", ConfigValueFactory.fromAnyRef(leakDetectionThreshold))
     .withValue("autoCommit", ConfigValueFactory.fromAnyRef(false))
     .withValue("properties",ConfigValueFactory.fromMap(Map(
-      "ApplicationName" -> s"BOX Connections - Pool $randomId"
+      "ApplicationName" -> s"BOX Admin Connections - Pool $randomId"
     ).asJava))
   )
 }

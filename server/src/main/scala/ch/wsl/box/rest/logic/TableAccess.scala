@@ -2,10 +2,11 @@ package ch.wsl.box.rest.logic
 
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{Connection, UserDatabase}
+import scribe.Logging
 
 import scala.concurrent.ExecutionContext
 
-object TableAccess {
+object TableAccess extends Logging {
 
 //  def queryRoles(table:String,schema:String,user:String) =
 //                      """select a.tablename,b.usename,
@@ -20,12 +21,18 @@ object TableAccess {
 
 
   def apply(table:String,schema:String,user:String,db:UserDatabase)(implicit ec:ExecutionContext) = db.run {
-    sql"""select HAS_TABLE_PRIVILEGE(usename, concat($schema, '."', $table,'"'), 'insert') as insert,
-                 HAS_TABLE_PRIVILEGE(usename, concat($schema, '."', $table,'"'), 'update') as update,
-                 HAS_TABLE_PRIVILEGE(usename, concat($schema, '."', $table,'"'), 'delete') as delete
-          from pg_user where usename=$user
+    sql"""select HAS_TABLE_PRIVILEGE(rolname, concat($schema, '."', $table,'"'), 'insert') as insert,
+                 HAS_TABLE_PRIVILEGE(rolname, concat($schema, '."', $table,'"'), 'update') as update,
+                 HAS_TABLE_PRIVILEGE(rolname, concat($schema, '."', $table,'"'), 'delete') as delete
+          from pg_roles where rolname=$user
        """.as[(Boolean, Boolean, Boolean)].headOption
-  }.map(_.getOrElse((false, false, false))).map(x=> ch.wsl.box.model.shared.TableAccess(x._1,x._2,x._3))
+  }.map{
+    case Some((i,u,d)) => ch.wsl.box.model.shared.TableAccess(i,u,d)
+    case _ => {
+      logger.warn("Can't read privileges from Information schema, defaulting to false;")
+      ch.wsl.box.model.shared.TableAccess(false,false,false)
+    }
+  }
 
 //  def write(table:String,schema:String,user:String)(implicit ec:ExecutionContext) = Auth.adminDB.run {
 //    sql"""SELECT 1

@@ -61,7 +61,9 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     ).contains(k)}
 
 
-  def fksLookupLabels = ConfigFactory.parseString( Try(_conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
+  def fksLookupLabels = Try{
+    ConfigFactory.parseString( Try(_conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
+  }.getOrElse(ConfigFactory.empty())
 
   def fksLookupRowsLimit = Try(_conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
 
