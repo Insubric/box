@@ -23,6 +23,8 @@ trait FullConfig extends Config {
   def devServer:Boolean
   def frontendUrl:String
 
+  def singleUser:Boolean
+
   def clientConf:Map[String, String]
 
   def refresh():Unit

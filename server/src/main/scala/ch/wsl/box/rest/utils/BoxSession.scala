@@ -13,7 +13,7 @@ import scala.util.Try
 
 
 case class BoxSession(user:CurrentUser) {
-  def userProfile(implicit services:Services): UserProfile = UserProfile(user.db.username)
+  def userProfile(implicit services:Services): UserProfile = UserProfile(user.db.username,user.db.app_username)
 }
 
 object BoxSession {

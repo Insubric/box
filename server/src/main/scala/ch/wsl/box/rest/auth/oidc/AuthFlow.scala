@@ -31,11 +31,18 @@ object AuthFlow {
 
 
   private def currentUserFromUserInfo(provider:OIDCConf,userInfo: UserInfo)(implicit ec:ExecutionContext, services:Services):Future[CurrentUser] = {
-    val dbUser = provider.db_role_claim.flatMap(c => userInfo.claims.getOpt(c))
-                  .getOrElse(userInfo.preferred_username)
+
+    val dbUser = services.config.singleUser match {
+      case true => services.connection.user
+      case false => provider.db_role_claim.flatMap(c => userInfo.claims.getOpt(c))
+        .getOrElse(userInfo.preferred_username)
+    }
+
+    val appUser = provider.app_user_claim.orElse(provider.db_role_claim).flatMap(c => userInfo.claims.getOpt(c))
+      .getOrElse(userInfo.preferred_username)
 
     Auth.rolesOf(dbUser).map{ roles =>
-      CurrentUser(DbInfo(dbUser,roles),userInfo.copy(roles = roles))
+      CurrentUser(DbInfo(dbUser,appUser,roles),userInfo.copy(roles = roles))
     }
 
   }

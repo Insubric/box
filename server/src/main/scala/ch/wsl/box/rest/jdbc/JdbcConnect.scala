@@ -35,6 +35,9 @@ object JdbcConnect extends Logging {
         val roleStatement = connection.createStatement()
         roleStatement.execute(s"""SET ROLE "${up.name}" """)
 
+        val userStatement = connection.createStatement()
+        userStatement.execute(s"""SET "app.user" TO '${up.app_user}' """)
+
         val statement = connection.createStatement()
         val argsStr = if (args == null) ""
         else args.map(_.toString()).mkString(",")
@@ -79,6 +82,9 @@ object JdbcConnect extends Logging {
           // create the statement, and run the select query
           val roleStatement = connection.createStatement()
           roleStatement.execute(s"""SET ROLE "${up.name}" """)
+
+          val userStatement = connection.createStatement()
+          userStatement.execute(s"""SET "app.user" TO '${up.app_user}' """)
 
           val statement = connection.createStatement()
           val argsStr = if (args == null) ""

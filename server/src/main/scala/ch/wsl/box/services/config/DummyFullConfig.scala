@@ -56,4 +56,6 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def matomo: Option[MatomoConfig] = None
 
   override def openid: Seq[OIDCConf] = Seq()
+
+  override def singleUser: Boolean = false
 }

@@ -18,7 +18,8 @@ import slick.jdbc.GetResult
 object Auth extends Logging {
 
   def adminUserProfile(implicit services: Services) = UserProfile(
-    name = services.connection.adminUser
+    name = services.connection.adminUser,
+    app_user = "box_admin"
   )
 
 
@@ -38,10 +39,15 @@ object Auth extends Logging {
 
     logger.info(s"Creating new connection for $name")
 
+    val username = services.config.singleUser match {
+      case true => services.connection.user
+      case false => name
+    }
+
     for{
       validUser <- checkAuth(name,password)
-      roles <- if(validUser) rolesOf(name) else Future.successful(Seq())
-    } yield if(validUser) Some(CurrentUser(DbInfo(name,roles),UserInfo(name,name,None,roles,Json.Null))) else None
+      roles <- if(validUser) rolesOf(username) else Future.successful(Seq())
+    } yield if(validUser) Some(CurrentUser(DbInfo(username,name,roles),UserInfo(name,name,None,roles,Json.Null))) else None
 
   }
 

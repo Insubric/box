@@ -30,6 +30,7 @@ trait Connection extends Logging {
   def dbConnection: box.jdbc.PostgresProfile.backend.Database
   def adminDbConnection: box.jdbc.PostgresProfile.backend.Database
   def adminUser:String
+  def user:String
   def dbSchema:String
   def dbPath:String
   def dataSource(name:String,schema:String): DataSource
@@ -37,19 +38,20 @@ trait Connection extends Logging {
 
 
 
-  def adminDB = dbForUser(adminUser,adminDbConnection)
+  def adminDB = dbForUser(adminUser,"box_admin",adminDbConnection)
 
 
-  def dbForUser(name: String,db:box.jdbc.PostgresProfile.backend.Database = dbConnection): UserDatabase = new UserDatabase {
+  def dbForUser(name: String,app_user:String,db:box.jdbc.PostgresProfile.backend.Database = dbConnection): UserDatabase = new UserDatabase {
 
     //cannot interpolate directly
     val setRole: SqlAction[Int, NoStream, Effect] = sqlu"SET ROLE placeholder".overrideStatements(Seq(s"""SET ROLE "$name" """))
+    val setAppUser: SqlAction[Int, NoStream, Effect] = sqlu"SET \"app.user\" TO placeholder".overrideStatements(Seq(s"""SET "app.user" = '$app_user' """))
     val resetRole = sqlu"RESET ROLE"
 
     override def stream[T](a: StreamingDBIO[Seq[T], T]) = {
 
       db.stream[T](
-        setRole.andThen[Seq[T], Streaming[T], Nothing](a)
+        setRole.andThen(setAppUser).andThen[Seq[T], Streaming[T], Nothing](a)
           .withStatementParameters(
             rsType = ResultSetType.ForwardOnly,
             rsConcurrency = ResultSetConcurrency.ReadOnly,
@@ -63,7 +65,7 @@ trait Connection extends Logging {
 
     override def run[R](a: DBIOAction[R, NoStream, Nothing]) = {
       db.run {
-        setRole.andThen[R, NoStream, Nothing](a).withPinnedSession.transactionally
+        setRole.andThen(setAppUser).andThen[R, NoStream, Nothing](a).withPinnedSession.transactionally
       }
     }
   }
@@ -79,7 +81,8 @@ class ConnectionConfImpl extends Connection {
   val adminPoolSize = dbConf.as[Option[Int]]("adminPoolSize").getOrElse(15)
   val userPoolSize = dbConf.as[Option[Int]]("userPoolSize").getOrElse(15)
   val enableConnectionPool = dbConf.as[Option[Boolean]]("enableConnectionPool").getOrElse(true)
-  val adminUser = dbConf.as[String]("user")
+  val user = dbConf.as[String]("user")
+  val adminUser = dbConf.as[Option[String]]("adminUser").getOrElse(user)
   val leakDetectionThreshold =  dbConf.as[Option[Int]]("leakDetectionThreshold").getOrElse(100000)
   val maxLifetime =  dbConf.as[Option[Int]]("maxLifetime").getOrElse(600000)
   val idleTimeout =  dbConf.as[Option[Int]]("idleTimeout").getOrElse(300000)
@@ -117,7 +120,7 @@ class ConnectionConfImpl extends Connection {
     .withValue("driver", ConfigValueFactory.fromAnyRef("org.postgresql.Driver"))
     .withValue("url", ConfigValueFactory.fromAnyRef(dbPath))
     .withValue("keepAliveConnection", ConfigValueFactory.fromAnyRef(true))
-    .withValue("user", ConfigValueFactory.fromAnyRef(adminUser))
+    .withValue("user", ConfigValueFactory.fromAnyRef(user))
     .withValue("password", ConfigValueFactory.fromAnyRef(dbConf.as[String]("password")))
     .withValue("numThreads", ConfigValueFactory.fromAnyRef(userPoolSize))
     .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(userPoolSize))
@@ -160,6 +163,7 @@ class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) 
   val dbSchema = schema
   val adminPoolSize = 15
   val adminUser = container.username
+  val user = container.username
   val leakDetectionThreshold =  100000
   val maxLifetime =  600000
   val idleTimeout =  300000

@@ -57,7 +57,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         case Some(u) => Auth.rolesOf(u)
         case None => Future.successful(Seq())
       }
-    } yield user.map(u => (BoxSession(CurrentUser(DbInfo(u,roles),UserInfo(u,u,None,roles,Json.Null))),form.exists(_.public_list)))
+    } yield user.map(u => (BoxSession(CurrentUser(DbInfo(u,u,roles),UserInfo(u,u,None,roles,Json.Null))),form.exists(_.public_list)))
   }
 
 
