@@ -76,10 +76,12 @@ object TwoListWidget extends ComponentWidgetFactory {
 
     private def renderField(l:JSONLookup) = {
 
-      val field = div(ClientConf.style.twoListElement, attr("data-id") := l.id.noSpaces,
+      val dataId =  attr("data-id") := l.id.noSpaces
+
+      val field = div(ClientConf.style.twoListElement, dataId,
         l.value,
-        button(float.right,ClientConf.style.twoListButton,`class` := "left","▶"),
-        button(float.left,ClientConf.style.twoListButton,`class` := "right","◀")
+        button(float.right,ClientConf.style.twoListButton,dataId,`class` := "left","▶"),
+        button(float.left,ClientConf.style.twoListButton,dataId,`class` := "right","◀")
       ).render
 
       GridStackWidget()
@@ -182,8 +184,22 @@ object TwoListWidget extends ComponentWidgetFactory {
 
       listener = Some(params.prop.listen({ d =>
 
-        val exclEl = div(ClientConf.style.twoListContainer, ClientConf.style.twoListLeft).render
-        val inclEl = div(ClientConf.style.twoListContainer, ClientConf.style.twoListRight).render
+        val exclEl = div(ClientConf.style.twoListContainer, ClientConf.style.twoListLeft, onclick :+= {(e:Event) =>
+          BrowserConsole.log(e)
+          e.target.asInstanceOf[HTMLElement].dataset.get("id").flatMap(io.circe.parser.parse(_).toOption).foreach{ id =>
+            params.prop.set((params.prop.get.asArray.getOrElse(Seq()) ++ Seq(id)).asJson)
+          }
+        }).render
+        val inclEl = div(ClientConf.style.twoListContainer, ClientConf.style.twoListRight, onclick :+= {(e:Event) =>
+          BrowserConsole.log(e)
+          BrowserConsole.log(params.prop.get)
+          BrowserConsole.log(io.circe.parser.parse("\"test\"").toString)
+
+          e.target.asInstanceOf[HTMLElement].dataset.get("id").flatMap(io.circe.parser.parse(_).toOption).foreach{ id =>
+            BrowserConsole.log(e)
+            params.prop.set((params.prop.get.asArray.map(_.filterNot(_ == id)).asJson))
+          }
+        }).render
 
         val observer = new MutationObserver({ (mutations, observer) =>
           if (document.contains(exclEl)) {
