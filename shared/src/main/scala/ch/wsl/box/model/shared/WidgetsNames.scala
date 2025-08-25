@@ -58,6 +58,7 @@ object WidgetsNames {
   val executeFunction = "executeFunction"
   val adminLayoutWidget = "adminLayoutWidget"
   val adminQueryBuilder = "adminQueryBuilder"
+  val adminConditionBuilder = "adminConditionBuilder"
   val adminFormParamsLayout = "adminFormParamsLayout"
 
   val mapping= Map(

@@ -85,11 +85,13 @@ object CommonField {
   val default = JSONField(JSONFieldTypes.STRING,"default",true,widget = Some(WidgetsNames.input), tooltip = Some("Use keyword `arrayIndex` to substitute the value with the index of the array (when this field is part of a child)"))
 
   val condition = JSONField(JSONFieldTypes.JSON,"condition",true,
-    widget = Some(WidgetsNames.code),
+    widget = Some(WidgetsNames.adminConditionBuilder),
     placeholder = Some("[1,2,3]"),
     tooltip = Some("Enter a JSON array with the possibles values"),
-    params = Some(Json.obj("language" -> "json".asJson, "height" -> 50.asJson, "fullWidth" -> false.asJson))
-  )
+    params = Some(Json.obj(
+      "entity" -> s"${Widget.REF}entity".asJson,
+    ))
+  ).asPopup
 
   val roles = JSONField(JSONFieldTypes.ARRAY_STRING,"roles",true,
     widget = Some(WidgetsNames.inputMultipleText)

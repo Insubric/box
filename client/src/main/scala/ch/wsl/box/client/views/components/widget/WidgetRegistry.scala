@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 
-import ch.wsl.box.client.views.components.widget.admin.{FormParamLayoutWidget, LayoutWidget, QueryBuilderWidget}
+import ch.wsl.box.client.views.components.widget.admin.{AdminConditionWidget, FormParamLayoutWidget, LayoutWidget, QueryBuilderWidget}
 import ch.wsl.box.client.views.components.widget.array.{ChoicesWidget, MultiWidget, TwoListWidget}
 import ch.wsl.box.client.views.components.widget.boolean.SelectBooleanWidget
 import ch.wsl.box.client.views.components.widget.child.{EditableTable, LookupFormWidget, SimpleChildFactory, TableChildFactory, TrasparentChild}
@@ -87,7 +87,8 @@ object WidgetRegistry extends Logging {
 
     LayoutWidget,
     QueryBuilderWidget,
-    FormParamLayoutWidget
+    FormParamLayoutWidget,
+    AdminConditionWidget
 
   )
 
