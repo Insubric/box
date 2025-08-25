@@ -20,7 +20,8 @@ object BoxSession {
   implicit def serializer: SessionSerializer[BoxSession, String] = new SingleValueSessionSerializer(
     s => s.asJson.noSpaces,
     (un: String) => Try {
-      parse(un).flatMap(_.as[BoxSession]).toOption.get
+      val session = parse(un).flatMap(_.as[BoxSession]).toOption.get
+      session
     })
 
   def fromLogin(request:LoginRequest)(implicit services: Services,executionContext: ExecutionContext) = Auth.getCurrentUser(request.username,request.password).map(_.map(cu => BoxSession(cu)))

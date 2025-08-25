@@ -182,6 +182,8 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  val websocket = new WebsocketNotifications()
+
   val route = auth ~
     touchOptionalSession(oneOff, usingCookiesOrHeaders) {
     case Some(session) => {
@@ -206,7 +208,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         exportCSV ~
         exportXLS ~
         translations ~
-        new WebsocketNotifications().route ~
+        websocket.route ~
         Admin(session).route
     }
     case None => invalidateSession(oneOff, usingCookies) {

@@ -73,17 +73,12 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
     post {
       entity(as[LoginRequest]) { request =>
         val session = BoxSession.fromLogin(request)
-        onSuccess(session) {
-          case Some(s) => boxSetSessionCookie(s) {
-            val session = BoxSession.fromLogin(request)
-            onComplete(session) {
-              case Success(Some(s)) => boxSetSessionCookie(s) {
-                complete(s.user.profile)
-              }
-              case _ => complete(StatusCodes.Unauthorized, "nok")
-            }
+
+        onComplete(session) {
+          case Success(Some(s)) => boxSetSessionCookie(s) {
+            complete(s.user.profile)
           }
-          case None => complete(StatusCodes.Unauthorized, "Username or password not valid")
+          case _ => complete(StatusCodes.Unauthorized, "Username or password not valid")
         }
       }
     }

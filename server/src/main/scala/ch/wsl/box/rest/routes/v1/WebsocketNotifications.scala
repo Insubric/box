@@ -20,13 +20,13 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class WebsocketNotifications(implicit mat:Materializer,up:UserProfile,services:Services) {
+class WebsocketNotifications(implicit mat:Materializer,services:Services) {
 
   import Directives._
 
 
 
-  val route = pathPrefix("notifications") {
+  def route(implicit up:UserProfile) = pathPrefix("notifications") {
     pathPrefix(Segment) { topic =>
       handleWebSocketMessages(services.notificationChannels.add(up.name, topic).websocketFlow)
     }

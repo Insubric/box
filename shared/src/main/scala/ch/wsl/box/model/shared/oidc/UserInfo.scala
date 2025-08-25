@@ -19,10 +19,11 @@ object UserInfo {
       name <- c.downField("name").as[String]
       preferred_username <- c.downField("preferred_username").as[String]
       email <- c.downField("email").as[Option[String]]
+      roles <- c.downField("roles").as[Seq[String]]
       claims <- c.downField("claims").as[Option[Json]]
     } yield {
       val newClaims:Json = claims.getOrElse(Json.obj()).deepMerge(c.value.asObject.map(_.filterKeys(_ != "claims").asJson).getOrElse(Json.obj()))
-      UserInfo(name, preferred_username, email,Seq(),newClaims)
+      UserInfo(name, preferred_username, email,roles,newClaims)
     }
   }
 }
