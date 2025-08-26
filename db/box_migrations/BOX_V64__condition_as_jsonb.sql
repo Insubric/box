@@ -1,5 +1,5 @@
 
-drop view v_field;
+drop view if exists v_field;
 alter table field add column condition jsonb;
 update field
 set condition = (
