@@ -154,3 +154,27 @@ FROM pg_roles r
 WHERE r.rolname !~ '^pg_'::text
 ORDER BY r.rolname;
 
+create or replace view v_foreign_keys as
+select
+    c.conname as constraint_name,
+    s.nspname as schema_name,
+    t.relname as table_name,
+    s2.nspname as referenced_schema_name,
+    t2.relname as referenced_table_name,
+    (
+        select ARRAY_AGG(a.attname ORDER BY t.ordinality)
+        from pg_attribute a,unnest(c.conkey)  WITH ORDINALITY AS t(attnum, ordinality)
+        where a.attrelid = c.conrelid AND a.attnum = t.attnum
+    )  AS columns,
+    (
+        select ARRAY_AGG(a.attname ORDER BY t.ordinality)
+        from pg_attribute a,unnest(c.confkey) WITH ORDINALITY AS t(attnum, ordinality)
+        where a.attrelid = c.confrelid  AND a.attnum = t.attnum
+    )  AS referenced_columns
+from pg_constraint c
+         JOIN pg_class t ON t.oid = c.conrelid
+         left JOIN pg_namespace s ON t.relnamespace = s.oid
+         JOIN pg_class t2 ON t2.oid = c.confrelid
+         left JOIN pg_namespace s2 ON t2.relnamespace = s2.oid
+where c.contype='f';
+
