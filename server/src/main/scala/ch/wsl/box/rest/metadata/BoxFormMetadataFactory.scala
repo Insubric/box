@@ -2,6 +2,7 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
+import ch.wsl.box.model.InformationSchema
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.runtime.Registry
@@ -32,13 +33,14 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
     forms <- getForms()
     users <- getUsers()
     functions <- getFunctions()
+    roles <- InformationSchema.roles()
   } yield Seq(
     FormUIDef.main(tablesAndViews,users.sortBy(_.username),fields),
     FormUIDef.page(users.sortBy(_.username)),
-    FormUIDef.field(tablesAndViews,fields),
+    FormUIDef.field(tablesAndViews,fields,roles),
     FormUIDef.field_no_db(tablesAndViews,fields),
-    FormUIDef.field_childs(forms.sortBy(_.name),fields),
-    FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),
+    FormUIDef.field_childs(forms.sortBy(_.name),fields,roles),
+    FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),
     FormUIDef.fieldI18n(services.config.langs,fields),
     FormUIDef.formI18n(viewsOnly,services.config.langs),
     FormUIDef.form_actions(functions.map(_.name)),
@@ -80,19 +82,20 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
   override def children(form: JSONMetadata,user:CurrentUser,ignoreChilds:Seq[UUID] = Seq())(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONMetadata]] = for{
     forms <- getForms()
     functions <- getFunctions()
+    roles <- InformationSchema.roles()
   } yield {
     form match {
       case f if f.objId == FORM => Seq(
-        FormUIDef.field(tablesAndViews,fields),
+        FormUIDef.field(tablesAndViews,fields,roles),
         FormUIDef.field_no_db(tablesAndViews,fields),
-        FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),
-        FormUIDef.field_childs(forms,fields),
+        FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),
+        FormUIDef.field_childs(forms,fields,roles),
         FormUIDef.fieldI18n(services.config.langs,fields),
         FormUIDef.formI18n(viewsOnly,services.config.langs),
         FormUIDef.form_actions(functions.map(_.name)),
         FormUIDef.form_navigation_actions(functions.map(_.name))
       )
-      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields),FormUIDef.field_childs(forms,fields),FormUIDef.fieldI18n(services.config.langs,fields),FormUIDef.formI18n(viewsOnly,services.config.langs))
+      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),FormUIDef.field_childs(forms,fields,roles),FormUIDef.fieldI18n(services.config.langs,fields),FormUIDef.formI18n(viewsOnly,services.config.langs))
       case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
       case f if f.objId == FORM_FIELD_NOT_DB => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
       case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs,fields))

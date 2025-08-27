@@ -94,8 +94,9 @@ object CommonField {
     ))
   ).asPopup
 
-  val roles = JSONField(JSONFieldTypes.ARRAY_STRING,"roles",true,
-    widget = Some(WidgetsNames.inputMultipleText)
+  def roles(available_roles:Seq[String]) = JSONField(JSONFieldTypes.ARRAY_STRING,"roles",true,
+    widget = Some(WidgetsNames.multipleLookup),
+    lookup =  Some(JSONFieldLookup.prefilled(available_roles.map(x => JSONLookup(Json.fromString(x),Seq(x)))))
   )
 
   def lang(langs:Seq[String]) = JSONField(JSONFieldTypes.STRING,"lang",false,

@@ -212,7 +212,7 @@ object FormUIDef {
   )
 
 
-  def field(tables:Seq[String],fields:Map[String, Seq[String]]) = JSONMetadata(
+  def field(tables:Seq[String],fields:Map[String, Seq[String]],roles:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder",
@@ -228,7 +228,7 @@ object FormUIDef {
       CommonField.foreignEntity(tables),
       CommonField.foreignValueField(tables,fields),
       CommonField.foreignQuery(tables),
-      CommonField.roles,
+      CommonField.roles(roles),
       CommonField.default,
       JSONField(JSONFieldTypes.NUMBER,"min",true,
         widget = Some(WidgetsNames.input),
@@ -336,7 +336,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def field_childs(forms:Seq[BoxForm.BoxForm_row],fields:Map[String, Seq[String]]) = JSONMetadata(
+  def field_childs(forms:Seq[BoxForm.BoxForm_row],fields:Map[String, Seq[String]],roles:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_CHILDS,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder childs",
@@ -420,7 +420,8 @@ object FormUIDef {
       ),
       CommonField.condition,
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
-      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.checkbox))
+      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.checkbox)),
+      CommonField.roles(roles),
     ),
     layout = Layout(
       blocks = Seq(
@@ -436,7 +437,8 @@ object FormUIDef {
           "childQuery",
           "default",
           "condition",
-          "params"
+          "params",
+          "roles"
         ).map(Left(_))),
         LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
       )
@@ -453,7 +455,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def field_static(tables:Seq[String],functions:Seq[String],fields:Map[String, Seq[String]]) = JSONMetadata(
+  def field_static(tables:Seq[String],functions:Seq[String],fields:Map[String, Seq[String]],roles:Seq[String]) = JSONMetadata(
     objId = FORM_FIELD_STATIC,
     kind = EntityKind.BOX_FORM.kind,
     name = "Field builder static",
@@ -488,7 +490,8 @@ object FormUIDef {
           functions.sorted.map(x => JSONLookup(x.asJson,Seq(x)))
         ))
       ),
-      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.hidden))
+      JSONField(JSONFieldTypes.BOOLEAN,"read_only",false,default = Some("false"),widget = Some(WidgetsNames.hidden)),
+      CommonField.roles(roles),
     ),
     layout = Layout(
       blocks = Seq(
@@ -503,7 +506,8 @@ object FormUIDef {
           "lookupQuery",
           "condition",
           "params",
-          "read_only"
+          "read_only",
+          "roles"
         ).map(Left(_))),
         LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
       )
