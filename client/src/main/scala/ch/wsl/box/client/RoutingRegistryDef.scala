@@ -64,6 +64,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "conf"  => AdminConfState
     case "/admin" / "ui-conf"  => AdminUiConfState
     case "/admin" / "db-repl"  => AdminDBReplState
+    case "/admin" / "form" / "create"  => AdminCreateFormState
   }
 
 
@@ -99,5 +100,6 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "conf"  => LoginState("/admin/conf")
     case "/admin" / "ui-conf"  => LoginState("/admin/ui-conf")
     case "/admin" / "db-repl"  => LoginState("/admin/db-repl")
+    case "/admin" / "form" / "create"  => LoginState("/admin/form/create")
   }
 }

@@ -40,6 +40,7 @@ case class RootState(layout:String = Layouts.std) extends ContainerRoutingState(
 case object ErrorState extends FinalRoutingState(Some(RootState()))
 
 case object AdminState extends FinalRoutingState(Some(RootState()))
+case object AdminCreateFormState extends FinalRoutingState(Some(RootState()))
 case object TranslatorState extends FinalRoutingState(Some(RootState()))
 case object AdminConfState extends FinalRoutingState(Some(RootState()))
 case object AdminUiConfState extends FinalRoutingState(Some(RootState()))

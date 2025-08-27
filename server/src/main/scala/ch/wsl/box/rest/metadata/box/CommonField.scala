@@ -90,6 +90,7 @@ object CommonField {
     tooltip = Some("Enter a JSON array with the possibles values"),
     params = Some(Json.obj(
       "entity" -> s"${Widget.REF}entity".asJson,
+      "avoidShorten" -> Json.True
     ))
   ).asPopup
 

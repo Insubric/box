@@ -1619,6 +1619,29 @@ object GlobalStyleFactory{
 
     )
 
+    val adminConditionBlock = style(
+      margin(20 px),
+      display.flex,
+      justifyContent.spaceBetween,
+      alignItems.center,
+      unsafeChild("select")(
+        width(300 px)
+      ),
+      unsafeChild("input")(
+        width(300 px)
+      )
+    )
+
+    val adminCreateForm = style(
+      display.flex,
+      width(400 px),
+      justifyContent.spaceBetween,
+      alignItems.baseline,
+      unsafeChild("select")(
+        width(300 px)
+      )
+    )
+
 //
 //    val mapPopup = style(
 //      border.solid,

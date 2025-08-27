@@ -11,8 +11,8 @@ sealed trait Condition {
     case ConditionValue(value) => value.string
     case ConditionFieldRef(valueField) => s"field: $valueField"
     case NotCondition(not) => s"not ${not.asString}"
-    case OrCondition(or) => or.mkString("["," or ", "]")
-    case AndCondition(and) => and.mkString("["," and ", "]")
+    case OrCondition(or) => or.map(_.asString).mkString("["," or ", "]")
+    case AndCondition(and) => and.map(_.asString).mkString("["," and ", "]")
     case ConditionalField(field, condition) => s"$field: ${condition.asString}"
     case EmptyCondition => "empty"
   }
@@ -37,7 +37,7 @@ object Condition {
         case OrCondition(or) => or.exists(_check(_, _data))
         case AndCondition(and) => and.nonEmpty && and.forall(_check(_, _data))
         case ConditionalField(field, condition) => _check(condition, data.js(field))
-        case EmptyCondition => true
+        case EmptyCondition => false
       }
     }
 

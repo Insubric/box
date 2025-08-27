@@ -67,6 +67,9 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("Box Set-up"),
       ul(ClientConf.style.spacedList,
         li(
+          a("Create form", Navigate.click(AdminCreateFormState)),
+        ),
+        li(
           a("Forms", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"form",None,false))),
         ),
         li(

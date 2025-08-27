@@ -19,6 +19,7 @@ import org.scalajs.dom.Event
 import org.scalajs.dom.html.Input
 import scalacss.ScalatagsCss._
 
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -50,6 +51,12 @@ object AdminConditionWidget extends ComponentWidgetFactory {
 
     val columns:SeqProperty[String] = SeqProperty(Seq())
 
+    var registration:Option[Registration] = None
+
+    override def killWidget(): Unit = {
+      super.killWidget()
+      registration.foreach(_.cancel())
+    }
 
     import ch.wsl.box.client.Context._
     import Implicits.executionContext
@@ -75,7 +82,9 @@ object AdminConditionWidget extends ComponentWidgetFactory {
     }
 
     def removeCondition(data:Property[Json]) = {
-      button("Remove", ClientConf.style.boxButtonDanger, onclick := ((e:Event) => data.set(EmptyCondition.asJson)))
+      button("Remove", ClientConf.style.boxButtonDanger, onclick := {(e:Event) =>
+        data.set(EmptyCondition.asJson)
+      })
     }
 
 
@@ -86,8 +95,8 @@ object AdminConditionWidget extends ComponentWidgetFactory {
         io.circe.parser.parse(str).map(ConditionValue(_)).getOrElse(ConditionValue(Json.fromString(str))).asJson
       }
       div(
-        margin := 20.px,
-        TextInput(prop)(placeholder := "value"),
+        ClientConf.style.adminConditionBlock,
+        TextInput(prop,1 second)(placeholder := "value"),
         removeCondition(data)
       )
     }
@@ -99,7 +108,7 @@ object AdminConditionWidget extends ComponentWidgetFactory {
         ConditionFieldRef(str).asJson
       }
       div(
-        margin := 20.px,
+        ClientConf.style.adminConditionBlock,
         "Value from field: ",
         Select(prop,columns)(x => x),
         removeCondition(data)
@@ -114,7 +123,7 @@ object AdminConditionWidget extends ComponentWidgetFactory {
         condition.as[Condition].map(NotCondition(_).asJson).getOrElse(EmptyCondition.asJson)
       }
       div(
-        margin := 20.px,
+        ClientConf.style.adminConditionBlock,
         "Not:",
         renderCondition(prop),
         removeCondition(data)
@@ -126,6 +135,29 @@ object AdminConditionWidget extends ComponentWidgetFactory {
       prop.append(EmptyCondition.asJson)
     })
 
+    def removeLine(prop:SeqProperty[Json],i:ReadableProperty[Int]) = button("Remove line",ClientConf.style.boxButton, onclick :+= {(e:Event) =>
+      prop.remove(i.get,1)
+    })
+
+
+    def renderRepetable(label:String, data:Property[Json],prop:SeqProperty[Json]) = {
+      div(
+        ClientConf.style.adminConditionBlock,
+        s"$label:",
+        ul(
+          flexGrow := 1,
+          repeatWithIndex(prop){ (p,i,n) =>
+            li(
+              renderCondition(p),
+              removeLine(prop,i)
+            ).render
+          },
+          li(addButton(prop),removeCondition(data))
+        ),
+
+      )
+    }
+
     def renderOr(data:Property[Json]) = {
 
       val prop:SeqProperty[Json] = data.bitransformToSeq {x =>
@@ -134,18 +166,8 @@ object AdminConditionWidget extends ComponentWidgetFactory {
         OrCondition(conditions.toSeq.flatMap(_.as[Condition].toOption)).asJson
       }
 
+      renderRepetable("OR",data,prop)
 
-      div(
-        margin := 20.px,
-        "OR:",
-        repeat(prop){ p =>
-          div(
-            renderCondition(p)
-          ).render
-        },
-        addButton(prop),
-        removeCondition(data)
-      )
     }
 
     def renderAnd(data:Property[Json]) = {
@@ -156,17 +178,7 @@ object AdminConditionWidget extends ComponentWidgetFactory {
       }
 
 
-      div(
-        margin := 20.px,
-        "AND:",
-        repeat(prop){ p =>
-          div(
-            renderCondition(p)
-          ).render
-        },
-        addButton(prop),
-        removeCondition(data)
-      )
+      renderRepetable("AND",data,prop)
     }
 
     def renderConditionalField(data:Property[Json]) = {
@@ -190,23 +202,31 @@ object AdminConditionWidget extends ComponentWidgetFactory {
       }
 
       div(
-        margin := 20.px,
+        ClientConf.style.adminConditionBlock,
         Select(propField,columns)(x => x),
         renderCondition(propCondition),
         removeCondition(data)
       )
     }
 
+
     def emptyButtons(data:Property[Json], firstLevel:Boolean) = div(
+      button("Field",ClientConf.style.boxButton, onclick :+= { (e:Event) =>
+        val newData = ConditionalField(columns.get.head,EmptyCondition).asJson
+        data.set(newData,true)
+      }),
+      button("OR",ClientConf.style.boxButton, onclick :+= ((e:Event) => data.set(OrCondition(Seq()).asJson,true))),
+      button("AND",ClientConf.style.boxButton,  onclick :+= ((e:Event) => data.set(AndCondition(Seq()).asJson,true))),
       if(!firstLevel) Seq(
         button("Value",ClientConf.style.boxButton, onclick :+= {(e:Event) => BrowserConsole.log(ConditionValue("".asJson).asJson); e.preventDefault(); data.set(ConditionValue("".asJson).asJson)}),
         button("FieldRef",ClientConf.style.boxButton, onclick :+= ((e:Event) => data.set(ConditionFieldRef(columns.get.head).asJson))),
         button("Not",ClientConf.style.boxButton, onclick :+= ((e:Event) => data.set(NotCondition(EmptyCondition).asJson)))
-      ) else Seq[Modifier](),
-      button("Field",ClientConf.style.boxButton, onclick :+= ((e:Event) => data.set(ConditionalField(columns.get.head,EmptyCondition).asJson))),
-      button("OR",ClientConf.style.boxButton, onclick :+= ((e:Event) => data.set(OrCondition(Seq()).asJson))),
-      button("AND",ClientConf.style.boxButton,  onclick :+= ((e:Event) => data.set(AndCondition(Seq()).asJson)))
+      ) else Seq[Modifier]()
+
     )
+
+
+
 
     def renderCondition(data:Property[Json],firstLevel:Boolean = false):Modifier = {
       data.get.as[Condition].toOption match {
@@ -226,15 +246,17 @@ object AdminConditionWidget extends ComponentWidgetFactory {
 
     override protected def edit(nested: Binding.NestedInterceptor): JsDom.all.Modifier = {
       produce(params.prop) { data =>
+        val _data = Property(data)
+        registration.foreach(_.cancel())
+
+        registration = Some(params.prop.sync(_data)(x => x, x => x))
+
         div(
-          bind(params.prop.transform(_.toString())),
-          renderCondition(params.prop,firstLevel = true),
+          renderCondition(_data,firstLevel = true),
 
         ).render
       }
     }
 
-
-    override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = super.beforeSave(data, metadata)
   }
 }

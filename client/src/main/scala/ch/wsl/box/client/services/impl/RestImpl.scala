@@ -2,9 +2,10 @@ package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.Context
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.client.services.{HttpClient, REST}
+import ch.wsl.box.client.services.{BrowserConsole, HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
+import ch.wsl.box.model.shared.admin.FormCreationRequest
 import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, CurrentUser, DataResultTable, EntityKind, ExportDef, Field, GeoJson, GeoTypes, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
@@ -15,6 +16,7 @@ import kantan.csv.ops._
 import org.scalajs.dom.File
 import scribe.Logging
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class RestImpl(httpClient:HttpClient) extends REST with Logging {
@@ -139,6 +141,15 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   //admin
   def generateStub(entity:String)(implicit ec:ExecutionContext) = httpClient.get[Boolean](Routes.apiV1(s"/create-stub/$entity"))
+
+  override def childCandidates(table: String)(implicit ec: ExecutionContext): Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/child-candidates/$table"))
+
+  override def roles()(implicit ec: ExecutionContext): Future[Seq[String]] =  httpClient.get[Seq[String]](Routes.apiV1(s"/roles/available"))
+
+  override def createForm(formRequest: FormCreationRequest)(implicit ec: ExecutionContext): Future[UUID] = {
+    httpClient.post[FormCreationRequest,UUID](Routes.apiV1(s"/create-form"),formRequest)
+  }
+
   override def definition()(implicit ec:ExecutionContext): Future[BoxDefinition] = httpClient.get[BoxDefinition](Routes.apiV1(s"/box-definition"))
   override def definitionDiff(definition: BoxDefinition)(implicit ec:ExecutionContext): Future[BoxDefinitionMerge] = httpClient.post[BoxDefinition,BoxDefinitionMerge](Routes.apiV1(s"/box-definition/diff"),definition)
   override def definitionCommit(merge: BoxDefinitionMerge)(implicit ec:ExecutionContext): Future[Boolean] = httpClient.post[BoxDefinitionMerge,Boolean](Routes.apiV1(s"/box-definition/commit"),merge)

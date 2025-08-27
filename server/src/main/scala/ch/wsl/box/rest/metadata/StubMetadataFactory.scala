@@ -10,6 +10,7 @@ import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 object StubMetadataFactory {
@@ -20,16 +21,16 @@ object StubMetadataFactory {
   import Layout._
   import ch.wsl.box.jdbc.PostgresProfile.api._
 
-  def forEntity(entity:String)(implicit up:UserProfile, ec:ExecutionContext,services:Services):Future[Boolean] = {
+  def forEntity(entity:String,name:String)(implicit up:UserProfile, ec:ExecutionContext,services:Services):DBIO[UUID] = {
 
     implicit val boxDb = FullDatabase(up.db,services.connection.adminDB)
 
-    val dbio = for{
+    for{
       metadata <- DBIO.from(EntityMetadataFactory.of(entity,Registry())) //.map(x => (lang,x))
       form <- {
         val newForm = BoxForm_row(
           form_uuid = None,
-          name = entity,
+          name = name,
           description = None,
           entity = entity,
           layout = Some(metadata.layout.asJson),
@@ -47,7 +48,7 @@ object StubMetadataFactory {
         val newFormI18n = BoxForm_i18n_row(
           form_uuid = form.form_uuid,
           lang = Some(lang),
-          label = Some(entity)
+          label = Some(name)
         )
 
         BoxForm.BoxForm_i18nTable.returning(BoxForm.BoxForm_i18nTable) += newFormI18n
@@ -111,10 +112,10 @@ object StubMetadataFactory {
         BoxForm_actions ++= actions
       }
     } yield {
-      true
+      form.form_uuid.get
     }
 
-    up.db.run(dbio.transactionally)
+
 
   }
 
