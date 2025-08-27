@@ -281,5 +281,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   def getUserInfo():Option[UserInfo] = userInfo
 
 
+  def isAdmin() = getRoles().contains("box_admin")
+
 
 }

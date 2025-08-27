@@ -143,7 +143,12 @@ object FormUIDef {
     ),
     exportFields = Seq(),
     view = None,
-    action = FormActionsMetadata.default
+    action = {
+      val actions = FormActionsMetadata.default
+      actions.copy( actions = actions.actions.filterNot(_.action == SaveLocalAction) ++ Seq(
+        FormAction(NoAction,Std,Some(s"/box/form/{{name}}"),"Go to form",target = NewWindow)
+      ))
+    }
   )
 
 

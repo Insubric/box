@@ -70,7 +70,7 @@ object Auth extends Logging {
       sql"""select memberOf from #$boxSchema.v_roles where lower(rolname)=lower($name)""".as[Seq[String]](GetResult { r => r.<<[Seq[String]] })
 
     }.map {
-      _.headOption.getOrElse(Seq())
+      _.headOption.map(_ ++ Seq(name)).getOrElse(Seq(name))
     }
   }
 

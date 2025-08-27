@@ -283,7 +283,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
 
-  def actions(new_window:Boolean) = {
+  def actions(new_window:Boolean):Seq[VMAction] = {
 
     val metadata = model.subProp(_.metadata).get
     metadata.toSeq.flatMap(_.action.table(model.get.access)).map { ta =>
@@ -330,6 +330,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
       }
     }
+
   }
 
   def hasGeometry():Boolean = {
@@ -773,11 +774,15 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def mainActions(metadata:Option[JSONMetadata]) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
 
+    val adminActions = if(services.clientSession.isAdmin() && model.subProp(_.kind).get != EntityKind.BOX_FORM.kind) {
+      Seq(FormAction(NoAction,Primary,Some(s"/box/box-form/form/row/true/form_uuid::${metadata.map(_.objId).getOrElse("")}"),Labels("Edit UI")))
+    } else Seq()
+
     Seq(
       div(ClientConf.style.noMobile)(
         releaser(produce(model.subProp(_.name)) { m =>
           div({
-            val out: Seq[Modifier] = metadata.toSeq.flatMap(_.action.topTable(a)).map { ta =>
+            val out: Seq[Modifier] = (metadata.toSeq.flatMap(_.action.topTable(a)) ++ adminActions).map { ta =>
 
               val importance: StyleA = ta.importance match {
                 case Primary => ClientConf.style.boxButtonImportant

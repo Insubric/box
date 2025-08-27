@@ -219,7 +219,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
         renderBlocks(regularBlocks),
         renderTabs()
       ),
-      if(services.clientSession.getRoles().contains("box_admin") && metadata.kind == EntityKind.FORM.kind) {
+      if(services.clientSession.isAdmin() && metadata.kind == EntityKind.FORM.kind) {
         button(ClientConf.style.adminFormEditAction, i(UdashIcons.FontAwesome.Solid.pen), onclick := { (e: Event) =>
           e.preventDefault()
           val routes = Routes(EntityKind.BOX_FORM.kind, "form", false)
