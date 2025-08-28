@@ -1,7 +1,8 @@
 ---
 title: Geography support
-parent: Documentation
-nav_order: 1
+parent: Configuration
+nav_order: 3
+layout: default
 ---
 
 # Geography support

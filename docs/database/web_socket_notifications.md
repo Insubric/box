@@ -1,7 +1,8 @@
 ---
 title: Ui Notification on websocket channel
-parent: Documentation
+parent: Database
 nav_order: 2
+layout: default
 ---
 
 ## Postgres methods

@@ -1,7 +1,8 @@
 ---
 title: Code Generator Configuration
-parent: Documentation
+parent: Configuration
 nav_order: 1
+layout: default
 ---
 
 # Code Generator Configuration

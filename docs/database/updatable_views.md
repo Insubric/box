@@ -1,7 +1,8 @@
 ---
 title: Updatable views
-parent: Documentation
+parent: Database
 nav_order: 3
+layout: default
 ---
 
 

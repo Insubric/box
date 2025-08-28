@@ -2,20 +2,17 @@
 title: Box
 permalink: /
 nav_order: 1
+layout: home
 ---
+
+![Box framework](/assets/images/logo.png)
 
 # BOX
 
 [![Maven central](https://flat.badgen.net/maven/v/maven-central/com.boxframework/box-server_2.13)](https://maven-badges.herokuapp.com/maven-central/com.boxframework/box-server_2.13)
 
 
-
-
-## Supported by
-
-
 ![WSL](https://dms-media.wavein.ch/wi-dms/wsl_small.png)
-![wavein.ch](https://dms-media.wavein.ch/wi-dms/wavein_logo_small.png)
 
 
 

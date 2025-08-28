@@ -1,7 +1,9 @@
 ---
 title: Open ID Connect
-permalink: /oidc/
-nav_order: 2
+permalink: /authentication/oidc/
+parent: Authentication
+nav_order: 1
+layout: default
 ---
 
 # Open ID Connect 
