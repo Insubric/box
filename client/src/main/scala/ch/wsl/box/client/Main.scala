@@ -20,8 +20,8 @@ object Main extends Logging {
 
   def main(args: Array[String]): Unit = {
 
-
-    Context.init(Module.prod)
+    val moduleName = window.asInstanceOf[js.Dynamic].boxUiModule.asInstanceOf[String]
+    Context.init(Module.byName(moduleName))
 
     println(
       s"""
@@ -63,7 +63,7 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
-      _ <- DB.init()
+      _ <- if(ClientConf.localDb) DB.init() else Future.successful()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()

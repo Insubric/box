@@ -127,7 +127,9 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
 INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('DeleteAction', 'Danger', '/box/$kind/$name', 'table.delete', true, false, false, 'table.confirmDelete',  '23507498-6137-44ab-a3af-1019de8e5760');
 INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('RevertAction', 'Std', null, 'table.revert', true, false, false, 'table.confirmRevert',  '23507498-6137-44ab-a3af-1019de8e5760');
    */
-  def default:FormActionsMetadata = FormActionsMetadata(
+  def default = defaultHasLocal(true)
+
+  def defaultHasLocal(localDb:Boolean):FormActionsMetadata = FormActionsMetadata(
     actions = Seq(
       FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
       FormAction(SaveLocalAction,Primary, None, SharedLabels.form.save_local,updateOnly = true, reload = true),
@@ -139,7 +141,7 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
       FormAction(CopyAction,Std, None, SharedLabels.entities.duplicate,updateOnly = true),
       FormAction(DeleteAction,Danger,Some("/box/$kind/$name"), SharedLabels.entity.delete,updateOnly = true,confirmText = Some(SharedLabels.entity.confirmDelete)),
       FormAction(RevertAction,Std, None, SharedLabels.entity.revert,updateOnly = true, confirmText = Some(SharedLabels.entity.confirmRevert)),
-    ),
+    ).filterNot(x => localDb || x.action == SaveLocalAction),
     navigationActions = Seq(
       FormAction(NoAction,Std, Some("/box/$kind/$name"), SharedLabels.entities.table)
     ),

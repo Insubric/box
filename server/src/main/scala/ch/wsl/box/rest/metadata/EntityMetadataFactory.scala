@@ -142,6 +142,8 @@ object EntityMetadataFactory extends Logging {
           keys <- EntityMetadataFactory.keysOf(registry.schema,table)
         } yield {
 
+
+
           val keyStrategy = if(Managed(table)) SurrugateKey else NaturalKey
 
           val fieldList = fields.map(_.name)
@@ -161,7 +163,7 @@ object EntityMetadataFactory extends Logging {
             None,
             fieldList,
             None,
-            FormActionsMetadata.default,
+            FormActionsMetadata.defaultHasLocal(services.config.localDb),
             params = Some(Json.fromFields(Map("maxWidth" -> Json.fromInt(800), "hideFooter" -> Json.True)))
           )
         }

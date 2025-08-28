@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.directives.ContentTypeResolver
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
 import boxInfo.BoxBuildInfo
+import ch.wsl.box.model.shared.AvailableUIModule
 import ch.wsl.box.rest.routes.File.BoxFile
 import ch.wsl.box.rest.routes.enablers.twirl.Implicits._
 import ch.wsl.box.rest.utils.IconGenerator
@@ -171,7 +172,8 @@ object UI {
     } ~
     get {
       complete {
-        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor,services.config.matomo)
+        val module = if(services.config.localDb) AvailableUIModule.prod else AvailableUIModule.prodNoLocalDb
+        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,module,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor,services.config.matomo)
       }
     }
   }

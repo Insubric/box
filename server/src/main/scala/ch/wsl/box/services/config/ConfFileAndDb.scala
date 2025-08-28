@@ -139,5 +139,7 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
   import net.ceedubs.ficus.readers.ArbitraryTypeReader._
   override def openid: List[OIDCConf] = Try(conf.as[List[OIDCConf]]("openid")).getOrElse(List())
 
+  override def localDb: Boolean = Try(_conf("local.db").toBoolean).getOrElse(true)
+
   override def singleUser: Boolean = conf.as[Option[Boolean]]("singleUser").getOrElse(false)
 }

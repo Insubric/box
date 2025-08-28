@@ -39,4 +39,6 @@ trait FullConfig extends Config {
 
   def openid:Seq[OIDCConf]
 
+  def localDb:Boolean
+
 }

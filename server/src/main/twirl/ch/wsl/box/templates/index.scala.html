@@ -2,7 +2,7 @@
 @import scala.util.Try
 @import scala.util.Random
 @import ch.wsl.box.viewmodel.MatomoConfig
-@(version:String,enableRedactor:Boolean,devServer:Boolean,basePath:String,color:String,matomo:Option[MatomoConfig])
+@(version:String,uiModule:String,enableRedactor:Boolean,devServer:Boolean,basePath:String,color:String,matomo:Option[MatomoConfig])
 
 <!DOCTYPE html>
 <html>
@@ -28,6 +28,9 @@
 @*        }*@
         <!-- remove hash -->
         <script>
+
+                window.boxUiModule = "@uiModule"
+
                 if(window.location.hash.startsWith("#/")) {
                     var queryString = window.location.search
                     console.log("qs: " + queryString)

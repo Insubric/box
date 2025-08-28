@@ -9,7 +9,7 @@ import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DaoImpl(rest:REST,clientSession: ClientSession) extends DataAccessObject {
+class DaoLocalDbImpl(rest:REST, clientSession: ClientSession) extends DataAccessObject {
 
   override def get(kind: String, lang: String, entity: String, id: JSONID, public: Boolean)(implicit ec: ExecutionContext): Future[Record] = {
     DB.localRecord.get(LocalRecordKey(id.asString,kind,entity)).flatMap {

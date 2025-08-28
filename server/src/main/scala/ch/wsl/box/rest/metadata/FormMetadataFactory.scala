@@ -197,7 +197,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         if(form.entity == FormMetadataFactory.STATIC_PAGE) {
           FormActionsMetadata.defaultForPages.copy(showNavigation = form.show_navigation)
         } else {
-          FormActionsMetadata.default.copy(showNavigation = form.show_navigation)
+          FormActionsMetadata.defaultHasLocal(services.config.localDb).copy(showNavigation = form.show_navigation)
         }
       } else {
         FormActionsMetadata(
@@ -216,7 +216,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               html5check = a.html_check,
               target = a.target.map(Target.fromString).getOrElse(Self)
             )
-          },
+          }.filter(services.config.localDb || _.action != SaveLocalAction),
           navigationActions = navigationActions.map{a =>
             FormAction(
               action = Action.fromString(a.action),

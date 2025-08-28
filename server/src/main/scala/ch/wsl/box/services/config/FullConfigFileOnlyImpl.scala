@@ -57,4 +57,6 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
   override def matomo: Option[MatomoConfig] = throw new ConfigNotAvailableException
 
   override def openid: Seq[OIDCConf] = throw new ConfigNotAvailableException
+
+  override def localDb: Boolean = throw new ConfigNotAvailableException
 }

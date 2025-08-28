@@ -94,7 +94,7 @@ object StubMetadataFactory {
           })
       }
       formActions <- {
-        val actions = FormActionsMetadata.default.actions.zipWithIndex.map{ case (a,i) =>
+        val actions = FormActionsMetadata.defaultHasLocal(services.config.localDb).actions.zipWithIndex.map{ case (a,i) =>
           BoxForm_actions_row(
             form_uuid = form.form_uuid.get,
             action = a.action.toString,

@@ -57,5 +57,7 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
 
   override def openid: Seq[OIDCConf] = Seq()
 
+  override def localDb: Boolean = true
+
   override def singleUser: Boolean = false
 }
