@@ -86,7 +86,7 @@ object Layout extends Logging {
           }
         }
 
-        LayoutBlock(title.toOption,width,height.toOption,x.toOption,y.toOption,fields,lt,tab.toOption,tabGroup.toOption)
+        LayoutBlock(title.toOption,fields,width,height.toOption,x.toOption,y.toOption,lt,tab.toOption,tabGroup.toOption)
       }
   }
 
@@ -132,7 +132,7 @@ object Layout extends Logging {
   }
 
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
-    LayoutBlock(None,12,None,None,None,fields.map(x => Left(x.name)),StackedLayout)
+    LayoutBlock(None,fields.map(x => Left(x.name)),12)
   ))
 }
 
@@ -150,11 +150,11 @@ case object MultirowTableLayout extends LayoutType
   */
 case class LayoutBlock(
                    title: Option[Either[String,I18n]],
-                   width:Int,
-                   height: Option[Int],
-                   x: Option[Int],
-                   y: Option[Int],
                    fields:Seq[Either[String,SubLayoutBlock]],
+                   width:Int,
+                   height: Option[Int] = None,
+                   x: Option[Int] = None,
+                   y: Option[Int] = None,
                    layoutType:LayoutType = StackedLayout,
                    tab: Option[String] = None,
                    tabGroup:Option[String] = None,
@@ -164,6 +164,10 @@ case class LayoutBlock(
     case Left(_) => Seq()
     case Right(value) => value.extractFields(metadata)
   }
+}
+
+object LayoutBlock {
+  def simple(width:Int,fields: Seq[String]) = LayoutBlock(None,fields.map(Left(_)),width)
 }
 
 

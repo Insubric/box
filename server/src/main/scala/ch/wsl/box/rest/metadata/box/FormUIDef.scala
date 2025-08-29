@@ -111,7 +111,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(Some(Left("Base Info")),4,None,None,None,Seq(
+        LayoutBlock(Some(Left("Base Info")),Seq(
           "name",
           "entity",
           "edit_key_field",
@@ -122,14 +122,14 @@ object FormUIDef {
           "public_list",
           "props",
           "params"
-        ).map(Left(_))),
-        LayoutBlock(Some(Left("I18n")),4,None,None,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Actions")),4,None,None,None,Seq("show_navigation","form_actions","table_action_title","form_navigation_actions").map(Left(_))),
-        LayoutBlock(Some(Left("Table Info")),12,None,None,None,Seq("tabularFields","exportfields").map(Left(_))),
-        LayoutBlock(Some(Left("Fields")),12,None,None,None,Seq("fields").map(Left(_))),
-        LayoutBlock(Some(Left("Not DB fields")),12,None,None,None,Seq("fields_no_db").map(Left(_))),
-        LayoutBlock(Some(Left("Linked forms")),12,None,None,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,None,None,None,Seq("fields_static").map(Left(_)))
+        ).map(Left(_)),4),
+        LayoutBlock(Some(Left("I18n")),Seq("form_i18n").map(Left(_)),4),
+        LayoutBlock(Some(Left("Actions")),Seq("show_navigation","form_actions","table_action_title","form_navigation_actions").map(Left(_)),4),
+        LayoutBlock(Some(Left("Table Info")),Seq("tabularFields","exportfields").map(Left(_)),12),
+        LayoutBlock(Some(Left("Fields")),Seq("fields").map(Left(_)),12),
+        LayoutBlock(Some(Left("Not DB fields")),Seq("fields_no_db").map(Left(_)),12),
+        LayoutBlock(Some(Left("Linked forms")),Seq("fields_child").map(Left(_)),12),
+        LayoutBlock(Some(Left("Static elements")),Seq("fields_static").map(Left(_)),12)
       )
     ),
     entity = "form",
@@ -184,17 +184,17 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,None,None,None,Seq(
+        LayoutBlock(None,Seq(
           SubLayoutBlock(None,Some(Seq(12,12,12)),Seq(
             Right(
               SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("name","description","show_navigation","props","guest_user","params").map(Left(_)))
             ),
           ))
-        ).map(Right(_))),
-        LayoutBlock(Some(Left("I18n")),4,None,None,None,Seq("form_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Linked forms")),12,None,None,None,Seq("fields_child").map(Left(_))),
-        LayoutBlock(Some(Left("Static elements")),12,None,None,None,Seq("fields_static").map(Left(_))),
-        LayoutBlock(Some(Left("Layout")),12,None,None,None,Seq("layout").map(Left(_))),
+        ).map(Right(_)),8),
+        LayoutBlock(Some(Left("I18n")),Seq("form_i18n").map(Left(_)),4),
+        LayoutBlock(Some(Left("Linked forms")),Seq("fields_child").map(Left(_)),12),
+        LayoutBlock(Some(Left("Static elements")),Seq("fields_static").map(Left(_)),12),
+        LayoutBlock(Some(Left("Layout")),Seq("layout").map(Left(_)),12),
       )
     ),
     entity = "form",
@@ -244,7 +244,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,None,None,Seq(
+        LayoutBlock.simple(6,Seq(
           "name",
           "type",
           "widget",
@@ -259,8 +259,8 @@ object FormUIDef {
           "condition",
           "params",
           "roles"
-        ).map(Left(_))),
-        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
+        )),
+        LayoutBlock.simple(6,Seq("field_i18n")),
       )
     ),
     entity = "v_field",
@@ -306,7 +306,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,None,None,Seq(
+        LayoutBlock.simple(6,Seq(
           "name",
           "type",
           "widget",
@@ -320,8 +320,8 @@ object FormUIDef {
           "max",
           "condition",
           "params"
-        ).map(Left(_))),
-        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
+        )),
+        LayoutBlock.simple(6,Seq("field_i18n")),
       )
     ),
     entity = "v_field",
@@ -425,7 +425,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,None,None,Seq(
+        LayoutBlock.simple(6,Seq(
           "name",
           "type",
           "widget",
@@ -439,9 +439,8 @@ object FormUIDef {
           "condition",
           "params",
           "roles"
-        ).map(Left(_))),
-        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
-      )
+        )),
+        LayoutBlock.simple(6,Seq("field_i18n"))),
     ),
     entity = "field",
     lang = "en",
@@ -495,7 +494,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,6,None,None,None,Seq(
+        LayoutBlock.simple(6,Seq(
           "name",
           "type",
           "widget",
@@ -508,8 +507,8 @@ object FormUIDef {
           "params",
           "read_only",
           "roles"
-        ).map(Left(_))),
-        LayoutBlock(None,6,None,None,None,Seq("field_i18n").map(Left(_))),
+        )),
+        LayoutBlock.simple(6,Seq("field_i18n")),
       )
     ),
     entity = "field",
@@ -563,7 +562,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,None,None,Seq("lang","label","foreign_label_columns","dynamic_label","placeholder","tooltip").map(Left(_))),
+        LayoutBlock.simple(12,Seq("lang","label","foreign_label_columns","dynamic_label","placeholder","tooltip")),
       )
     ),
     entity = "field_i18n",
@@ -597,7 +596,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,None,None,Seq("lang","label","view_table").map(Left(_))),
+        LayoutBlock.simple(12,Seq("lang","label","view_table")),
       )
     ),
     entity = "form_i18n",
@@ -678,7 +677,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,None,None,Seq(
+        LayoutBlock.simple(12,Seq(
           "uuid",
           "form_uuid",
           "order",
@@ -694,7 +693,7 @@ object FormUIDef {
           "confirm_text",
           "condition",
           "html_check"
-        ).map(Left(_))),
+        )),
       )
     ),
     entity = "form_actions",
@@ -764,7 +763,7 @@ object FormUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,None,None,Seq(
+        LayoutBlock.simple(12,Seq(
           "uuid",
           "form_uuid",
           "order",
@@ -777,7 +776,7 @@ object FormUIDef {
           "insert_only",
           "reload",
           "confirm_text"
-        ).map(Left(_))),
+        )),
       )
     ),
     entity = "form_navigation_actions",

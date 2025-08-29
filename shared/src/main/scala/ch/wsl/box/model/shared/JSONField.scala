@@ -183,6 +183,7 @@ object JSONFieldTypes{
   val FILE = "file"
   val DATE = "date"
   val DATETIME = "datetime"
+  val DATETIMETZ = "datetimetz"
   val TIME = "time"
   val INTERVAL = "interval" //Not used
   val BOOLEAN = "boolean"
@@ -192,5 +193,5 @@ object JSONFieldTypes{
   val JSON = "json"
   val STATIC = "static"
 
-  val ALL = Seq(NUMBER,INTEGER,STRING,FILE,DATE,DATETIME,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
+  val ALL = Seq(NUMBER,INTEGER,STRING,FILE,DATE,DATETIME,DATETIMETZ,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
 }

@@ -1,7 +1,7 @@
 package ch.wsl.box.json
 
 import ch.wsl.box.BaseSpec
-import ch.wsl.box.model.shared.ConditionalField
+import ch.wsl.box.model.shared.{ConditionValue, ConditionalField}
 import io.circe.Json
 
 class ConditionalFieldSpec extends BaseSpec {
@@ -25,7 +25,7 @@ class ConditionalFieldSpec extends BaseSpec {
 
   "Conditional field" should "be calculated" in {
 
-    val condition = ConditionalField("negative",Json.False)
+    val condition = ConditionalField("negative",ConditionValue(Json.False))
     condition.check(json) shouldBe true
 
   }

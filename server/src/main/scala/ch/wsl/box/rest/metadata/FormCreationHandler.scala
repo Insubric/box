@@ -49,7 +49,7 @@ object FormCreationHandler {
     def updateLayout(l:Layout,fields:Seq[NamedID]):Layout = {
       val width = if(fields.size > 1) 4 else 6
       l.copy(
-        blocks = l.blocks.map(_.copy(width = width)) ++ fields.map(x => LayoutBlock(None,width,None,None,None,Seq(Left(x.name))))
+        blocks = l.blocks.map(_.copy(width = width)) ++ fields.map(x => LayoutBlock.simple(width,Seq(x.name)))
       )
     }
 
@@ -101,7 +101,7 @@ object FormCreationHandler {
 
       val lastBlock = oldLayout.blocks.lastOption match {
         case Some(value) => value.copy(fields = value.fields ++ Seq(Left(new_form.name)))
-        case None => LayoutBlock(None,12,None,None,None,Seq(Left(new_form.name)))
+        case None => LayoutBlock.simple(12,Seq(new_form.name))
       }
 
       val newLayout = oldLayout.copy(blocks = oldLayout.blocks.dropRight(1) ++ Seq(lastBlock))

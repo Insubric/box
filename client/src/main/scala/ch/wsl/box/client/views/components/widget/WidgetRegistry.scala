@@ -47,6 +47,7 @@ object WidgetRegistry extends Logging {
     DateTimeWidget.Time,
     DateTimeWidget.Date,
     DateTimeWidget.DateTime,
+    DateTimeWidget.DateTimeTZ,
 
     TableChildFactory,
     SimpleChildFactory,

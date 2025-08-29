@@ -50,7 +50,7 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,8,None,None,None,Seq(
+        LayoutBlock(None,Seq(
           SubLayoutBlock(None,Some(Seq(5,1,6)),Seq(
             Right(
               SubLayoutBlock(Some(Left("Base Info")),Some(Seq(12)),Seq("function_uuid","name","order","description","mode").map(Left(_)))
@@ -62,9 +62,9 @@ object FunctionUIDef {
           )),
           SubLayoutBlock(Some(Left("Function")),Some(Seq(12)),Seq("function").map(Left(_))),
           SubLayoutBlock(Some(Left("Presenter")),Some(Seq(12)),Seq("presenter").map(Left(_))),
-        ).map(Right(_))),
-        LayoutBlock(Some(Left("I18n")),4,None,None,None,Seq("function_i18n").map(Left(_))),
-        LayoutBlock(Some(Left("Fields")),12,None,None,None,Seq("function_field").map(Left(_))),
+        ).map(Right(_)),8),
+        LayoutBlock(Some(Left("I18n")),Seq("function_i18n").map(Left(_)),4),
+        LayoutBlock(Some(Left("Fields")),Seq("function_field").map(Left(_)),12),
       )
     ),
     entity = "function",
@@ -99,7 +99,7 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,4,None,None,None,Seq(
+        LayoutBlock.simple(4,Seq(
           "field_uuid",
           "function_uuid",
           "name",
@@ -110,8 +110,8 @@ object FunctionUIDef {
           "lookupQuery",
           "default",
           "condition"
-        ).map(Left(_))),
-        LayoutBlock(None,8,None,None,None,Seq("function_field_i18n").map(Left(_))),
+        )),
+        LayoutBlock.simple(8,Seq("function_field_i18n")),
       )
     ),
     entity = "function_field",
@@ -143,8 +143,8 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,3,None,None,None,Seq("field_uuid","uuid","lang").map(Left(_))),
-        LayoutBlock(None,9,None,None,None,Seq("label","placeholder","tooltip","hint","lookupTextField").map(Left(_))),
+        LayoutBlock.simple(3,Seq("field_uuid","uuid","lang")),
+        LayoutBlock.simple(9,Seq("label","placeholder","tooltip","hint","lookupTextField")),
       )
     ),
     entity = "function_field_i18n",
@@ -174,7 +174,7 @@ object FunctionUIDef {
     ),
     layout = Layout(
       blocks = Seq(
-        LayoutBlock(None,12,None,None,None,Seq("lang","label","tooltip","hint").map(Left(_)))
+        LayoutBlock.simple(12,Seq("lang","label","tooltip","hint"))
       )
     ),
     entity = "function_i18n",

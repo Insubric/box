@@ -10,7 +10,7 @@ import com.typesafe.config.{ConfigFactory, ConfigValue, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
 import scribe.{Level, Logging}
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, OffsetDateTime}
 import java.time.temporal.ChronoUnit
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
@@ -127,6 +127,12 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case JSONFieldTypes.DATE => ((x: LocalDateTime) => x.truncatedTo(ChronoUnit.DAYS))
     case JSONFieldTypes.DATETIME => ((x: LocalDateTime) => x)
     case _ => ((x: LocalDateTime) => x)
+  }
+
+  def prepareDatetimeTz = filterPrecisionDatetime match {
+    case JSONFieldTypes.DATE => ((x: OffsetDateTime) => x.truncatedTo(ChronoUnit.DAYS))
+    case JSONFieldTypes.DATETIME => ((x: OffsetDateTime) => x)
+    case _ => ((x: OffsetDateTime) => x)
   }
 
   override def matomo: Option[MatomoConfig] = for{

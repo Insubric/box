@@ -141,7 +141,7 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
       FormAction(CopyAction,Std, None, SharedLabels.entities.duplicate,updateOnly = true),
       FormAction(DeleteAction,Danger,Some("/box/$kind/$name"), SharedLabels.entity.delete,updateOnly = true,confirmText = Some(SharedLabels.entity.confirmDelete)),
       FormAction(RevertAction,Std, None, SharedLabels.entity.revert,updateOnly = true, confirmText = Some(SharedLabels.entity.confirmRevert)),
-    ).filterNot(x => localDb || x.action == SaveLocalAction),
+    ).filter(x => localDb || x.action != SaveLocalAction),
     navigationActions = Seq(
       FormAction(NoAction,Std, Some("/box/$kind/$name"), SharedLabels.entities.table)
     ),

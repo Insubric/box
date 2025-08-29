@@ -774,7 +774,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def mainActions(metadata:Option[JSONMetadata]) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
 
-    val adminActions = if(services.clientSession.isAdmin() && model.subProp(_.kind).get != EntityKind.BOX_FORM.kind) {
+    val adminActions = if(services.clientSession.isAdmin() && model.subProp(_.kind).get == EntityKind.FORM.kind) {
       Seq(FormAction(NoAction,Primary,Some(s"/box/box-form/form/row/true/form_uuid::${metadata.map(_.objId).getOrElse("")}"),Labels("Edit UI")))
     } else Seq()
 

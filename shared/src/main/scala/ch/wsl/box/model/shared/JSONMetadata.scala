@@ -114,7 +114,7 @@ object JSONMetadata extends Logging {
     kind = kind,
     label = entity,
     fields = fields,
-    layout = Layout(Seq(LayoutBlock(None,12,None,None,None,fields.map(x => Left(x.name)),StackedLayout))),
+    layout = Layout.fromFields(fields),
     entity = entity,
     lang = lang,
     tabularFields = fields.map(_.name),

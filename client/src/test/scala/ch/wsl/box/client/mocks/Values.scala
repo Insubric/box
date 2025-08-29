@@ -1,6 +1,6 @@
 package ch.wsl.box.client.mocks
 
-import ch.wsl.box.model.shared.{Child, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionValue, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
 import scribe.Level
@@ -83,7 +83,7 @@ class Values(val loggerLevel:Level) {
         JSONFieldTypes.STRING,
         name = conditionalField,
         nullable = true,
-        condition = Some(ConditionalField(conditionerField,Seq(conditionalValue).asJson))
+        condition = Some(ConditionalField(conditionerField,ConditionValue(conditionalValue.asJson)))
       ),
       JSONField(
         JSONFieldTypes.CHILD,
@@ -101,14 +101,14 @@ class Values(val loggerLevel:Level) {
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,Seq(
+    layout = Layout(Seq(LayoutBlock(None,Seq(
       Left("child"),
       Left(readOnlyField),
       Left(conditionerField),
       Left(conditionalField),
       Left(stringField),
       Left(stringField2),
-    )))),
+    ),12))),
     entity = "test",
     lang = "it",
     tabularFields = Seq("id"),
@@ -159,7 +159,7 @@ class Values(val loggerLevel:Level) {
         ))
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,Seq(Left("id"),Left("parent_id"),Left("text"),Left("subchild")),12))),
     entity = "test_child",
     lang = "it",
     tabularFields = Seq("id"),
@@ -194,7 +194,7 @@ class Values(val loggerLevel:Level) {
         nullable = true
       )
     ),
-    layout = Layout(Seq(LayoutBlock(None,12,Seq(Left("id"),Left("child_id"),Left("text_subchild"))))),
+    layout = Layout(Seq(LayoutBlock(None,Seq(Left("id"),Left("child_id"),Left("text_subchild")),12))),
     entity = "test_subchild",
     lang = "it",
     tabularFields = Seq("id"),

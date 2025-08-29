@@ -3,7 +3,7 @@ package ch.wsl.box.services.config
 import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, OffsetDateTime}
 
 trait FullConfig extends Config {
   def akkaHttpSession:com.typesafe.config.Config
@@ -14,6 +14,7 @@ trait FullConfig extends Config {
   def loggerLevel:scribe.Level
   def filterPrecisionDatetime:String
   def prepareDatetime: LocalDateTime => LocalDateTime
+  def prepareDatetimeTz: OffsetDateTime => OffsetDateTime
   def enableCache:Boolean
   def fksLookupLabels:com.typesafe.config.Config
   def fksLookupRowsLimit:Int

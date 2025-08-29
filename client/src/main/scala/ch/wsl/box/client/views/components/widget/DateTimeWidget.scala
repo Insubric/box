@@ -2,10 +2,9 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.Context
 
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, OffsetDateTime, ZoneOffset, ZonedDateTime}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
-import io.udash.bootstrap.datepicker.UdashDatePicker
 import io.udash._
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe._
@@ -15,7 +14,6 @@ import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, WidgetsNames}
 import ch.wsl.box.shared.utils.DateTimeFormatters
 import io.udash.bindings.modifiers.Binding
-import io.udash.bootstrap.datepicker.UdashDatePicker.Placement
 import io.udash.properties.single.Property
 import org.scalajs.dom.raw.HTMLInputElement
 import org.scalajs.dom.{Event, KeyboardEvent}
@@ -36,6 +34,7 @@ import scala.scalajs.js.|
 
 object FieldTypes {
   sealed trait FieldType
+  case object DateTimeTZ extends FieldType
   case object DateTime extends FieldType
   case object Date extends FieldType
   case object Time extends FieldType
@@ -91,12 +90,25 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     dateTimeFormatters.parse(js.string).map(v => dateTimeFormatters.format(v,format) ).getOrElse("")
   }
 
+  private def tzFromCurrent():Option[ZoneOffset] = {
+    fieldType match {
+      case FieldTypes.DateTimeTZ => dateTimeFormatters.parse(data.get.string) match {
+        case Some(value) => dateTimeFormatters.tz(value)
+        case None => Some(OffsetDateTime.now().getOffset)
+      }
+      case _ => None
+    }
+  }
+
   private def strToTime(s:String,r:Boolean): Array[String] = {
 
-    dateTimeFormatters.parse(s).toSeq.flatMap{ parsed =>
+    logger.debug(s"strToTime $s range: $r, parsed: ${dateTimeFormatters.parse(s,tzFromCurrent())} widget field $fieldType")
+    dateTimeFormatters.parse(s,tzFromCurrent()).toSeq.flatMap{ parsed =>
       val timestamp = dateTimeFormatters.format(parsed)
+      logger.debug(s"Parsed timestamp $parsed")
       (r,s.length,fieldType) match {
         case (_,_,FieldTypes.Time) => Array(timestamp)
+        case (false, x,_) if x > 16 => Array(timestamp.take(16))
         case (false, _,_) => Array(timestamp)
         case (true, x,_) if x > 7 => Array(timestamp)
         case (true, x,_) if x > 4 => { //month interval
@@ -188,12 +200,16 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     var flatpicker:ch.wsl.typings.flatpickr.mod.flatpickr.Instance = null
 
     def handleDate(d:Json,force:Boolean = false): Unit = {
+      logger.debug(s"handleDate $d $force")
       if(range) {
         val dates = toDate(d,range).toJSArray
         flatpicker.setDate(dates,force)
       } else {
         toDate(d,range).headOption match {
-          case Some(date) => flatpicker.setDate(date,force)
+          case Some(date) => {
+            logger.debug(s"flatpicker setting date: $date")
+            flatpicker.setDate(date,force)
+          }
           case None => flatpicker.clear(force)
         }
       }
@@ -208,6 +224,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       color.black,
       style,WidgetUtils.toNullable(field.nullable),
       onkeydown := { (e: KeyboardEvent) =>
+        logger.debug(s"Piker onkeydown with data ${data.get} with e:${e.keyCode}")
+
         e.keyCode match {
           case 13 => {
             handleDate(e.target.asInstanceOf[HTMLInputElement].value.asJson, true)
@@ -217,6 +235,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
         }
       },
       onclick := { (e:Event) =>
+        logger.debug(s"Piker onclick with data ${data.get}")
         if(data.get == Json.Null) {
           val defaultDate = for{
             field <- defaultFrom
@@ -225,11 +244,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
           defaultDate match {
             case Some(date) => handleDate(date,true)
-            case None => data.set(dateTimeFormatters.format(dateTimeFormatters.from(new java.util.Date().getTime)).asJson)
+            case None => data.set(dateTimeFormatters.format(dateTimeFormatters.now()).asJson)
           }
         }
       },
       onblur := { (e: Event) =>
+        logger.debug(s"Piker onblur with data ${data.get}")
         e.preventDefault()
         handleDate(e.target.asInstanceOf[HTMLInputElement].value.asJson, true)
       },
@@ -258,7 +278,11 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       if(dateStr == "") {
         data.set(Json.Null)
       } else {
-        data.set(dateStr.asJson)
+        dateTimeFormatters.parse(dateStr, tzFromCurrent()) match {
+          case Some(dt) => data.set(dateTimeFormatters.format(dt).asJson)
+          case None => data.set(Json.Null)
+        }
+
       }
       setListener(false, instance)
     }
@@ -278,6 +302,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     }
 
     fieldType match {
+      case FieldTypes.DateTimeTZ => options.setEnableTime(true).setTime_24hr(true)
       case FieldTypes.DateTime => options.setEnableTime(true).setTime_24hr(true)
       case FieldTypes.Date => options.setEnableTime(false).setNoCalendar(false)
       case FieldTypes.Time => options.setEnableTime(true).setTime_24hr(true).setNoCalendar(true).setDateFormat("H:i")
@@ -307,6 +332,16 @@ object DateTimeWidget {
     override def create(params: WidgetParams): Widget = Date(params.id,params.field,params.prop,params.allData)
   }
 
+
+  case class DateTimeTZ(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[OffsetDateTime] {
+    override val fieldType = FieldTypes.DateTimeTZ
+    override val dateTimeFormatters: DateTimeFormatters[OffsetDateTime] = DateTimeFormatters.timestamptz
+  }
+
+  object DateTimeTZ extends ComponentWidgetFactory {
+    override def name: String = WidgetsNames.datetimetzPicker
+    override def create(params: WidgetParams): Widget = DateTimeTZ(params.id,params.field,params.prop,params.allData)
+  }
 
 
   case class DateTime(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDateTime] {
