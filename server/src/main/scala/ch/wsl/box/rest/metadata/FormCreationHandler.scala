@@ -34,8 +34,8 @@ object FormCreationHandler {
           name = name,
           widget = Some(WidgetsNames.simpleChild),
           child_form_uuid = Some(child.id),
-          local_key_columns = fk.map(_.keys.toList),
-          foreign_key_columns = fk.map(_.referencingKeys.toList)
+          local_key_columns = fk.map(_.referencingKeys.toList),
+          foreign_key_columns = fk.map(_.keys.toList)
         )
         field_row <- (BoxField.BoxFieldTable.returning(BoxField.BoxFieldTable) += field)
         keys = fk.toSeq.flatMap(_.referencingKeys)
