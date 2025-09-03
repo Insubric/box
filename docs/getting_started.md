@@ -32,13 +32,19 @@ Before you begin, ensure you have the following prerequisites installed on your 
 
 You need a PostgreSQL database to get started with the Box Framework. 
 
-If you need help setting up your PostgreSQL database, you can use one of our templates. These templates provide a pre-configured database schema and sample tables, allowing you to quickly set up a functional database environment.
+If you need help setting up your PostgreSQL database, you can use one of our [templates](/getting_started/postgresql). These templates provide a pre-configured database schema and sample tables, allowing you to quickly set up a functional database environment.
 
 ## Download and Setup
 
 1. **Download the Starter Package**
 
    Visit the [Insubric Box Starter Releases page](https://github.com/Insubric/box-starter/releases) and download the latest release.
+
+   Or download directly in terminal:
+   ```bash
+      wget https://github.com/Insubric/box-starter/releases/download/v0.1.0/box-starter.zip
+   ```
+
 
 2. **Unzip the Package**
 

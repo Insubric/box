@@ -51,6 +51,6 @@ The Box Framework leverages the PostgreSQL information schema to automatically g
 - **Data Type Detection**: It fetches the data types of each column, ensuring that the form fields match the expected data types (e.g., text, numbers, dates).
 - **Foreign Key Handling**: The framework detects foreign key relationships and generates appropriate dropdowns or lookup fields, making it easy to maintain referential integrity.
 
-## Next Steps
+## Next Step
 
 [Define your own UI](/ui/)

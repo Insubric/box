@@ -9,7 +9,7 @@ layout: default
 
 ### Andrea Minetti
 
-[wsl.ch](https://www.wsl.ch) / [wavein.ch](https://wavein.ch)
+[Personal homepage at WSL](https://www.wsl.ch/en/staff/minettia/) / [wavein.ch](https://wavein.ch)
 
 [andrea.minetti@wsl.ch](mailto:andrea.minetti@wsl.ch) / [andrea@wavein.ch](mailto:andrea@wavein.ch)
 
@@ -19,7 +19,7 @@ layout: default
 
 ### Gianni Boris Pezzatti
 
-[Personal homepage at WSL](https://www.wsl.ch/en/employees/pezzatti.html)
+[Personal homepage at WSL](https://www.wsl.ch/en/staff/pezzatti/)
 
 [boris.pezzatti@wsl.ch](mailto:boris.pezzatti@wsl.ch)
 
