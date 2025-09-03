@@ -1,6 +1,6 @@
 title: Box Framework
 description: Box Framework
-remote_theme: pmarsceill/just-the-docs
+theme: just-the-docs
 search_enabled: true
 
 url: https://www.boxframework.com
