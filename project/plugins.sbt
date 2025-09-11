@@ -20,8 +20,5 @@ addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.21.0")
 
 addDependencyTreePlugin
 
-libraryDependencies += "org.scala-js" %% "scalajs-env-selenium" % "1.1.0"
-libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
-libraryDependencies += "com.browserstack" % "browserstack-local-java" % "1.0.3"
-libraryDependencies += "org.seleniumhq.selenium" % "selenium-firefox-driver" % "3.141.59"
-libraryDependencies += "org.seleniumhq.selenium" % "selenium-chrome-driver" % "3.141.59"
+libraryDependencies += "io.github.gmkumar2005" %% "scala-js-env-playwright" % "0.1.18"
+

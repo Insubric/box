@@ -21,7 +21,7 @@ layout: default
 
 3. **Use a Template**:
     - To simplify the setup process, you can use one of our provided templates. These templates include a predefined schema and sample tables.
-    - Download the template SQL file from our [templates repository](https://github.com/Insubric/box-starter-templates).
+    - Download the template SQL file from our [templates repository](https://github.com/Insubric/box-starter/tree/main/sql_templates).
     - Open psql
       ```bash
       psql -h <database-host> -U <database-user> -p <database-port:default 5432> mydatabase

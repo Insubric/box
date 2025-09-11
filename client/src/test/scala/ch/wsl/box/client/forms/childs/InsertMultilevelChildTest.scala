@@ -40,7 +40,7 @@ class InsertMultilevelChildTest extends TestBase {
 
     "child" should "be inserted" in {
 
-      for {
+      val test = for {
         _ <- Main.setupUI()
         _ <- Context.services.clientSession.login("test", "test")
         _ <- waitLoggedIn
@@ -67,14 +67,15 @@ class InsertMultilevelChildTest extends TestBase {
           inputSubChild.onchange(new Event("change"))
         }
         _ <- waitElement(() => document.getElementById(TestHooks.dataChanged),"Data changed")
+        assertion <- assertOrWait(document.getElementById(TestHooks.dataChanged) != null)
         _ <- Future {
-          assert(document.getElementById(TestHooks.dataChanged) != null)
           document.getElementById(TestHooks.actionButton(SharedLabels.form.save)).asInstanceOf[HTMLElement].click()
         }
 
-      } yield succeed
+      } yield assertion
 
 
+      test.recoverWith{ case t => fail(t) }
 
 
 

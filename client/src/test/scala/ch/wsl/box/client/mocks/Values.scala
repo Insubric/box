@@ -26,7 +26,8 @@ class Values(val loggerLevel:Level) {
   val conf = Map(
     "langs" -> "it,en",
     "display.index.html" -> "true",
-    "client.logger.level" -> loggerLevel.name
+    "client.logger.level" -> loggerLevel.name,
+    "local.db" -> "false"
   )
 
   val testFormName = "test_form"

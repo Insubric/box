@@ -8,11 +8,12 @@ import io.udash.properties.MutableSetRegistration
 import io.udash.utils.Registration
 import org.scalajs.dom
 import org.scalajs.dom.{Element, HTMLAnchorElement, HashChangeEvent, Location, PopStateEvent}
+import scribe.Logging
 
 import scala.scalajs.js
 
 
-final class BoxUrlChangeProvider extends UrlChangeProvider {
+final class BoxUrlChangeProvider extends UrlChangeProvider with Logging {
 
   import dom.window
   import org.scalajs.dom.{URL => JSUrl}
@@ -92,7 +93,10 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
 
   private def baseUri = {
     val bu = dom.document.baseURI
-    if(bu.contains("//")) {
+    logger.debug(s"Base URI with dom.document.baseURI: $bu")
+    if(bu.startsWith("file:///")) {
+      bu.split("html").headOption.map( x => s"${x}html").getOrElse(bu)
+    } else if(bu.contains("//")) {
       bu.split("/").drop(3).toList match {
         case Nil => "/"
         case x => x.mkString("/","/","/")
@@ -113,6 +117,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
   }
 
   override def changeFragment(url: Url, replaceCurrent: Boolean): Unit = {
+    logger.debug(s"Change fragment $url")
     val localUrl = addBase(url.value)
     (null, "", localUrl) |> (
       if (replaceCurrent) window.history.replaceState(_: js.Any, _: String, _: String)
@@ -124,6 +129,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider {
 
   override def currentFragment: Url = {
     val fullUrl = window.history.state.opt.map(_.asInstanceOf[js.Dynamic].url.toString).getOrElse(window.location.pathname)
+    logger.debug(s"Current fragment with $fullUrl , removeBase ${removeBase(fullUrl)}")
     Url(removeBase(fullUrl))
   }
 }

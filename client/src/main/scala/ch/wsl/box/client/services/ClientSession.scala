@@ -58,16 +58,14 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   private var userInfo:Option[UserInfo] = None
 
   logger.info("Loading session")
-
-  val parameters = new URLSearchParams(dom.window.location.search)
-  Try(parameters.get("lang")).toOption.foreach { l =>
+  Try(new URLSearchParams(dom.window.location.search).get("lang")).toOption.foreach { l =>
     if (l != null && l != "null" && l.nonEmpty ) {
       if (l.length > 1) {
         logger.info(s"Setting language session $l")
         dom.window.sessionStorage.setItem(LANG, l)
       }
+      val parameters = new URLSearchParams(dom.window.location.search)
       parameters.delete("lang")
-      parameters.toString
       dom.window.location.href = dom.window.location.href.takeWhile(_ != '?') + {if(parameters.nonEmpty) "?" + parameters else ""}
     }
   }
@@ -123,7 +121,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     rest.me().flatMap(createSession).recover{case t:Throwable =>
       logger.warn(s"Session non valid")
       dom.window.sessionStorage.removeItem(USER)
-      Notification.closeWebsocket()
+      services.notification.close()
       logged.set(false)
       false
     }
@@ -131,8 +129,11 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def isSet(key:String):Boolean = {
     val item = dom.window.sessionStorage.getItem(key)
-    if(item == null) return false
-    item.nonEmpty
+    if(item == null) {
+      false
+    } else {
+      item.nonEmpty
+    }
   }
 
   def login(username:String,password:String):Future[Boolean] = {
@@ -157,7 +158,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     rest.ui().map(UI.load).map{ _ =>
       dom.window.sessionStorage.setItem(USER,user.preferred_username)
       userInfo = Some(user)
-      Notification.setUpWebsocket()
+      services.notification.setup()
       logged.set(true)
       true
     }
@@ -175,7 +176,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         UI.load(ui)
         logged.set(false)
 
-        Notification.closeWebsocket()
+        services.notification.close()
 
         val oldState = Context.applicationInstance.currentState
         Navigate.to(LoginState(""))

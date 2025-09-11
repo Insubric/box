@@ -216,15 +216,24 @@ lazy val client: Project = (project in file("client"))
 
     //To use jsdom headless browser uncomment the following lines
     Test / requireJsDomEnv := true,
-    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / jsEnv := new jsenv.playwright.PWEnv(
+      browserName = "chrome",
+      headless = sys.env.getOrElse("CI", "false").toBoolean,
+      showLogs = true,
+      debug = false,
+      launchOptions = List(
+        "--disable-web-security",
+      )
+      //pwConfig = jsenv.playwright.PWEnv.Config().withMaterializeInServer(".tmp", "http://localhost:8987/")
+    ),
     Test / parallelExecution := false,
-    Test / jsEnvInput := Def.task{
-      val targetDir = (npmUpdate in Test).value
-      println(targetDir)
-      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
-      println(r)
-      r
-    }.value,
+//    Test / jsEnvInput := Def.task{
+//      val targetDir = (npmUpdate in Test).value
+//      println(targetDir)
+//      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
+//      println(r)
+//      r
+//    }.value,
     Test / scalaJSStage := FastOptStage,
 
     //To use Selenium uncomment the following line

@@ -8,4 +8,5 @@ trait ServiceModule {
   val data = bind[DataAccessObject]
   val clientSession = bind[ClientSession]
   val navigator  = bind[Navigator]
+  val notification = bind[NotificationChannel]
 }

@@ -131,7 +131,11 @@ object Main extends Logging {
         document.body.appendChild(stepperStyle)
 
         val app = document.createElement("div")
+
+        BrowserConsole.log(app)
         document.body.appendChild(app)
+
+      BrowserConsole.log(document.body)
         applicationInstance.run(app)
 
     }

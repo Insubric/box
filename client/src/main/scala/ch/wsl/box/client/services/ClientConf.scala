@@ -106,6 +106,6 @@ object ClientConf {
 
   def mapOptions: Json = Try(parse(conf("map.options")).right.get).getOrElse(Json.Null)
 
-  def openid:Seq[OIDCFrontendConf] = parse(conf(OIDCFrontendConf.name)).flatMap(_.as[Seq[OIDCFrontendConf]]).getOrElse(Seq())
+  def openid:Seq[OIDCFrontendConf] = parse(conf.getOrElse(OIDCFrontendConf.name,"[]")).flatMap(_.as[Seq[OIDCFrontendConf]]).getOrElse(Seq())
 
 }
