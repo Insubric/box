@@ -1,10 +1,11 @@
 package ch.wsl.box.services.config
 
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config
 import scribe.Level
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, OffsetDateTime}
 
 
 class ConfigNotAvailableException extends Exception("Property not available in config file only configuration")
@@ -25,6 +26,8 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
 
   override def prepareDatetime: LocalDateTime => LocalDateTime = throw new ConfigNotAvailableException
 
+  override def prepareDatetimeTz: OffsetDateTime => OffsetDateTime = throw new ConfigNotAvailableException
+
   override def enableCache: Boolean = throw new ConfigNotAvailableException
 
   override def fksLookupLabels: config.Config = throw new ConfigNotAvailableException
@@ -43,6 +46,7 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
 
   override def refresh(): Unit = throw new ConfigNotAvailableException
 
+  override def singleUser: Boolean = throw new ConfigNotAvailableException
 
   override def mainColor: String = throw new ConfigNotAvailableException
 
@@ -53,4 +57,8 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
   override def initials: String = throw new ConfigNotAvailableException
 
   override def matomo: Option[MatomoConfig] = throw new ConfigNotAvailableException
+
+  override def openid: Seq[OIDCConf] = throw new ConfigNotAvailableException
+
+  override def localDb: Boolean = throw new ConfigNotAvailableException
 }

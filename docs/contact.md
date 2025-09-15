@@ -1,14 +1,15 @@
 ---
 title: Contacts
 permalink: /contacts/
-nav_order: 7
+nav_order: 10
+layout: default
 ---
 
 # Contacts
 
 ### Andrea Minetti
 
-[wsl.ch](https://www.wsl.ch) / [wavein.ch](https://wavein.ch)
+[Personal homepage at WSL](https://www.wsl.ch/en/staff/minettia/) / [wavein.ch](https://wavein.ch)
 
 [andrea.minetti@wsl.ch](mailto:andrea.minetti@wsl.ch) / [andrea@wavein.ch](mailto:andrea@wavein.ch)
 
@@ -18,7 +19,7 @@ nav_order: 7
 
 ### Gianni Boris Pezzatti
 
-[Personal homepage at WSL](https://www.wsl.ch/en/employees/pezzatti.html)
+[Personal homepage at WSL](https://www.wsl.ch/en/staff/pezzatti/)
 
 [boris.pezzatti@wsl.ch](mailto:boris.pezzatti@wsl.ch)
 

@@ -97,7 +97,7 @@ object EntityMetadataFactory extends Logging {
             }
           } yield {
             fk match {
-              case Some(fk) => {
+              case Some(fk) if fk.referencingKeys.forall(_ != null) => {
 
 
                   val foreignValue = fk.referencingKeys(fk.keys.indexOf(field.column_name))
@@ -119,12 +119,18 @@ object EntityMetadataFactory extends Logging {
 
 
               }
-              case _ => JSONField(
-                field.jsonType,
-                name = field.boxName,
-                nullable = !field.required,
-                widget = WidgetsNames.defaults.get(field.jsonType)
-              )
+              case _ => {
+                if(fk.nonEmpty &&  fk.get.referencingKeys.contains(null)) {
+                  logger.warn(s"Probably there are some missing permission needed ${fk.get.constraintName} for user ${up.name}")
+                }
+
+                JSONField(
+                  field.jsonType,
+                  name = field.boxName,
+                  nullable = !field.required,
+                  widget = WidgetsNames.defaults.get(field.jsonType)
+                )
+              }
             }
           }
 
@@ -135,6 +141,8 @@ object EntityMetadataFactory extends Logging {
           fields <- DBIO.from(up.db.run(DBIO.sequence(c.map(field2form))))
           keys <- EntityMetadataFactory.keysOf(registry.schema,table)
         } yield {
+
+
 
           val keyStrategy = if(Managed(table)) SurrugateKey else NaturalKey
 
@@ -155,7 +163,7 @@ object EntityMetadataFactory extends Logging {
             None,
             fieldList,
             None,
-            FormActionsMetadata.default,
+            FormActionsMetadata.defaultHasLocal(services.config.localDb),
             params = Some(Json.fromFields(Map("maxWidth" -> Json.fromInt(800), "hideFooter" -> Json.True)))
           )
         }

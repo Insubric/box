@@ -4,6 +4,7 @@ import ch.wsl.box.model.shared.FunctionKind
 import slick.model.ForeignKeyAction
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
+import io.circe.Json
 
 object BoxFunction {
 
@@ -58,12 +59,12 @@ object BoxFunction {
 
   case class BoxFunctionField_row(field_uuid: Option[java.util.UUID] = None, function_uuid: java.util.UUID, `type`: String, name: String, widget: Option[String] = None,
                                   lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery:Option[String] = None,
-                                  default:Option[String] = None, conditionFieldId:Option[String] = None, conditionValues:Option[String] = None)
+                                  default:Option[String] = None, condition:Option[Json] = None)
 
 
   class BoxFunctionField(_tableTag: Tag) extends Table[BoxFunctionField_row](_tableTag,schema, "function_field") {
-    def * = (Rep.Some(field_uuid), function_uuid, `type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues) <> (BoxFunctionField_row.tupled, BoxFunctionField_row.unapply)
-    def ? = (Rep.Some(field_uuid), Rep.Some(function_uuid), Rep.Some(`type`),  name, widget, lookupEntity, lookupValueField, lookupQuery, default,conditionFieldId,conditionValues).shaped.<>({ r=>import r._; _1.map(_=> BoxFunctionField_row.tupled((_1, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10, _11)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def * = (Rep.Some(field_uuid), function_uuid, `type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default,condition) <> (BoxFunctionField_row.tupled, BoxFunctionField_row.unapply)
+    def ? = (Rep.Some(field_uuid), Rep.Some(function_uuid), Rep.Some(`type`),  name, widget, lookupEntity, lookupValueField, lookupQuery, default,condition).shaped.<>({ r=>import r._; _1.map(_=> BoxFunctionField_row.tupled((_1, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
     val function_uuid: Rep[java.util.UUID] = column[java.util.UUID]("function_uuid")
@@ -74,8 +75,7 @@ object BoxFunction {
     val lookupValueField: Rep[Option[String]] = column[Option[String]]("lookupValueField", O.Default(None))
     val lookupQuery: Rep[Option[String]] = column[Option[String]]("lookupQuery", O.Default(None))
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
-    val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
-    val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
+    val condition: Rep[Option[Json]] = column[Option[Json]]("condition", O.Default(None))
 
     lazy val functionFk = foreignKey("fkey_function", function_uuid, BoxFunctionTable)(r => r.function_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
   }

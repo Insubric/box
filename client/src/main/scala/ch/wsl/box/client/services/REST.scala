@@ -3,11 +3,14 @@ package ch.wsl.box.client.services
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared._
+import ch.wsl.box.model.shared.admin.FormCreationRequest
 import ch.wsl.box.model.shared.geo.GeoDataRequest
+import ch.wsl.box.model.shared.oidc.UserInfo
 import io.circe.Json
 import org.scalajs.dom
 import org.scalajs.dom.File
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -16,7 +19,7 @@ trait REST{
   def version()(implicit ec:ExecutionContext):Future[String]
   def appVersion()(implicit ec:ExecutionContext):Future[String]
   def validSession()(implicit ec:ExecutionContext):Future[Boolean]
-  def me()(implicit ec:ExecutionContext):Future[CurrentUser]
+  def me()(implicit ec:ExecutionContext):Future[UserInfo]
   def cacheReset()(implicit ec:ExecutionContext):Future[String]
   def entities(kind:String)(implicit ec:ExecutionContext):Future[Seq[String]]
 
@@ -52,7 +55,8 @@ trait REST{
   def sendFile(file:File, id:JSONID, entity:String)(implicit ec:ExecutionContext): Future[Int]
 
   //other utilsString
-  def login(request:LoginRequest)(implicit ec:ExecutionContext):Future[Json]
+  def login(request:LoginRequest)(implicit ec:ExecutionContext):Future[UserInfo]
+  def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext):Future[UserInfo]
   def logout()(implicit ec:ExecutionContext):Future[String]
   def labels(lang:String)(implicit ec:ExecutionContext):Future[Map[String,String]]
   def conf()(implicit ec:ExecutionContext):Future[Map[String,String]]
@@ -75,6 +79,9 @@ trait REST{
 
   //admin
   def generateStub(entity:String)(implicit ec:ExecutionContext):Future[Boolean]
+  def childCandidates(table:String)(implicit ec:ExecutionContext):Future[Seq[String]]
+  def roles()(implicit ec:ExecutionContext):Future[Seq[String]]
+  def createForm(formRequest:FormCreationRequest)(implicit ec:ExecutionContext):Future[UUID]
   def definition()(implicit ec:ExecutionContext):Future[BoxDefinition]
   def definitionDiff(definition:BoxDefinition)(implicit ec:ExecutionContext):Future[BoxDefinitionMerge]
   def definitionCommit(merge:BoxDefinitionMerge)(implicit ec:ExecutionContext):Future[Boolean]

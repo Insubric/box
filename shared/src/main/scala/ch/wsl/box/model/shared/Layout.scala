@@ -44,6 +44,9 @@ object Layout extends Logging {
   implicit val layoutBlockEncoder: Encoder[LayoutBlock] = new Encoder[LayoutBlock] {
     final def apply(a: LayoutBlock): Json = Json.obj(
       ("width", a.width.asJson),
+      ("height", a.height.asJson),
+      ("x", a.x.asJson),
+      ("y", a.y.asJson),
       ("fields", a.fields.asJson),
       ("title", a.title.asJson),
       ("tab", a.tab.asJson),
@@ -61,6 +64,9 @@ object Layout extends Logging {
     final def apply(c: HCursor): Decoder.Result[LayoutBlock] =
       for {
         width <- c.downField("width").as[Int]
+        height = c.downField("height").as[Int]
+        x = c.downField("x").as[Int]
+        y = c.downField("y").as[Int]
         fields <- c.downField("fields").as[Seq[Either[String,SubLayoutBlock]]]
         title = c.downField("title").as[Either[String,I18n]]
         tab = c.downField("tab").as[String]
@@ -80,7 +86,7 @@ object Layout extends Logging {
           }
         }
 
-        LayoutBlock(title.toOption,width,fields,lt,tab.toOption,tabGroup.toOption)
+        LayoutBlock(title.toOption,fields,width,height.toOption,x.toOption,y.toOption,lt,tab.toOption,tabGroup.toOption)
       }
   }
 
@@ -126,7 +132,7 @@ object Layout extends Logging {
   }
 
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
-    LayoutBlock(None,12,fields.map(x => Left(x.name)),StackedLayout)
+    LayoutBlock(None,fields.map(x => Left(x.name)),12)
   ))
 }
 
@@ -144,8 +150,11 @@ case object MultirowTableLayout extends LayoutType
   */
 case class LayoutBlock(
                    title: Option[Either[String,I18n]],
-                   width:Int,
                    fields:Seq[Either[String,SubLayoutBlock]],
+                   width:Int,
+                   height: Option[Int] = None,
+                   x: Option[Int] = None,
+                   y: Option[Int] = None,
                    layoutType:LayoutType = StackedLayout,
                    tab: Option[String] = None,
                    tabGroup:Option[String] = None,
@@ -155,6 +164,10 @@ case class LayoutBlock(
     case Left(_) => Seq()
     case Right(value) => value.extractFields(metadata)
   }
+}
+
+object LayoutBlock {
+  def simple(width:Int,fields: Seq[String]) = LayoutBlock(None,fields.map(Left(_)),width)
 }
 
 

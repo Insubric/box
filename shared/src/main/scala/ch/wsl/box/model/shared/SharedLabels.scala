@@ -135,6 +135,7 @@ object SharedLabels extends LabelsCollection {
   object form extends LabelsCollection{
     def required = "form.required"
     def save = "form.save"
+    def save_local = "form.save_local"
     def save_add = "form.save_add"
     def save_table = "form.save_table"
     def addDate = "form.add_date"
@@ -149,6 +150,7 @@ object SharedLabels extends LabelsCollection {
     def all = Seq(
       required,
       save,
+      save_local,
       save_add,
       save_table,
       addDate,

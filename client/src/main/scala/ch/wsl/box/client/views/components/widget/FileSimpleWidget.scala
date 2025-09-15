@@ -4,10 +4,11 @@ package ch.wsl.box.client.views.components.widget
 import java.util.UUID
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.LoginPopup.{body, header}
-import ch.wsl.box.client.services.{ClientConf, Labels, REST}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, REST}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.views.components.Debug
 import ch.wsl.box.model.shared._
+import ch.wsl.typings.compressorjs
 import io.circe.Json
 import io.udash._
 import io.udash.bindings.Bindings
@@ -19,7 +20,7 @@ import io.udash.bootstrap.utils.BootstrapStyles.Size
 import io.udash.properties.single.Property
 import org.scalajs.dom
 import org.scalajs.dom.raw.{DragEvent, HTMLAnchorElement}
-import org.scalajs.dom.{Event, File, FileReader, window}
+import org.scalajs.dom.{Blob, Event, File, FileReader, window}
 import scalatags.JsDom
 import scribe.Logging
 
@@ -49,23 +50,28 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   val mime:Property[Option[String]] = Property(None)
   val source:Property[Option[String]] = Property(None)
 
+  case class CompressorOptions(quality:Double,maxWidth:Option[Double],maxHeight:Option[Double])
+  import io.circe.generic.auto._
+  val compressionOptions = field.params.flatMap(_.js("compressor").as[CompressorOptions].toOption)
+
   val uploadFilenameField:Option[String] = field.params.flatMap(_.getOpt("uploadFilenameField"))
   val downloadFilenameField:Option[String] = field.params.flatMap(_.getOpt("downloadFilenameField")).orElse(uploadFilenameField)
   val showDownload:Boolean = field.params.exists(_.js("showDownload") == Json.True)
 
   val filenameProp = uploadFilenameField.map{f => widgetParams.otherField(f)}
 
+  def extractMime(file:String):String = file.take(1) match {
+    case "/" => "image/jpeg"
+    case "i" => "image/png"
+    case "R" => "image/gif"
+    case "J" => "application/pdf"
+    case _ => "application/octet-stream"
+  }
+
   data.listen({js =>
     def file = data.get.string
     if(file.length > 0 && !FileUtils.isKeep(file)) {
-      val mime = file.take(1) match {
-        case "/" => "image/jpeg"
-        case "i" => "image/png"
-        case "R" => "image/gif"
-        case "J" => "application/pdf"
-        case _ => "application/octet-stream"
-      }
-      this.mime.set(Some(mime))
+      this.mime.set(Some(extractMime(file)))
       this.source.set(Some(s"data:$mime;base64,$file"))
     } else if(FileUtils.isKeep(file)) {
       source.set(Some(file))
@@ -82,23 +88,33 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
     super.killWidget()
   }
 
-  def url(data:Json):Option[(String,String)] = {
+  def url(data:Json):Option[String] = {
     JSONID.fromData(data,widgetParams.metadata).map{ id =>
-      val randomString = UUID.randomUUID().toString
       val idString = id.asString
       val name = downloadFilenameField.flatMap(data.getOpt) match {
         case Some(name) => name
         case None => s"${widgetParams.metadata.name}_$idString"
       }
       val u = s"/file/${widgetParams.metadata.entity}.${field.name}/$idString"
-      (
-        s"$u/thumb?rand=$randomString",
-        s"$u?name=$name"
-      )
+      val randomString = UUID.randomUUID().toString
+      s"$u?name=$name&r=$randomString"
     }
   }
 
-  val urls = widgetParams.allData.transform(url)
+  val idString:Property[Option[String]] = Property(None)
+  autoRelease{
+    widgetParams.allData.listen({data =>
+      idString.set(JSONID.fromData(data,widgetParams.metadata).map(_.asString))
+    },true)
+  }
+
+  val thumbUrl = idString.transform{ _.map{ idString =>
+    val randomString = UUID.randomUUID().toString
+    val u = s"/file/${widgetParams.metadata.entity}.${field.name}/$idString"
+    s"$u/thumb?rand=$randomString"
+  }}
+
+  val downloadUrl = widgetParams.allData.transform(url)
 
   private def showFile(nested:Binding.NestedInterceptor) = div(ClientConf.style.noPadding)(
     nested(produceWithNested(mime.combine(source)((m,s) => (m,s))) {
@@ -109,8 +125,8 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
         span("File loaded")
       ).render
       case ((Some(mime),Some(file)),nested) if FileUtils.isKeep(file) => div(
-        nested(produce(urls) {
-          case Some((thumb,_download)) => {
+        nested(produce(thumbUrl.combine(downloadUrl){ case (x,y) => (x,y)}) {
+          case (Some(thumb),Some(_download)) => {
 
             val url:Property[String] = Property("")
 
@@ -121,7 +137,6 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
               headerFactory = None,
               bodyFactory = Some((interceptor) => {
                 if(mime == "application/pdf") {
-                  div(Routes.baseUri)
                   iframe(attr("src").bind(url.transform(f => s"${Routes.baseUri}pdf/web/viewer.html?file="+f)), ClientConf.style.fullWidth, ClientConf.style.fullHeight).render
                 } else {
                   img(nested(src.bind(url))).render
@@ -166,7 +181,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
   }).render
 
 
-  selectedFiles.listen{ _.headOption.map{ file =>
+  def readFile(file:Blob): Unit = {
     val reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = (e) => {
@@ -175,20 +190,46 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
       val index = result.indexOf(token)
       val base64 = result.substring(index+token.length)
 
-      filenameProp.foreach { field =>
-        field.set(file.name.asJson)
-      }
 
       data.set(base64.asJson)
     }
+  }
+
+  selectedFiles.listen{ _.headOption.map{ file =>
+    BrowserConsole.log(file)
+    mime.set(Some(file.`type`))
+
+    filenameProp.foreach { field =>
+      field.set(file.name.asJson)
+    }
+
+    compressionOptions match {
+      case Some(opt) if file.`type`.contains("image") => {
+        val options = compressorjs.Compressor.Options()
+          .setRetainExif(true)
+          .setQuality(opt.quality)
+          .setSuccess { file =>
+            BrowserConsole.log(file.asInstanceOf[js.Any])
+            readFile(file.asInstanceOf[Blob])
+          }
+
+        opt.maxWidth.foreach(options.setMaxWidth)
+        opt.maxHeight.foreach(options.setMaxHeight)
+
+        new compressorjs.mod.default(file,options)
+      }
+      case None => readFile(file)
+    }
+
+
   }}
 
   private def upload = {
 
     div(BootstrapCol.md(12),ClientConf.style.noPadding)(
       fileInput,
-      produce(urls) {
-        case Some((thumb,_download)) =>
+      produce(downloadUrl) {
+        case Some(_download) =>
           WidgetUtils.addTooltip(Some("Download")){
             a(Icons.download, ClientConf.style.boxIconButton, href := Routes.apiV1(_download),attr("download") := "download").render
           }._1

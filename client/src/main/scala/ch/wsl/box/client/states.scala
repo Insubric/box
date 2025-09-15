@@ -33,16 +33,20 @@ case class LoginState2params(url:String,p1:String,p2:String) extends LoginStateA
 case class LoginState3params(url:String,p1:String,p2:String,p3:String) extends LoginStateAbstract(Some(RootState()))
 case class LoginState4params(url:String,p1:String,p2:String,p3:String,p4:String) extends LoginStateAbstract(Some(RootState()))
 
+case class AuthenticateState(provider_id:String) extends FinalRoutingState(Some(RootState()))
+
 case class RootState(layout:String = Layouts.std) extends ContainerRoutingState(None)
 
 case object ErrorState extends FinalRoutingState(Some(RootState()))
 
 case object AdminState extends FinalRoutingState(Some(RootState()))
+case object AdminCreateFormState extends FinalRoutingState(Some(RootState()))
 case object TranslatorState extends FinalRoutingState(Some(RootState()))
 case object AdminConfState extends FinalRoutingState(Some(RootState()))
 case object AdminUiConfState extends FinalRoutingState(Some(RootState()))
 case object AdminBoxDefinitionState extends FinalRoutingState(Some(RootState()))
 case class AdminTranslationsState(from:String,to:String) extends FinalRoutingState(Some(RootState()))
+case object AdminDBReplState extends FinalRoutingState(Some(RootState()))
 
 case object IndexState extends FormState(EntityKind.FORM.kind, "index", "true", Some("static::page"), false, Layouts.std) {
   override def entity: String = UI.indexPage.getOrElse("")

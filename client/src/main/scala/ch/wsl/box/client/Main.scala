@@ -1,5 +1,6 @@
 package ch.wsl.box.client
 
+import ch.wsl.box.client.db.DB
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
 import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
@@ -19,8 +20,8 @@ object Main extends Logging {
 
   def main(args: Array[String]): Unit = {
 
-
-    Context.init(Module.prod)
+    val moduleName = window.asInstanceOf[js.Dynamic].boxUiModule.asInstanceOf[String]
+    Context.init(Module.byName(moduleName))
 
     println(
       s"""
@@ -62,6 +63,7 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
+      _ <- if(ClientConf.localDb) DB.init() else Future.successful()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()
@@ -129,7 +131,11 @@ object Main extends Logging {
         document.body.appendChild(stepperStyle)
 
         val app = document.createElement("div")
+
+        BrowserConsole.log(app)
         document.body.appendChild(app)
+
+      BrowserConsole.log(document.body)
         applicationInstance.run(app)
 
     }

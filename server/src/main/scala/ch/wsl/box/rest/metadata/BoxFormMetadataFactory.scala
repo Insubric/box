@@ -2,6 +2,7 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
+import ch.wsl.box.model.InformationSchema
 import ch.wsl.box.model.boxentities._
 import ch.wsl.box.model.shared._
 import ch.wsl.box.rest.runtime.Registry
@@ -24,20 +25,23 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
   lazy val viewsOnly = Registry().fields.views.sorted
   lazy val tablesAndViews = (viewsOnly ++ Registry().fields.tables).sorted
 
+  lazy val fields: Map[String, Seq[String]] = Registry().fields.tableFields.view.mapValues(_.keys.toSeq).toMap
+
 
 
   def registry(implicit ec:ExecutionContext,services:Services) = for{
     forms <- getForms()
     users <- getUsers()
     functions <- getFunctions()
+    roles <- InformationSchema.roles()
   } yield Seq(
-    FormUIDef.main(tablesAndViews,users.sortBy(_.username)),
+    FormUIDef.main(tablesAndViews,users.sortBy(_.username),fields),
     FormUIDef.page(users.sortBy(_.username)),
-    FormUIDef.field(tablesAndViews),
-    FormUIDef.field_no_db(tablesAndViews),
-    FormUIDef.field_childs(forms.sortBy(_.name)),
-    FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
-    FormUIDef.fieldI18n(services.config.langs),
+    FormUIDef.field(tablesAndViews,fields,roles),
+    FormUIDef.field_no_db(tablesAndViews,fields),
+    FormUIDef.field_childs(forms.sortBy(_.name),fields,roles),
+    FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),
+    FormUIDef.fieldI18n(services.config.langs,fields),
     FormUIDef.formI18n(viewsOnly,services.config.langs),
     FormUIDef.form_actions(functions.map(_.name)),
     FormUIDef.form_navigation_actions(functions.map(_.name)),
@@ -78,23 +82,24 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
   override def children(form: JSONMetadata,user:CurrentUser,ignoreChilds:Seq[UUID] = Seq())(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONMetadata]] = for{
     forms <- getForms()
     functions <- getFunctions()
+    roles <- InformationSchema.roles()
   } yield {
     form match {
       case f if f.objId == FORM => Seq(
-        FormUIDef.field(tablesAndViews),
-        FormUIDef.field_no_db(tablesAndViews),
-        FormUIDef.field_static(tablesAndViews,functions.map(_.name)),
-        FormUIDef.field_childs(forms),
-        FormUIDef.fieldI18n(services.config.langs),
+        FormUIDef.field(tablesAndViews,fields,roles),
+        FormUIDef.field_no_db(tablesAndViews,fields),
+        FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),
+        FormUIDef.field_childs(forms,fields,roles),
+        FormUIDef.fieldI18n(services.config.langs,fields),
         FormUIDef.formI18n(viewsOnly,services.config.langs),
         FormUIDef.form_actions(functions.map(_.name)),
         FormUIDef.form_navigation_actions(functions.map(_.name))
       )
-      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name)),FormUIDef.field_childs(forms),FormUIDef.fieldI18n(services.config.langs),FormUIDef.formI18n(viewsOnly,services.config.langs))
-      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs))
-      case f if f.objId == FORM_FIELD_NOT_DB => Seq(FormUIDef.fieldI18n(services.config.langs))
-      case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs))
-      case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n(services.config.langs))
+      case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),FormUIDef.field_childs(forms,fields,roles),FormUIDef.fieldI18n(services.config.langs,fields),FormUIDef.formI18n(viewsOnly,services.config.langs))
+      case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
+      case f if f.objId == FORM_FIELD_NOT_DB => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
+      case f if f.objId == FORM_FIELD_STATIC => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
+      case f if f.objId == FORM_FIELD_CHILDS => Seq(FormUIDef.fieldI18n(services.config.langs,fields))
       case f if f.objId == FUNCTION => Seq(FunctionUIDef.field(tablesAndViews),FunctionUIDef.fieldI18n(services.config.langs),FunctionUIDef.functionI18n(services.config.langs))
       case f if f.objId == FUNCTION_FIELD => Seq(FunctionUIDef.fieldI18n(services.config.langs))
       case f if f.objId == NEWS => Seq(NewsUIDef.newsI18n(services.config.langs))

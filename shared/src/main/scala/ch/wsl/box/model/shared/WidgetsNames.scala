@@ -12,6 +12,7 @@ object WidgetsNames {
   val datepicker = "datepicker"
   val timepicker = "timepicker"
   val datetimePicker = "datetimePicker"
+  val datetimetzPicker = "datetimetzPicker"
   val select = "selectWidget"
   val checkbox = "checkbox"
   val selectBoolean = "selectBoolean"
@@ -22,6 +23,7 @@ object WidgetsNames {
   val multi = "multi"
   val inputMultipleText = "inputMultipleText"
   val multipleLookup = "multipleLookup"
+  val twoList = "twoList"
   val twoLines = "twoLines"
   val popup = "popup"
   val popupWidget = "popupWidget"
@@ -56,6 +58,9 @@ object WidgetsNames {
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
   val adminLayoutWidget = "adminLayoutWidget"
+  val adminQueryBuilder = "adminQueryBuilder"
+  val adminConditionBuilder = "adminConditionBuilder"
+  val adminFormParamsLayout = "adminFormParamsLayout"
 
   val mapping= Map(
     NUMBER -> Seq(
@@ -131,6 +136,13 @@ object WidgetsNames {
       dynamicWidget,
       popupWidget
     ),
+    DATETIMETZ -> Seq(
+      datetimetzPicker,
+      input,
+      hidden,
+      dynamicWidget,
+      popupWidget
+    ),
     TIME -> Seq(
       timepicker,
       input,
@@ -157,13 +169,16 @@ object WidgetsNames {
       input,
       multipleLookup,
       multi,
+      twoList,
       hidden,
       dynamicWidget,
-      popupWidget
+      popupWidget,
+
     ),
     ARRAY_STRING -> Seq(
       inputMultipleText,
       multipleLookup,
+      twoList,
       multi,
       input,
       hidden,

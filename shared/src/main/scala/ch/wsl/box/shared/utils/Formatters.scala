@@ -1,7 +1,7 @@
 package ch.wsl.box.shared.utils
 
-import ch.wsl.box.model.shared.{JSONMetadata, SubLayoutBlock}
-import io.circe._
+import ch.wsl.box.model.shared.{Condition, JSONMetadata, SubLayoutBlock}
+import io.circe.{Encoder => Decoder, _}
 
 import java.time.LocalDateTime
 
@@ -17,6 +17,8 @@ object Formatters {
     Try(LocalDateTime.parse(str.replace(' ','T')))
   }
 
+  implicit val conditionDecoder: Decoder[Condition] = Condition.decoder
+  implicit val conditionEncoder: Encoder[Condition] = Condition.encoder
 
   import io.circe.generic.auto._
 

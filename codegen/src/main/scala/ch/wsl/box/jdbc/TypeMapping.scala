@@ -20,6 +20,7 @@ object TypeMapping extends Logging {
           case "_int4" | "int4[]" => Some("List[Int]")
           case "_int2" | "int2[]" => Some("List[Short]")
           case s:String if s.contains("geometry") => Some("org.locationtech.jts.geom.Geometry")
+          case "timestamp with timezone" | "timestampz" | "timestamptz" => Some("java.time.OffsetDateTime")
           case s:String if s.contains("email") => {
             Some("String")
           }
@@ -50,8 +51,9 @@ object TypeMapping extends Logging {
     case "boolean" | "bool" => JSONFieldTypes.BOOLEAN
     case "bytea" => JSONFieldTypes.FILE
     case s"timestamp$precision without time zone" => JSONFieldTypes.DATETIME
-    case s"timestamp$precision with time zone" => JSONFieldTypes.DATETIME
-    case s"timestampz$precision" => JSONFieldTypes.DATETIME
+    case s"timestamp$precision with time zone" => JSONFieldTypes.DATETIMETZ
+    case s"timestampz$precision" => JSONFieldTypes.DATETIMETZ
+    case s"timestamptz$precision" => JSONFieldTypes.DATETIMETZ
     case s"timestamp$precision" => JSONFieldTypes.DATETIME
     case "time without time zone" | "time" | "timez" => JSONFieldTypes.TIME
     case "date" => JSONFieldTypes.DATE

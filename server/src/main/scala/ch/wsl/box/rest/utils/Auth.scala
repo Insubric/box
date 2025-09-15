@@ -5,24 +5,25 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import net.ceedubs.ficus.Ficus._
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.CurrentUser
+import ch.wsl.box.model.shared.oidc.UserInfo
+import ch.wsl.box.model.shared.{CurrentUser, DbInfo}
 import ch.wsl.box.services.Services
+import io.circe.Json
 import scribe.Logging
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
-
 import slick.jdbc.GetResult
-
 
 object Auth extends Logging {
 
   def adminUserProfile(implicit services: Services) = UserProfile(
-    name = services.connection.adminUser
+    name = services.connection.adminUser,
+    app_user = "box_admin"
   )
 
-  def checkAuth(name: String, password: String)(implicit executionContext: ExecutionContext, services: Services): Future[Boolean] =
-    Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run{
+
+  def checkAuth(name: String, password: String)(implicit executionContext: ExecutionContext, services: Services): Future[Boolean] = Database.forURL(services.connection.dbPath, name, password, driver = "org.postgresql.Driver").run{
       sql"""select 1""".as[Int]
     }.map { _ =>
       true
@@ -30,20 +31,27 @@ object Auth extends Logging {
 
 
   /**
-    * check if this is a valid user on your system and return his profile,
-    * that include his username and the connection to the DB
-    */
+   * check if this is a valid user on your system and return his profile,
+   * that include his username and the connection to the DB
+   */
   def getCurrentUser(name: String, password: String)(implicit executionContext: ExecutionContext, services: Services): Future[Option[CurrentUser]] = {
 
 
     logger.info(s"Creating new connection for $name")
 
+    val username = services.config.singleUser match {
+      case true => services.connection.user
+      case false => name
+    }
+
     for{
       validUser <- checkAuth(name,password)
-      roles <- if(validUser) rolesOf(name) else Future.successful(Seq())
-    } yield if(validUser) Some(CurrentUser(name,roles)) else None
+      roles <- if(validUser) rolesOf(username) else Future.successful(Seq())
+    } yield if(validUser) Some(CurrentUser(DbInfo(username,name,roles),UserInfo(name,name,None,roles,Json.Null))) else None
 
   }
+
+
 
   def onlyAdminstrator(s: BoxSession)(r: Route)(implicit ec: ExecutionContext,services: Services): Route = {
 
@@ -62,7 +70,7 @@ object Auth extends Logging {
       sql"""select memberOf from #$boxSchema.v_roles where lower(rolname)=lower($name)""".as[Seq[String]](GetResult { r => r.<<[Seq[String]] })
 
     }.map {
-      _.head
+      _.headOption.map(_ ++ Seq(name)).getOrElse(Seq(name))
     }
   }
 

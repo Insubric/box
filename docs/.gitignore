@@ -4,5 +4,4 @@ _site
 .jekyll-metadata
 vendor
 404.html
-GemFile
-GemFile.lock
+.bundle

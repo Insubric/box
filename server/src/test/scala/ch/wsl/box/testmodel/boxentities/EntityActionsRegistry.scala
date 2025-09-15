@@ -16,9 +16,11 @@ object EntityActionsRegistry extends ActionRegistry {
 
   def apply(name:String)(implicit ec: ExecutionContext,services:Services): TableActions[Json] = name match {
     case FormMetadataFactory.STATIC_PAGE => JSONPageActions
-       case "v_box_form_childs" => JSONTableActions[V_box_form_childs,V_box_form_childs_row](V_box_form_childs)(Entities.encodeV_box_form_childs_row,Entities.decodeV_box_form_childs_row,ec,services)
+       case "metadata_columns" => JSONTableActions[Metadata_columns,Metadata_columns_row](Metadata_columns)(Entities.encodeMetadata_columns_row,Entities.decodeMetadata_columns_row,ec,services)
+   case "v_box_form_childs" => JSONTableActions[V_box_form_childs,V_box_form_childs_row](V_box_form_childs)(Entities.encodeV_box_form_childs_row,Entities.decodeV_box_form_childs_row,ec,services)
    case "v_box_usages" => JSONTableActions[V_box_usages,V_box_usages_row](V_box_usages)(Entities.encodeV_box_usages_row,Entities.decodeV_box_usages_row,ec,services)
    case "v_field" => JSONTableActions[V_field,V_field_row](V_field)(Entities.encodeV_field_row,Entities.decodeV_field_row,ec,services)
+   case "v_foreign_keys" => JSONTableActions[V_foreign_keys,V_foreign_keys_row](V_foreign_keys)(Entities.encodeV_foreign_keys_row,Entities.decodeV_foreign_keys_row,ec,services)
    case "v_labels" => JSONTableActions[V_labels,V_labels_row](V_labels)(Entities.encodeV_labels_row,Entities.decodeV_labels_row,ec,services)
    case "v_roles" => JSONTableActions[V_roles,V_roles_row](V_roles)(Entities.encodeV_roles_row,Entities.decodeV_roles_row,ec,services)
    case "access_level" => JSONTableActions[Access_level,Access_level_row](Access_level)(Entities.encodeAccess_level_row,Entities.decodeAccess_level_row,ec,services)

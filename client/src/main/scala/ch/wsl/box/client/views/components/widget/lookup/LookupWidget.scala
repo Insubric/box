@@ -59,7 +59,7 @@ trait LookupWidget extends Widget with HasData {
 
   private def setNewLookup(_newLookup:Seq[JSONLookup]):Seq[JSONLookup] = {
 
-    val newLookup = if(data.get != Json.Null && !_newLookup.exists(_.id == data.get) && data.get.string != JSONUtils.FIRST ) {
+    val newLookup = if(!array && data.get != Json.Null && !_newLookup.exists(_.id == data.get) && data.get.string != JSONUtils.FIRST ) {
       _newLookup ++ Seq(JSONLookup(data.get,Seq(data.get.string)))
     } else _newLookup
 
@@ -151,20 +151,23 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
+  def array = false
 
   def registerDataSync() = {
     dataSyncRegistration.foreach(_.cancel())
-    dataSyncRegistration = Some(data.sync[Option[JSONLookup]](model)(
-      { json: Json =>
-        val result = lookup.get.find(_.id == json).getOrElse {
-          if (!json.isNull)
-            logger.warn(s"Lookup for $json not found on field ${field.name}")
-          JSONLookup(json, Seq(json.string))
-        }
-        Some(result)
-      },
-      { jsonLookup: Option[JSONLookup] => jsonLookup.map(_.id).asJson }
-    ))
+    if(!array) {
+      dataSyncRegistration = Some(data.sync[Option[JSONLookup]](model)(
+        { json: Json =>
+          val result = lookup.get.find(_.id == json).getOrElse {
+            if (!json.isNull)
+              logger.warn(s"Lookup for $json not found on field ${field.name}")
+            JSONLookup(json, Seq(json.string))
+          }
+          Some(result)
+        },
+        { jsonLookup: Option[JSONLookup] => jsonLookup.map(_.id).asJson }
+      ))
+    }
   }
 
   override protected def loadWidget(): Unit = {

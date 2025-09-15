@@ -42,9 +42,11 @@ object FieldAccessRegistry extends FieldRegistry {
   )
 
   override def views: Seq[String] = Seq(
+      "metadata_columns",
       "v_box_form_childs",
       "v_box_usages",
       "v_field",
+      "v_foreign_keys",
       "v_labels",
       "v_roles"
   )
@@ -84,9 +86,11 @@ object FieldAccessRegistry extends FieldRegistry {
         "ui" -> ui_map,
         "ui_src" -> ui_src_map,
         "users" -> users_map,
+        "metadata_columns" -> metadata_columns_map,
         "v_box_form_childs" -> v_box_form_childs_map,
         "v_box_usages" -> v_box_usages_map,
         "v_field" -> v_field_map,
+        "v_foreign_keys" -> v_foreign_keys_map,
         "v_labels" -> v_labels_map,
         "v_roles" -> v_roles_map,
   )
@@ -122,10 +126,9 @@ object FieldAccessRegistry extends FieldRegistry {
               "lookupValueField" -> ColType("String","string",false,true),
               "lookupQuery" -> ColType("io.circe.Json","json",false,true),
               "default" -> ColType("String","string",false,true),
-              "conditionFieldId" -> ColType("String","string",false,true),
-              "conditionValues" -> ColType("String","string",false,true),
               "field_uuid" -> ColType("java.util.UUID","string",true,false),
-              "export_uuid" -> ColType("java.util.UUID","string",false,false)
+              "export_uuid" -> ColType("java.util.UUID","string",false,false),
+              "condition" -> ColType("io.circe.Json","json",false,true)
 )
   private def export_field_i18n_map =  Map(
               "lang" -> ColType("String","string",true,true),
@@ -153,8 +156,6 @@ object FieldAccessRegistry extends FieldRegistry {
               "lookupQuery" -> ColType("io.circe.Json","json",false,true),
               "childQuery" -> ColType("io.circe.Json","json",false,true),
               "default" -> ColType("String","string",false,true),
-              "conditionFieldId" -> ColType("String","string",false,true),
-              "conditionValues" -> ColType("String","string",false,true),
               "params" -> ColType("io.circe.Json","json",false,true),
               "read_only" -> ColType("Boolean","boolean",true,false),
               "required" -> ColType("Boolean","boolean",false,true),
@@ -169,7 +170,8 @@ object FieldAccessRegistry extends FieldRegistry {
               "foreign_entity" -> ColType("String","string",false,true),
               "foreign_value_field" -> ColType("String","string",false,true),
               "foreign_key_columns" -> ColType("List[String]","array_string",false,true),
-              "local_key_columns" -> ColType("List[String]","array_string",false,true)
+              "local_key_columns" -> ColType("List[String]","array_string",false,true),
+              "condition" -> ColType("io.circe.Json","json",false,true)
 )
   private def field_file_map =  Map(
               "file_field" -> ColType("String","string",false,false),
@@ -205,15 +207,16 @@ object FieldAccessRegistry extends FieldRegistry {
               "entity" -> ColType("String","string",false,false),
               "description" -> ColType("String","string",false,true),
               "layout" -> ColType("io.circe.Json","json",false,true),
-              "tabularFields" -> ColType("String","string",false,true),
-              "query" -> ColType("String","string",false,true),
-              "exportfields" -> ColType("String","string",false,true),
+              "tabularFields" -> ColType("List[String]","array_string",false,true),
+              "query" -> ColType("io.circe.Json","json",false,true),
+              "exportfields" -> ColType("List[String]","array_string",false,true),
               "guest_user" -> ColType("String","string",false,true),
               "edit_key_field" -> ColType("String","string",false,true),
               "show_navigation" -> ColType("Boolean","boolean",true,false),
               "props" -> ColType("String","string",false,true),
               "form_uuid" -> ColType("java.util.UUID","string",true,false),
-              "params" -> ColType("io.circe.Json","json",false,true)
+              "params" -> ColType("io.circe.Json","json",false,true),
+              "public_list" -> ColType("Boolean","boolean",true,false)
 )
   private def form_actions_map =  Map(
               "action" -> ColType("String","string",false,false),
@@ -310,10 +313,9 @@ object FieldAccessRegistry extends FieldRegistry {
               "lookupValueField" -> ColType("String","string",false,true),
               "lookupQuery" -> ColType("String","string",false,true),
               "default" -> ColType("String","string",false,true),
-              "conditionFieldId" -> ColType("String","string",false,true),
-              "conditionValues" -> ColType("String","string",false,true),
               "field_uuid" -> ColType("java.util.UUID","string",true,false),
-              "function_uuid" -> ColType("java.util.UUID","string",false,false)
+              "function_uuid" -> ColType("java.util.UUID","string",false,false),
+              "condition" -> ColType("io.circe.Json","json",false,true)
 )
   private def function_field_i18n_map =  Map(
               "lang" -> ColType("String","string",true,true),
@@ -432,6 +434,16 @@ object FieldAccessRegistry extends FieldRegistry {
               "username" -> ColType("String","string",false,false),
               "access_level_id" -> ColType("Int","integer",false,false)
 )
+  private def metadata_columns_map =  Map(
+              "column_name" -> ColType("String","string",false,true),
+              "data_type" -> ColType("String","string",false,true),
+              "nullable" -> ColType("Boolean","boolean",false,true),
+              "table_name" -> ColType("String","string",false,true),
+              "table_schema" -> ColType("String","string",false,true),
+              "ordinal_position" -> ColType("Short","integer",false,true),
+              "column_default" -> ColType("String","string",false,true),
+              "table_type" -> ColType("String","string",false,true)
+)
   private def v_box_form_childs_map =  Map(
               "name" -> ColType("String","string",false,true),
               "entity" -> ColType("String","string",false,true),
@@ -454,8 +466,7 @@ object FieldAccessRegistry extends FieldRegistry {
               "foreign_key_columns" -> ColType("List[String]","array_string",false,true),
               "childQuery" -> ColType("io.circe.Json","json",false,true),
               "default" -> ColType("String","string",false,true),
-              "conditionFieldId" -> ColType("String","string",false,true),
-              "conditionValues" -> ColType("String","string",false,true),
+              "condition" -> ColType("io.circe.Json","json",false,true),
               "params" -> ColType("io.circe.Json","json",false,true),
               "read_only" -> ColType("Boolean","boolean",false,true),
               "required" -> ColType("Boolean","boolean",false,true),
@@ -467,6 +478,15 @@ object FieldAccessRegistry extends FieldRegistry {
               "max" -> ColType("Double","number",false,true),
               "roles" -> ColType("List[String]","array_string",false,true),
               "entity_field" -> ColType("Boolean","boolean",false,true)
+)
+  private def v_foreign_keys_map =  Map(
+              "constraint_name" -> ColType("String","string",false,true),
+              "schema_name" -> ColType("String","string",false,true),
+              "table_name" -> ColType("String","string",false,true),
+              "referenced_schema_name" -> ColType("String","string",false,true),
+              "referenced_table_name" -> ColType("String","string",false,true),
+              "columns" -> ColType("String","null",false,true),
+              "referenced_columns" -> ColType("String","null",false,true)
 )
   private def v_labels_map =  Map(
               "key" -> ColType("String","string",false,true),
@@ -480,10 +500,11 @@ object FieldAccessRegistry extends FieldRegistry {
               "rolcreatedb" -> ColType("Boolean","boolean",false,true),
               "rolcanlogin" -> ColType("Boolean","boolean",false,true),
               "rolconnlimit" -> ColType("Int","integer",false,true),
-              "rolvaliduntil" -> ColType("java.time.LocalDateTime","null",false,true),
+              "rolvaliduntil" -> ColType("java.time.OffsetDateTime","datetimetz",false,true),
               "memberof" -> ColType("String","null",false,true),
               "rolreplication" -> ColType("Boolean","boolean",false,true),
-              "rolbypassrls" -> ColType("Boolean","boolean",false,true)
+              "rolbypassrls" -> ColType("Boolean","boolean",false,true),
+              "access_level_id" -> ColType("Int","integer",false,true)
 )
 
 

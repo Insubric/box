@@ -7,10 +7,11 @@ import ch.wsl.box.rest.utils.UserProfile
 class GenerateFormSpec extends BaseSpec {
 
   "Form" should "be generated with list elements" in withServices { implicit services =>
-    implicit val up = UserProfile("postgres")
-    StubMetadataFactory.forEntity("test_list_types").map{ result =>
-      result shouldBe true
-    }
+    implicit val up = UserProfile("postgres","postgres")
+    up.db.run{
+    StubMetadataFactory.forEntity("test_list_types","test_list_types").map{ result =>
+      result.toString.nonEmpty shouldBe true
+    }}
   }
 
 }

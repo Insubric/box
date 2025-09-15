@@ -151,12 +151,6 @@ class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Exec
       case None => None
     }
 
-    val condition = for{
-      fieldId <- field.conditionFieldId
-      values <- field.conditionValues
-      json <- Try(parse(values).right.get.as[Json].right.get).toOption
-    } yield ConditionalField(fieldId,json)
-
 
 
       JSONField(
@@ -171,7 +165,7 @@ class FunctionMetadataFactory(implicit up:UserProfile, mat:Materializer, ec:Exec
         field.widget,
         None,
         field.default,
-        condition
+        field.condition.map(Condition.fromJson)
         //      fieldI18n.flatMap(_.tooltip)
       )
 

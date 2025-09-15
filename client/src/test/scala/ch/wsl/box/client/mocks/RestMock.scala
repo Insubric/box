@@ -4,7 +4,9 @@ import ch.wsl.box.client.services.REST
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared.GeoTypes.GeoData
+import ch.wsl.box.model.shared.admin.FormCreationRequest
 import ch.wsl.box.model.shared.geo.GeoDataRequest
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, Child, CurrentUser, ExportDef, Field, FormActionsMetadata, GeoJson, GeoTypes, IDs, JSONCount, JSONField, JSONFieldMap, JSONFieldTypes, JSONID, JSONKeyValue, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, Layout, LayoutBlock, LoginRequest, NewsEntry, PDFTable, SharedLabels, TableAccess, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
@@ -12,6 +14,7 @@ import io.circe.syntax._
 import org.scalajs.dom.File
 import scribe.Logging
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class RestMock(values:Values) extends REST with Logging {
@@ -24,10 +27,12 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def me()(implicit ec:ExecutionContext): Future[CurrentUser] = values.loggedUser match {
-    case Some(value) => Future.successful(CurrentUser(value,Seq()))
+  override def me()(implicit ec:ExecutionContext): Future[UserInfo] = values.loggedUser match {
+    case Some(value) => Future.successful(userInfo)
     case None => Future.failed(new Exception("Not logged in"))
   }
+
+  override def authenticate(code: String, provider_id: String)(implicit ec: ExecutionContext): Future[UserInfo] = ???
 
   override def cacheReset()(implicit ec:ExecutionContext): Future[String] = {
     println("cacheReset not implemented")
@@ -135,8 +140,9 @@ class RestMock(values:Values) extends REST with Logging {
     ???
   }
 
-  override def login(request: LoginRequest)(implicit ec:ExecutionContext): Future[Json] = Future.successful{
-    Json.True
+  val userInfo = UserInfo("t","t",None,Seq(),Json.Null)
+  override def login(request: LoginRequest)(implicit ec:ExecutionContext): Future[UserInfo] = Future.successful{
+    userInfo
   }
 
   override def logout()(implicit ec:ExecutionContext): Future[String] = {
@@ -202,6 +208,13 @@ class RestMock(values:Values) extends REST with Logging {
     println("generateStub not implemented")
     ???
   }
+
+  override def childCandidates(table: String)(implicit ec: ExecutionContext): Future[Seq[String]] = ???
+
+
+  override def roles()(implicit ec: ExecutionContext): Future[Seq[String]] = ???
+
+  override def createForm(formRequest: FormCreationRequest)(implicit ec: ExecutionContext): Future[UUID] = ???
 
   override def definition()(implicit ec:ExecutionContext): Future[BoxDefinition] = ???
 

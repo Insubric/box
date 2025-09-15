@@ -2,10 +2,12 @@ package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.Context
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.client.services.{HttpClient, REST}
+import ch.wsl.box.client.services.{BrowserConsole, HttpClient, REST}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
+import ch.wsl.box.model.shared.admin.FormCreationRequest
 import ch.wsl.box.model.shared.geo.GeoDataRequest
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, CurrentUser, DataResultTable, EntityKind, ExportDef, Field, GeoJson, GeoTypes, IDs, JSONCount, JSONFieldMap, JSONID, JSONLookup, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, LoginRequest, NewsEntry, PDFTable, TableAccess, XLSTable}
 import io.circe.{Decoder, Encoder, Json}
 import kantan.csv.rfc
@@ -14,6 +16,7 @@ import kantan.csv.ops._
 import org.scalajs.dom.File
 import scribe.Logging
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class RestImpl(httpClient:HttpClient) extends REST with Logging {
@@ -27,7 +30,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def version()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/version"))
   def appVersion()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/app_version"))
   def validSession()(implicit ec:ExecutionContext) = httpClient.get[Boolean](Routes.apiV1("/validSession"))
-  def me()(implicit ec:ExecutionContext) = httpClient.get[CurrentUser](Routes.apiV1("/me"))
+  def me()(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1("/me"))
   def cacheReset()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/cache/reset"))
 
   def entities(kind:String)(implicit ec:ExecutionContext):Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/${EntityKind(kind).plural}"))
@@ -109,7 +112,8 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def sendFile(file:File, id:JSONID, entity:String)(implicit ec:ExecutionContext): Future[Int] = httpClient.sendFile[Int](Routes.apiV1(s"/file/$entity/${id.asString}"),file)
 
   //other utilsString
-  def login(request:LoginRequest)(implicit ec:ExecutionContext) = httpClient.post[LoginRequest,Json](Routes.apiV1("/login"),request)
+  def login(request:LoginRequest)(implicit ec:ExecutionContext) = httpClient.post[LoginRequest,UserInfo](Routes.apiV1("/login"),request)
+  def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1(s"/sso/$provider_id?code=$code"))
   def logout()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/logout"))
   def labels(lang:String)(implicit ec:ExecutionContext):Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/labels/$lang"))
   def conf()(implicit ec:ExecutionContext):Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/conf"))
@@ -137,6 +141,15 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   //admin
   def generateStub(entity:String)(implicit ec:ExecutionContext) = httpClient.get[Boolean](Routes.apiV1(s"/create-stub/$entity"))
+
+  override def childCandidates(table: String)(implicit ec: ExecutionContext): Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/child-candidates/$table"))
+
+  override def roles()(implicit ec: ExecutionContext): Future[Seq[String]] =  httpClient.get[Seq[String]](Routes.apiV1(s"/roles/available"))
+
+  override def createForm(formRequest: FormCreationRequest)(implicit ec: ExecutionContext): Future[UUID] = {
+    httpClient.post[FormCreationRequest,UUID](Routes.apiV1(s"/create-form"),formRequest)
+  }
+
   override def definition()(implicit ec:ExecutionContext): Future[BoxDefinition] = httpClient.get[BoxDefinition](Routes.apiV1(s"/box-definition"))
   override def definitionDiff(definition: BoxDefinition)(implicit ec:ExecutionContext): Future[BoxDefinitionMerge] = httpClient.post[BoxDefinition,BoxDefinitionMerge](Routes.apiV1(s"/box-definition/diff"),definition)
   override def definitionCommit(merge: BoxDefinitionMerge)(implicit ec:ExecutionContext): Future[Boolean] = httpClient.post[BoxDefinitionMerge,Boolean](Routes.apiV1(s"/box-definition/commit"),merge)

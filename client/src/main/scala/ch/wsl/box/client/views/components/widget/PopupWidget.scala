@@ -48,10 +48,16 @@ object PopupWidget extends ComponentWidgetFactory  {
 
     private val widgetLabel:Property[String] = Property("")
 
-    autoRelease(params.prop.listen(js => widget.toUserReadableData(js).foreach(x => widgetLabel.set(x.string))))
+    autoRelease(params.prop.listen(js => widget.toUserReadableData(js).foreach(x => widgetLabel.set(x.string)),true))
 
+    private def shorten = !field.params.exists(_.js("avoidShorten") == Json.True)
 
-    def produceLabel = produce(widgetLabel){l => span(Shorten(l)).render }
+    def produceLabel = produce(widgetLabel){l =>
+      if(shorten)
+        span(Shorten(l)).render
+      else
+        span(style:= "white-space: pre",l).render
+    }
 
     override def killWidget(): Unit = {
       widget.killWidget()
@@ -79,10 +85,12 @@ object PopupWidget extends ComponentWidgetFactory  {
         )).render
       ).render
 
-      val body = (x:NestedInterceptor) => div(
-        div(
-          widget.render(write,x)
-        )
+      val body = (i:NestedInterceptor) => div(
+        i(showIf(modalStatus.transform(_ == Status.Open)) {
+          div(
+            widget.render(write, i)
+          ).render
+        })
       ).render
 
       val footer = (x:NestedInterceptor) => div(

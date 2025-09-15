@@ -32,7 +32,7 @@ object Settings {
   object versions {
 
     //General
-    val scala213 = "2.13.9"
+    val scala213 = "2.13.16"
     val ficus = "1.5.2"
 
     val macWire = "2.3.7"
@@ -40,7 +40,7 @@ object Settings {
 
     //HTTP actors
     val akka = "2.6.4"
-    val akkaHttp = "10.2.7"
+    val akkaHttp = "10.2.10"
     val akkaHttpJson = "1.39.2"
 
     //Testing
@@ -75,6 +75,7 @@ object Settings {
     val scalaJsonSchema = "0.2.6"
 
     val kantan = "0.6.1"
+
 
   }
 
@@ -171,6 +172,9 @@ object Settings {
     "com.typesafe" %% "ssl-config-core" % "0.6.1",
     "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
     "org.apache.xmlgraphics" % "batik-codec" % "1.16",
+    "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
+    "com.softwaremill.sttp.client4" %% "circe" % "4.0.9"
+
     //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
     //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"
@@ -188,7 +192,8 @@ object Settings {
     "com.github.japgolly.scalacss" %%% "ext-scalatags" % versions.scalaCss,
     "io.circe" %%% "circe-scalajs" % versions.circe,
     "org.scala-js" %%% "scalajs-dom" % "2.4.0",
-    "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
+    "io.github.cquiroz" %%% "scala-java-time" % "2.6.0",
+    "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.6.0",
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
     "org.scalatest" %%% "scalatest" % versions.scalatest % Test,
     "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0",

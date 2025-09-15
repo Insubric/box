@@ -8,6 +8,7 @@ import java.util.UUID
 import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
+import io.circe.syntax.EncoderOps
 
 /**
   * Created by andreaminetti on 16/03/16.
@@ -24,7 +25,7 @@ case class JSONField(
                       widget: Option[String] = None,
                       child: Option[Child] = None,
                       default: Option[String] = None,
-                      condition: Option[ConditionalField] = None,
+                      condition: Option[Condition] = None,
                       tooltip: Option[String] = None,
                       params: Option[Json] = None,
                       linked: Option[LinkedForm] = None,
@@ -60,11 +61,15 @@ case class JSONField(
       case _ => false
     }
     query.toSeq.flatMap(_.filter).exists(_.fieldValue.contains(field.name)) ||
-      condition.exists(_.conditionFieldId == field.name) || lookupDependent
+      condition.exists(c => Condition.variables(c).contains(field.name)) || lookupDependent
   }
 
   def dependencyFields(fields: Seq[JSONField]):Seq[JSONField] = fields.filter(_.dependsTo(this))
 
+  def asPopup = copy(
+    params = Some(params.getOrElse(Json.obj()).deepMerge(Json.fromFields(Seq(("widget",widget.getOrElse(WidgetsNames.input).asJson))))),
+    widget = Some(WidgetsNames.popupWidget)
+  )
 
 }
 
@@ -77,6 +82,8 @@ object JSONField{
 
   def string(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.STRING,name,nullable,widget = Some(WidgetsNames.input))
   def number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input))
+  def integer(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.INTEGER,name,nullable,widget = Some(WidgetsNames.input))
+  def boolean(name:String, default:Boolean = false) = JSONField(JSONFieldTypes.BOOLEAN,name,false,widget = Some(WidgetsNames.checkbox), default = Some("false"))
   def lookup(name:String, data:Seq[Json], nullable:Boolean = true) = JSONField(JSONFieldTypes.NUMBER,name,nullable,widget = Some(WidgetsNames.input),lookup = Some(JSONFieldLookup.prefilled(data.map(x => JSONLookup(x,Seq(x.string))))))
   def json(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.JSON,name,nullable,widget = Some(WidgetsNames.code))
   def array_number(name:String, nullable:Boolean = true) = JSONField(JSONFieldTypes.ARRAY_NUMBER,name,nullable,widget = Some(WidgetsNames.input))
@@ -168,29 +175,6 @@ object Child{
 
 }
 
-case class NotCondition(not:Seq[Json])
-
-case class ConditionalField(conditionFieldId:String,conditionValues:Json) {
-
-
-  def check(js:Json):Boolean = ConditionalField.check(js.js(conditionFieldId),conditionValues)
-
-
-}
-
-object ConditionalField{
-  def check(js:Json,conditionValues:Json) = {
-    js.equals(conditionValues) || {
-      conditionValues
-        .asArray.map(_.contains(js))
-        .orElse(conditionValues.as[NotCondition].toOption.map(!_.not.contains(js))) match {
-        case Some(value) => value
-        case None => false //throw new Exception(s"Wrong conditions: $conditionValues value $js")
-      }
-    }
-  }
-}
-
 object JSONFieldTypes{
   val NUMBER = "number"
   val INTEGER = "integer"
@@ -199,6 +183,7 @@ object JSONFieldTypes{
   val FILE = "file"
   val DATE = "date"
   val DATETIME = "datetime"
+  val DATETIMETZ = "datetimetz"
   val TIME = "time"
   val INTERVAL = "interval" //Not used
   val BOOLEAN = "boolean"
@@ -208,5 +193,5 @@ object JSONFieldTypes{
   val JSON = "json"
   val STATIC = "static"
 
-  val ALL = Seq(NUMBER,INTEGER,STRING,FILE,DATE,DATETIME,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
+  val ALL = Seq(NUMBER,INTEGER,STRING,FILE,DATE,DATETIME,DATETIMETZ,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
 }

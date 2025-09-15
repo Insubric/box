@@ -63,12 +63,15 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "translations" / from / to  => AdminTranslationsState(from,to)
     case "/admin" / "conf"  => AdminConfState
     case "/admin" / "ui-conf"  => AdminUiConfState
+    case "/admin" / "db-repl"  => AdminDBReplState
+    case "/admin" / "form" / "create"  => AdminCreateFormState
   }
 
 
   //localhost:8080/public/box/form/tree
   private val (loggedOutUrl2State, loggedOutState2Url) = bidirectional {
     case "/" => LoginState("")
+    case "/authenticate" / provider_id  => AuthenticateState(provider_id)
     case "/logout" => LogoutState
     case "/public" / "box" / kind / entity  => EntityTableState(kind,entity,None,true)
     case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
@@ -96,5 +99,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/admin" / "translations" / from / to  => LoginState2params("/admin/translations/$from/$to",from,to)
     case "/admin" / "conf"  => LoginState("/admin/conf")
     case "/admin" / "ui-conf"  => LoginState("/admin/ui-conf")
+    case "/admin" / "db-repl"  => LoginState("/admin/db-repl")
+    case "/admin" / "form" / "create"  => LoginState("/admin/form/create")
   }
 }

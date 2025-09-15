@@ -20,3 +20,5 @@ where mv.relkind in ('r', 'v', 'm', 'f') and
     not att.attisdropped
   and att.attnum > 0
 order by att.attnum;
+
+grant select on metadata_columns to box_user;

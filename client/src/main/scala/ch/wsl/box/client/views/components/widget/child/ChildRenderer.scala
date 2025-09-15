@@ -181,7 +181,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def findItem(item: => ChildRow) = childWidgets.zipWithIndex.find(x => x._1.rowId.get == item.rowId.get && x._1.id == item.id)
 
     def removeItem(itemToRemove: => ChildRow) = (e:Event) => {
-      logger.info("removing item")
+      logger.info(s"removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
 
         findItem(itemToRemove).map { case (row, idx) =>
@@ -235,9 +235,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
           def dataWithoutIgnored = itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => duplicateIgnoreFields.contains(key) }))
           def dataWithNoKeys = dataWithoutIgnored.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
 
-          val newData = if(md.keyFields.forall(_.readOnly)) {
-            dataWithNoKeys
-          } else dataWithoutIgnored
+          val newData = dataWithNoKeys // never copy keys, too dangerous
 
 
           val itemsToAdd = addObject match {
@@ -297,9 +295,10 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       val out = Future.sequence(childWidgets.filterNot(_.deleted).map{ case cw =>
 
 
-        val oldData = cw.data.get
 
-        val newData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m,false) == cw.rowId.get )).getOrElse(Json.obj())
+        val newData = cw.data.get
+
+        val oldData = rows.find(r => metadata.exists(m => JSONID.fromData(r,m,false) == cw.rowId.get )).getOrElse(Json.obj())
         val d = oldData.deepMerge(newData)
 
         logger.debug(

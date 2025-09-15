@@ -79,28 +79,41 @@ class PgInformationSchema(box_schema:String, schema:String, table:String, exclud
   def findFk(field:String):DBIO[Option[ForeignKey]] = {
     sql"""
     SELECT
-        array_agg(kcu.column_name::text) as keys,
-        array_agg(rcu.column_name::text) AS "referencingKeys",
-        rcu.table_name::text as "referencingTable",
-        rc.constraint_name::text as "constraintName"
+        columns as keys,
+        referenced_columns AS "referencingKeys",
+        referenced_table_name as "referencingTable",
+        constraint_name as "constraintName"
 
-    FROM information_schema.referential_constraints rc
-             LEFT JOIN information_schema.key_column_usage kcu
-                       ON rc.constraint_catalog = kcu.constraint_catalog
-                           AND rc.constraint_schema = kcu.constraint_schema
-                           AND rc.constraint_name = kcu.constraint_name
-             LEFT JOIN information_schema.key_column_usage rcu -- referenced columns
-                       ON rc.unique_constraint_catalog = rcu.constraint_catalog
-                           AND rc.unique_constraint_schema = rcu.constraint_schema
-                           AND rc.unique_constraint_name = rcu.constraint_name
-                           AND rcu.ordinal_position = kcu.position_in_unique_constraint
-    where kcu.table_name = $table and rc.constraint_schema= $schema
-    group by rc.constraint_schema, rc.constraint_name, kcu.table_name, rcu.table_name;
+    FROM #$box_schema.v_foreign_keys
+    where table_name = $table and schema_name= $schema;
 
          """.as[(Seq[String],Seq[String],String,String)].map{ fk =>
       val r = fk.find(_._1.exists(k => k == field)).map(x => ForeignKey(x._1,x._2,x._3,x._4))
       r
     }
+  }
+
+  def findFkToTable(referenced_table:String):DBIO[Option[ForeignKey]] = {
+    sql"""
+    SELECT
+        columns as keys,
+        referenced_columns AS "referencingKeys",
+        referenced_table_name as "referencingTable",
+        constraint_name as "constraintName"
+
+    FROM #$box_schema.v_foreign_keys
+    where table_name = $table and schema_name= $schema and referenced_table_name=${referenced_table} and referenced_schema_name= $schema;
+
+         """.as[(Seq[String],Seq[String],String,String)].map{ _.headOption.map{ x =>
+       ForeignKey(x._1,x._2,x._3,x._4)
+    }}
+  }
+
+
+  def childCandidates():DBIO[Seq[String]] = {
+    sql"""
+         select table_name from #$box_schema.v_foreign_keys where referenced_table_name=$table and referenced_schema_name=$schema
+    """.as[String].map(_.toSeq)
   }
 
 }

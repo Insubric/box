@@ -202,9 +202,13 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
         logger.info("csv")
         import kantan.csv._
         import kantan.csv.ops._
-        onComplete(db.run(dbActions.findSimple(query))) {
-          case Success(q) => complete(q.map(x => x.values()).asCsv(rfc))
-          case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+        onComplete(db.run(dbActions.findSimple(query))) { x =>
+          x match {
+            case Success(q) => {
+              complete(q.map(x => x.values()).asCsv(rfc))
+            }
+            case Failure(ex) => complete(StatusCodes.InternalServerError, s"An error occurred: ${ex.getMessage}")
+          }
         }
 
       }

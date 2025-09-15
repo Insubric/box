@@ -459,6 +459,16 @@ object GlobalStyleFactory{
       )
     )
 
+    val chip = style(
+      color(conf.colors.main).important,
+      backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4)),
+      padding(5 px, 10 px),
+      marginLeft(10 px),
+      fontSize(10 px),
+      borderRadius(20 px),
+      textNoWrap
+    )
+
     val checkboxWidget = style(
       float.none.important,
       marginRight(5.px)
@@ -520,6 +530,7 @@ object GlobalStyleFactory{
     val smallCells = style(
       padding.horizontal(3 px),
       padding.vertical(15 px),
+      verticalAlign.middle.important,
       fontSize(conf.smallCellsSize px),
       unsafeRoot("input") (
         media.maxWidth(600 px)(
@@ -1096,6 +1107,26 @@ object GlobalStyleFactory{
       zIndex(5)
     )
 
+    val adminFormEditAction = style(
+      color(conf.colors.main),
+      backgroundColor.transparent,
+      opacity(0.6),
+      &.hover(
+        backgroundColor(conf.colors.main),
+        color(conf.colors.mainText),
+        opacity(1),
+      ),
+      borderRadius(50 px),
+      position.absolute,
+      right(10 px),
+      marginTop(-35 px),
+      height(30 px),
+      width(30 px),
+      border.`0`,
+      fontSize(15 px),
+      zIndex(5)
+    )
+
     val showHide = style(
       overflow.hidden,
       opacity(0),
@@ -1427,6 +1458,49 @@ object GlobalStyleFactory{
       )
     )
 
+    val twoListContainer = style(
+      backgroundColor(Colors.GreyExtra),
+      padding(10 px),
+      margin(5 px),
+      overflow.auto,
+      maxHeight(500 px)
+    )
+
+    val twoListLeft = style(
+      unsafeChild(".right") (
+        display.none
+      )
+    )
+
+    val twoListRight = style(
+      unsafeChild(".left") (
+        display.none
+      )
+    )
+
+    val twoListElement = style(
+      lineHeight(31 px),
+      border.solid,
+      borderColor(conf.colors.main),
+      borderWidth(2 px),
+      borderRadius(5 px),
+      textAlign.center,
+      fontWeight.bold
+    )
+
+    val twoListButton = style(
+      lineHeight(21 px),
+      padding(3 px,10 px, 7 px,15 px),
+      fontSize(14 px),
+      display.inlineBlock,
+      border.`0`,
+      color(conf.colors.main),
+      &.hover(
+        backgroundColor(conf.colors.main),
+        color.white
+      )
+    )
+
     val childAddButtonBoxed = style(
       width(100 %%),
       border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
@@ -1532,6 +1606,42 @@ object GlobalStyleFactory{
         width(100.px)
       )
     )
+
+    val queryBuilderContainer = style(
+      unsafeChild("input")(
+        float.none,
+        width(200 px)
+      ),
+      unsafeChild("select")(
+        float.none,
+        width(200 px)
+      )
+
+    )
+
+    val adminConditionBlock = style(
+      margin(20 px),
+      display.flex,
+      justifyContent.spaceBetween,
+      alignItems.center,
+      unsafeChild("select")(
+        width(300 px)
+      ),
+      unsafeChild("input")(
+        width(300 px)
+      )
+    )
+
+    val adminCreateForm = style(
+      display.flex,
+      width(400 px),
+      justifyContent.spaceBetween,
+      alignItems.baseline,
+      unsafeChild("select")(
+        width(300 px)
+      )
+    )
+
 //
 //    val mapPopup = style(
 //      border.solid,

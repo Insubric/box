@@ -24,8 +24,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
   def insert(formName:String,json:Json)(implicit services:Services):Future[(JSONID,Json)] = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -41,8 +41,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
   def update(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -55,8 +55,8 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
 
   def upsert(formName:String,id:JSONID,json:Json)(implicit services:Services) = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -68,7 +68,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
   }
 
   "Form"  should "update a row deleting a field"  in withServices[Assertion] { implicit services =>
-      implicit val up = UserProfile(services.connection.adminUser)
+      implicit val up = UserProfile.simple(services.connection.adminUser)
       implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
 
@@ -90,7 +90,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
   }
 
   "Form with empty child"  should "update a row deleting a field"  in withServices[Assertion] { implicit services =>
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
 
@@ -110,7 +110,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
   }
 
   "Form with empty child"  should "upsert a row deleting a field"  in withServices[Assertion] { implicit services =>
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
 
@@ -130,7 +130,7 @@ class UpdateWithDeleteFormSpec extends BaseSpec {
   }
 
   "Form with two child" should "upsert a row deleting a field" in withServices[Assertion] { implicit services =>
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
 

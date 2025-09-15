@@ -4,6 +4,7 @@ import ch.wsl.box.client.routes.Routes
 
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{CurrentUser, EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
@@ -54,19 +55,17 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   val loading = Property(false)
-  private var roles:Seq[String] = Seq()
+  private var userInfo:Option[UserInfo] = None
 
   logger.info("Loading session")
-
-  val parameters = new URLSearchParams(dom.window.location.search)
-  Try(parameters.get("lang")).toOption.foreach { l =>
+  Try(new URLSearchParams(dom.window.location.search).get("lang")).toOption.foreach { l =>
     if (l != null && l != "null" && l.nonEmpty ) {
       if (l.length > 1) {
         logger.info(s"Setting language session $l")
         dom.window.sessionStorage.setItem(LANG, l)
       }
+      val parameters = new URLSearchParams(dom.window.location.search)
       parameters.delete("lang")
-      parameters.toString
       dom.window.location.href = dom.window.location.href.takeWhile(_ != '?') + {if(parameters.nonEmpty) "?" + parameters else ""}
     }
   }
@@ -119,10 +118,10 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
   }
 
   def refreshSession():Future[Boolean] = {
-    rest.me().map(_createSession).recover{case t:Throwable =>
+    rest.me().flatMap(createSession).recover{case t:Throwable =>
       logger.warn(s"Session non valid")
       dom.window.sessionStorage.removeItem(USER)
-      Notification.closeWebsocket()
+      services.notification.close()
       logged.set(false)
       false
     }
@@ -130,12 +129,15 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def isSet(key:String):Boolean = {
     val item = dom.window.sessionStorage.getItem(key)
-    if(item == null) return false
-    item.nonEmpty
+    if(item == null) {
+      false
+    } else {
+      item.nonEmpty
+    }
   }
 
   def login(username:String,password:String):Future[Boolean] = {
-    createSession(username,password).map{ valid =>
+    createSessionUserNamePassword(username,password).map{ valid =>
       logger.info(s"New session, valid: $valid")
       if(valid) {
         resetAllQueries()
@@ -145,33 +147,21 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
-  def createSession(username:String,password:String):Future[Boolean] = {
-    dom.window.sessionStorage.setItem(USER,username)
-    val fut = for{
-      _ <- rest.login(LoginRequest(username,password))
-      me <- rest.me()
-      ui <- rest.ui()
-    } yield {
-      UI.load(ui)
-      _createSession(me)
-    }
+  def createSessionUserNamePassword(username:String,password:String):Future[Boolean] = {
 
-    fut.recover{ case t =>
-      dom.window.sessionStorage.removeItem(USER)
-      Notification.closeWebsocket()
-      logged.set(false)
-      t.printStackTrace()
-      false
-    }
+    rest.login(LoginRequest(username,password)).flatMap(createSession)
+
   }
 
-  private def _createSession(user:CurrentUser) = {
-    dom.window.sessionStorage.setItem(USER,user.username)
-    roles = user.roles
+  def createSession(user:UserInfo) = {
 
-    Notification.setUpWebsocket()
-    logged.set(true)
-    true
+    rest.ui().map(UI.load).map{ _ =>
+      dom.window.sessionStorage.setItem(USER,user.preferred_username)
+      userInfo = Some(user)
+      services.notification.setup()
+      logged.set(true)
+      true
+    }
   }
 
 
@@ -186,7 +176,7 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
         UI.load(ui)
         logged.set(false)
 
-        Notification.closeWebsocket()
+        services.notification.close()
 
         val oldState = Context.applicationInstance.currentState
         Navigate.to(LoginState(""))
@@ -287,8 +277,12 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     Context.applicationInstance.reload()
   }
 
-  def getRoles():Seq[String] = roles
+  def getRoles():Seq[String] = userInfo.map(_.roles).getOrElse(Seq())
 
+  def getUserInfo():Option[UserInfo] = userInfo
+
+
+  def isAdmin() = getRoles().contains("box_admin")
 
 
 }

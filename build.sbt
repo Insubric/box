@@ -92,7 +92,7 @@ lazy val server: Project  = project
     },
 //    scalaJSProjects := Seq(client),
     webpackBundlingMode := BundlingMode.Application,
-    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider").map{ p =>
+    Seq("jquery","ol","bootstrap","flatpickr","quill","@fontsource/open-sans","@fortawesome/fontawesome-free","choices.js","gridstack","jspreadsheet-ce","jsuites","toolcool-range-slider","@electric-sql/pglite","@electric-sql/pglite-repl").map{ p =>
       if (!sys.env.contains("RUNNING_TEST"))
         npmAssets ++= NpmAssets.ofProject(client) { nodeModules =>
           (nodeModules / p).allPaths
@@ -168,15 +168,17 @@ lazy val client: Project = (project in file("client"))
       "crypto-browserify" -> "3.12.0",
       "buffer" -> "6.0.3",
       "stream-browserify" -> "3.0.0",
-      "choices.js" -> "10.2.0",
+      "choices.js" -> "11.1.0",
       "autocompleter" -> "7.0.1",
       "xlsx-js-style" -> "1.2.0",
       "jspdf" -> "2.5.1",
       "jspdf-autotable" -> "3.5.28",
-      "gridstack" -> "8.3.0",
+      "gridstack" -> "12.2.2",
       "jspreadsheet-ce" -> "git://github.com/jspreadsheet/ce.git#2e7389f8f6a84d260603bbac06f00bb404e1ba49", //v5.0.0
       "jsuites" -> "5.9.1",
       "@electric-sql/pglite" -> "0.2.17",
+      "@electric-sql/pglite-repl" -> "0.2.17",
+      "compressorjs" -> "1.2.1",
       "shapefile" -> "0.6.6",
       "@types/shapefile" -> "0.6.4",
     ),
@@ -214,15 +216,24 @@ lazy val client: Project = (project in file("client"))
 
     //To use jsdom headless browser uncomment the following lines
     Test / requireJsDomEnv := true,
-    Test / jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+    Test / jsEnv := new jsenv.playwright.PWEnv(
+      browserName = "chrome",
+      headless = sys.env.getOrElse("CI", "false").toBoolean,
+      showLogs = true,
+      debug = false,
+      launchOptions = List(
+        "--disable-web-security",
+      )
+      //pwConfig = jsenv.playwright.PWEnv.Config().withMaterializeInServer(".tmp", "http://localhost:8987/")
+    ),
     Test / parallelExecution := false,
-    Test / jsEnvInput := Def.task{
-      val targetDir = (npmUpdate in Test).value
-      println(targetDir)
-      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
-      println(r)
-      r
-    }.value,
+//    Test / jsEnvInput := Def.task{
+//      val targetDir = (npmUpdate in Test).value
+//      println(targetDir)
+//      val r = Seq(Script((targetDir / s"fixTest.js").toPath)) ++ (jsEnvInput in Test).value
+//      println(r)
+//      r
+//    }.value,
     Test / scalaJSStage := FastOptStage,
 
     //To use Selenium uncomment the following line
@@ -265,11 +276,13 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
 lazy val sharedJVM: Project = shared.jvm.settings(
   name := "box-shared-jvm",
   scalaVersion := Settings.versions.scala213,
+  publishTo := sonatypeCentralPublishToBundle.value
 )
 
 lazy val sharedJS: Project = shared.js.settings(
   name := "box-shared-js",
   scalaVersion := Settings.versions.scala213,
+  publishTo := sonatypeCentralPublishToBundle.value
 )
 
 

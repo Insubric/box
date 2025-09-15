@@ -92,7 +92,7 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
   }
 
   private def createUserProfile(implicit services: Services) = {
-    UserProfile(services.connection.adminUser)
+    UserProfile(services.connection.adminUser,services.connection.adminUser)
   }
 
 

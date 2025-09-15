@@ -1,12 +1,13 @@
 package ch.wsl.box.services.config
 
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config
 import com.typesafe.config.ConfigFactory
 import scribe.Level
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, OffsetDateTime}
 
 class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def akkaHttpSession: config.Config = ConfigFactory.empty()
@@ -24,6 +25,8 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def filterPrecisionDatetime: String = JSONFieldTypes.DATETIME
 
   override def prepareDatetime: LocalDateTime => LocalDateTime = x => x
+
+  override def prepareDatetimeTz: OffsetDateTime => OffsetDateTime = x => x
 
   override def enableCache: Boolean = false
 
@@ -53,4 +56,10 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def initials: String = "B"
 
   override def matomo: Option[MatomoConfig] = None
+
+  override def openid: Seq[OIDCConf] = Seq()
+
+  override def localDb: Boolean = true
+
+  override def singleUser: Boolean = false
 }

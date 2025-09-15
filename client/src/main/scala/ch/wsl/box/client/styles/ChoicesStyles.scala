@@ -51,6 +51,9 @@ class ChoicesStyles(conf:StyleConf) extends StyleSheet.Inline {
     ),
     unsafeRoot(".choices__list--single")(
       paddingRight(37 px)
+    ),
+    unsafeRoot(".choices__list")(
+      width(100 %%)
     )
 
   )

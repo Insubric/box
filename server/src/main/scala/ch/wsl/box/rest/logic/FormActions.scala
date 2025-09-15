@@ -228,7 +228,7 @@ case class FormActions(metadata:JSONMetadata,
 
     val emptyFields = form.fields.flatMap {f =>
       (f.child,f.condition) match {
-        case (Some(child),Some(condition)) if child.hasData && !condition.check(jsonToUpdate) => {
+        case (Some(child),Some(condition)) if child.hasData && !Condition.check(condition,jsonToUpdate) => {
           Some(f.name -> Json.fromValues(Seq()))
         }
         case _ => None
@@ -272,7 +272,7 @@ case class FormActions(metadata:JSONMetadata,
     val subFields = metadata.fields
       .filter(f => f.child.exists(_.hasData) && !f.readOnly)
       .filter{f =>
-        f.condition.map(_.check(e)) match {
+        f.condition.map(Condition.check(_,e)) match {
           case Some(true) => true
           case Some(false) => f.params.exists(_.js("deleteWhenHidden") == Json.True)
           case None => true

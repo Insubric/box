@@ -15,6 +15,7 @@ import org.locationtech.jts.geom.{Geometry, GeometryFactory}
 import scribe.Logging
 import slick.jdbc.{PositionedParameters, SQLActionBuilder, SetParameter}
 
+import java.time.OffsetDateTime
 import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext
 import scala.util.Try
@@ -237,6 +238,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
       case "java.time.LocalDate" => update[java.time.LocalDate](col)
       case "java.time.LocalTime" => update[java.time.LocalTime](col)
       case "java.time.LocalDateTime" => update[java.time.LocalDateTime](col)
+      case "java.time.OffsetDateTime" => update[java.time.OffsetDateTime](col)
       case "io.circe.Json" => update[Json](col)
       case "Array[Byte]" => update[Array[Byte]](col)
       case "org.locationtech.jts.geom.Geometry" => update[Geometry](col)
@@ -362,6 +364,13 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
         case ("java.time.LocalDateTime",_) => {
           DateTimeFormatters.toTimestamp(v) match {
             case head :: Nil => filter[java.time.LocalDateTime](col.nullable, Some(head))
+            case from :: (to :: Nil) => Some(sql""" "#$key" between $from and $to """)
+            case Nil => None
+          }
+        }
+        case ("java.time.OffsetDateTime",_) => {
+          DateTimeFormatters.toTimestampTZ(v) match {
+            case head :: Nil => filter[java.time.OffsetDateTime](col.nullable, Some(head))
             case from :: (to :: Nil) => Some(sql""" "#$key" between $from and $to """)
             case Nil => None
           }

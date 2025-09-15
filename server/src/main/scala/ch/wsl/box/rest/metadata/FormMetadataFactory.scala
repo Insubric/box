@@ -2,13 +2,14 @@ package ch.wsl.box.rest.metadata
 
 import java.util.UUID
 import akka.stream.Materializer
-import ch.wsl.box.information_schema.{PgInformationSchema}
+import ch.wsl.box.information_schema.PgInformationSchema
 import ch.wsl.box.jdbc.{Connection, FullDatabase, Managed, UserDatabase}
 import ch.wsl.box.model.boxentities.BoxField.{BoxField_i18n_row, BoxField_row}
 import ch.wsl.box.model.boxentities.BoxForm.{BoxFormTable, BoxForm_i18nTable, BoxForm_row}
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.runtime.{ColType, Registry}
 import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
@@ -56,7 +57,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         case Some(u) => Auth.rolesOf(u)
         case None => Future.successful(Seq())
       }
-    } yield user.map(u => (BoxSession(CurrentUser(u,roles)),form.exists(_.public_list)))
+    } yield user.map(u => (BoxSession(CurrentUser(DbInfo(u,u,roles),UserInfo(u,u,None,roles,Json.Null))),form.exists(_.public_list)))
   }
 
 
@@ -66,7 +67,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
   def filterRoles(user:CurrentUser)(metadata:DBIO[JSONMetadata])(implicit ec:ExecutionContext):DBIO[JSONMetadata] = metadata.map{ m =>
 
-    def filterRole(field:JSONField):Boolean = field.roles.isEmpty || field.roles.intersect(user.roles ++ Seq(user.username)).nonEmpty
+    def filterRole(field:JSONField):Boolean = field.roles.isEmpty || field.roles.intersect(user.db.roles ++ Seq(user.db.username)).nonEmpty
 
     m.copy(fields = m.fields.filter(filterRole))
   }
@@ -137,16 +138,6 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     DBIO.successful(x.split(",").toSeq.map(_.trim))
   }.getOrElse(EntityMetadataFactory.keysOf(services.connection.dbSchema,form.entity))
 
-  private def toConditions(json:Json):Seq[ConditionalField] = {
-    json.as[Map[String, Json]] match {
-      case Left(value) => {
-        logger.warn(s"Failed to decode condition: ${value.getMessage()} on $json")
-        Seq()
-      }
-      case Right(value) => value.map{ case (k,v) => ConditionalField(k,v)}.toSeq
-    }
-  }
-
   private def getForm(formQuery: Query[BoxForm.BoxForm,BoxForm_row,Seq], lang:String,id:String)(implicit ec:ExecutionContext,services:Services) = {
 
     import io.circe.generic.auto._
@@ -183,14 +174,13 @@ object FormMetadataFactory extends Logging with MetadataFactory{
 
       if(formI18n.isEmpty) logger.warn(s"Form ${form.name} (form_id: ${form.form_uuid}) has no translation to $lang")
 
-      val definedTableFields = form.tabularFields.toSeq.flatMap(_.split(",").map(_.trim))
+      val definedTableFields = form.tabularFields.getOrElse(Seq()).map(_.trim)
       val missingKeyTableFields = keys.filterNot(k => definedTableFields.contains(k))
       val tableFields = missingKeyTableFields ++ definedTableFields
 
       val defaultQuery: Option[JSONQuery] = for{
         q <- form.query
-        json <- parse(q).right.toOption
-        jsonQuery <- json.as[JSONQuery].right.toOption
+        jsonQuery <- q.as[JSONQuery].toOption
       } yield jsonQuery
 
 
@@ -207,7 +197,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         if(form.entity == FormMetadataFactory.STATIC_PAGE) {
           FormActionsMetadata.defaultForPages.copy(showNavigation = form.show_navigation)
         } else {
-          FormActionsMetadata.default.copy(showNavigation = form.show_navigation)
+          FormActionsMetadata.defaultHasLocal(services.config.localDb).copy(showNavigation = form.show_navigation)
         }
       } else {
         FormActionsMetadata(
@@ -222,11 +212,11 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               reload = a.reload,
               confirmText = a.confirm_text,
               executeFunction = a.execute_function,
-              condition = a.condition.map(toConditions),
+              condition = a.condition.map(Condition.fromJson),
               html5check = a.html_check,
               target = a.target.map(Target.fromString).getOrElse(Self)
             )
-          },
+          }.filter(services.config.localDb || _.action != SaveLocalAction),
           navigationActions = navigationActions.map{a =>
             FormAction(
               action = Action.fromString(a.action),
@@ -297,7 +287,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         keys,
         keyStrategy,
         defaultQuery,
-        form.exportfields.map(_.split(",").map(_.trim).toSeq).getOrElse(tableFields),
+        form.exportfields.getOrElse(tableFields).map(_.trim),
         formI18n.flatMap(_.view_table),
         formActions,
         static = form.entity == FormMetadataFactory.STATIC_PAGE,
@@ -371,11 +361,6 @@ object FormMetadataFactory extends Logging with MetadataFactory{
       )
     }
   }
-
-  private def condition(field:BoxField_row) = for{
-    fieldId <- field.conditionFieldId
-    values <- field.conditionValues
-  } yield ConditionalField(fieldId,parse(values).toOption.get)
 
 
   private def label(field:BoxField_row,fieldI18n:Option[BoxField_i18n_row], lang:String)(implicit ec:ExecutionContext,services:Services):DBIO[String] = {
@@ -463,7 +448,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
           widget = field.widget,
           child = subform,
           default = field.default,
-          condition = condition(field),
+          condition = field.condition.map(Condition.fromJson),
           tooltip = fieldI18n.flatMap(_.tooltip),
           params = field.params,
           linked = linked,

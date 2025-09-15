@@ -68,7 +68,7 @@ object MigrateDB {
           update #$schema.flyway_schema_history_box set checksum=-1468940163 where version='37';
           update #$schema.flyway_schema_history_box set checksum=-1162390581 where version='38';
           update #$schema.flyway_schema_history_box set checksum=760066478 where version='39';
-          update #$schema.flyway_schema_history_box set checksum=829529451 where version='40';
+          update #$schema.flyway_schema_history_box set checksum=1592921508 where version='40';
           update #$schema.flyway_schema_history_box set checksum=597865581 where version='41';
           update #$schema.flyway_schema_history_box set checksum=-1556843576 where version='42';
           update #$schema.flyway_schema_history_box set checksum=427677514 where version='43';
@@ -78,6 +78,7 @@ object MigrateDB {
           update #$schema.flyway_schema_history_box set checksum=-599563475 where version='47';
           update #$schema.flyway_schema_history_box set checksum=960086764 where version='48';
           update #$schema.flyway_schema_history_box set checksum=-765022474 where version='51';
+          update #$schema.flyway_schema_history_box set checksum=-1209654296 where version='64';
 
           INSERT INTO #$schema.flyway_schema_history_box (installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success)
           select (select count(*)+1 from #$schema.flyway_schema_history_box), '34', 'roles function permission', 'SQL', 'BOX_V34__roles_function_permission.sql', 938281884, 'postgres', now(), 4, true from (

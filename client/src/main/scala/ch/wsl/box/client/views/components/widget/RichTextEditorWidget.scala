@@ -50,13 +50,13 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
     div(raw(p.string)).render
   })
 
-  _id.listen(x => logger.info(s"Rich text widget load with ID: $x"))
+
 
   override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
     logger.debug(s"field: ${field.name} widget mode $mode")
     logger.debug(s"data: ${data.get.toString().take(50)}")
-    nested(produce(_id) { _ =>
+
       val container = div( height := 300.px).render
       val parent = div(container).render
 
@@ -82,17 +82,30 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
 
       val editor = new ch.wsl.typings.quill.mod.default(container,options)
 
-      editor.root.innerHTML = data.get.string
+      var registration:Option[Registration] = None
+
+      def reloadListener(initUpdate:Boolean) {
+        registration = Some(data.listen({ d =>
+          editor.root.innerHTML = d.string
+          editor.update()
+        }, initUpdate))
+      }
+
+      reloadListener(true)
+
 
       editor.on_textchange(ch.wsl.typings.quill.quillStrings.`text-change`,
-        (delta:DeltaStatic,oldContent:DeltaStatic,source:Sources) => data.set(editor.root.innerHTML.asJson)
-      )
+        { (delta: DeltaStatic, oldContent: DeltaStatic, source: Sources) =>
+          registration.foreach(_.cancel())
+          data.set(editor.root.innerHTML.asJson)
+          reloadListener(false)
+        })
 
       div(
         parent
       ).render
 
-    })
+
   }
 
 }

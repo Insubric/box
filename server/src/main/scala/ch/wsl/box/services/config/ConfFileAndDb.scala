@@ -3,16 +3,21 @@ package ch.wsl.box.services.config
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.Connection
 import ch.wsl.box.model.shared.JSONFieldTypes
+import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
+import ch.wsl.box.rest.auth.oidc.OIDCConf
 import ch.wsl.box.viewmodel.MatomoConfig
 import com.typesafe.config.{ConfigFactory, ConfigValue, ConfigValueFactory}
 import net.ceedubs.ficus.Ficus._
 import scribe.{Level, Logging}
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, OffsetDateTime}
 import java.time.temporal.ChronoUnit
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Try
+import io.circe.Json
+import io.circe.syntax._
+import io.circe.generic.auto._
 
 class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
   private var _conf: Map[String, String] = Map()
@@ -31,7 +36,8 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
 
     _conf = tempConf.filterNot(_._1 == "langs") ++ Map(
       "langs" -> langs.mkString(","),
-      "frontendUrl" -> frontendUrl
+      "frontendUrl" -> frontendUrl,
+      OIDCFrontendConf.name -> openid.map(_.toFrontend).asJson.noSpaces
     )
 
   }
@@ -55,7 +61,9 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     ).contains(k)}
 
 
-  def fksLookupLabels = ConfigFactory.parseString( Try(_conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
+  def fksLookupLabels = Try{
+    ConfigFactory.parseString( Try(_conf("fks.lookup.labels")).getOrElse("default=firstNoPKField"))
+  }.getOrElse(ConfigFactory.empty())
 
   def fksLookupRowsLimit = Try(_conf("fks.lookup.rowsLimit").toInt).getOrElse(50)
 
@@ -121,10 +129,23 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     case _ => ((x: LocalDateTime) => x)
   }
 
+  def prepareDatetimeTz = filterPrecisionDatetime match {
+    case JSONFieldTypes.DATE => ((x: OffsetDateTime) => x.truncatedTo(ChronoUnit.DAYS))
+    case JSONFieldTypes.DATETIME => ((x: OffsetDateTime) => x)
+    case _ => ((x: OffsetDateTime) => x)
+  }
+
   override def matomo: Option[MatomoConfig] = for{
     site_id <- _conf.get("matomo.site_id")
     tracker_url <- _conf.get("matomo.tracker_url")
   } yield MatomoConfig(site_id, tracker_url)
 
   val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
+
+  import net.ceedubs.ficus.readers.ArbitraryTypeReader._
+  override def openid: List[OIDCConf] = Try(conf.as[List[OIDCConf]]("openid")).getOrElse(List())
+
+  override def localDb: Boolean = Try(_conf("local.db").toBoolean).getOrElse(true)
+
+  override def singleUser: Boolean = conf.as[Option[Boolean]]("singleUser").getOrElse(false)
 }

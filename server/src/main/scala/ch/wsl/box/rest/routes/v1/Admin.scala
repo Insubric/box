@@ -5,9 +5,11 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
-import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge}
+import ch.wsl.box.information_schema.PgInformationSchema
+import ch.wsl.box.model.shared.admin.FormCreationRequest
+import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge, InformationSchema}
 import ch.wsl.box.model.shared.{BoxTranslationsFields, EntityKind}
-import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, StubMetadataFactory}
+import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormCreationHandler, StubMetadataFactory}
 import ch.wsl.box.rest.routes.{Form, Table}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.{Auth, BoxSession, UserProfile}
@@ -16,6 +18,7 @@ import com.softwaremill.session.SessionManager
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
+import ch.wsl.box.jdbc.PostgresProfile.api._
 
 import scala.concurrent.ExecutionContext
 
@@ -41,7 +44,9 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
 
   def createStub = pathPrefix("create-stub"){
     pathPrefix(Segment) { entity =>
-      complete(StubMetadataFactory.forEntity(entity))
+      complete{
+        userProfile.db.run(StubMetadataFactory.forEntity(entity,entity).map(_ => true).transactionally)
+      }
     }
   }
 
@@ -87,6 +92,30 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
     }
   }
 
+  def childCandidates = pathPrefix("child-candidates") {
+    path(Segment) { table =>
+      complete{
+        services.connection.adminDB.run(InformationSchema.table(table).childCandidates())
+      }
+    }
+  }
+
+  def roles = pathPrefix("roles") {
+    path("available") {
+      complete{
+        services.connection.adminDB.run(InformationSchema.roles())
+      }
+    }
+  }
+
+  def createForm = path("create-form") {
+    entity(as[FormCreationRequest]) { request =>
+      complete {
+        services.connection.adminDB.run(FormCreationHandler(request).transactionally)
+      }
+    }
+  }
+
 
   val route = Auth.onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
     //access to box tables for administrator
@@ -96,6 +125,9 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
     file  ~
     boxentity   ~
     entities ~
-    boxDefinition
+    boxDefinition ~
+    childCandidates ~
+    roles ~
+    createForm
   }
 }

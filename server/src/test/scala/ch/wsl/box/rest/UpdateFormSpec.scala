@@ -34,8 +34,8 @@ class UpdateFormSpec extends BaseSpec {
 
   def upsert(formName:String,id:Option[JSONID],json:Json)(implicit services:Services) = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -50,8 +50,8 @@ class UpdateFormSpec extends BaseSpec {
 
   def appManagedUpsert(id:JSONID, json:Json)(implicit services:Services): Future[Assertion] = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -66,7 +66,7 @@ class UpdateFormSpec extends BaseSpec {
 
   def dbManagedUpsert(json:Json)(assertion:Json => org.scalatest.Assertion)(implicit services:Services) = {
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -99,9 +99,9 @@ class UpdateFormSpec extends BaseSpec {
   }
 
   it should "update the primary key" in withServices[Assertion] { implicit services =>
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
 
     def data(id:Int) = Json.fromFields(Map("id" -> Json.fromInt(id), "name" -> Json.fromString("name")))
     def id(o:Json):Int =  o.js("id").as[Int].toOption.get
@@ -124,9 +124,9 @@ class UpdateFormSpec extends BaseSpec {
   }
 
   it should "not delete not in form-fields" in withServices[Assertion] { implicit services =>
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser, Seq()))
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
 
     val nameIns = "name"
     val nameUpd = "upd"

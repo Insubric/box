@@ -1,15 +1,18 @@
 package ch.wsl.box.client.views
 
 import ch.wsl.box.client.Context.services
+import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
+import ch.wsl.box.client.viewmodel.Row
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
+import ch.wsl.box.client.views.elements.Offline
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.GeoJson.Polygon
 import ch.wsl.box.model.shared.geo.GeoDataRequest
@@ -36,7 +39,7 @@ import scalatags.JsDom.all.a
 import scalatags.generic
 import scribe.Logging
 import ch.wsl.typings.choicesJs.anon.PartialOptions
-import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesChoiceMod.Choice
+import ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesInputChoiceMod.InputChoice
 import io.udash.bootstrap.tooltip.UdashTooltip
 
 import scala.concurrent.Future
@@ -59,19 +62,7 @@ object IDsVMFactory{
   def empty = IDsVM(true,1,Seq(),0)
 }
 
-case class Row(data: Seq[String],metadata:JSONMetadata) {
-  def field(name:String) = {
-    metadata.table.zipWithIndex.find{ case (f,_) => f.name == name }.flatMap{ case (f,i) => data.lift(i).filter(_.nonEmpty).map(f.fromString) }
-  }
 
-  def rowJs:Json = {
-    Json.fromFields(
-      metadata.tabularFields.map(k => k -> field(k).getOrElse(Json.Null))
-    )
-  }
-
-  lazy val id = JSONID.fromData(rowJs,metadata)
-}
 
 case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
 
@@ -151,7 +142,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   override def handleState(state: EntityTableState): Unit = {
     fieldListener.foreach(_.cancel())
     services.clientSession.loading.set(true)
-    services.rest.tabularMetadata(state.kind,services.clientSession.lang(),state.entity,state.public).map{ metadata =>
+    services.data.tabularMetadata(state.kind,services.clientSession.lang(),state.entity,state.public).map{ metadata =>
       metadata.static match {
         case false => _handleState(state,metadata)
         case true => {
@@ -292,7 +283,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
 
-  def actions(new_window:Boolean) = {
+  def actions(new_window:Boolean):Seq[VMAction] = {
 
     val metadata = model.subProp(_.metadata).get
     metadata.toSeq.flatMap(_.action.table(model.get.access)).map { ta =>
@@ -339,6 +330,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
       }
     }
+
   }
 
   def hasGeometry():Boolean = {
@@ -426,7 +418,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val q = qOrig.copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
 
     //start request in parallel
-    val csvRequest = services.rest.csv(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get)
+    val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
     if(hasGeometry() && !defaultClose) {
       loadGeoms(extent)
@@ -441,7 +433,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
 
     val r = for {
-      csv <- csvRequest.map(_.map( r => Row(r,model.subProp(_.metadata).get.get)))
+      csv <- csvRequest
       ids <- idsRequest
       lookups <- if(newQuery) lookupReq(csv) else Future.successful( model.subProp(_.lookups).get)
     } yield {
@@ -679,12 +671,12 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     }
 
     def filterFieldLookup(lookup:JSONFieldLookup) = {
-      def choises(lookups:JSONLookups):Seq[Choice] = lookup match {
+      def choises(lookups:JSONLookups):Seq[InputChoice] = lookup match {
         case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
-           lookups.lookups.map(l => Choice(l.value,l.id.string))
+           lookups.lookups.map(l => InputChoice(l.value,l.id.string))
         }
         case JSONFieldLookupExtractor(extractor) => Seq()
-        case JSONFieldLookupData(data) => data.map(x => Choice(x.value,x.id.string))
+        case JSONFieldLookupData(data) => data.map(x => InputChoice(x.value,x.id.string))
       }
 
       val el = select().render
@@ -709,7 +701,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           l.find(_.fieldName == field.get.name).foreach{ fl =>
             choicesJs.clearChoices()
             val c = choises(fl)
-            choicesJs.setChoices(c.toJSArray.asInstanceOf[js.Array[Choice | ch.wsl.typings.choicesJs.publicTypesSrcScriptsInterfacesGroupMod.Group]])
+            choicesJs.asInstanceOf[js.Dynamic].setChoices(c.toJSArray)
             if(filterValue.get.nonEmpty) {
               choicesJs.setChoiceByValue(filterValue.get)
             }
@@ -782,11 +774,15 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def mainActions(metadata:Option[JSONMetadata]) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
 
+    val adminActions = if(services.clientSession.isAdmin() && model.subProp(_.kind).get == EntityKind.FORM.kind) {
+      Seq(FormAction(NoAction,Primary,Some(s"/box/box-form/form/row/true/form_uuid::${metadata.map(_.objId).getOrElse("")}"),Labels("Edit UI")))
+    } else Seq()
+
     Seq(
       div(ClientConf.style.noMobile)(
         releaser(produce(model.subProp(_.name)) { m =>
           div({
-            val out: Seq[Modifier] = metadata.toSeq.flatMap(_.action.topTable(a)).map { ta =>
+            val out: Seq[Modifier] = (metadata.toSeq.flatMap(_.action.topTable(a)) ++ adminActions).map { ta =>
 
               val importance: StyleA = ta.importance match {
                 case Primary => ClientConf.style.boxButtonImportant
@@ -889,13 +885,13 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     b
   }
 
-  def rowActions(metadata:Option[JSONMetadata],el:ReadableProperty[Row]) = {
+  def rowActions(el:ReadableProperty[Row]) = {
 
-    td(ClientConf.style.smallCells)(
-      div(ClientConf.style.tableCellActions)(
-        presenter.actions(false).map(actionButton(el.get.id.toSeq))
-      )
+    div(ClientConf.style.tableCellActions)(
+      presenter.actions(false).map(actionButton(el.get.id.toSeq))
     )
+
+
   }
 
   def tableContent(metadata:Option[JSONMetadata]) = {
@@ -904,7 +900,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       headerFactory = Some(_ => {
         frag(
           tr(
-            td(ClientConf.style.smallCells,verticalAlign.middle)(
+            td(ClientConf.style.smallCells,verticalAlign.middle, colspan := 2)(
               mainActions(metadata)
             ),
             metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ field =>
@@ -927,7 +923,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             }
           ),
           tr(
-            td(ClientConf.style.smallCells)(Labels.entity.filters),
+            td(ClientConf.style.smallCells, colspan := 2)(Labels.entity.filters),
             metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { _field =>
               val fieldQuery:Property[Option[FieldQuery]] = model.subProp(_.fieldQueries).bitransform(_.find(_.field.name == _field.name)){ el =>
                 model.subProp(_.fieldQueries).get.map{old =>
@@ -954,7 +950,12 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         val row = tr(
           id := ElementId.tableRow(el.get.id.map(_.asString).getOrElse("")),
           ClientConf.style.rowStyle, onclick :+= presenter.toggleSelection(el.get),
-          rowActions(metadata,el),
+          td(ClientConf.style.smallCells)(
+            Offline(el.transform(_.isLocal)),
+          ),
+          td(ClientConf.style.smallCells)(
+            rowActions(el)
+          ),
           for {(f, i) <- metadata.toSeq.flatMap(_.tabularFields).zipWithIndex} yield {
 
             val value = el.get.data.lift(i).getOrElse("")

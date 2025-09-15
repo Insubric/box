@@ -1,7 +1,8 @@
 ---
 title: Development
 permalink: /development/
-nav_order: 5
+nav_order: 9
+layout: default
 ---
 
 # Development
@@ -23,21 +24,15 @@ devServer = true
 ```
 be careful to enable it only in dev environment.
 
-Enable the dev server with
-```
-sbt client/fastOptJS::startWebpackDevServer
-``` 
-doing so the compiled UI JavaScript are served through webpack devServer on port 8888.
 
 Then set up the autocompile of the UI
 ```
-~client/fastOptJS
+~client/fastOptJS::webpack
 ```
-that way every time a file is saved it get compilated and served on 8888.
+that way every time a file is saved it get compilated and bundled.
 
 Please note that there is no autoreload set up so you must reload the page manually on the browser.
 
-When using `devServer` the client is no more needed on the server so to by setting the env variable `DEV_SERVER` disables compiling and FullOptimising.
 
 ### Pre generation of Table entities
 running `sbt server/slick` tables files are generated so they are compiled only once, modification on database are ignored.
@@ -45,13 +40,12 @@ running `sbt server/slick` tables files are generated so they are compiled only 
 To delete the generate tables run `sbt server/deleteSlick`
 
 
-
 ## Modules
 
-- codegen: Code generation from postgres database using slick codegen library
-- server: Akka-Http REST server exposing tables of the db
-- client: Web UI for the REST APIs
-- shared: Shared code between client and server, not all the libraries used here must be compatible with both scala JVM and Scala.js
+- **codegen**: Code generation from postgres database using slick codegen library
+- **server**: Akka-Http REST server exposing tables of the db
+- **client**: Web UI for the REST APIs
+- **shared**: Shared code between client and server, not all the libraries used here must be compatible with both scala JVM and Scala.js
 
 ## Libraries
 
@@ -67,7 +61,7 @@ To delete the generate tables run `sbt server/deleteSlick`
 
 If on compile time `StackOverflow` errors appears use the following parameters:
 ```
-sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G -J-XX:MaxPermSize=1G -J-XX:+CMSClassUnloadingEnabled -J-Xss3m serve
+sbt -J-Xmx4G -J-Xss3m serve
 ```
 
 # Client

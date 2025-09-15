@@ -1,6 +1,14 @@
-title: Box 
+title: Box Framework
+description: Box Framework
 remote_theme: pmarsceill/just-the-docs
 search_enabled: true
+
+url: https://www.boxframework.com
+
+logo: /assets/images/logo_square.png
+
+favicon_ico: "/assets/images/favicon/favicon-96x96.ico"
+
 aux_links:
   "Box on GitHub":
-    - "//github.com/Insubric/box"
+    - "https://github.com/Insubric/box"

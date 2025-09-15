@@ -3,7 +3,7 @@ package ch.wsl.box.rest
 
 import ch.wsl.box.jdbc.FullDatabase
 import ch.wsl.box.rest.logic.FormActions
-import ch.wsl.box.model.shared.{CurrentUser, JSONID, JSONKeyValue}
+import ch.wsl.box.model.shared.{CurrentUser, DbInfo, JSONID, JSONKeyValue}
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.testmodel.EntityActionsRegistry
 import ch.wsl.box.jdbc.PostgresProfile.api._
@@ -11,6 +11,7 @@ import ch.wsl.box.rest.fixtures.{AppManagedIdFixtures, DbManagedIdFixtures, Form
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import _root_.io.circe.Json
 import ch.wsl.box.BaseSpec
+import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils._
@@ -32,8 +33,8 @@ class InsertFormSpec extends BaseSpec {
 
   def insert(formName:String,id:Option[JSONID],json:Json)(implicit services:Services) = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser,Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -46,7 +47,7 @@ class InsertFormSpec extends BaseSpec {
 
   def appManagedInsert(id:JSONID, json:Json)(implicit services:Services) = {
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{
@@ -61,7 +62,7 @@ class InsertFormSpec extends BaseSpec {
 
   def dbManagedInsert(json:Json)(assertion:Json => org.scalatest.Assertion)(implicit services:Services) = {
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{

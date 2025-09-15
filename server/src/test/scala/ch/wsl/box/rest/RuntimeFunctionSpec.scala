@@ -44,7 +44,7 @@ class RuntimeFunctionSpec extends BaseSpec {
 
   "Function" should "be parsed and evaluated" in withServices { implicit services =>
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
 
     val orig = DataResultTable(Seq(),Seq(),Seq(Seq(Json.fromString("test"))))
 
@@ -65,7 +65,7 @@ class RuntimeFunctionSpec extends BaseSpec {
 
   it should "call with external be parsed and evaluated" in withServices { implicit services =>
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
 
     val code =
       """
@@ -80,7 +80,7 @@ class RuntimeFunctionSpec extends BaseSpec {
 
   it should "with ws call should be parsed and evaluated" in withServices { implicit services =>
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
 
     val code =
       """
@@ -99,7 +99,7 @@ class RuntimeFunctionSpec extends BaseSpec {
 
   it should "do a POST call as well" in withServices { implicit services =>
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
 
     val code =
       """

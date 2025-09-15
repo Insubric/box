@@ -6,11 +6,13 @@ import yamusca.imports._
 
 sealed trait Action
 case object SaveAction extends Action
+case object SaveLocalAction extends Action
 case object EditAction extends Action
 case object ShowAction extends Action
 case object CopyAction extends Action
 case object RevertAction extends Action
 case object DeleteAction extends Action
+case object DeleteLocalAction extends Action
 case object NoAction extends Action
 case object BackAction extends Action
 case object HideActions extends Action
@@ -18,9 +20,11 @@ case object HideActions extends Action
 object Action{
   def fromString(s:String):Action = s match {
     case "SaveAction" => SaveAction
+    case "SaveLocalAction" => SaveLocalAction
     case "CopyAction" => CopyAction
     case "RevertAction" => RevertAction
     case "DeleteAction" => DeleteAction
+    case "DeleteLocalAction" => DeleteLocalAction
     case "NoAction" => NoAction
     case "BackAction" => BackAction
     case "EditAction" => EditAction
@@ -28,7 +32,7 @@ object Action{
     case "HideActions" => ShowAction
   }
 
-  def all = Seq(SaveAction,EditAction,CopyAction,RevertAction,DeleteAction,NoAction,BackAction,ShowAction,HideActions)
+  def all = Seq(SaveAction,SaveLocalAction,EditAction,CopyAction,RevertAction,DeleteAction,DeleteLocalAction,NoAction,BackAction,ShowAction,HideActions)
 }
 
 sealed trait Importance
@@ -76,7 +80,7 @@ case class FormAction(
                       reload:Boolean = false,
                       confirmText:Option[String] = None,
                       executeFunction:Option[String] = None,
-                      condition:Option[Seq[ConditionalField]] = None,
+                      condition:Option[Condition] = None,
                       html5check:Boolean = true,
                       needUpdateRight:Boolean = false,
                       needDeleteRight:Boolean = false,
@@ -123,17 +127,21 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
 INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('DeleteAction', 'Danger', '/box/$kind/$name', 'table.delete', true, false, false, 'table.confirmDelete',  '23507498-6137-44ab-a3af-1019de8e5760');
 INSERT INTO box.form_actions (action, importance, after_action_goto, label, update_only, insert_only, reload, confirm_text, form_uuid) VALUES ('RevertAction', 'Std', null, 'table.revert', true, false, false, 'table.confirmRevert',  '23507498-6137-44ab-a3af-1019de8e5760');
    */
-  def default:FormActionsMetadata = FormActionsMetadata(
+  def default = defaultHasLocal(true)
+
+  def defaultHasLocal(localDb:Boolean):FormActionsMetadata = FormActionsMetadata(
     actions = Seq(
       FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
+      FormAction(SaveLocalAction,Primary, None, SharedLabels.form.save_local,updateOnly = true, reload = true),
       FormAction(SaveAction,Primary, Some("/box/$kind/$name/row/$writable/$id"), SharedLabels.form.save,insertOnly = true),
+      FormAction(SaveLocalAction,Primary, Some("/box/$kind/$name/row/$writable/$id"), SharedLabels.form.save_local,insertOnly = true),
       FormAction(SaveAction,Std, Some("/box/$kind/$name"),SharedLabels.form.save_table),
       FormAction(SaveAction,Std, Some("/box/$kind/$name/insert"), SharedLabels.form.save_add),
       FormAction(NoAction,Primary, Some("/box/$kind/$name/insert"), SharedLabels.entities.`new`),
       FormAction(CopyAction,Std, None, SharedLabels.entities.duplicate,updateOnly = true),
       FormAction(DeleteAction,Danger,Some("/box/$kind/$name"), SharedLabels.entity.delete,updateOnly = true,confirmText = Some(SharedLabels.entity.confirmDelete)),
       FormAction(RevertAction,Std, None, SharedLabels.entity.revert,updateOnly = true, confirmText = Some(SharedLabels.entity.confirmRevert)),
-    ),
+    ).filter(x => localDb || x.action != SaveLocalAction),
     navigationActions = Seq(
       FormAction(NoAction,Std, Some("/box/$kind/$name"), SharedLabels.entities.table)
     ),
