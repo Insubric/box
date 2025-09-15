@@ -17,7 +17,9 @@ import scala.concurrent.Future
 
 class MiddleChildDeletion extends TestBase {
 
-  override val debug: Boolean = true
+  override def loggerLevel: Level = Level.Info
+
+  override val debug: Boolean = false
   override val waitOnAssertFail: Boolean = true
 
   private def parentName = "parent"

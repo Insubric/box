@@ -3,6 +3,7 @@ package ch.wsl.box.client
 import ch.wsl.box.client.mocks.{RestMock, Values}
 import ch.wsl.box.client.services.{BrowserConsole, REST}
 import ch.wsl.box.client.utils.TestHooks
+import io.udash.properties.single.ReadableProperty
 import org.scalactic.{Prettifier, source}
 
 import scala.util.Try
@@ -22,6 +23,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   TestHooks.testing = true
 
+  window.asInstanceOf[js.Dynamic].confirm = () => true
 
 
 
@@ -45,6 +47,13 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
   Context.init(injector,ec)
 
 
+  def breakpoint(name:String = ""):Future[Assertion] = {
+
+    println(s"Breakpoint $name")
+    val breakpoint = Promise[Assertion]()
+    promiseResolve(breakpoint,Right(true),true)
+    breakpoint.future
+  }
 
   def assertOrWait(test:Boolean)(implicit prettifier: Prettifier, pos: source.Position): Future[Assertion] = {
     if(!test && waitOnAssertFail) {
@@ -126,6 +135,25 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
   def waitPropertyChange(name:String):Future[Boolean] = {
     val promise = Promise[Boolean]
     TestHooks.properties(name).listen(_ => promise.success(true))
+    promise.future
+  }
+
+  def waitPropertyValue[A](p:ReadableProperty[A],f:A => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
+    val promise = Promise[Assertion]
+
+    val timeout = window.setTimeout({() =>
+      val message = s"Property $name not resolved correctly after $patience seconds"
+      BrowserConsole.log(s"Timeout reached: $message")
+      promiseResolve(promise,Left(message),waitOnAssertFail)
+    },patience*1000)
+
+    p.listen({x =>
+      if(f(x)) {
+        window.clearTimeout(timeout)
+        promiseResolve(promise,Right(true),debug)
+      }
+    },true)
+
     promise.future
   }
 

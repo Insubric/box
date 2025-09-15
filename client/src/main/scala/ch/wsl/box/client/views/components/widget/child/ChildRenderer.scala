@@ -181,7 +181,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def findItem(item: => ChildRow) = childWidgets.zipWithIndex.find(x => x._1.rowId.get == item.rowId.get && x._1.id == item.id)
 
     def removeItem(itemToRemove: => ChildRow) = (e:Event) => {
-      logger.info("removing item")
+      logger.info(s"removing item")
       if (org.scalajs.dom.window.confirm(Labels.messages.confirm)) {
 
         findItem(itemToRemove).map { case (row, idx) =>

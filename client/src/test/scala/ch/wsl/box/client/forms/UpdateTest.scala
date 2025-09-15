@@ -1,5 +1,6 @@
 package ch.wsl.box.client.forms
 
+import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.{Context, EntityFormState, Main, TestBase}
 import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.utils.TestHooks
@@ -9,11 +10,18 @@ import io.circe.Json
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalatest.Assertion
+import scribe.Level
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success, Try}
 
 class UpdateTest extends TestBase {
+
+
+  override def loggerLevel: Level = Level.Warn
+
+  override val debug: Boolean = false
+  override val waitOnAssertFail: Boolean = false
 
   val id = 1
   val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
@@ -79,6 +87,7 @@ class UpdateTest extends TestBase {
       }
       _ <- updatedField.future
       _ <- waitElement(() => document.getElementById(TestHooks.dataChanged),"")
+      _ <- waitPropertyValue[Boolean](services.clientSession.loading,x => !x)
       _ <- Future{
         depenentField.value shouldBe dependentValue
       }
