@@ -178,3 +178,4 @@ from pg_constraint c
          left JOIN pg_namespace s2 ON t2.relnamespace = s2.oid
 where c.contype='f';
 
+grant select on v_foreign_keys to box_user;
