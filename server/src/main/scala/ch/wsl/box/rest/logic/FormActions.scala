@@ -228,7 +228,7 @@ case class FormActions(metadata:JSONMetadata,
 
     val emptyFields = form.fields.flatMap {f =>
       (f.child,f.condition) match {
-        case (Some(child),Some(condition)) if child.hasData && Condition.check(condition,jsonToUpdate) => {
+        case (Some(child),Some(condition)) if child.hasData && !Condition.check(condition,jsonToUpdate) => {
           Some(f.name -> Json.fromValues(Seq()))
         }
         case _ => None

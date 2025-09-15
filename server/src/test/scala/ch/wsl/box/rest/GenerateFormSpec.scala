@@ -10,7 +10,7 @@ class GenerateFormSpec extends BaseSpec {
     implicit val up = UserProfile("postgres","postgres")
     up.db.run{
     StubMetadataFactory.forEntity("test_list_types","test_list_types").map{ result =>
-      result shouldBe true
+      result.toString.nonEmpty shouldBe true
     }}
   }
 

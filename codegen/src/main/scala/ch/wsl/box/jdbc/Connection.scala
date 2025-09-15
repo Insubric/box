@@ -196,7 +196,7 @@ class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) 
     .withValue("keepAliveConnection", ConfigValueFactory.fromAnyRef(true))
     .withValue("user", ConfigValueFactory.fromAnyRef(adminUser))
     .withValue("password", ConfigValueFactory.fromAnyRef(container.password))
-    .withValue("numThreads", ConfigValueFactory.fromAnyRef())
+    .withValue("numThreads", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("maximumPoolSize", ConfigValueFactory.fromAnyRef(adminPoolSize))
     .withValue("connectionPool", ConfigValueFactory.fromAnyRef("disabled"))
     //https://github.com/brettwooldridge/HikariCP/issues/1237

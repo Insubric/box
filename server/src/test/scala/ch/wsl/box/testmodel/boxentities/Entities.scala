@@ -28,13 +28,11 @@ object Entities {
       val profile = ch.wsl.box.jdbc.PostgresProfile
 
           import slick.model.ForeignKeyAction
-  import slick.collection.heterogeneous._
-  import slick.collection.heterogeneous.syntax._
   // NOTE: GetResult mappers for plain SQL are only generated for tables where Slick knows how to map the types of all columns.
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(Access_level.schema, Conf.schema, Cron.schema, Export.schema, Export_field.schema, Export_field_i18n.schema, Export_i18n.schema, Field.schema, Field_file.schema, Field_i18n.schema, Flyway_schema_history_box.schema, Form.schema, Form_actions.schema, Form_actions_table.schema, Form_actions_top_table.schema, Form_i18n.schema, Form_navigation_actions.schema, Function.schema, Function_field.schema, Function_field_i18n.schema, Function_i18n.schema, Image_cache.schema, Labels.schema, Mails.schema, Map_layer_i18n.schema, Map_layer_vector_db.schema, Map_layer_wmts.schema, Maps.schema, News.schema, News_i18n.schema, Public_entities.schema, Ui.schema, Ui_src.schema, Users.schema, V_box_form_childs.schema, V_box_usages.schema, V_field.schema, V_labels.schema, V_roles.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(Access_level.schema, Conf.schema, Cron.schema, Export.schema, Export_field.schema, Export_field_i18n.schema, Export_i18n.schema, Field.schema, Field_file.schema, Field_i18n.schema, Flyway_schema_history_box.schema, Form.schema, Form_actions.schema, Form_actions_table.schema, Form_actions_top_table.schema, Form_i18n.schema, Form_navigation_actions.schema, Function.schema, Function_field.schema, Function_field_i18n.schema, Function_i18n.schema, Image_cache.schema, Labels.schema, Mails.schema, Map_layer_i18n.schema, Map_layer_vector_db.schema, Map_layer_wmts.schema, Maps.schema, Metadata_columns.schema, News.schema, News_i18n.schema, Public_entities.schema, Ui.schema, Ui_src.schema, Users.schema, V_box_form_childs.schema, V_box_usages.schema, V_field.schema, V_foreign_keys.schema, V_labels.schema, V_roles.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -283,18 +281,17 @@ object Entities {
    *  @param lookupValueField Database column lookupValueField SqlType(varchar), Default(None)
    *  @param lookupQuery Database column lookupQuery SqlType(jsonb), Default(None)
    *  @param default Database column default SqlType(varchar), Default(None)
-   *  @param conditionFieldId Database column conditionFieldId SqlType(varchar), Default(None)
-   *  @param conditionValues Database column conditionValues SqlType(varchar), Default(None)
    *  @param field_uuid Database column field_uuid SqlType(uuid), PrimaryKey
-   *  @param export_uuid Database column export_uuid SqlType(uuid) */
-  case class Export_field_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[io.circe.Json] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, field_uuid: Option[java.util.UUID] = None, export_uuid: java.util.UUID)
+   *  @param export_uuid Database column export_uuid SqlType(uuid)
+   *  @param condition Database column condition SqlType(jsonb), Default(None) */
+  case class Export_field_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[io.circe.Json] = None, default: Option[String] = None, field_uuid: Option[java.util.UUID] = None, export_uuid: java.util.UUID, condition: Option[io.circe.Json] = None)
 
 
-  val decodeExport_field_row:Decoder[Export_field_row] = Decoder.forProduct11("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid")(Export_field_row.apply)
+  val decodeExport_field_row:Decoder[Export_field_row] = Decoder.forProduct10("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","export_uuid","condition")(Export_field_row.apply)
   val encodeExport_field_row:EncoderWithBytea[Export_field_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct11("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid")(x =>
-      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.default, x.conditionFieldId, x.conditionValues, x.field_uuid, x.export_uuid)
+    Encoder.forProduct10("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","export_uuid","condition")(x =>
+      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.default, x.field_uuid, x.export_uuid, x.condition)
     )
   }
 
@@ -306,7 +303,7 @@ object Entities {
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class Export_field(_tableTag: Tag) extends Table[Export_field_row](_tableTag, Some("test_box"), "export_field") with UpdateTable[Export_field_row] {
 
-    def boxGetResult = GR(r => Export_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
+    def boxGetResult = GR(r => Export_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Export_field_row]] = {
         val kv = keyValueComposer(this)
@@ -315,7 +312,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."export_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid" """
+          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","export_uuid","condition" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Export_field_row](boxGetResult).head.map(x => Some(x))
@@ -323,13 +320,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Export_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","export_uuid" from "test_box"."export_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","export_uuid","condition" from "test_box"."export_field" """,where)
         sqlActionBuilder.as[Export_field_row](boxGetResult)
       }
 
-    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), export_uuid).<>(Export_field_row.tupled, Export_field_row.unapply)
+    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, Rep.Some(field_uuid), export_uuid, condition).<>(Export_field_row.tupled, Export_field_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), Rep.Some(export_uuid))).shaped.<>({r=>import r._; _1.map(_=> Export_field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, default, Rep.Some(field_uuid), Rep.Some(export_uuid), condition)).shaped.<>({r=>import r._; _1.map(_=> Export_field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9.get, _10)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column type SqlType(varchar)
      *  NOTE: The name was escaped because it collided with a Scala keyword. */
@@ -346,14 +343,12 @@ object Entities {
     val lookupQuery: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("lookupQuery", O.Default(None))
     /** Database column default SqlType(varchar), Default(None) */
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
-    /** Database column conditionFieldId SqlType(varchar), Default(None) */
-    val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
-    /** Database column conditionValues SqlType(varchar), Default(None) */
-    val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
     /** Database column field_uuid SqlType(uuid), PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.PrimaryKey, O.AutoInc)
     /** Database column export_uuid SqlType(uuid) */
     val export_uuid: Rep[java.util.UUID] = column[java.util.UUID]("export_uuid")
+    /** Database column condition SqlType(jsonb), Default(None) */
+    val condition: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("condition", O.Default(None))
 
     /** Foreign key referencing Export (database name fkey_form) */
     lazy val exportFk = foreignKey("fkey_form", export_uuid, Export)(r => r.export_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
@@ -521,8 +516,6 @@ object Entities {
    *  @param lookupQuery Database column lookupQuery SqlType(jsonb), Default(None)
    *  @param childQuery Database column childQuery SqlType(jsonb), Default(None)
    *  @param default Database column default SqlType(varchar), Default(None)
-   *  @param conditionFieldId Database column conditionFieldId SqlType(varchar), Default(None)
-   *  @param conditionValues Database column conditionValues SqlType(varchar), Default(None)
    *  @param params Database column params SqlType(jsonb), Default(None)
    *  @param read_only Database column read_only SqlType(bool), Default(false)
    *  @param required Database column required SqlType(bool), Default(None)
@@ -537,23 +530,28 @@ object Entities {
    *  @param foreign_entity Database column foreign_entity SqlType(text), Default(None)
    *  @param foreign_value_field Database column foreign_value_field SqlType(text), Default(None)
    *  @param foreign_key_columns Database column foreign_key_columns SqlType(_text), Default(None)
-   *  @param local_key_columns Database column local_key_columns SqlType(_text), Default(None) */
-  case class Field_row(`type`: String, name: String, widget: Option[String] = None, lookupQuery: Option[io.circe.Json] = None, childQuery: Option[io.circe.Json] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None, foreign_entity: Option[String] = None, foreign_value_field: Option[String] = None, foreign_key_columns: Option[List[String]] = None, local_key_columns: Option[List[String]] = None)
+   *  @param local_key_columns Database column local_key_columns SqlType(_text), Default(None)
+   *  @param condition Database column condition SqlType(jsonb), Default(None) */
+  case class Field_row(`type`: String, name: String, widget: Option[String] = None, lookupQuery: Option[io.circe.Json] = None, childQuery: Option[io.circe.Json] = None, default: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None, foreign_entity: Option[String] = None, foreign_value_field: Option[String] = None, foreign_key_columns: Option[List[String]] = None, local_key_columns: Option[List[String]] = None, condition: Option[io.circe.Json] = None)
 
-      val decodeField_row:Decoder[Field_row] = deriveConfiguredDecoder[Field_row]
-      val encodeField_row:EncoderWithBytea[Field_row] = { e =>
-        implicit def byteE = e
-        deriveConfiguredEncoder[Field_row]
-      }
 
-                   
+  val decodeField_row:Decoder[Field_row] = Decoder.forProduct22("type","name","widget","lookupQuery","childQuery","default","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","map_uuid","foreign_entity","foreign_value_field","foreign_key_columns","local_key_columns","condition")(Field_row.apply)
+  val encodeField_row:EncoderWithBytea[Field_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct22("type","name","widget","lookupQuery","childQuery","default","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","map_uuid","foreign_entity","foreign_value_field","foreign_key_columns","local_key_columns","condition")(x =>
+      (x.`type`, x.name, x.widget, x.lookupQuery, x.childQuery, x.default, x.params, x.read_only, x.required, x.field_uuid, x.form_uuid, x.child_form_uuid, x.function, x.min, x.max, x.roles, x.map_uuid, x.foreign_entity, x.foreign_value_field, x.foreign_key_columns, x.local_key_columns, x.condition)
+    )
+  }
+
+
+
   /** GetResult implicit for fetching Field_row objects using plain SQL queries */
 
   /** Table description of table field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class Field(_tableTag: Tag) extends Table[Field_row](_tableTag, Some("test_box"), "field") with UpdateTable[Field_row] {
 
-    def boxGetResult = GR(r => Field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextUUIDOption,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[String].map(_.toList)))
+    def boxGetResult = GR(r => Field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextUUIDOption,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[String].map(_.toList),r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Field_row]] = {
         val kv = keyValueComposer(this)
@@ -562,7 +560,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "type","name","widget","lookupQuery","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","map_uuid","foreign_entity","foreign_value_field","foreign_key_columns","local_key_columns" """
+          val returning = sql""" returning "type","name","widget","lookupQuery","childQuery","default","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","map_uuid","foreign_entity","foreign_value_field","foreign_key_columns","local_key_columns","condition" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Field_row](boxGetResult).head.map(x => Some(x))
@@ -570,11 +568,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupQuery","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","map_uuid","foreign_entity","foreign_value_field","foreign_key_columns","local_key_columns" from "test_box"."field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupQuery","childQuery","default","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","map_uuid","foreign_entity","foreign_value_field","foreign_key_columns","local_key_columns","condition" from "test_box"."field" """,where)
         sqlActionBuilder.as[Field_row](boxGetResult)
       }
 
-    def * = (`type` :: name :: widget :: lookupQuery :: childQuery :: default :: conditionFieldId :: conditionValues :: params :: read_only :: required :: Rep.Some(field_uuid) :: form_uuid :: child_form_uuid :: function :: min :: max :: roles :: map_uuid :: foreign_entity :: foreign_value_field :: foreign_key_columns :: local_key_columns :: HNil).mapTo[Field_row]
+    def * = (`type`, name, widget, lookupQuery, childQuery, default, params, read_only, required, Rep.Some(field_uuid), form_uuid, child_form_uuid, function, min, max, roles, map_uuid, foreign_entity, foreign_value_field, foreign_key_columns, local_key_columns, condition).<>(Field_row.tupled, Field_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupQuery, childQuery, default, params, Rep.Some(read_only), required, Rep.Some(field_uuid), Rep.Some(form_uuid), child_form_uuid, function, min, max, roles, map_uuid, foreign_entity, foreign_value_field, foreign_key_columns, local_key_columns, condition)).shaped.<>({r=>import r._; _1.map(_=> Field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8.get, _9, _10, _11.get, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column type SqlType(varchar)
      *  NOTE: The name was escaped because it collided with a Scala keyword. */
@@ -589,10 +589,6 @@ object Entities {
     val childQuery: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("childQuery", O.Default(None))
     /** Database column default SqlType(varchar), Default(None) */
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
-    /** Database column conditionFieldId SqlType(varchar), Default(None) */
-    val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
-    /** Database column conditionValues SqlType(varchar), Default(None) */
-    val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
     /** Database column params SqlType(jsonb), Default(None) */
     val params: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("params", O.Default(None))
     /** Database column read_only SqlType(bool), Default(false) */
@@ -623,11 +619,13 @@ object Entities {
     val foreign_key_columns: Rep[Option[List[String]]] = column[Option[List[String]]]("foreign_key_columns", O.Default(None))
     /** Database column local_key_columns SqlType(_text), Default(None) */
     val local_key_columns: Rep[Option[List[String]]] = column[Option[List[String]]]("local_key_columns", O.Default(None))
+    /** Database column condition SqlType(jsonb), Default(None) */
+    val condition: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("condition", O.Default(None))
 
     /** Foreign key referencing Form (database name fkey_form) */
-    lazy val formFk1 = foreignKey("fkey_form", form_uuid :: HNil, Form)(r => r.form_uuid :: HNil, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+    lazy val formFk1 = foreignKey("fkey_form", form_uuid, Form)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
     /** Foreign key referencing Form (database name fkey_form_child) */
-    lazy val formFk2 = foreignKey("fkey_form_child", child_form_uuid :: HNil, Form)(r => Rep.Some(r.form_uuid) :: HNil, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+    lazy val formFk2 = foreignKey("fkey_form_child", child_form_uuid, Form)(r => Rep.Some(r.form_uuid), onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table Field */
   lazy val Field = new TableQuery(tag => new Field(tag))
@@ -864,23 +862,24 @@ object Entities {
    *  @param entity Database column entity SqlType(varchar)
    *  @param description Database column description SqlType(varchar), Default(None)
    *  @param layout Database column layout SqlType(jsonb), Default(None)
-   *  @param tabularFields Database column tabularFields SqlType(varchar), Default(None)
-   *  @param query Database column query SqlType(varchar), Default(None)
-   *  @param exportfields Database column exportfields SqlType(varchar), Default(None)
+   *  @param tabularFields Database column tabularFields SqlType(_text), Default(None)
+   *  @param query Database column query SqlType(jsonb), Default(None)
+   *  @param exportfields Database column exportfields SqlType(_text), Default(None)
    *  @param guest_user Database column guest_user SqlType(text), Default(None)
    *  @param edit_key_field Database column edit_key_field SqlType(text), Default(None)
    *  @param show_navigation Database column show_navigation SqlType(bool), Default(true)
    *  @param props Database column props SqlType(text), Default(None)
    *  @param form_uuid Database column form_uuid SqlType(uuid), PrimaryKey
-   *  @param params Database column params SqlType(jsonb), Default(None) */
-  case class Form_row(name: String, entity: String, description: Option[String] = None, layout: Option[io.circe.Json] = None, tabularFields: Option[String] = None, query: Option[String] = None, exportfields: Option[String] = None, guest_user: Option[String] = None, edit_key_field: Option[String] = None, show_navigation: Boolean = true, props: Option[String] = None, form_uuid: Option[java.util.UUID] = None, params: Option[io.circe.Json] = None)
+   *  @param params Database column params SqlType(jsonb), Default(None)
+   *  @param public_list Database column public_list SqlType(bool), Default(false) */
+  case class Form_row(name: String, entity: String, description: Option[String] = None, layout: Option[io.circe.Json] = None, tabularFields: Option[List[String]] = None, query: Option[io.circe.Json] = None, exportfields: Option[List[String]] = None, guest_user: Option[String] = None, edit_key_field: Option[String] = None, show_navigation: Boolean = true, props: Option[String] = None, form_uuid: Option[java.util.UUID] = None, params: Option[io.circe.Json] = None, public_list: Boolean = false)
 
 
-  val decodeForm_row:Decoder[Form_row] = Decoder.forProduct13("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params")(Form_row.apply)
+  val decodeForm_row:Decoder[Form_row] = Decoder.forProduct14("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params","public_list")(Form_row.apply)
   val encodeForm_row:EncoderWithBytea[Form_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct13("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params")(x =>
-      (x.name, x.entity, x.description, x.layout, x.tabularFields, x.query, x.exportfields, x.guest_user, x.edit_key_field, x.show_navigation, x.props, x.form_uuid, x.params)
+    Encoder.forProduct14("name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params","public_list")(x =>
+      (x.name, x.entity, x.description, x.layout, x.tabularFields, x.query, x.exportfields, x.guest_user, x.edit_key_field, x.show_navigation, x.props, x.form_uuid, x.params, x.public_list)
     )
   }
 
@@ -891,7 +890,7 @@ object Entities {
   /** Table description of table form. Objects of this class serve as prototypes for rows in queries. */
   class Form(_tableTag: Tag) extends Table[Form_row](_tableTag, Some("test_box"), "form") with UpdateTable[Form_row] {
 
-    def boxGetResult = GR(r => Form_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.<<))
+    def boxGetResult = GR(r => Form_row(r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.<<,r.nextArrayOption[String].map(_.toList),r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.<<,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Form_row]] = {
         val kv = keyValueComposer(this)
@@ -900,7 +899,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."form" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" """
+          val returning = sql""" returning "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params","public_list" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Form_row](boxGetResult).head.map(x => Some(x))
@@ -908,13 +907,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Form_row]] = {
-        val sqlActionBuilder = concat(sql"""select "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params" from "test_box"."form" """,where)
+        val sqlActionBuilder = concat(sql"""select "name","entity","description","layout","tabularFields","query","exportfields","guest_user","edit_key_field","show_navigation","props","form_uuid","params","public_list" from "test_box"."form" """,where)
         sqlActionBuilder.as[Form_row](boxGetResult)
       }
 
-    def * = (name, entity, description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, show_navigation, props, Rep.Some(form_uuid), params).<>(Form_row.tupled, Form_row.unapply)
+    def * = (name, entity, description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, show_navigation, props, Rep.Some(form_uuid), params, public_list).<>(Form_row.tupled, Form_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(name), Rep.Some(entity), description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, Rep.Some(show_navigation), props, Rep.Some(form_uuid), params)).shaped.<>({r=>import r._; _1.map(_=> Form_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10.get, _11, _12, _13)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(name), Rep.Some(entity), description, layout, tabularFields, query, exportfields, guest_user, edit_key_field, Rep.Some(show_navigation), props, Rep.Some(form_uuid), params, Rep.Some(public_list))).shaped.<>({r=>import r._; _1.map(_=> Form_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10.get, _11, _12, _13, _14.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column name SqlType(varchar) */
     val name: Rep[String] = column[String]("name")
@@ -924,12 +923,12 @@ object Entities {
     val description: Rep[Option[String]] = column[Option[String]]("description", O.Default(None))
     /** Database column layout SqlType(jsonb), Default(None) */
     val layout: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("layout", O.Default(None))
-    /** Database column tabularFields SqlType(varchar), Default(None) */
-    val tabularFields: Rep[Option[String]] = column[Option[String]]("tabularFields", O.Default(None))
-    /** Database column query SqlType(varchar), Default(None) */
-    val query: Rep[Option[String]] = column[Option[String]]("query", O.Default(None))
-    /** Database column exportfields SqlType(varchar), Default(None) */
-    val exportfields: Rep[Option[String]] = column[Option[String]]("exportfields", O.Default(None))
+    /** Database column tabularFields SqlType(_text), Default(None) */
+    val tabularFields: Rep[Option[List[String]]] = column[Option[List[String]]]("tabularFields", O.Default(None))
+    /** Database column query SqlType(jsonb), Default(None) */
+    val query: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("query", O.Default(None))
+    /** Database column exportfields SqlType(_text), Default(None) */
+    val exportfields: Rep[Option[List[String]]] = column[Option[List[String]]]("exportfields", O.Default(None))
     /** Database column guest_user SqlType(text), Default(None) */
     val guest_user: Rep[Option[String]] = column[Option[String]]("guest_user", O.Default(None))
     /** Database column edit_key_field SqlType(text), Default(None) */
@@ -942,6 +941,8 @@ object Entities {
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid", O.PrimaryKey, O.AutoInc)
     /** Database column params SqlType(jsonb), Default(None) */
     val params: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("params", O.Default(None))
+    /** Database column public_list SqlType(bool), Default(false) */
+    val public_list: Rep[Boolean] = column[Boolean]("public_list", O.Default(false))
 
     /** Uniqueness Index over (name) (database name form_name_key) */
     val index1 = index("form_name_key", name, unique=true)
@@ -1488,18 +1489,17 @@ object Entities {
    *  @param lookupValueField Database column lookupValueField SqlType(varchar), Default(None)
    *  @param lookupQuery Database column lookupQuery SqlType(varchar), Default(None)
    *  @param default Database column default SqlType(varchar), Default(None)
-   *  @param conditionFieldId Database column conditionFieldId SqlType(varchar), Default(None)
-   *  @param conditionValues Database column conditionValues SqlType(varchar), Default(None)
    *  @param field_uuid Database column field_uuid SqlType(uuid), PrimaryKey
-   *  @param function_uuid Database column function_uuid SqlType(uuid) */
-  case class Function_field_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[String] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, field_uuid: Option[java.util.UUID] = None, function_uuid: java.util.UUID)
+   *  @param function_uuid Database column function_uuid SqlType(uuid)
+   *  @param condition Database column condition SqlType(jsonb), Default(None) */
+  case class Function_field_row(`type`: String, name: String, widget: Option[String] = None, lookupEntity: Option[String] = None, lookupValueField: Option[String] = None, lookupQuery: Option[String] = None, default: Option[String] = None, field_uuid: Option[java.util.UUID] = None, function_uuid: java.util.UUID, condition: Option[io.circe.Json] = None)
 
 
-  val decodeFunction_field_row:Decoder[Function_field_row] = Decoder.forProduct11("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid")(Function_field_row.apply)
+  val decodeFunction_field_row:Decoder[Function_field_row] = Decoder.forProduct10("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","function_uuid","condition")(Function_field_row.apply)
   val encodeFunction_field_row:EncoderWithBytea[Function_field_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct11("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid")(x =>
-      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.default, x.conditionFieldId, x.conditionValues, x.field_uuid, x.function_uuid)
+    Encoder.forProduct10("type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","function_uuid","condition")(x =>
+      (x.`type`, x.name, x.widget, x.lookupEntity, x.lookupValueField, x.lookupQuery, x.default, x.field_uuid, x.function_uuid, x.condition)
     )
   }
 
@@ -1511,7 +1511,7 @@ object Entities {
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class Function_field(_tableTag: Tag) extends Table[Function_field_row](_tableTag, Some("test_box"), "function_field") with UpdateTable[Function_field_row] {
 
-    def boxGetResult = GR(r => Function_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID))
+    def boxGetResult = GR(r => Function_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUID,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Function_field_row]] = {
         val kv = keyValueComposer(this)
@@ -1520,7 +1520,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."function_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid" """
+          val returning = sql""" returning "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","function_uuid","condition" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[Function_field_row](boxGetResult).head.map(x => Some(x))
@@ -1528,13 +1528,13 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Function_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","conditionFieldId","conditionValues","field_uuid","function_uuid" from "test_box"."function_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","lookupEntity","lookupValueField","lookupQuery","default","field_uuid","function_uuid","condition" from "test_box"."function_field" """,where)
         sqlActionBuilder.as[Function_field_row](boxGetResult)
       }
 
-    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), function_uuid).<>(Function_field_row.tupled, Function_field_row.unapply)
+    def * = (`type`, name, widget, lookupEntity, lookupValueField, lookupQuery, default, Rep.Some(field_uuid), function_uuid, condition).<>(Function_field_row.tupled, Function_field_row.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, default, conditionFieldId, conditionValues, Rep.Some(field_uuid), Rep.Some(function_uuid))).shaped.<>({r=>import r._; _1.map(_=> Function_field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9, _10, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(`type`), Rep.Some(name), widget, lookupEntity, lookupValueField, lookupQuery, default, Rep.Some(field_uuid), Rep.Some(function_uuid), condition)).shaped.<>({r=>import r._; _1.map(_=> Function_field_row.tupled((_1.get, _2.get, _3, _4, _5, _6, _7, _8, _9.get, _10)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column type SqlType(varchar)
      *  NOTE: The name was escaped because it collided with a Scala keyword. */
@@ -1551,14 +1551,12 @@ object Entities {
     val lookupQuery: Rep[Option[String]] = column[Option[String]]("lookupQuery", O.Default(None))
     /** Database column default SqlType(varchar), Default(None) */
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
-    /** Database column conditionFieldId SqlType(varchar), Default(None) */
-    val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
-    /** Database column conditionValues SqlType(varchar), Default(None) */
-    val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
     /** Database column field_uuid SqlType(uuid), PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.PrimaryKey, O.AutoInc)
     /** Database column function_uuid SqlType(uuid) */
     val function_uuid: Rep[java.util.UUID] = column[java.util.UUID]("function_uuid")
+    /** Database column condition SqlType(jsonb), Default(None) */
+    val condition: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("condition", O.Default(None))
 
     /** Foreign key referencing Function (database name fkey_form) */
     lazy val functionFk = foreignKey("fkey_form", function_uuid, Function)(r => r.function_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
@@ -2223,6 +2221,76 @@ object Entities {
   /** Collection-like TableQuery object for table Maps */
   lazy val Maps = new TableQuery(tag => new Maps(tag))
 
+  /** Entity class storing rows of table Metadata_columns
+   *  @param column_name Database column column_name SqlType(name), Default(None)
+   *  @param data_type Database column data_type SqlType(text), Default(None)
+   *  @param nullable Database column nullable SqlType(bool), Default(None)
+   *  @param table_name Database column table_name SqlType(name), Default(None)
+   *  @param table_schema Database column table_schema SqlType(name), Default(None)
+   *  @param ordinal_position Database column ordinal_position SqlType(int2), Default(None)
+   *  @param column_default Database column column_default SqlType(text), Default(None)
+   *  @param table_type Database column table_type SqlType(text), Default(None) */
+  case class Metadata_columns_row(column_name: Option[String] = None, data_type: Option[String] = None, nullable: Option[Boolean] = None, table_name: Option[String] = None, table_schema: Option[String] = None, ordinal_position: Option[Short] = None, column_default: Option[String] = None, table_type: Option[String] = None)
+
+
+  val decodeMetadata_columns_row:Decoder[Metadata_columns_row] = Decoder.forProduct8("column_name","data_type","nullable","table_name","table_schema","ordinal_position","column_default","table_type")(Metadata_columns_row.apply)
+  val encodeMetadata_columns_row:EncoderWithBytea[Metadata_columns_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct8("column_name","data_type","nullable","table_name","table_schema","ordinal_position","column_default","table_type")(x =>
+      (x.column_name, x.data_type, x.nullable, x.table_name, x.table_schema, x.ordinal_position, x.column_default, x.table_type)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Metadata_columns_row objects using plain SQL queries */
+
+  /** Table description of table metadata_columns. Objects of this class serve as prototypes for rows in queries. */
+  class Metadata_columns(_tableTag: Tag) extends Table[Metadata_columns_row](_tableTag, Some("test_box"), "metadata_columns") with UpdateTable[Metadata_columns_row] {
+
+    def boxGetResult = GR(r => Metadata_columns_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Metadata_columns_row]] = {
+        val kv = keyValueComposer(this)
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_box"."metadata_columns" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+          val returning = sql""" returning "column_name","data_type","nullable","table_name","table_schema","ordinal_position","column_default","table_type" """
+
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Metadata_columns_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Metadata_columns_row]] = {
+        val sqlActionBuilder = concat(sql"""select "column_name","data_type","nullable","table_name","table_schema","ordinal_position","column_default","table_type" from "test_box"."metadata_columns" """,where)
+        sqlActionBuilder.as[Metadata_columns_row](boxGetResult)
+      }
+
+    def * = (column_name, data_type, nullable, table_name, table_schema, ordinal_position, column_default, table_type).<>(Metadata_columns_row.tupled, Metadata_columns_row.unapply)
+
+    /** Database column column_name SqlType(name), Default(None) */
+    val column_name: Rep[Option[String]] = column[Option[String]]("column_name", O.Default(None))
+    /** Database column data_type SqlType(text), Default(None) */
+    val data_type: Rep[Option[String]] = column[Option[String]]("data_type", O.Default(None))
+    /** Database column nullable SqlType(bool), Default(None) */
+    val nullable: Rep[Option[Boolean]] = column[Option[Boolean]]("nullable", O.Default(None))
+    /** Database column table_name SqlType(name), Default(None) */
+    val table_name: Rep[Option[String]] = column[Option[String]]("table_name", O.Default(None))
+    /** Database column table_schema SqlType(name), Default(None) */
+    val table_schema: Rep[Option[String]] = column[Option[String]]("table_schema", O.Default(None))
+    /** Database column ordinal_position SqlType(int2), Default(None) */
+    val ordinal_position: Rep[Option[Short]] = column[Option[Short]]("ordinal_position", O.Default(None))
+    /** Database column column_default SqlType(text), Default(None) */
+    val column_default: Rep[Option[String]] = column[Option[String]]("column_default", O.Default(None))
+    /** Database column table_type SqlType(text), Default(None) */
+    val table_type: Rep[Option[String]] = column[Option[String]]("table_type", O.Default(None))
+  }
+  /** Collection-like TableQuery object for table Metadata_columns */
+  lazy val Metadata_columns = new TableQuery(tag => new Metadata_columns(tag))
+
   /** Entity class storing rows of table News
    *  @param datetime Database column datetime SqlType(timestamp)
    *  @param author Database column author SqlType(varchar), Length(2000,true), Default(None)
@@ -2704,8 +2772,7 @@ object Entities {
    *  @param foreign_key_columns Database column foreign_key_columns SqlType(_text), Default(None)
    *  @param childQuery Database column childQuery SqlType(jsonb), Default(None)
    *  @param default Database column default SqlType(varchar), Default(None)
-   *  @param conditionFieldId Database column conditionFieldId SqlType(varchar), Default(None)
-   *  @param conditionValues Database column conditionValues SqlType(varchar), Default(None)
+   *  @param condition Database column condition SqlType(jsonb), Default(None)
    *  @param params Database column params SqlType(jsonb), Default(None)
    *  @param read_only Database column read_only SqlType(bool), Default(None)
    *  @param required Database column required SqlType(bool), Default(None)
@@ -2717,22 +2784,26 @@ object Entities {
    *  @param max Database column max SqlType(float8), Default(None)
    *  @param roles Database column roles SqlType(_text), Default(None)
    *  @param entity_field Database column entity_field SqlType(bool), Default(None) */
-  case class V_field_row(`type`: Option[String] = None, name: Option[String] = None, widget: Option[String] = None, foreign_entity: Option[String] = None, foreign_value_field: Option[String] = None, lookupQuery: Option[io.circe.Json] = None, local_key_columns: Option[List[String]] = None, foreign_key_columns: Option[List[String]] = None, childQuery: Option[io.circe.Json] = None, default: Option[String] = None, conditionFieldId: Option[String] = None, conditionValues: Option[String] = None, params: Option[io.circe.Json] = None, read_only: Option[Boolean] = None, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: Option[java.util.UUID] = None, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, roles: Option[List[String]] = None, entity_field: Option[Boolean] = None)
+  case class V_field_row(`type`: Option[String] = None, name: Option[String] = None, widget: Option[String] = None, foreign_entity: Option[String] = None, foreign_value_field: Option[String] = None, lookupQuery: Option[io.circe.Json] = None, local_key_columns: Option[List[String]] = None, foreign_key_columns: Option[List[String]] = None, childQuery: Option[io.circe.Json] = None, default: Option[String] = None, condition: Option[io.circe.Json] = None, params: Option[io.circe.Json] = None, read_only: Option[Boolean] = None, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: Option[java.util.UUID] = None, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, roles: Option[List[String]] = None, entity_field: Option[Boolean] = None)
 
-      val decodeV_field_row:Decoder[V_field_row] = deriveConfiguredDecoder[V_field_row]
-      val encodeV_field_row:EncoderWithBytea[V_field_row] = { e =>
-        implicit def byteE = e
-        deriveConfiguredEncoder[V_field_row]
-      }
 
-                   
+  val decodeV_field_row:Decoder[V_field_row] = Decoder.forProduct22("type","name","widget","foreign_entity","foreign_value_field","lookupQuery","local_key_columns","foreign_key_columns","childQuery","default","condition","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field")(V_field_row.apply)
+  val encodeV_field_row:EncoderWithBytea[V_field_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct22("type","name","widget","foreign_entity","foreign_value_field","lookupQuery","local_key_columns","foreign_key_columns","childQuery","default","condition","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field")(x =>
+      (x.`type`, x.name, x.widget, x.foreign_entity, x.foreign_value_field, x.lookupQuery, x.local_key_columns, x.foreign_key_columns, x.childQuery, x.default, x.condition, x.params, x.read_only, x.required, x.field_uuid, x.form_uuid, x.child_form_uuid, x.function, x.min, x.max, x.roles, x.entity_field)
+    )
+  }
+
+
+
   /** GetResult implicit for fetching V_field_row objects using plain SQL queries */
 
   /** Table description of table v_field. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: type */
   class V_field(_tableTag: Tag) extends Table[V_field_row](_tableTag, Some("test_box"), "v_field") with UpdateTable[V_field_row] {
 
-    def boxGetResult = GR(r => V_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[String].map(_.toList),r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUIDOption,r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.<<))
+    def boxGetResult = GR(r => V_field_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.nextArrayOption[String].map(_.toList),r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.nextUUIDOption,r.nextUUIDOption,r.nextUUIDOption,r.<<,r.<<,r.<<,r.nextArrayOption[String].map(_.toList),r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[V_field_row]] = {
         val kv = keyValueComposer(this)
@@ -2741,7 +2812,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."v_field" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "type","name","widget","foreign_entity","foreign_value_field","lookupQuery","local_key_columns","foreign_key_columns","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field" """
+          val returning = sql""" returning "type","name","widget","foreign_entity","foreign_value_field","lookupQuery","local_key_columns","foreign_key_columns","childQuery","default","condition","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[V_field_row](boxGetResult).head.map(x => Some(x))
@@ -2749,11 +2820,11 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_field_row]] = {
-        val sqlActionBuilder = concat(sql"""select "type","name","widget","foreign_entity","foreign_value_field","lookupQuery","local_key_columns","foreign_key_columns","childQuery","default","conditionFieldId","conditionValues","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field" from "test_box"."v_field" """,where)
+        val sqlActionBuilder = concat(sql"""select "type","name","widget","foreign_entity","foreign_value_field","lookupQuery","local_key_columns","foreign_key_columns","childQuery","default","condition","params","read_only","required","field_uuid","form_uuid","child_form_uuid","function","min","max","roles","entity_field" from "test_box"."v_field" """,where)
         sqlActionBuilder.as[V_field_row](boxGetResult)
       }
 
-    def * = (`type` :: name :: widget :: foreign_entity :: foreign_value_field :: lookupQuery :: local_key_columns :: foreign_key_columns :: childQuery :: default :: conditionFieldId :: conditionValues :: params :: read_only :: required :: field_uuid :: form_uuid :: child_form_uuid :: function :: min :: max :: roles :: entity_field :: HNil).mapTo[V_field_row]
+    def * = (`type`, name, widget, foreign_entity, foreign_value_field, lookupQuery, local_key_columns, foreign_key_columns, childQuery, default, condition, params, read_only, required, field_uuid, form_uuid, child_form_uuid, function, min, max, roles, entity_field).<>(V_field_row.tupled, V_field_row.unapply)
 
     /** Database column type SqlType(varchar), Default(None)
      *  NOTE: The name was escaped because it collided with a Scala keyword. */
@@ -2776,10 +2847,8 @@ object Entities {
     val childQuery: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("childQuery", O.Default(None))
     /** Database column default SqlType(varchar), Default(None) */
     val default: Rep[Option[String]] = column[Option[String]]("default", O.Default(None))
-    /** Database column conditionFieldId SqlType(varchar), Default(None) */
-    val conditionFieldId: Rep[Option[String]] = column[Option[String]]("conditionFieldId", O.Default(None))
-    /** Database column conditionValues SqlType(varchar), Default(None) */
-    val conditionValues: Rep[Option[String]] = column[Option[String]]("conditionValues", O.Default(None))
+    /** Database column condition SqlType(jsonb), Default(None) */
+    val condition: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("condition", O.Default(None))
     /** Database column params SqlType(jsonb), Default(None) */
     val params: Rep[Option[io.circe.Json]] = column[Option[io.circe.Json]]("params", O.Default(None))
     /** Database column read_only SqlType(bool), Default(None) */
@@ -2805,6 +2874,73 @@ object Entities {
   }
   /** Collection-like TableQuery object for table V_field */
   lazy val V_field = new TableQuery(tag => new V_field(tag))
+
+  /** Entity class storing rows of table V_foreign_keys
+   *  @param constraint_name Database column constraint_name SqlType(name), Default(None)
+   *  @param schema_name Database column schema_name SqlType(name), Default(None)
+   *  @param table_name Database column table_name SqlType(name), Default(None)
+   *  @param referenced_schema_name Database column referenced_schema_name SqlType(name), Default(None)
+   *  @param referenced_table_name Database column referenced_table_name SqlType(name), Default(None)
+   *  @param columns Database column columns SqlType(_name), Length(2147483647,false), Default(None)
+   *  @param referenced_columns Database column referenced_columns SqlType(_name), Length(2147483647,false), Default(None) */
+  case class V_foreign_keys_row(constraint_name: Option[String] = None, schema_name: Option[String] = None, table_name: Option[String] = None, referenced_schema_name: Option[String] = None, referenced_table_name: Option[String] = None, columns: Option[String] = None, referenced_columns: Option[String] = None)
+
+
+  val decodeV_foreign_keys_row:Decoder[V_foreign_keys_row] = Decoder.forProduct7("constraint_name","schema_name","table_name","referenced_schema_name","referenced_table_name","columns","referenced_columns")(V_foreign_keys_row.apply)
+  val encodeV_foreign_keys_row:EncoderWithBytea[V_foreign_keys_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct7("constraint_name","schema_name","table_name","referenced_schema_name","referenced_table_name","columns","referenced_columns")(x =>
+      (x.constraint_name, x.schema_name, x.table_name, x.referenced_schema_name, x.referenced_table_name, x.columns, x.referenced_columns)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching V_foreign_keys_row objects using plain SQL queries */
+
+  /** Table description of table v_foreign_keys. Objects of this class serve as prototypes for rows in queries. */
+  class V_foreign_keys(_tableTag: Tag) extends Table[V_foreign_keys_row](_tableTag, Some("test_box"), "v_foreign_keys") with UpdateTable[V_foreign_keys_row] {
+
+    def boxGetResult = GR(r => V_foreign_keys_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[V_foreign_keys_row]] = {
+        val kv = keyValueComposer(this)
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_box"."v_foreign_keys" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+          val returning = sql""" returning "constraint_name","schema_name","table_name","referenced_schema_name","referenced_table_name","columns","referenced_columns" """
+
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[V_foreign_keys_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_foreign_keys_row]] = {
+        val sqlActionBuilder = concat(sql"""select "constraint_name","schema_name","table_name","referenced_schema_name","referenced_table_name","columns","referenced_columns" from "test_box"."v_foreign_keys" """,where)
+        sqlActionBuilder.as[V_foreign_keys_row](boxGetResult)
+      }
+
+    def * = (constraint_name, schema_name, table_name, referenced_schema_name, referenced_table_name, columns, referenced_columns).<>(V_foreign_keys_row.tupled, V_foreign_keys_row.unapply)
+
+    /** Database column constraint_name SqlType(name), Default(None) */
+    val constraint_name: Rep[Option[String]] = column[Option[String]]("constraint_name", O.Default(None))
+    /** Database column schema_name SqlType(name), Default(None) */
+    val schema_name: Rep[Option[String]] = column[Option[String]]("schema_name", O.Default(None))
+    /** Database column table_name SqlType(name), Default(None) */
+    val table_name: Rep[Option[String]] = column[Option[String]]("table_name", O.Default(None))
+    /** Database column referenced_schema_name SqlType(name), Default(None) */
+    val referenced_schema_name: Rep[Option[String]] = column[Option[String]]("referenced_schema_name", O.Default(None))
+    /** Database column referenced_table_name SqlType(name), Default(None) */
+    val referenced_table_name: Rep[Option[String]] = column[Option[String]]("referenced_table_name", O.Default(None))
+    /** Database column columns SqlType(_name), Length(2147483647,false), Default(None) */
+    val columns: Rep[Option[String]] = column[Option[String]]("columns", O.Length(2147483647,varying=false), O.Default(None))
+    /** Database column referenced_columns SqlType(_name), Length(2147483647,false), Default(None) */
+    val referenced_columns: Rep[Option[String]] = column[Option[String]]("referenced_columns", O.Length(2147483647,varying=false), O.Default(None))
+  }
+  /** Collection-like TableQuery object for table V_foreign_keys */
+  lazy val V_foreign_keys = new TableQuery(tag => new V_foreign_keys(tag))
 
   /** Entity class storing rows of table V_labels
    *  @param key Database column key SqlType(varchar), Default(None)
@@ -2869,15 +3005,16 @@ object Entities {
    *  @param rolvaliduntil Database column rolvaliduntil SqlType(timestamptz), Default(None)
    *  @param memberof Database column memberof SqlType(_name), Length(2147483647,false), Default(None)
    *  @param rolreplication Database column rolreplication SqlType(bool), Default(None)
-   *  @param rolbypassrls Database column rolbypassrls SqlType(bool), Default(None) */
-  case class V_roles_row(rolname: Option[String] = None, rolsuper: Option[Boolean] = None, rolinherit: Option[Boolean] = None, rolcreaterole: Option[Boolean] = None, rolcreatedb: Option[Boolean] = None, rolcanlogin: Option[Boolean] = None, rolconnlimit: Option[Int] = None, rolvaliduntil: Option[java.time.LocalDateTime] = None, memberof: Option[String] = None, rolreplication: Option[Boolean] = None, rolbypassrls: Option[Boolean] = None)
+   *  @param rolbypassrls Database column rolbypassrls SqlType(bool), Default(None)
+   *  @param access_level_id Database column access_level_id SqlType(int4), Default(None) */
+  case class V_roles_row(rolname: Option[String] = None, rolsuper: Option[Boolean] = None, rolinherit: Option[Boolean] = None, rolcreaterole: Option[Boolean] = None, rolcreatedb: Option[Boolean] = None, rolcanlogin: Option[Boolean] = None, rolconnlimit: Option[Int] = None, rolvaliduntil: Option[java.time.OffsetDateTime] = None, memberof: Option[String] = None, rolreplication: Option[Boolean] = None, rolbypassrls: Option[Boolean] = None, access_level_id: Option[Int] = None)
 
 
-  val decodeV_roles_row:Decoder[V_roles_row] = Decoder.forProduct11("rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls")(V_roles_row.apply)
+  val decodeV_roles_row:Decoder[V_roles_row] = Decoder.forProduct12("rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls","access_level_id")(V_roles_row.apply)
   val encodeV_roles_row:EncoderWithBytea[V_roles_row] = { e =>
     implicit def byteE = e
-    Encoder.forProduct11("rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls")(x =>
-      (x.rolname, x.rolsuper, x.rolinherit, x.rolcreaterole, x.rolcreatedb, x.rolcanlogin, x.rolconnlimit, x.rolvaliduntil, x.memberof, x.rolreplication, x.rolbypassrls)
+    Encoder.forProduct12("rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls","access_level_id")(x =>
+      (x.rolname, x.rolsuper, x.rolinherit, x.rolcreaterole, x.rolcreatedb, x.rolcanlogin, x.rolconnlimit, x.rolvaliduntil, x.memberof, x.rolreplication, x.rolbypassrls, x.access_level_id)
     )
   }
 
@@ -2888,7 +3025,7 @@ object Entities {
   /** Table description of table v_roles. Objects of this class serve as prototypes for rows in queries. */
   class V_roles(_tableTag: Tag) extends Table[V_roles_row](_tableTag, Some("test_box"), "v_roles") with UpdateTable[V_roles_row] {
 
-    def boxGetResult = GR(r => V_roles_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
+    def boxGetResult = GR(r => V_roles_row(r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<,r.<<))
 
     def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[V_roles_row]] = {
         val kv = keyValueComposer(this)
@@ -2897,7 +3034,7 @@ object Entities {
           val head = concat(sql"""update "test_box"."v_roles" set """,chunks.head)
           val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
 
-          val returning = sql""" returning "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls" """
+          val returning = sql""" returning "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls","access_level_id" """
 
           val sqlActionBuilder = concat(concat(set,where),returning)
           sqlActionBuilder.as[V_roles_row](boxGetResult).head.map(x => Some(x))
@@ -2905,11 +3042,11 @@ object Entities {
       }
 
       override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[V_roles_row]] = {
-        val sqlActionBuilder = concat(sql"""select "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls" from "test_box"."v_roles" """,where)
+        val sqlActionBuilder = concat(sql"""select "rolname","rolsuper","rolinherit","rolcreaterole","rolcreatedb","rolcanlogin","rolconnlimit","rolvaliduntil","memberof","rolreplication","rolbypassrls","access_level_id" from "test_box"."v_roles" """,where)
         sqlActionBuilder.as[V_roles_row](boxGetResult)
       }
 
-    def * = (rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolconnlimit, rolvaliduntil, memberof, rolreplication, rolbypassrls).<>(V_roles_row.tupled, V_roles_row.unapply)
+    def * = (rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolconnlimit, rolvaliduntil, memberof, rolreplication, rolbypassrls, access_level_id).<>(V_roles_row.tupled, V_roles_row.unapply)
 
     /** Database column rolname SqlType(name), Default(None) */
     val rolname: Rep[Option[String]] = column[Option[String]]("rolname", O.Default(None))
@@ -2926,13 +3063,15 @@ object Entities {
     /** Database column rolconnlimit SqlType(int4), Default(None) */
     val rolconnlimit: Rep[Option[Int]] = column[Option[Int]]("rolconnlimit", O.Default(None))
     /** Database column rolvaliduntil SqlType(timestamptz), Default(None) */
-    val rolvaliduntil: Rep[Option[java.time.LocalDateTime]] = column[Option[java.time.LocalDateTime]]("rolvaliduntil", O.Default(None))
+    val rolvaliduntil: Rep[Option[java.time.OffsetDateTime]] = column[Option[java.time.OffsetDateTime]]("rolvaliduntil", O.Default(None))
     /** Database column memberof SqlType(_name), Length(2147483647,false), Default(None) */
     val memberof: Rep[Option[String]] = column[Option[String]]("memberof", O.Length(2147483647,varying=false), O.Default(None))
     /** Database column rolreplication SqlType(bool), Default(None) */
     val rolreplication: Rep[Option[Boolean]] = column[Option[Boolean]]("rolreplication", O.Default(None))
     /** Database column rolbypassrls SqlType(bool), Default(None) */
     val rolbypassrls: Rep[Option[Boolean]] = column[Option[Boolean]]("rolbypassrls", O.Default(None))
+    /** Database column access_level_id SqlType(int4), Default(None) */
+    val access_level_id: Rep[Option[Int]] = column[Option[Int]]("access_level_id", O.Default(None))
   }
   /** Collection-like TableQuery object for table V_roles */
   lazy val V_roles = new TableQuery(tag => new V_roles(tag))

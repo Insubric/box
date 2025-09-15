@@ -51,9 +51,11 @@ object GeneratedRoutes extends GeneratedRoutes {
     ch.wsl.box.rest.routes.Table[Ui,Ui_row]("ui",Ui, lang)(Entities.encodeUi_row,Entities.decodeUi_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Ui_src,Ui_src_row]("ui_src",Ui_src, lang)(Entities.encodeUi_src_row,Entities.decodeUi_src_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[Users,Users_row]("users",Users, lang)(Entities.encodeUsers_row,Entities.decodeUsers_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[Metadata_columns,Metadata_columns_row]("metadata_columns",Metadata_columns, lang)(Entities.encodeMetadata_columns_row,Entities.decodeMetadata_columns_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_box_form_childs,V_box_form_childs_row]("v_box_form_childs",V_box_form_childs, lang)(Entities.encodeV_box_form_childs_row,Entities.decodeV_box_form_childs_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_box_usages,V_box_usages_row]("v_box_usages",V_box_usages, lang)(Entities.encodeV_box_usages_row,Entities.decodeV_box_usages_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_field,V_field_row]("v_field",V_field, lang)(Entities.encodeV_field_row,Entities.decodeV_field_row,mat,up,ec,services).route ~ 
+    ch.wsl.box.rest.routes.Table[V_foreign_keys,V_foreign_keys_row]("v_foreign_keys",V_foreign_keys, lang)(Entities.encodeV_foreign_keys_row,Entities.decodeV_foreign_keys_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_labels,V_labels_row]("v_labels",V_labels, lang)(Entities.encodeV_labels_row,Entities.decodeV_labels_row,mat,up,ec,services).route ~ 
     ch.wsl.box.rest.routes.Table[V_roles,V_roles_row]("v_roles",V_roles, lang)(Entities.encodeV_roles_row,Entities.decodeV_roles_row,mat,up,ec,services).route
   }
