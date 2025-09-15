@@ -14,6 +14,9 @@ case class UserInfo(
                    )
 
 object UserInfo {
+
+  def simple(username:String) = UserInfo(username,username,None,Seq(),Json.Null)
+
   implicit val decoderRaw: Decoder[UserInfo] = new Decoder[UserInfo] {
     override def apply(c: HCursor): Result[UserInfo] = for {
       name <- c.downField("name").as[String]

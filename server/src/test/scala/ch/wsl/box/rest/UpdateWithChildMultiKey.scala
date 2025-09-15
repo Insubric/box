@@ -8,7 +8,7 @@ import ch.wsl.box.rest.fixtures.FormFixtures
 import ch.wsl.box.rest.utils.{BoxSession, UserProfile}
 import org.scalatest.Assertion
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.{CurrentUser, JSONFieldTypes, JSONID, WidgetsNames}
+import ch.wsl.box.model.shared.{ConditionValue, ConditionalField, CurrentUser, JSONFieldTypes, JSONID, WidgetsNames}
 import ch.wsl.box.rest.logic.FormActions
 import ch.wsl.box.rest.metadata.FormMetadataFactory
 import ch.wsl.box.rest.runtime.Registry
@@ -94,7 +94,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.NUMBER, name = "ce_id", widget = Some(WidgetsNames.input)),
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.NUMBER, name = "s_id", widget = Some(WidgetsNames.input)),
       BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.BOOLEAN, name = "negative", widget = Some(WidgetsNames.checkbox)),
-      BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.CHILD, name = "cesr", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(cesrId),local_key_columns = Some(List("ce_id","s_id")),foreign_key_columns = Some(List("ce_id","s_id")),conditionFieldId = Some("negative"),conditionValues = Some("false"),params = Some(Json.fromFields(Map("deleteWhenHidden" -> deleteWhenHidden.asJson))))
+      BoxField_row(form_uuid = cesId, `type` = JSONFieldTypes.CHILD, name = "cesr", widget = Some(WidgetsNames.simpleChild),child_form_uuid = Some(cesrId),local_key_columns = Some(List("ce_id","s_id")),foreign_key_columns = Some(List("ce_id","s_id")),condition = Some(ConditionalField("negative",ConditionValue(Json.False)).asJson),params = Some(Json.fromFields(Map("deleteWhenHidden" -> deleteWhenHidden.asJson))))
     )
     def cesrFields(cesrId:UUID):Seq[BoxField_row] = Seq(
       BoxField_row(form_uuid = cesrId, `type` = JSONFieldTypes.NUMBER, name = "ce_id", widget = Some(WidgetsNames.input)),
@@ -116,8 +116,8 @@ class UpdateWithChildMultiKey extends BaseSpec {
 
   def insert(formName: String, json: Json)(implicit services: Services): Future[(JSONID, Json)] = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser, Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
     for {
@@ -133,8 +133,8 @@ class UpdateWithChildMultiKey extends BaseSpec {
 
   def update(formName: String, id: JSONID, json: Json)(implicit services: Services) = {
 
-    implicit val session = BoxSession(CurrentUser(services.connection.adminUser, Seq()))
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val session = BoxSession(CurrentUser.simple(services.connection.adminUser))
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
     for {
@@ -149,7 +149,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
 
 
   "Form with two multikey child" should "be inserted" in withServices[Assertion] { implicit services =>
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
     val base = stringToJson(
@@ -244,7 +244,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
          |}""".stripMargin)
 
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
 
@@ -342,7 +342,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
          |}""".stripMargin)
 
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
 
@@ -439,7 +439,7 @@ class UpdateWithChildMultiKey extends BaseSpec {
          |}""".stripMargin)
 
 
-    implicit val up = UserProfile(services.connection.adminUser)
+    implicit val up = UserProfile.simple(services.connection.adminUser)
     implicit val fdb = FullDatabase(services.connection.adminDB, services.connection.adminDB)
 
 

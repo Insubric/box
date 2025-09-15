@@ -27,3 +27,8 @@ case class UserProfile(name: String,app_user:String)(implicit services:Services)
 
 
 }
+
+
+object UserProfile {
+  def simple(username:String)(implicit services:Services) = UserProfile(username,username)
+}
