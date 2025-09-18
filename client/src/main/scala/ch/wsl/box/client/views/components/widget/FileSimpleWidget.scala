@@ -218,7 +218,7 @@ case class FileSimpleWidget(widgetParams:WidgetParams) extends Widget with HasDa
 
         new compressorjs.mod.default(file,options)
       }
-      case None => readFile(file)
+      case _ => readFile(file)
     }
 
 
