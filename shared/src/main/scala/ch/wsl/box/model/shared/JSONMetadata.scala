@@ -102,9 +102,12 @@ object JSONMetadata extends Logging {
     case Right(sub) => extractFields(sub.fields)
   }
 
-  def layoutOnly(metadata: JSONMetadata):JSONMetadata = {
-    val layoutField = metadata.layout.blocks.flatMap(x => extractFields(x.fields))
-    metadata.copy(fields = metadata.fields.filter(f => layoutField.contains(f.name)))
+  def usedFieldsOnly(metadata: JSONMetadata,parentField:Option[JSONField]):JSONMetadata = { //ensure that we are not handling data that are not visible or used by the user
+    val formFields = parentField match {
+      case Some(field) if Seq(WidgetsNames.editableTable).contains(field.widget.getOrElse("")) => field.params.flatMap(_.js("fields").as[Seq[String]].toOption).getOrElse(metadata.tabularFields)
+      case _ => metadata.layout.blocks.flatMap(x => extractFields(x.fields))
+    }
+    metadata.copy(fields = metadata.fields.filter(f => formFields.contains(f.name)))
   }
 
 

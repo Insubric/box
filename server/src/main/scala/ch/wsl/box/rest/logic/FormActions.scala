@@ -29,7 +29,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class FormActions(metadata:JSONMetadata,
                        registry: RegistryInstance,
-                       metadataFactory: MetadataFactory
+                       metadataFactory: MetadataFactory,
+                       parentField:Option[JSONField] = None
                       )(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext,val services:Services) extends DBFiltersImpl with Logging with TableActions[Json] {
 
   import ch.wsl.box.shared.utils.JSONUtils._
@@ -282,7 +283,7 @@ case class FormActions(metadata:JSONMetadata,
     val result = subFields.map{ field =>
       for {
         form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
-        dbSubforms <- getChild(e,form,field.child.get)
+        dbSubforms <- getChild(e,form,field,field.child.get)
         subs =  e.seq(field.name)
         subJsonWithIndexs = attachArrayIndex(subs,form)
         subJsonWithNegativeConditionFields = subJsonWithIndexs.map(attachEmptyFields(form))
@@ -290,7 +291,7 @@ case class FormActions(metadata:JSONMetadata,
          deleted <- if(field.params.exists(_.js("avoidDelete") == Json.True)) DBIO.successful(0) else DBIO.sequence(deleteChild(form,subJson,dbSubforms))
         result <- DBIO.sequence(subJson.map{ json => //order matters so we do it synchro
           val id = json.ID(jsonIdDBFields(form,form.keyFields))
-          action(FormActions(form,registry,metadataFactory))(id,json)
+          action(FormActions(form,registry,metadataFactory,Some(field)))(id,json)
         })
       } yield field.name -> result.asJson
     }
@@ -338,7 +339,7 @@ case class FormActions(metadata:JSONMetadata,
         rowsWithId = rows.map{ row =>
           field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
         }
-        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,registry,metadataFactory).insert(row)))
+        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,registry,metadataFactory,Some(field)).insert(row)))
       } yield field.name -> result.asJson
     })
   } yield inserted.deepMerge(Json.fromFields(childs))
@@ -362,8 +363,7 @@ case class FormActions(metadata:JSONMetadata,
         case Some(value) => DBIO.successful(value)
         case None => jsonAction.insert(dataWithoutChilds)
       }
-      // TODO handle case of table childs
-      diff = newRow.diff(JSONMetadata.layoutOnly(metadata), Seq())(dataWithoutChilds)
+      diff = newRow.diff(JSONMetadata.usedFieldsOnly(metadata,parentField), Seq())(dataWithoutChilds)
       result <- jsonAction.updateDiff(diff)
     } yield result.orElse(current).getOrElse(dataWithoutChilds)
   }
@@ -418,9 +418,9 @@ case class FormActions(metadata:JSONMetadata,
     child.childQuery.getOrElse(JSONQuery.empty).copy(filter=filters.toList.distinct)
   }
 
-  private def getChild(dataJson:Json, metadata:JSONMetadata, child:Child):DBIO[Seq[Json]] = {
+  private def getChild(dataJson:Json, metadata:JSONMetadata, field:JSONField, child:Child):DBIO[Seq[Json]] = {
     val query = createQuery(dataJson,child)
-    FormActions(metadata,registry,metadataFactory).findSimple(query)
+    FormActions(metadata,registry,metadataFactory,Some(field)).findSimple(query)
   }
 
   private def expandJson(dataJson:Json):DBIO[Json] = {
@@ -431,7 +431,7 @@ case class FormActions(metadata:JSONMetadata,
         case (_,None) => DBIO.successful(field.name -> dataJson.js(field.name))        //use given value
         case (_,Some(child)) if child.hasData => for{
           form <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(child.objId,metadata.lang,session.user)))
-          data <- getChild(dataJson,form,child)
+          data <- getChild(dataJson,form,field,child)
         } yield {
           logger.info(s"expanding child ${field.name} : ${data.asJson}")
           field.name -> data.asJson

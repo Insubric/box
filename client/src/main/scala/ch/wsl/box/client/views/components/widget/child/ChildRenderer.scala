@@ -8,7 +8,6 @@ import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.JSONMetadataRenderer
 import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetCallbackActions, WidgetParams}
-import ch.wsl.box.model.shared.JSONMetadata.layoutOnly
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
