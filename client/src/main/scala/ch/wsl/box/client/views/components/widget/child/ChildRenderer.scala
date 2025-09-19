@@ -8,6 +8,7 @@ import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.JSONMetadataRenderer
 import ch.wsl.box.client.views.components.widget.{ChildWidget, ComponentWidgetFactory, Widget, WidgetCallbackActions, WidgetParams}
+import ch.wsl.box.model.shared.JSONMetadata.layoutOnly
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
@@ -124,6 +125,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
     protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier
 
+    protected def layoutForChild(metadata:JSONMetadata):Layout
 
     private def add(data:Json,open:Boolean,newRow:Boolean, place:Option[Int] = None): Unit = {
 
@@ -154,7 +156,9 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val actions = widgetParam.actions.copy(save = save)
 
-      val widget = JSONMetadataRenderer(metadata.get, propData, children, childId,actions,changed,widgetParam.public)
+      val childMetadata = metadata.get.copy(layout = layoutForChild(metadata.get))
+
+      val widget = JSONMetadataRenderer(childMetadata, propData, children, childId,actions,changed,widgetParam.public)
 
       val changeListener = changed.listen(_ => checkChanges())
 

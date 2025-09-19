@@ -10,6 +10,10 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 object TestHooks {
 
   var testing = false
+  private var _data:Option[Property[Json]] = None
+
+  def setData(p:Property[Json]): Unit = _data = Some(p)
+  def data: Property[Json] = _data.get
 
   private def removeSpecialChars(str:String):String = str
     .replace(" ","")
@@ -34,6 +38,7 @@ object TestHooks {
   val dataChanged = "dataChanged"
   val mobileTableAdd = "mobileTableAddId"
   def formField(name:String) = s"formField$name"
+  def editableTableField(name:String) = s"editableTableField$name"
   def readOnlyField(name:String) = s"readOnlyField$name"
   def popupSearch(name:String,formId:UUID) = s"popupSearch$name$formId"
   def popupField(name:String,formId:UUID) = s"popupField$name$formId"
@@ -60,5 +65,7 @@ object TestHooks {
   }
 
   var properties:scala.collection.mutable.Map[String,Property[Json]] = scala.collection.mutable.Map()
+
+
 
 }

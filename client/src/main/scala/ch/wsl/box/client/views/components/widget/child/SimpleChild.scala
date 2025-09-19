@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget.child
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams}
-import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONMetadata, Layout, WidgetsNames}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
 import io.udash._
@@ -23,6 +23,8 @@ object SimpleChildFactory extends ChildRendererFactory {
   case class SimpleChildRenderer(widgetParam:WidgetParams) extends ChildRenderer {
 
     import ch.wsl.box.shared.utils.JSONUtils._
+
+    override protected def layoutForChild(metadata: JSONMetadata): Layout = metadata.layout
 
     val bgColor = widgetParam.field.params.flatMap(_.getOpt("backgroud"))
       .getOrElse(ClientConf.childBackgroundColor)

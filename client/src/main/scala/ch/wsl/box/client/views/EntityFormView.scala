@@ -73,6 +73,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
 
+  TestHooks.setData(model.subProp(_.data))
+
   override def handleState(state: FormState): Unit = {
 
     logger.warn(state.toString)

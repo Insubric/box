@@ -5,7 +5,7 @@ import ch.wsl.box.client.services.{ClientConf, ClientSession, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams, WidgetRegistry}
-import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, JSONField, JSONMetadata, Layout, WidgetsNames}
 import io.circe.Json
 import io.udash.bootstrap.BootstrapStyles
 import io.udash._
@@ -25,7 +25,7 @@ object TableChildFactory extends ChildRendererFactory {
 
   case class TableChildRenderer(widgetParam:WidgetParams) extends ChildRenderer {
 
-
+    override protected def layoutForChild(metadata: JSONMetadata): Layout = metadata.layout
 
     import ch.wsl.box.shared.utils.JSONUtils._
     import io.udash.css.CssView._

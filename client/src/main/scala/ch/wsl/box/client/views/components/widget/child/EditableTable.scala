@@ -9,7 +9,7 @@ import ch.wsl.box.client.styles.{BootstrapCol, Icons, StyleConf}
 import ch.wsl.box.client.utils.{MustacheUtils, TestHooks}
 import ch.wsl.box.client.views.components.widget.{HasData, Widget, WidgetParams, WidgetRegistry, WidgetUtils}
 import ch.wsl.box.model.shared.Internationalization._
-import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, PDFTable, WidgetsNames, XLSTable}
+import ch.wsl.box.model.shared.{CSVTable, Child, JSONField, JSONMetadata, Layout, PDFTable, WidgetsNames, XLSTable}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import com.avsystem.commons.BSeq
 import io.circe._
@@ -166,6 +166,7 @@ object EditableTable extends ChildRendererFactory {
     import scalatags.JsDom.all._
 
 
+
     def fields(f:JSONMetadata) = {
       val tableFields = for{
         params <- widgetParam.fieldParams
@@ -174,6 +175,10 @@ object EditableTable extends ChildRendererFactory {
       } yield fields
 
       tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field))
+    }
+
+    override protected def layoutForChild(metadata: JSONMetadata): Layout = {
+      Layout.fromFields(fields(metadata))
     }
 
     def colHeader(field:JSONField):ReadableProperty[String] = {

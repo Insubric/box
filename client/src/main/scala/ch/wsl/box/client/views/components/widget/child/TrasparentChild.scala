@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget.child
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetParams}
-import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
+import ch.wsl.box.model.shared.{JSONField, JSONMetadata, Layout, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.syntax._
@@ -28,6 +28,7 @@ object TrasparentChild extends ChildRendererFactory {
     val distribute = field.params.exists(_.js("distribute") == true.asJson)
     val childWidth = field.params.flatMap(_.js("width").as[Int].toOption)
 
+    override protected def layoutForChild(metadata: JSONMetadata): Layout = metadata.layout
 
     import io.udash.css.CssView._
     import scalatags.JsDom.all._
