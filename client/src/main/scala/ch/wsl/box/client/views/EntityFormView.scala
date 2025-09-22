@@ -481,7 +481,9 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   val changesListener = childChanged.listen { hasChanges =>
+    logger.debug(s"Childchanged listener to $hasChanges")
     if(hasChanges) {
+      model.subProp(_.changed).set(true)
       avoidGoAway
       if(autoSave)
         debounceSave()
@@ -496,7 +498,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       f(id,data.data).foreach{ _ =>
         afterSave(id,data)
       }
-    },reload)
+    },reload,() => {
+      logger.debug(s"SetChanged callback")
+      childChanged.set(true,true)
+    })
     widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,childChanged,model.subProp(_.public).get)
     widget
   }

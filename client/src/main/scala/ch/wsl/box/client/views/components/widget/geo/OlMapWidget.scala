@@ -13,7 +13,7 @@ import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.model.shared.{GeoJson, JSONField, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.client.vendors.{DrawHole, DrawHoleOptions}
 import ch.wsl.box.client.views.components.ui.Autocomplete
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetCallbackActions, WidgetParams, WidgetUtils}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.{Json, _}
 import io.circe.generic.auto._
@@ -69,13 +69,15 @@ case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
 
 }
 
-class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json], val allData: ReadableProperty[Json], metadata:JSONMetadata) extends Widget with BoxOlMap with HasData with Logging {
+class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField, val data: Property[Json], val allData: ReadableProperty[Json], action:WidgetCallbackActions) extends Widget with BoxOlMap with HasData with Logging {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
+
+  val _data:Property[Option[Geometry]] = Property(None)
 
   logger.info(s"Loading ol map1")
 
@@ -84,6 +86,11 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   override def killWidget(): Unit = {
     super.killWidget()
     dataListener.foreach(_.cancel())
+  }
+
+  override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
+    mapControls.foreach(_.finishDrawing())
+    Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> _data.get.map(_.asJson).getOrElse(Json.Null)))))
   }
 
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
@@ -130,12 +137,13 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   private var dataListener:Option[Registration] = None
 
   def registerListener(initUpdate:Boolean) = {
-      dataListener = Some(data.listen({ _ =>
+      dataListener = Some(data.listen({ geo =>
+        logger.debug(s"Data data listener $geo")
         vectorSource.clear(true)
-        if (!data.get.isNull) {
-          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(data.get).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+        if (!geo.isNull) {
+          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
           vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
-          view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(150, 50, 50, 150).setMinResolution(2))
+          view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))//.setMinResolution(2))
         } else {
           view.fit(defaultProjection.getExtent())
         }
@@ -145,9 +153,22 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   import GeoJson._
 
   def changedFeatures(newData:Option[Geometry], forceTriggerListeners:Boolean) = {
-    if(!forceTriggerListeners) dataListener.foreach(_.cancel())
-    data.set(newData.asJson)
-    if(!forceTriggerListeners) registerListener(false)
+    logger.debug(s"changedFeatures $newData , force: $forceTriggerListeners")
+    if(!forceTriggerListeners) {
+      logger.debug(s"Cancelling listeners")
+      dataListener.foreach{x =>
+        logger.debug(s"Cancel listener $x")
+        x.cancel()
+      }
+    }
+    logger.debug(s"Setting data")
+    //data.set(newData.asJson)
+    _data.set(newData)
+    action.setChanged()
+    if(!forceTriggerListeners) {
+      logger.debug(s"Resetting listeners")
+      registerListener(false)
+    }
   }
 
   var mapControls = Option.empty[MapControls]
@@ -288,7 +309,7 @@ object OlMapWidget extends ComponentWidgetFactory with Logging {
   override def name: String = WidgetsNames.map
 
   override def create(params: WidgetParams): Widget = {
-    new OlMapWidget(params.id,params.field,params.prop,params.allData,params.metadata)
+    new OlMapWidget(params.id,params.field,params.prop,params.allData,params.actions)
   }
 
 }
