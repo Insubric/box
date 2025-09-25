@@ -134,6 +134,10 @@ object Layout extends Logging {
   def fromFields(fields:Seq[JSONField]) = Layout(Seq(
     LayoutBlock(None,fields.map(x => Left(x.name)),12)
   ))
+
+  def fromFieldNames(fields:Seq[String]) = Layout(Seq(
+    LayoutBlock(None,fields.map(name => Left(name)),12)
+  ))
 }
 
 sealed trait LayoutType

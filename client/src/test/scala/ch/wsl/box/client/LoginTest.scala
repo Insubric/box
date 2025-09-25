@@ -9,6 +9,7 @@ import org.scalajs.dom.window
 
 class LoginTest extends TestBase {
 
+  override val waitOnAssertFail: Boolean = true
   var logged:Option[String] = None
 
   class LoginValues extends Values(loggerLevel) {
@@ -21,6 +22,7 @@ class LoginTest extends TestBase {
     "login" should "be done" in {
 
         for{
+          _ <-  Main.setupUI()
           _ <- services.clientSession.refreshSession()
           _ = {
             assert(!Context.services.clientSession.logged.get)

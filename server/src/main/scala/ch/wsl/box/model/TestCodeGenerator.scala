@@ -8,7 +8,7 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import schemagen.SchemaGenerator
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.io.Source
@@ -31,12 +31,19 @@ object TestDatabase{
     val base = Source.fromResource("test_base.sql").getLines().mkString("\n")
 
     Try(Await.result(connection.dbConnection.run(sqlu"""CREATE ROLE postgres;""".transactionally),120.seconds))
+    Try(Await.result(connection.dbConnection.run(sqlu"""create schema if not exists #${publicSchema};""".transactionally),120.seconds))
+    Try(Await.result(connection.dbConnection.run(sqlu"""create extension if not exists postgis;""".transactionally),120.seconds))
+
+
+
     Await.result(connection.dbConnection.run(
       sqlu"""
 
-create schema if not exists #${publicSchema};
+
 
 set search_path=#${publicSchema};
+
+
 
 #$base
 

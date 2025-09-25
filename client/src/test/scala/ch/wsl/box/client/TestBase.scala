@@ -3,6 +3,8 @@ package ch.wsl.box.client
 import ch.wsl.box.client.mocks.{RestMock, Values}
 import ch.wsl.box.client.services.{BrowserConsole, REST}
 import ch.wsl.box.client.utils.TestHooks
+import io.circe.Json
+import io.udash.Registration
 import io.udash.properties.single.ReadableProperty
 import org.scalactic.{Prettifier, source}
 
@@ -27,7 +29,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
 
 
-  def loggerLevel:Level = Level.Warn
+  def loggerLevel:Level = Level.Error
   val debug = false
   val waitOnAssertFail = false
 
@@ -83,9 +85,12 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   private def promiseResolve(promise:Promise[Assertion], value: Either[String,Boolean],break:Boolean)(implicit prettifier: Prettifier, pos: source.Position): Unit = {
 
+    
+    def resolveWith(a:Assertion) = if(!promise.isCompleted) promise.success(a)
+    
     def exec() = value match {
-      case Left(value) => promise.success(fail(value))
-      case Right(value) => promise.success(assert(value))
+      case Left(value) => resolveWith(fail(value))
+      case Right(value) => resolveWith(assert(value))
     }
 
     if(break) {
@@ -94,68 +99,85 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
         value match {
           case Left(value) => {
             BrowserConsole.log(s"Test failed with error: $value promiseComplete: ${promise.isCompleted} $promise")
-            promise.success(assert(false))
+            resolveWith(assert(false))
           }
-          case Right(value) => promise.success(assert(value))
+          case Right(value) => resolveWith(assert(value))
         }
       }
     } else value match {
-      case Left(value) => promise.success(fail(value))
-      case Right(value) => promise.success(assert(value))
+      case Left(value) => resolveWith(fail(value))
+      case Right(value) => resolveWith(assert(value))
     }
   }
 
   private def waiter(w:() => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
     val promise = Promise[Assertion]()
     logger.info("Waiter")
-    val timeout = window.setTimeout({() =>
-
-      val message = s"Element $name not found after $patience seconds"
-      BrowserConsole.log(s"Timeout reached: $message")
-      promiseResolve(promise,Left(message),waitOnAssertFail)
-    },patience*1000)
+    var timeout:Option[Int] = None
     val observer = new MutationObserver({(mutations,observer) =>
       logger.info("Observer")
       if(w()) {
-        window.clearTimeout(timeout)
+        timeout.foreach(window.clearTimeout)
         observer.disconnect()
         promiseResolve(promise,Right(true),debug)
       }
     })
     if(w()) {
-      window.clearTimeout(timeout)
       observer.disconnect()
       promiseResolve(promise,Right(true),debug)
     } else {
       observer.observe(document, MutationObserverInit(childList = true, subtree = true))
     }
+
+    if(!promise.isCompleted && !debug)
+      timeout = Some(window.setTimeout({() =>
+
+        val message = s"Element $name not found after $patience seconds"
+        BrowserConsole.log(s"Timeout reached: $message")
+        promiseResolve(promise,Left(message),waitOnAssertFail)
+      },patience*1000))
+
     promise.future
   }
 
-  def waitPropertyChange(name:String):Future[Boolean] = {
-    val promise = Promise[Boolean]
-    TestHooks.properties(name).listen(_ => promise.success(true))
-    promise.future
-  }
-
-  def waitPropertyValue[A](p:ReadableProperty[A],f:A => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
+  def waitPropertyChange(name:String):Future[Assertion] = {
     val promise = Promise[Assertion]
+    TestHooks.properties(name).listen(_ => promiseResolve(promise,Right(true),debug))
+    promise.future
+  }
 
-    val timeout = window.setTimeout({() =>
-      val message = s"Property $name not resolved correctly after $patience seconds"
-      BrowserConsole.log(s"Timeout reached: $message")
-      promiseResolve(promise,Left(message),waitOnAssertFail)
-    },patience*1000)
 
-    p.listen({x =>
+
+  def waitPropertyValue[A](p:ReadableProperty[A],f:A => Boolean,message:() => String = () => "", patience:Int = 10):Future[Assertion] = {
+    val promise = Promise[Assertion]
+    var listener:Option[Registration] = None
+    var timeout:Option[Int] = None
+
+    listener = Some(p.listen({x =>
       if(f(x)) {
-        window.clearTimeout(timeout)
+        timeout.foreach(window.clearTimeout)
+        listener.foreach(_.cancel())
         promiseResolve(promise,Right(true),debug)
       }
-    },true)
+    },true))
+
+    if(!promise.isCompleted) {
+      timeout = Some(window.setTimeout({ () =>
+        val msg = s"Property ${message()} not resolved correctly after $patience seconds"
+        BrowserConsole.log(s"Timeout reached: $msg")
+        timeout.foreach(window.clearTimeout)
+        listener.foreach(_.cancel())
+        promiseResolve(promise, Left(msg), waitOnAssertFail)
+
+      }, patience * 1000))
+    }
+
+
 
     promise.future
   }
+
+  def waitDataValue(checker: Json => Boolean,message:() => String = () => s"Data ${TestHooks.data.get} property", patience:Int = 10) = waitPropertyValue(TestHooks.data,checker,message,patience)
 
   def waitId(id:String,name:String = ""): Future[Assertion] = waitElement({ () =>
     document.getElementById(id)
@@ -181,5 +203,15 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   def formChanged: Future[Assertion] = waitId(TestHooks.dataChanged)
   def formUnchanged: Future[Assertion] = waitNotId(TestHooks.dataChanged)
+
+  def test(a:Future[Assertion]) = {
+    if(waitOnAssertFail) {
+      a.recoverWith { case t: Throwable =>
+        breakpoint(t.getMessage).flatMap(_ => a)
+      }
+    } else {
+      a
+    }
+  }
 
 }

@@ -3,7 +3,6 @@ package ch.wsl.box.rest.io.geotools
 //import mil.nga.geopackage.GeoPackageManager
 
 import ch.wsl.box.model.shared.{DataResultTable, GeoJson, TableTypes}
-import ch.wsl.box.rest.io.geotools.Utils.toJTS
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.geotools.data.DefaultTransaction
@@ -44,8 +43,8 @@ object GeoPackageWriter {
         case "number" => featureBuilder.add(data.as[Double].toOption.orNull)
         case "integer" => featureBuilder.add(data.as[Int].toOption.orNull)
         case "geometry" => {
-          data.as[GeoJson.Geometry].toOption match {
-            case Some(g) => featureBuilder.add(toJTS(g))
+          data.as[GeoJson.Geometry].toOption.map(GeoJsonConverter.toJTS) match {
+            case Some(g) => featureBuilder.add(g)
             case None => featureBuilder.add(null)
           }
 

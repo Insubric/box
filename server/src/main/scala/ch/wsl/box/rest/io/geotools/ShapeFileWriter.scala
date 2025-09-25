@@ -2,7 +2,6 @@ package ch.wsl.box.rest.io.geotools
 
 import ch.wsl.box.model.shared.GeoJson.{CRS, Geometry}
 import ch.wsl.box.model.shared.{DataResultTable, GeoJson}
-import ch.wsl.box.rest.io.geotools.Utils.toJTS
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import org.geotools.data.DefaultTransaction
@@ -121,9 +120,15 @@ object ShapeFileWriter extends Logging {
 
 
     for (r <- rows) {
-      featureBuilder.add(toJTS(r.geometry))
-      attributeWriter(r.attributes,featureBuilder)
-      collection.add(featureBuilder.buildFeature(null))
+      GeoJsonConverter.toJTS(r.geometry).foreach{
+        case collection: GeometryCollection => throw new Exception("Geometry collection are not supported in shapefiles")
+        case f => {
+          featureBuilder.add(f)
+          attributeWriter(r.attributes,featureBuilder)
+          collection.add(featureBuilder.buildFeature(null))
+        }
+      }
+
     }
 
     val transaction = new DefaultTransaction("create")

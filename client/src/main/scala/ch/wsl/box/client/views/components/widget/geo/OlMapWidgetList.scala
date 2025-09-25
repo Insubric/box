@@ -6,7 +6,7 @@ import ch.wsl.box.client.styles.Icons
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.model.shared.{GeoJson, JSONField, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry, SingleGeometry}
-import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams, WidgetUtils}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetCallbackActions, WidgetParams, WidgetUtils}
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
@@ -27,7 +27,7 @@ import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.util.Try
 
-class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json],allData: ReadableProperty[Json],metadata:JSONMetadata) extends OlMapWidget(id,field,data,allData,metadata) {
+class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json],allData: ReadableProperty[Json],actions:WidgetCallbackActions) extends OlMapWidget(id,field,data,allData,actions) {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
@@ -36,13 +36,6 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
   import ch.wsl.box.shared.utils.JSONUtils._
 
 
-
-
-
-  override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
-    mapControls.foreach(_.finishDrawing())
-    Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> this.data.get))))
-  }
 
 
 
@@ -126,7 +119,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 object OlMapListWidget extends ComponentWidgetFactory {
   override def name: String = WidgetsNames.mapList
 
-  override def create(params: WidgetParams): Widget = new OlMapListWidget(params.id,params.field,params.prop,params.allData,params.metadata)
+  override def create(params: WidgetParams): Widget = new OlMapListWidget(params.id,params.field,params.prop,params.allData,params.actions)
 
 }
 

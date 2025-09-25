@@ -226,7 +226,7 @@ lazy val client: Project = (project in file("client"))
       )
       //pwConfig = jsenv.playwright.PWEnv.Config().withMaterializeInServer(".tmp", "http://localhost:8987/")
     ),
-    Test / parallelExecution := false,
+    Test / parallelExecution := true,
 //    Test / jsEnvInput := Def.task{
 //      val targetDir = (npmUpdate in Test).value
 //      println(targetDir)

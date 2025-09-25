@@ -78,13 +78,13 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
 
 
-  private def saveAll(data:Json,widgetAction:Widget => (Json,JSONMetadata) => Future[Json]):Future[Json] = {
+  private def saveAll(data:Json):Future[Json] = {
     // start to empty and populate
 
 
 
     val blocksResult:Future[Seq[Json]] = Future.sequence(blocks.map{b =>
-      widgetAction(b.widget)(data,metadata).map { intermediateResult =>
+      b.widget.beforeSave(data,metadata).map { intermediateResult =>
         val fields:Seq[String] = b.layoutBlock.toList.flatMap(_.extractFields(metadata))
         logger.debug(s"metadata: ${metadata.name} intermediateResult: $intermediateResult \n\n ${b.fields}")
         Json.fromFields(fields.flatMap{k =>
@@ -127,7 +127,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   }
 
 
-  override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value,_.beforeSave)
+  override def beforeSave(value:Json, metadata:JSONMetadata) = saveAll(value)
 
   override def killWidget(): Unit = blocks.foreach(_.widget.killWidget())
 

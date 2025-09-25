@@ -268,6 +268,11 @@ object InputWidget extends Logging {
       val stringModel = Property("")
       autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
 
+      if(TestHooks.testing) {
+        TestHooks.properties += TestHooks.editableTableField(field.name) -> data
+      }
+
+
       val ph = field.placeholder match{
         case Some(p) if p.nonEmpty => Seq(placeholder := p)
         case _ => Seq.empty
@@ -280,7 +285,7 @@ object InputWidget extends Logging {
 
 
 
-      val mod:Seq[Modifier] = inputStyle ++ WidgetUtils.toNullable(field.nullable) ++ ph
+      val mod:Seq[Modifier] = inputStyle ++ WidgetUtils.toNullable(field.nullable) ++ ph ++ {if(!TestHooks.testing) Seq[Modifier]() else Seq[Modifier](`class` := TestHooks.editableTableField(field.name))}
       field.`type` match {
         case JSONFieldTypes.NUMBER => nested(NumberInput(stringModel)((mod ++ Seq(step := "any", onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler)):_*)).render
         case JSONFieldTypes.INTEGER => nested(NumberInput(stringModel)((mod ++ Seq(step := "1", onkeydown :+= WidgetUtils.stopEnterUpDownEventHandler):_*))).render

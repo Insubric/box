@@ -4,6 +4,7 @@ import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.{GeoJson, JSONID}
 import ch.wsl.box.model.shared.GeoJson._
+import ch.wsl.box.model.shared.geo.{DbVector, MapLayerMetadata, WMTS}
 import io.circe._
 import io.circe.scalajs.{convertJsToJson, convertJsonToJs}
 import io.circe.syntax.EncoderOps
@@ -13,7 +14,7 @@ import scalatags.JsDom.all.s
 import scribe.Logging
 import ch.wsl.typings.ol.coordinateMod.Coordinate
 import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
-import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
 
 import java.util.UUID
 import scala.concurrent.Promise
@@ -160,7 +161,6 @@ object MapUtils extends Logging {
 
   def vectorSourceGeoms(vectorSource:sourceMod.Vector[_],defaultProjection:String): Option[FeatureCollection] = {
     val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
-
     for{
       json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
       // Maunually attach CRS since the standard in not well defined
@@ -231,5 +231,21 @@ object MapUtils extends Logging {
     }
     ol
   }
+
+
+  implicit class EnanchedMap(map: mod.Map) {
+
+
+
+    def layerOf(id: UUID): Option[layerBaseMod.default] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(id.toString))
+
+    def layerOf(db: DbVector): Option[layerMod.Vector[_]] = layerOf(db.id).map(_.asInstanceOf[layerMod.Vector[_]])
+    def layerOf(wmts: WMTS): Option[layerMod.Tile[_]] = layerOf(wmts.id).map(_.asInstanceOf[layerMod.Tile[_]])
+
+
+    def sourceOf(db: DbVector): Option[sourceMod.Vector[_]] = layerOf(db).map(_.getSource().asInstanceOf[sourceMod.Vector[_]])
+  }
+
+
 
 }

@@ -116,6 +116,17 @@ object GeoJson {
 
   }
 
+  case object Empty extends SingleGeometry {
+
+    override def crs: CRS = CRS("EPSG:0")
+
+    override def geomName: String = "EMPTY"
+
+    override def toString(precision: Double): String = "Empty"
+
+    override def convert(f: Coordinates => Coordinates, crs: CRS): Geometry = this
+  }
+
   case class Point(coordinates: Coordinates, crs:CRS) extends SingleGeometry {
 
     override def allCoordinates: Seq[Coordinates] = Seq(coordinates)
@@ -263,6 +274,7 @@ object GeoJson {
       case j:MultiLineString => Json.obj("type" -> "MultiLineString".asJson, "coordinates" -> j.coordinates.asJson , "crs" -> j.crs.asJson  )
       case j:Polygon => Json.obj("type" -> "Polygon".asJson, "coordinates" -> j.coordinates.asJson , "crs" -> j.crs.asJson  )
       case j:MultiPolygon => Json.obj("type" -> "MultiPolygon".asJson, "coordinates" -> j.coordinates.asJson, "crs" -> j.crs.asJson   )
+      case Empty => Json.obj("type" -> "Empty".asJson, "crs" -> Empty.crs.asJson   )
     }
 
     implicit val decoder: Decoder[Geometry] = Decoder.instance { c =>
@@ -274,6 +286,7 @@ object GeoJson {
         case "polygon" => c.downField("coordinates").as[Seq[Seq[Coordinates]]].map{ coords => Polygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
         case "multipolygon" => c.downField("coordinates").as[Seq[Seq[Seq[Coordinates]]]].map{ coords => MultiPolygon(coords,c.downField("crs").as[CRS].getOrElse(CRS.default))}
         case "geometrycollection" => c.downField("geometries").as[Seq[Geometry]].map{ geoms => GeometryCollection(geoms,c.downField("crs").as[CRS].getOrElse(CRS.default))}
+        case "empty" => Right(Empty)
       }
     }
 
@@ -284,7 +297,7 @@ object GeoJson {
         case _ => throw new Exception("Multiple CRS not supported")
       }
 
-      geoms.map(_.geomName).distinct.toList match {
+      geoms.filterNot(_.geomName == Empty.geomName).map(_.geomName).distinct.toList match {
         case "POINT" :: Nil => MultiPoint.fromPoints(geoms.map{ case p:Point => p})
         case "LINESTRING" :: Nil => MultiLineString.fromLines(geoms.map{ case p:LineString => p})
         case "POLYGON" :: Nil => MultiPolygon.fromPolygons(geoms.map{ case p:Polygon => p})
