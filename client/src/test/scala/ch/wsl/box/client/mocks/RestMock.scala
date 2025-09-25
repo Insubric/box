@@ -65,7 +65,9 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
-  override def geoData(kind: String, lang: String, entity: String, field: String, request: GeoDataRequest,public:Boolean)(implicit ec: ExecutionContext): Future[GeoData] = ???
+  override def geoData(kind: String, lang: String, entity: String, field: String, request: GeoDataRequest,public:Boolean)(implicit ec: ExecutionContext): Future[GeoData] = Future.successful {
+    values.geoData(entity,field)
+  }
 
   override def csv(kind: String, lang: String, entity: String, q: JSONQuery,public:Boolean)(implicit ec:ExecutionContext): Future[Seq[Seq[String]]] = {
     println("csv not implemented")

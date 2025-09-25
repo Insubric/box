@@ -1,11 +1,13 @@
 package ch.wsl.box.client.mocks
 
+import ch.wsl.box.model.shared.GeoTypes.GeoData
 import ch.wsl.box.model.shared.{Child, ConditionValue, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
 import scribe.Level
 
 import java.util.UUID
+import scala.concurrent.Future
 
 class Values(val loggerLevel:Level) {
 
@@ -250,5 +252,7 @@ class Values(val loggerLevel:Level) {
   def children(entity:String):Seq[JSONMetadata] = {
     Seq(childMetadata,subchildMetadata)
   }
+
+  def geoData(entity:String, field:String):GeoData = ???
 
 }

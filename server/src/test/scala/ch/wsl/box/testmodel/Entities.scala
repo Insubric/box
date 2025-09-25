@@ -32,7 +32,7 @@ object Entities {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Ce.schema, Ces.schema, Cesr.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Json_test.schema, Simple.schema, Test_list_types.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(App_child.schema, App_parent.schema, App_subchild.schema, Ce.schema, Ces.schema, Cesr.schema, Db_child.schema, Db_parent.schema, Db_subchild.schema, Geo.schema, Json_test.schema, Simple.schema, Test_list_types.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -560,6 +560,63 @@ object Entities {
   }
   /** Collection-like TableQuery object for table Db_subchild */
   lazy val Db_subchild = new TableQuery(tag => new Db_subchild(tag))
+
+  /** Entity class storing rows of table Geo
+   *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
+   *  @param label Database column label SqlType(text), Default(None)
+   *  @param geo Database column geo SqlType(geometry), Default(None) */
+  case class Geo_row(id: Option[Int] = None, label: Option[String] = None, geo: Option[org.locationtech.jts.geom.Geometry] = None)
+
+
+  val decodeGeo_row:Decoder[Geo_row] = Decoder.forProduct3("id","label","geo")(Geo_row.apply)
+  val encodeGeo_row:EncoderWithBytea[Geo_row] = { e =>
+    implicit def byteE = e
+    Encoder.forProduct3("id","label","geo")(x =>
+      (x.id, x.label, x.geo)
+    )
+  }
+
+
+
+  /** GetResult implicit for fetching Geo_row objects using plain SQL queries */
+
+  /** Table description of table geo. Objects of this class serve as prototypes for rows in queries. */
+  class Geo(_tableTag: Tag) extends Table[Geo_row](_tableTag, Some("test_public"), "geo") with UpdateTable[Geo_row] {
+
+    def boxGetResult = GR(r => Geo_row(r.<<,r.<<,r.<<))
+
+    def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[Geo_row]] = {
+        val kv = keyValueComposer(this)
+        val chunks = fields.flatMap(kv)
+        if(chunks.nonEmpty) {
+          val head = concat(sql"""update "test_public"."geo" set """,chunks.head)
+          val set = chunks.tail.foldLeft(head) { case (builder, chunk) => concat(builder, concat(sql" , ",chunk)) }
+
+          val returning = sql""" returning "id","label","geo" """
+
+          val sqlActionBuilder = concat(concat(set,where),returning)
+          sqlActionBuilder.as[Geo_row](boxGetResult).head.map(x => Some(x))
+        } else DBIO.successful(None)
+      }
+
+      override def doSelectLight(where: SQLActionBuilder): DBIO[Seq[Geo_row]] = {
+        val sqlActionBuilder = concat(sql"""select "id","label","geo" from "test_public"."geo" """,where)
+        sqlActionBuilder.as[Geo_row](boxGetResult)
+      }
+
+    def * = (Rep.Some(id), label, geo).<>(Geo_row.tupled, Geo_row.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(id), label, geo)).shaped.<>({r=>import r._; _1.map(_=> Geo_row.tupled((_1, _2, _3)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(serial), AutoInc, PrimaryKey */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column label SqlType(text), Default(None) */
+    val label: Rep[Option[String]] = column[Option[String]]("label", O.Default(None))
+    /** Database column geo SqlType(geometry), Default(None) */
+    val geo: Rep[Option[org.locationtech.jts.geom.Geometry]] = column[Option[org.locationtech.jts.geom.Geometry]]("geo", O.Default(None))
+  }
+  /** Collection-like TableQuery object for table Geo */
+  lazy val Geo = new TableQuery(tag => new Geo(tag))
 
   /** Entity class storing rows of table Json_test
    *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey

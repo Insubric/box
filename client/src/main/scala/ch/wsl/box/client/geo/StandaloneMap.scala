@@ -3,7 +3,7 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.Debounce
-import ch.wsl.box.model.shared.GeoJson.{Feature, FeatureCollection}
+import ch.wsl.box.model.shared.GeoJson.{Empty, Feature, FeatureCollection, Geometry}
 import ch.wsl.box.model.shared.GeoTypes.GeoData
 import ch.wsl.box.model.shared.JSONQuery
 import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GeoDataRequest, MapLayerMetadata, MapMetadata, WMTS}
@@ -31,8 +31,10 @@ import scala.scalajs.js.JSConverters.JSRichIterableOnce
 import scala.util.Try
 import io.udash.css.CssView._
 import scalacss.ScalatagsCss._
+import MapUtils._
+import scribe.Logging
 
-class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) {
+class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) extends Logging {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
@@ -43,7 +45,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
 
   val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
-  val selectedLayer: ReadableProperty[Option[BoxLayer]] = selectedLayerForEdit.transform(_.flatMap(x => layerOf(x).map{l =>
+  val selectedLayer: ReadableProperty[Option[BoxLayer]] = selectedLayerForEdit.transform(_.flatMap(x => map.layerOf(x).map{l =>
     BoxLayer(l,MapParamsFeatures.fromDbVector(x))
   }))
 
@@ -63,8 +65,8 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
             val sortedLayers = alternativeLayers.sortBy(_.order)
             val selected: Property[MapLayerMetadata] = Property(sortedLayers.head)
             selected.listen(layer => {
-              sortedLayers.flatMap(l => layerOf(l.id)).foreach(_.setVisible(false))
-              layerOf(layer.id).foreach(_.setVisible(true))
+              sortedLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
+              map.layerOf(layer.id).foreach(_.setVisible(true))
             },true)
             Select[MapLayerMetadata](selected, SeqProperty(alternativeLayers))(x => StringFrag(x.name))
           },
@@ -164,37 +166,45 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   window.asInstanceOf[js.Dynamic].test = map
 
-  def save(): Unit = {
+  def geometryFromLayer(editableLayer:DbVector):Feature = map.sourceOf(editableLayer).flatMap{ olSource =>
+    for{
+      feautureCollection <- MapUtils.vectorSourceGeoms(olSource,metadata.srid.name)
+      geometry = MapUtils.factorGeometries(feautureCollection.features.map(_.geometry), MapParamsFeatures.fromDbVector(editableLayer), metadata.srid.crs) match {
+        case Some(value) => value
+        case None => Empty
+      }
+    } yield editableLayer.toData(geometry,properties.get)
+  }.getOrElse(editableLayer.toData(Empty,properties.get))
 
-    val features = metadata.db.filter(_.editable)
-                  .flatMap(l => sourceOf(l).map(x => (x,l)))
-                  .flatMap{ case (s,l) => MapUtils.vectorSourceGeoms(s,metadata.srid.name).map(x => (x,l)) }
-                  .flatMap{ case (f,l) => MapUtils.factorGeometries(f.features.map(_.geometry),MapParamsFeatures.fromDbVector(l),metadata.srid.crs).map(x => (x,l))}
-                  //.map{case (g,l) => l.field -> g}
-                  .map{case (g,l) => l.toData(g,properties.get)}
+  def save(): Unit = {
+    logger.debug("Saving standalone map")
+    val features = metadata.db.filter(_.editable).map(geometryFromLayer)
+    logger.debug("Saving fetures")
     val result = FeatureCollection(features)
     import ch.wsl.box.model.shared.GeoJson._
     BrowserConsole.log(result.asJson)
+    logger.debug(s"Saving standalone map with ${result.asJson}")
     data.set(result.asJson)
   }
 
 
   val control = new MapControlStandalone(MapControlsParams(map,selectedLayer,proj,metadata.baseLayers.map(_.name),None,None,true,(_data,forceTrigger) => {
-    save()
+    window.setTimeout({ () =>
+      save()
+    },0)
     redrawControl()
   }, None,fullscreen),layerSelector)
 
   control.baseLayer.listen(layer => {
-    metadata.baseLayers.flatMap(l => layerOf(l.id)).foreach(_.setVisible(false))
+    metadata.baseLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
     metadata.baseLayers.find(_.name == layer).foreach { l =>
-      layerOf(l.id).foreach(_.setVisible(true))
+      map.layerOf(l.id).foreach(_.setVisible(true))
     }
   },true)
 
-  def layerOf(db:DbVector):Option[layerMod.Vector[_]] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(db.id.toString)).map(_.asInstanceOf[layerMod.Vector[_]])
-  def layerOf(id:UUID):Option[layerBaseMod.default] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(id.toString))
 
-  def sourceOf(db:DbVector): Option[sourceMod.Vector[_]] = layerOf(db).map(_.getSource().asInstanceOf[sourceMod.Vector[_]])
+
+
 
   private def extentOfLayers(layers:js.Array[layerBaseMod.default]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
     val layersExtent = layers.flatMap {
@@ -213,7 +223,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   def fit():Box2d = {
     val focusedExtent = Try{
-      val layers = metadata.db.filter(_.autofocus).flatMap(layerOf).map(_.asInstanceOf[layerBaseMod.default]).toJSArray
+      val layers = metadata.db.filter(_.autofocus).flatMap(map.layerOf).map(_.asInstanceOf[layerBaseMod.default]).toJSArray
       extentOfLayers(layers)
     }.toOption.flatten
 
@@ -240,7 +250,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   }
 
   def addFeaturesToLayer(db: DbVector, geoms:GeoData) = {
-    sourceOf(db).map{s =>
+    map.sourceOf(db).map{s =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
       s.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
     }
@@ -297,7 +307,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   def reload(d:Json): Unit = {
     ready.set(false)
-    metadata.db.flatMap(layerOf).foreach(map.removeLayer)
+    metadata.db.flatMap(map.layerOf).foreach(map.removeLayer)
 
     for {
       baseLayers <- Future.sequence(metadata.db.filter(_.autofocus).map(v => dbVectorLayer(v, d, None)))

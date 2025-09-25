@@ -1,9 +1,10 @@
 package ch.wsl.box.rest.utils
 
 import ch.wsl.box.model.shared.GeoJson
+import ch.wsl.box.rest.io.geotools.GeoJsonConverter
 import io.circe.Decoder.Result
 import io.circe.syntax.EncoderOps
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
 import org.locationtech.jts.geom
 import org.locationtech.jts.geom.{CoordinateSequence, PrecisionModel}
 
@@ -101,30 +102,11 @@ object GeoJsonSupport {
 
 
     override def apply(c: HCursor): Result[org.locationtech.jts.geom.Geometry] = {
-      c.as[Geometry].map{geom =>
-
-        val factory = new org.locationtech.jts.geom.GeometryFactory(new PrecisionModel(),geom.crs.srid)
-
-        def toJTSPoint(p:Point):org.locationtech.jts.geom.Point = factory.createPoint(toJTSCoordinate(p.coordinates))
-        def toJTSLineString(ls:LineString):org.locationtech.jts.geom.LineString = factory.createLinearRing(ls.coordinates.map(toJTSCoordinate).toArray)
-        def toJTSPolygon(p:Polygon):org.locationtech.jts.geom.Polygon = factory.createPolygon(
-          factory.createLinearRing(p.coordinates.head.map(toJTSCoordinate).toArray),
-          p.coordinates.tail.map(lines => factory.createLinearRing(lines.map(toJTSCoordinate).toArray)).toArray
-        )
-
-        def toJTS(geom:Geometry):org.locationtech.jts.geom.Geometry = {
-          geom match {
-            case p: Point => toJTSPoint(p)
-            case ls: LineString => toJTSLineString(ls)
-            case p: Polygon => toJTSPolygon(p)
-            case mp: MultiPoint => factory.createMultiPoint(mp.toPoints.map(toJTSPoint).toArray)
-            case mls: MultiLineString => factory.createMultiLineString(mls.toLineString.map(toJTSLineString).toArray)
-            case mp: MultiPolygon => factory.createMultiPolygon(mp.toPolygons.map(toJTSPolygon).toArray)
-            case gc: GeometryCollection => factory.createGeometryCollection(gc.geometries.map(toJTS).toArray)
-          }
+      c.as[Geometry].flatMap {geom =>
+        GeoJsonConverter.toJTS(geom) match {
+          case Some(value) => Right(value)
+          case None => Left(DecodingFailure("Empty Geometry not supported in JTS",List()))
         }
-
-        toJTS(geom)
       }
     }
   }

@@ -26,6 +26,8 @@ import io.circe.Json.{JNumber, Null}
 
 import scala.concurrent.{ExecutionContext, Future}
 
+import io.circe.generic.auto._
+
 
 case class FormActions(metadata:JSONMetadata,
                        registry: RegistryInstance,
@@ -329,20 +331,37 @@ case class FormActions(metadata:JSONMetadata,
     } yield 1 + subs.length
   }
 
-  def insert(e:Json):DBIO[Json] = for{
-    inserted <- jsonAction.insert(e)
-    childs <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
-      for {
-        metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
-        rows = attachArrayIndex(e.seq(field.name),metadata)
-        //attach parent id
-        rowsWithId = rows.map{ row =>
-          field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
-        }
-        result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,registry,metadataFactory,Some(field)).insert(row)))
-      } yield field.name -> result.asJson
-    })
-  } yield inserted.deepMerge(Json.fromFields(childs))
+  def fetureCollection(e:Json): Seq[FeatureCollection] = {
+    val _mapData = e.filterFields(metadata.fields.filter(_.map.isDefined))
+    _mapData.asObject.toList.flatMap(_.values).flatMap(_.as[FeatureCollection].toOption)
+  }
+
+
+
+  def insert(e:Json):DBIO[Json] = {
+
+    def injectIdInFeature(id:Option[JSONID])(feature: Feature):Feature = {
+      feature.copy( properties = feature.properties.map{ x =>
+        x.deepMerge(JsonObject("id" -> id.asJson))
+      })
+    }
+
+    for{
+      inserted <- jsonAction.insert(e)
+      childs <- DBIO.sequence(metadata.fields.filter(_.child.isDefined).map { field =>
+        for {
+          metadata <- DBIO.from(services.connection.adminDB.run(metadataFactory.of(field.child.get.objId, metadata.lang,session.user)))
+          rows = attachArrayIndex(e.seq(field.name),metadata)
+          //attach parent id
+          rowsWithId = rows.map{ row =>
+            field.child.get.mapping.foldLeft(row){ case (acc,m) => acc.deepMerge(Json.obj(m.child -> inserted.js(m.parent)))}
+          }
+          result <- DBIO.sequence(rowsWithId.map(row => FormActions(metadata,registry,metadataFactory,Some(field)).insert(row)))
+        } yield field.name -> result.asJson
+      })
+      _ <- DBIO.sequence(fetureCollection(e).flatMap(_.features).map(injectIdInFeature(JSONID.fromData(inserted,metadata))).map(MapActions.save))
+    } yield inserted.deepMerge(Json.fromFields(childs))
+  }
 
 
   private def dbTableFields:Set[String] = registry.fields.tableFields(metadata.entity).keySet
@@ -369,14 +388,10 @@ case class FormActions(metadata:JSONMetadata,
   }
 
   def update(id:JSONID, e:Json):DBIO[Json] = {
-
-    val _mapData = e.filterFields(metadata.fields.filter(_.map.isDefined))
-    val mapData =  _mapData.asObject.toList.flatMap(_.values).flatMap(_.as[FeatureCollection].toOption)
-
     for{
       result <- updateOneLevel(id,insertNullForMissingFields(e))
       childs <- subAction(e.deepMerge(result),_.upsertIfNeeded)  //need upsert to add new child records, deepMerging result in case of trigger data modification
-      _ <- DBIO.sequence(mapData.flatMap(_.features).map(MapActions.save))
+      _ <- DBIO.sequence(fetureCollection(e).flatMap(_.features).map(MapActions.save))
     } yield result
       .filterFields(metadata.fields) // don't expose data not contained in the current form
       .deepMerge(Json.fromFields(childs))

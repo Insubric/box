@@ -1,3 +1,4 @@
+
 create table if not exists "app_child" ("id" INTEGER NOT NULL PRIMARY KEY,"name" VARCHAR DEFAULT null,"parent_id" INTEGER DEFAULT null);
 create table if not exists "app_parent" ("id" INTEGER NOT NULL PRIMARY KEY,"name" VARCHAR DEFAULT null);
 create table if not exists "app_subchild" ("id" INTEGER NOT NULL PRIMARY KEY,"child_id" INTEGER DEFAULT null,"name" VARCHAR DEFAULT null);
@@ -49,4 +50,11 @@ create table cesr
     primary key (ce_id, s_id, p_id),
     foreign key (ce_id, s_id) references ces
         on update cascade on delete cascade
+);
+
+
+create table geo(
+                                id serial primary key ,
+                                label text,
+                                geo public.geometry
 );

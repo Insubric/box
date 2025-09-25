@@ -25,6 +25,7 @@ object EntityActionsRegistry extends ActionRegistry {
    case "db_child" => JSONTableActions[Db_child,Db_child_row](Db_child)(Entities.encodeDb_child_row,Entities.decodeDb_child_row,ec,services)
    case "db_parent" => JSONTableActions[Db_parent,Db_parent_row](Db_parent)(Entities.encodeDb_parent_row,Entities.decodeDb_parent_row,ec,services)
    case "db_subchild" => JSONTableActions[Db_subchild,Db_subchild_row](Db_subchild)(Entities.encodeDb_subchild_row,Entities.decodeDb_subchild_row,ec,services)
+   case "geo" => JSONTableActions[Geo,Geo_row](Geo)(Entities.encodeGeo_row,Entities.decodeGeo_row,ec,services)
    case "json_test" => JSONTableActions[Json_test,Json_test_row](Json_test)(Entities.encodeJson_test_row,Entities.decodeJson_test_row,ec,services)
    case "simple" => JSONTableActions[Simple,Simple_row](Simple)(Entities.encodeSimple_row,Entities.decodeSimple_row,ec,services)
    case "test_list_types" => JSONTableActions[Test_list_types,Test_list_types_row](Test_list_types)(Entities.encodeTest_list_types_row,Entities.decodeTest_list_types_row,ec,services)

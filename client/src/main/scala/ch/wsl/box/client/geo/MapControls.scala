@@ -17,6 +17,7 @@ import io.circe.syntax.EncoderOps
 import io.circe.generic.auto._
 import cats.effect.unsafe.implicits._
 import ch.wsl.box.client.geo.MapControlsParams.toVectorSource
+import ch.wsl.box.client.utils.TestHooks
 import org.http4s.circe.CirceEntityCodec._
 import io.udash._
 import io.udash.bindings.modifiers.Binding
@@ -85,6 +86,8 @@ object  MapControlsParams{
 }
 
 abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContext) extends Logging {
+
+  TestHooks.setMap(params.map)
 
   import params._
   import io.udash.css.CssView._
@@ -269,7 +272,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
       val (el, tt) = WidgetUtils.addTooltip(Some(label))(
         button(
-          cls := isActive,
+          cls := s"$isActive ${TestHooks.mapControlButton(Control.DELETE)}",
           ClientConf.style.mapButton
         )(
           onclick :+= { (e: Event) =>
@@ -356,6 +359,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
   val changedFeatures: js.Function1[eventsEventMod.BaseEvent,Unit] = (e) => {
 
+    logger.debug(s"Triggered changed Features")
 
     if(activeControl.get == Control.POLYGON_HOLE && (e == null || e.`type` == olStrings.addfeature.toString)) {
       vectorSource.get.foreach(vs => {
@@ -469,6 +473,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     //listen for changes
     vs.asInstanceOf[js.Dynamic].on(olStrings.changefeature, changedFeatures)
     vs.asInstanceOf[js.Dynamic].on(olStrings.addfeature,changedFeatures)
+    vs.asInstanceOf[js.Dynamic].on(olStrings.removefeature,changedFeatures)
 
     dynamicInteraction.foreach(x => {
       map.addInteraction(x)

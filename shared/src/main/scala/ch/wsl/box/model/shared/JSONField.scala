@@ -192,6 +192,7 @@ object JSONFieldTypes{
   val GEOMETRY = "geometry"
   val JSON = "json"
   val STATIC = "static"
+  val MAP = "map"
 
   val ALL = Seq(NUMBER,INTEGER,STRING,FILE,DATE,DATETIME,DATETIMETZ,TIME, BOOLEAN, ARRAY_NUMBER, ARRAY_STRING,CHILD,GEOMETRY,JSON,STATIC)
 }

@@ -14,6 +14,7 @@ object FieldAccessRegistry extends FieldRegistry {
       "db_child",
       "db_parent",
       "db_subchild",
+      "geo",
       "json_test",
       "simple",
       "test_list_types"
@@ -33,6 +34,7 @@ object FieldAccessRegistry extends FieldRegistry {
         "db_child" -> db_child_map,
         "db_parent" -> db_parent_map,
         "db_subchild" -> db_subchild_map,
+        "geo" -> geo_map,
         "json_test" -> json_test_map,
         "simple" -> simple_map,
         "test_list_types" -> test_list_types_map,
@@ -78,6 +80,11 @@ object FieldAccessRegistry extends FieldRegistry {
               "id" -> ColType("Int","integer",true,false),
               "child_id" -> ColType("Int","integer",false,true),
               "name" -> ColType("String","string",false,true)
+)
+  private def geo_map =  Map(
+              "id" -> ColType("Int","integer",true,false),
+              "label" -> ColType("String","string",false,true),
+              "geo" -> ColType("org.locationtech.jts.geom.Geometry","geometry",false,true)
 )
   private def json_test_map =  Map(
               "id" -> ColType("Int","integer",true,false),
