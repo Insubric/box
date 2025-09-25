@@ -21,7 +21,7 @@ class UpdateTest extends TestBase {
   override def loggerLevel: Level = Level.Warn
 
   override val debug: Boolean = false
-  override val waitOnAssertFail: Boolean = false
+  override val waitOnAssertFail: Boolean = true
 
   val id = 1
   val jsonId = JSONID.fromMap(Map("id" -> Json.fromInt(id)).toSeq)
@@ -68,7 +68,7 @@ class UpdateTest extends TestBase {
    * that not only the user modified data are updated
    */
 
-  "a dependend field" should "be updated when saved" in {
+  "a dependend field" should "be updated when saved" in test{
     for {
       _ <- Main.setupUI()
       _ <- Context.services.clientSession.login("test", "test")
@@ -88,9 +88,8 @@ class UpdateTest extends TestBase {
       _ <- updatedField.future
       _ <- waitElement(() => document.getElementById(TestHooks.dataChanged),"")
       _ <- waitPropertyValue[Boolean](services.clientSession.loading,x => !x)
-      _ <- Future{
-        depenentField.value shouldBe dependentValue
-      }
-    } yield succeed
+    } yield {
+      depenentField.value shouldBe dependentValue
+    }
   }
 }

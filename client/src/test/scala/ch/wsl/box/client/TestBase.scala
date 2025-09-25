@@ -29,7 +29,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
 
 
-  def loggerLevel:Level = Level.Warn
+  def loggerLevel:Level = Level.Error
   val debug = false
   val waitOnAssertFail = false
 

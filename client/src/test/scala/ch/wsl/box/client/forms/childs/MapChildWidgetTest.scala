@@ -31,7 +31,7 @@ class MapChildWidgetTest extends TestBase {
   override val debug: Boolean = false
   override val waitOnAssertFail: Boolean = false
 
-  override def loggerLevel: Level = Level.Debug
+  override def loggerLevel: Level = Level.Error
 
 
   val promise = Promise[Assertion]()

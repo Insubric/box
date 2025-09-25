@@ -19,7 +19,7 @@ class EditableTableChildTest extends TestBase {
   override val debug: Boolean = false
   override val waitOnAssertFail: Boolean = false
 
-  override def loggerLevel: Level = Level.Info
+  override def loggerLevel: Level = Level.Error
 
   val parentName = "editableTableParent"
   val childName = "editableTableChild"

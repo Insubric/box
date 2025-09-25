@@ -11,12 +11,9 @@ class LoaderTest extends TestBase {
 
 
     "loader" should "show title" in {
-      Future{
-        assert(true)
+      Main.setupUI().map { _ =>
+        assert(document.querySelectorAll("#headerTitle").count(_.textContent == values.uiConf("title")) == 1)
       }
-//      Main.setupUI().map { _ =>
-//        assert(document.querySelectorAll("#headerTitle").count(_.textContent == values.uiConf("title")) == 1)
-//      }
     }
 
 
