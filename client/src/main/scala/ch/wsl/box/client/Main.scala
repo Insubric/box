@@ -70,7 +70,6 @@ object Main extends Logging {
         println(s"Setting logger level to ${ClientConf.loggerLevel}")
 
         //loads datetime picker
-        ch.wsl.typings.bootstrap.bootstrapRequire
         //ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
 
 
@@ -130,10 +129,9 @@ object Main extends Logging {
         document.body.appendChild(autocompleteStyle)
         document.body.appendChild(stepperStyle)
 
-        val app = document.createElement("div")
+        val app = document.getElementById("app")
 
         BrowserConsole.log(app)
-        document.body.appendChild(app)
 
       BrowserConsole.log(document.body)
         applicationInstance.run(app)

@@ -56,8 +56,8 @@ object UI {
            |console.log('Worker started');
            |
            |try {
-           |    const { PGlite } = await import('./assets/@electric-sql/pglite/dist/index.js')
-           |    const { worker } = await import('./assets/@electric-sql/pglite/dist/worker/index.js')
+           |    const { PGlite } = await import('./@electric-sql/pglite/dist/index.js')
+           |    const { worker } = await import('./@electric-sql/pglite/dist/worker/index.js')
            |    worker({
            |      async init() {
            |        // Create and return a PGlite instance
@@ -89,7 +89,12 @@ object UI {
     pathPrefix("dev") {
       getFromBrowseableDirectories("./client/target/scala-2.13/scalajs-bundler/main")
     } ~
-    postgresWorker ~
+    pathPrefix("db") {
+      postgresWorker ~
+      postgresWasm ~
+      postgresData ~
+      WebJarsSupport.webJars
+    } ~
     pathPrefix("icon") {
       pathPrefix("icon.png") {
         get{
@@ -153,8 +158,7 @@ object UI {
       }
     } ~
     pathPrefix("assets") {
-      postgresWasm ~
-      postgresData ~
+
       WebJarsSupport.webJars
     } ~
     pathPrefix("bundle") {
