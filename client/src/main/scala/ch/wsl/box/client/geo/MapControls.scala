@@ -272,7 +272,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
       val (el, tt) = WidgetUtils.addTooltip(Some(label))(
         button(
-          cls := s"$isActive ${TestHooks.mapControlButton(Control.DELETE)}",
+          cls := s"$isActive ${TestHooks.mapControlButton(section)}",
           ClientConf.style.mapButton
         )(
           onclick :+= { (e: Event) =>
