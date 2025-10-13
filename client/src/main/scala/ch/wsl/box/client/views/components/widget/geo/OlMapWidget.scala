@@ -296,7 +296,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullScreen),
       mapStyleElement,
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
-      TextInput(data.bitransform(_.string.take(5))(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+      TextInput(
+        _data.bitransform(_.map(_.toString(1).take(5)).getOrElse("")) // check on the actual data is is non empty
+        (x => _data.get) // the text input will never been changed
+      )(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
       nested(produce(data) { geo =>
         mapControls.toSeq.flatMap(_.renderControls(nested))
       }),
