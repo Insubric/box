@@ -81,6 +81,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     }
     val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
     val duplicateIgnoreFields:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateIgnoreFields").as[Seq[String]].toOption).flatten
+    val duplicateForceKeep:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateForceKeep").as[Seq[String]].toOption).flatten
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
 
     val addObject: Option[Json] = field.params.flatMap(_.jsOpt("addObject"))
@@ -235,10 +236,13 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     def duplicateItem(itemToDuplicate: => ChildRow) = (e:Event) => {
       itemToDuplicate.metadata match {
         case Some(md) => {
-          def dataWithoutIgnored = itemToDuplicate.data.get.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => duplicateIgnoreFields.contains(key) }))
-          def dataWithNoKeys = dataWithoutIgnored.mapObject(obj => JsonObject.fromMap(obj.toMap.filterNot { case (key, _) => md.keys.contains(key) }))
+          val newData = itemToDuplicate.data.get.mapObject{
+            obj => JsonObject.fromMap(obj.toMap.filterNot {
+              case (key, _) => duplicateIgnoreFields.contains(key) ||
+                (md.keys.contains(key) && !duplicateForceKeep.contains(key)) // don't copy keys
 
-          val newData = dataWithNoKeys // never copy keys, too dangerous
+            })
+          }
 
 
           val itemsToAdd = addObject match {

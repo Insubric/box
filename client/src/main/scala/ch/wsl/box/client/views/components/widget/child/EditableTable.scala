@@ -174,7 +174,7 @@ object EditableTable extends ChildRendererFactory {
         fields <- fieldsJs.as[Seq[String]].toOption
       } yield fields
 
-      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field))
+      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field)).filterNot(_.widget.contains(WidgetsNames.hidden))
     }
 
     override protected def layoutForChild(metadata: JSONMetadata): Layout = {
