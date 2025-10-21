@@ -132,7 +132,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     window.setTimeout(() => {
       controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
       nestedCustom.kill()
-      controlsDiv.appendChild(control.renderControls(nestedCustom))
+      controlsDiv.appendChild(control.renderControls(nestedCustom,None))
     },0)
   }
 

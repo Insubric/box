@@ -589,7 +589,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     layer.get.map(l => EnabledControls.fromGeometry(geoms,l.features)).getOrElse(EnabledControls.none)
   }
 
-  def renderControls(nested:Binding.NestedInterceptor):Node
+  def renderControls(nested:Binding.NestedInterceptor,geo:Option[Geometry]):Node
 
 
 }

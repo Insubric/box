@@ -21,7 +21,8 @@ class MapControlStandalone(params:MapControlsParams,layerSelector:Modifier)(impl
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
 
-  def renderControls(nested: Binding.NestedInterceptor): Node = {
+
+  def renderControls(nested: Binding.NestedInterceptor, geo: Option[Geometry]): Node = {
 
     val enable = enabled()
 
