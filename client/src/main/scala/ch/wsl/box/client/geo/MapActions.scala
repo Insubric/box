@@ -15,23 +15,28 @@ import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
 import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, sourceMod, sourceVectorMod}
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Promise}
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
 import scala.scalajs.js.Any.jsArrayOps
 import scala.scalajs.js.JSConverters.JSRichIterableOnce
 
-class MapActions(map:mod.Map,crs:CRS) extends Logging {
+class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
 
   import ch.wsl.box.client.Context._
 
   def setBaseLayer(baseLayer: layerBaseMod.default) = {
+    val promise = Promise[Boolean]()
     logger.info(s"Set base layer $baseLayer with $map")
-    if (map != null) {
+    BrowserConsole.log(baseLayer)
+    map.foreach { map =>
+      BrowserConsole.log(map)
       map.removeLayer(map.getLayers().item(0))
       map.getLayers().insertAt(0, baseLayer)
       map.renderSync()
+      promise.success(true)
     }
+    promise.future
   }
 
   def calculateExtent(crs:CRS): Polygon = {
@@ -41,7 +46,7 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
     //  729847.5829071038,
     //  201208.38015245216
     //]
-    val ext = map.getView().calculateExtent()
+    val ext = map.get.getView().calculateExtent()
     Polygon(Seq(Seq(
       Coordinates(ext(0), ext(1)),
       Coordinates(ext(0), ext(3)),
@@ -55,11 +60,11 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
 
     val extentChange = Debounce[Unit](250.millis)(onExtentChange)
 
-    map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, () => {
+    map.get.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, () => {
       extentChange()
     })
 
-    map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, () => {
+    map.get.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, () => {
       extentChange()
     })
   }
@@ -84,7 +89,7 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
 
     val (vectorSource,featuresLayer)  = createAndGetSource(layer)
 
-    map.removeLayer(featuresLayer)
+    map.get.removeLayer(featuresLayer)
     vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
     val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent(crs))
@@ -95,9 +100,9 @@ class MapActions(map:mod.Map,crs:CRS) extends Logging {
       vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
 
 
-      map.getLayers().insertAt(1, featuresLayer)
+      map.get.getLayers().insertAt(1, featuresLayer)
 
-      map.render()
+      map.get.render()
     }
   }
 }

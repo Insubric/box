@@ -49,11 +49,11 @@ class MapControlsList(params: MapControlsParams)(implicit ex:ExecutionContext)  
 
   }
 
-  override def renderControls(nested: Binding.NestedInterceptor): Node = {
+  override def renderControls(nested: Binding.NestedInterceptor, geo: Option[GeoJson.Geometry]): Node =  {
 
     val enable = enabled()
 
-    val showGeometries = geometries().flatMap(_.toSingle).map { geom =>
+    val showGeometries = geo.toList.flatMap(_.toSingle).map { geom =>
       div(ClientConf.style.mapInfoChild,
         onmouseover :+= { (e: Event) => highlight(geom); e.preventDefault() },
         onmouseout :+= { (e: Event) => removeHighlight(); e.preventDefault() },

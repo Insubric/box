@@ -21,6 +21,7 @@ import org.scalajs.dom.{Event, HTMLInputElement, document}
 import scalatags.JsDom
 import scribe.Logging
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 
@@ -45,6 +46,9 @@ object PopupWidget extends ComponentWidgetFactory  {
     private def embeddedWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
 
     private val widget:Widget = WidgetRegistry.forName(embeddedWidget).create(params)
+
+    override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = widget.beforeSave(data,metadata)
+
 
     private val widgetLabel:Property[String] = Property("")
 
@@ -118,8 +122,18 @@ object PopupWidget extends ComponentWidgetFactory  {
       modalStatus.listen{ state =>
         logger.info(s"State changed to:$state")
         state match {
-          case Status.Open => modal.show()
-          case Status.Closed => modal.hide()
+          case Status.Open => {
+            modal.show()
+            widget.afterRender()
+          }
+          case Status.Closed => {
+            widget.beforeSave(params._allData.get,params.metadata).map{ d =>
+              BrowserConsole.log(d)
+              params.prop.set(d.js(params.field.name))
+              widget.killWidget()
+            }
+            modal.hide()
+          }
         }
       }
 

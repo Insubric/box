@@ -49,6 +49,7 @@ import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
 import ch.wsl.typings.ol.mapMod.MapOptions
 import ch.wsl.typings.ol.objectMod.ObjectEvent
+import org.scalajs.dom.window.setTimeout
 
 import scala.scalajs.js.{URIUtils, |}
 
@@ -85,6 +86,12 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   override def killWidget(): Unit = {
     super.killWidget()
+    map.get.dispose()
+    map = None
+    featuresLayer = null
+    vectorSource = null
+    vectorSource = null
+    view = null
     dataListener.foreach(_.cancel())
   }
 
@@ -99,7 +106,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   val fullScreen = Property(false)
 
 
-  var map:mod.Map = null
+  var map:Option[mod.Map] = None
   logger.info(s"Loading ol map")
 
   lazy val mapActions = new MapActions(map,options.crs)
@@ -110,12 +117,15 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
   protected def _afterRender(): Unit = {
-    if(map != null && featuresLayer != null) {
+    logger.debug("Complete loading map")
+    if(map.nonEmpty && featuresLayer != null) {
       loadBase(baseLayer.get).map { _ =>
-        map.addLayer(featuresLayer)
-        map.updateSize()
-        map.renderSync()
+        map.get.addLayer(featuresLayer)
+        map.get.updateSize()
+        map.get.renderSync()
         data.touch()
+        registerListener(true)
+        onLoad()
       }
     } else {
       data.touch()
@@ -124,11 +134,19 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   }
 
 
+  override def afterRender(): Future[Boolean] = {
+    val observer = new MutationObserver({(mutations,observer) =>
+      _mapDiv.foreach { mapDiv =>
+        if (document.contains(mapDiv)) {
+          observer.disconnect()
+          _afterRender()
+        }
+      }
+    })
 
-
-
-
-
+    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
+    Future.successful(true)
+  }
 
   var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
   var view: viewMod.default = null
@@ -139,14 +157,24 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   def registerListener(initUpdate:Boolean) = {
       dataListener = Some(data.listen({ geo =>
         logger.debug(s"Data data listener $geo")
+        map.get.renderSync()
         vectorSource.clear(true)
+        setTimeout(() => {
         if (!geo.isNull) {
           val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
           vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
-          view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))//.setMinResolution(2))
+          if(geom.getGeometry().get.getType() != geomGeometryMod.Type.Point) {
+            view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))//.setMinResolution(2))
+          } else {
+            view.fit(geom.getGeometry().get.getExtent(), FitOptions().setMinResolution(2))
+          }
         } else {
+          logger.debug(s"Fit with default extent: ${defaultProjection.getExtent().mkString(",")}")
           view.fit(defaultProjection.getExtent())
-        }
+        }},0)
+
+        val g = geo.as[Geometry].toOption
+        _data.set(g)
       },initUpdate))
   }
 
@@ -185,7 +213,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     } else {
       _mapDiv.foreach(md => md.style.height = originalHeight.getOrElse("400px"))
     }
-    map.render()
+    map.get.render()
   }
 
   def loadMap(mapDiv:Div,controlFactory:MapControlsParams => MapControls) = {
@@ -217,16 +245,18 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
 
-    map = new mod.Map(MapOptions()
+    map = Some(new mod.Map(MapOptions()
       .setTarget(mapDiv)
       .setControls(controls.getArray())
       .setView(view)
-    )
+    ))
 
-    onLoad()
+    window.asInstanceOf[js.Dynamic].boxMap = map.get
 
 
-    val controlParams = MapControlsParams(map,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
+
+
+    val controlParams = MapControlsParams(map.get,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
     val _mapControls = controlFactory(controlParams)
     mapControls = Some(_mapControls)
     baseLayer.get.foreach( l => _mapControls.baseLayer.set(l.name))
@@ -234,7 +264,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       baseLayer.set(options.baseLayers.toSeq.flatten.find(_.name == bs))
     })
 
-    registerListener(true)
+
 
     (map,vectorSource)
 
@@ -246,14 +276,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     loadMap(mapDiv,p => new MapControlsIcons(p))
 
-    val observer = new MutationObserver({(mutations,observer) =>
-      if(document.contains(mapDiv)) {
-        observer.disconnect()
-        _afterRender()
-      }
-    })
 
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
 
     div(
@@ -300,8 +323,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
         _data.bitransform(_.map(_.toString(1).take(5)).getOrElse("")) // check on the actual data is is non empty
         (x => _data.get) // the text input will never been changed
       )(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
-      nested(produce(data) { geo =>
-        mapControls.toSeq.flatMap(_.renderControls(nested))
+      nested(produce(_data) { geo =>
+        mapControls.toSeq.flatMap(_.renderControls(nested,geo))
       }),
       mapDiv
     )
