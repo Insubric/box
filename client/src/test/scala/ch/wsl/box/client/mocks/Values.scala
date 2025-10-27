@@ -1,7 +1,7 @@
 package ch.wsl.box.client.mocks
 
 import ch.wsl.box.model.shared.GeoTypes.GeoData
-import ch.wsl.box.model.shared.{Child, ConditionValue, ConditionalField, EntityKind, FormActionsMetadata, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONMetadata, Layout, LayoutBlock, NaturalKey, SurrugateKey, WidgetsNames}
+import ch.wsl.box.model.shared.{Child, ConditionValue, ConditionalField, EntityKind, FormActionsMetadata, IDs, JSONField, JSONFieldTypes, JSONID, JSONKeyValue, JSONLookups, JSONMetadata, JSONQuery, Layout, LayoutBlock, NaturalKey, SurrugateKey, TableAccess, WidgetsNames}
 import io.circe._
 import io.circe.syntax._
 import scribe.Level
@@ -125,6 +125,8 @@ class Values(val loggerLevel:Level) {
     static = false
   )
 
+
+
   def childMetadata = JSONMetadata(
     id2,
     "child",
@@ -175,6 +177,9 @@ class Values(val loggerLevel:Level) {
     keyStrategy = SurrugateKey,
   )
 
+
+  def lookups:Seq[JSONLookups] = Seq()
+
   val subchildMetadata = JSONMetadata(
     id3,
     "subchild",
@@ -210,7 +215,7 @@ class Values(val loggerLevel:Level) {
     keyStrategy = SurrugateKey,
   )
 
-  object ids {
+  object mockIds {
     object main {
       val singleChild: JSONID = JSONID(Vector(JSONKeyValue("id", Json.fromInt(1))))
       val doubleChild: JSONID = JSONID(Vector(JSONKeyValue("id",  Json.fromInt(2))))
@@ -223,14 +228,14 @@ class Values(val loggerLevel:Level) {
 
   def get(id:JSONID):Json = {
     id match {
-      case ids.main.singleChild => Map(
+      case mockIds.main.singleChild => Map(
         "id" -> 1.asJson,
         readOnlyField -> readOnlyValue.asJson,
         "child" -> Seq(
           Map("parent_id" -> 1.asJson, "id" -> 1.asJson, "text" -> "test".asJson)
         ).asJson
       ).asJson
-      case ids.main.doubleChild => Map(
+      case mockIds.main.doubleChild => Map(
         "id" -> 2.asJson,
         "child" -> Seq(
           Map("parent_id" -> 2.asJson, "id" -> 2.asJson, "text" -> "test".asJson),
@@ -254,5 +259,14 @@ class Values(val loggerLevel:Level) {
   }
 
   def geoData(entity:String, field:String):GeoData = ???
+
+  def tableAccess: TableAccess = {
+    TableAccess(true,true,true)
+  }
+
+  def kind = EntityKind.FORM.kind
+
+  def ids:IDs = IDs(true,1,Seq(),1)
+  def csv(q: JSONQuery):Seq[Seq[String]] = Seq()
 
 }

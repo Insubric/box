@@ -33,7 +33,7 @@ object Condition {
       condition match {
         case ConditionValue(value) => _data == value
         case ConditionFieldRef(valueField) => _data == data.js(valueField)
-        case NotCondition(not) => _check(not, _data)
+        case NotCondition(not) => !_check(not, _data)
         case OrCondition(or) => or.exists(_check(_, _data))
         case AndCondition(and) => and.nonEmpty && and.forall(_check(_, _data))
         case ConditionalField(field, condition) => _check(condition, data.js(field))

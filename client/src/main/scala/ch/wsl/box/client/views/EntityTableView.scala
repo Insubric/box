@@ -219,7 +219,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         public = state.public
       )
 
-      saveIds(IDs(true,1,Seq(),0),query)
+      //saveIds(IDs(true,1,Seq(),0),query)
 
 
       model.set(m)
@@ -427,7 +427,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     def lookupReq(csv:Seq[Row]) = model.subProp(_.metadata).get match {
       case Some(m) => {
         val fields = m.tableLookupFields.map(_.name)
-        services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(fields,qOrig),model.get.public)
+        if (fields.length > 0)
+          services.rest.lookups(model.get.kind, services.clientSession.lang(), model.get.name, JSONLookupsRequest(fields, qOrig), model.get.public)
+        else
+          Future.successful(Seq())
+
       }
       case None => Future.successful(Seq())
     }
@@ -447,7 +451,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       }
     }
 
-    r.recover{ _ => services.clientSession.loading.set(false) }
+    r.recover{ t =>
+      t.printStackTrace()
+      services.clientSession.loading.set(false)
+    }
 
     r
 
