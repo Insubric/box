@@ -86,7 +86,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   override def killWidget(): Unit = {
     super.killWidget()
-    map.get.dispose()
+    map.foreach(_.dispose())
     map = None
     featuresLayer = null
     vectorSource = null
