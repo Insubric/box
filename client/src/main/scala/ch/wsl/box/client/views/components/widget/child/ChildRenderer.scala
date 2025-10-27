@@ -79,7 +79,21 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         case _ => Icons.duplicate
       }
     }
-    val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
+    private val enableDeleteCondition:Option[Condition] = field.params.flatMap(_.js("enableDeleteCondition").as[Condition].toOption)
+    private val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
+
+    def enableDelete(childRow:ChildRow):Boolean = {
+      val checkCondition = enableDeleteCondition.exists(_.check(childRow.data.get))
+      logger.debug(s"Check enable delete on ${childRow.data.get} with condition ${enableDeleteCondition} result: $checkCondition")
+      (disableRemove,enableDeleteOnlyNew,enableDeleteCondition) match {
+        case (true,_,_) => false
+        case (false,true,_) => childRow.newRow
+        case (false,false,Some(condition)) => condition.check(childRow.data.get)
+        case _ => true
+      }
+    }
+
+
     val duplicateIgnoreFields:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateIgnoreFields").as[Seq[String]].toOption).flatten
     val duplicateForceKeep:Seq[String] = field.params.toSeq.flatMap(_.js("duplicateForceKeep").as[Seq[String]].toOption).flatten
     val sortable = field.params.exists(_.js("sortable") == true.asJson)
