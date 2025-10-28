@@ -88,16 +88,23 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     super.killWidget()
     map.foreach(_.dispose())
     map = None
+    dataListener.foreach(_.cancel())
     featuresLayer = null
     vectorSource = null
     vectorSource = null
     view = null
-    dataListener.foreach(_.cancel())
+
   }
 
   override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
     mapControls.foreach(_.finishDrawing())
-    Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> _data.get.map(_.asJson).getOrElse(Json.Null)))))
+    val promise = Promise[Json]()
+    setTimeout( () => {
+      promise.success{
+        data.deepMerge(Json.fromFields(Map(field.name -> _data.get.map(_.asJson).getOrElse(Json.Null))))
+      }
+    },0)
+    promise.future
   }
 
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
@@ -158,20 +165,25 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       dataListener = Some(data.listen({ geo =>
         logger.debug(s"Data data listener $geo")
         map.get.renderSync()
-        vectorSource.clear(true)
-        setTimeout(() => {
-        if (!geo.isNull) {
-          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-          vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
-          if(geom.getGeometry().get.getType() != geomGeometryMod.Type.Point) {
-            view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))//.setMinResolution(2))
-          } else {
-            view.fit(geom.getGeometry().get.getExtent(), FitOptions().setMinResolution(2))
-          }
-        } else {
-          logger.debug(s"Fit with default extent: ${defaultProjection.getExtent().mkString(",")}")
-          view.fit(defaultProjection.getExtent())
-        }},0)
+        Try {
+          vectorSource.clear(true)
+          setTimeout(() => {
+            Try {
+              if (!geo.isNull) {
+                val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+                vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
+                if (geom.getGeometry().get.getType() != geomGeometryMod.Type.Point) {
+                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50)) //.setMinResolution(2))
+                } else {
+                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setMinResolution(2))
+                }
+              } else {
+                logger.debug(s"Fit with default extent: ${defaultProjection.getExtent().mkString(",")}")
+                view.fit(defaultProjection.getExtent())
+              }
+            }
+          }, 0)
+        }
 
         val g = geo.as[Geometry].toOption
         _data.set(g)

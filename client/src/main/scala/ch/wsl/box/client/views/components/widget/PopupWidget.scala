@@ -47,7 +47,6 @@ object PopupWidget extends ComponentWidgetFactory  {
 
     private val widget:Widget = WidgetRegistry.forName(embeddedWidget).create(params)
 
-    override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = widget.beforeSave(data,metadata)
 
 
     private val widgetLabel:Property[String] = Property("")
