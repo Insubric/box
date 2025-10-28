@@ -79,7 +79,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
         case _ => Icons.duplicate
       }
     }
-    private val enableDeleteCondition:Option[Condition] = field.params.flatMap(_.js("enableDeleteCondition").as[Condition].toOption)
+    private val enableDeleteCondition:Option[Condition] = field.params.flatMap(_.js("enableDeleteCondition").as[Condition].toOption).filterNot(_ == EmptyCondition)
     private val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
 
     def enableDelete(childRow:ChildRow):Boolean = {
