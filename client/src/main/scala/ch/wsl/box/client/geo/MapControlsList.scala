@@ -2,6 +2,7 @@ package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
+import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.{GeoJson, SharedLabels}
 import ch.wsl.box.model.shared.GeoJson.Point
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -40,6 +41,7 @@ class MapControlsList(params: MapControlsParams)(implicit ex:ExecutionContext)  
 
     a(
       ClientConf.style.childAddButton,
+      cls := TestHooks.mapControlButton(section),
       onclick :+= { (e: Event) =>
         activeControl.set(section)
         e.preventDefault()

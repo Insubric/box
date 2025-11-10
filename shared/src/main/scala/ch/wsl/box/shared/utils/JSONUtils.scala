@@ -151,6 +151,14 @@ object JSONUtils extends Logging {
 
     }
 
+    def oneLayerData(metadata:JSONMetadata):Json = {
+      el.filterFields(metadata.fields
+        .filterNot(_.`type` == JSONFieldTypes.CHILD)
+        .filterNot(_.`type` == JSONFieldTypes.STATIC)
+      )
+    }
+
+
     def removeNonDataFields(metadata:JSONMetadata,children:Seq[JSONMetadata],keepStatic:Boolean = true):Json = {
 
       def layoutFields(fields:Seq[Either[String,SubLayoutBlock]]):Seq[String] = {

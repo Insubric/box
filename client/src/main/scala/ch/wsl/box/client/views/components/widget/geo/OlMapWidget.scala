@@ -97,6 +97,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   }
 
   override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
+    if(dataListener.isEmpty && _data.get.isEmpty) return Future.successful(data) // map never initializated
     mapControls.foreach(_.finishDrawing())
     val promise = Promise[Json]()
     setTimeout( () => {
@@ -121,38 +122,60 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var featuresLayer: layerMod.Vector[_] = null
 
 
+  var _loaded = false
 
-
-  protected def _afterRender(): Unit = {
+  protected def _afterRender(): Future[Boolean] = {
     logger.debug("Complete loading map")
     if(map.nonEmpty && featuresLayer != null) {
-      loadBase(baseLayer.get).map { _ =>
+      _loaded = false
+      loadBase(baseLayer.get).flatMap { _ =>
         map.get.addLayer(featuresLayer)
         map.get.updateSize()
         map.get.renderSync()
-        data.touch()
+        //data.touch()
         registerListener(true)
         onLoad()
+        val promise = Promise[Boolean]
+        setTimeout(() => {
+          promise.success(true)
+          _loaded = true
+        },0)
+        promise.future
+      }.recover{  case t:Throwable =>
+         t.printStackTrace()
+        false
       }
     } else {
-      data.touch()
+      Future.successful(true)
     }
 
   }
 
 
   override def afterRender(): Future[Boolean] = {
-    val observer = new MutationObserver({(mutations,observer) =>
-      _mapDiv.foreach { mapDiv =>
-        if (document.contains(mapDiv)) {
-          observer.disconnect()
-          _afterRender()
-        }
-      }
-    })
+    logger.debug(s"After render called on OlMapWidget ${_mapDiv}")
 
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
-    Future.successful(true)
+    val promise = Promise[Boolean]()
+    var observer: Option[MutationObserver] = None
+
+    def check() = _mapDiv.exists { mapDiv =>
+      if (document.contains(mapDiv)) {
+        logger.debug("mapDiv found in body")
+        observer.foreach(_.disconnect())
+        _afterRender().map{ x =>
+          promise.success(x)
+        }
+        true
+      } else false
+    }
+
+    val exists = check()
+    if(!exists) {
+      observer = Some(new MutationObserver({ (mutations, observer) => check() }))
+    }
+
+    observer.foreach(_.observe(document,MutationObserverInit(childList = true, subtree = true)))
+    promise.future
   }
 
   var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
@@ -164,7 +187,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   def registerListener(initUpdate:Boolean) = {
       dataListener = Some(data.listen({ geo =>
         logger.debug(s"Data data listener $geo")
-        map.get.renderSync()
+        map.foreach(_.renderSync())
         Try {
           vectorSource.clear(true)
           setTimeout(() => {
@@ -204,7 +227,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     logger.debug(s"Setting data")
     //data.set(newData.asJson)
     _data.set(newData)
-    action.setChanged()
+    if(_loaded)
+      action.setChanged()
     if(!forceTriggerListeners) {
       logger.debug(s"Resetting listeners")
       registerListener(false)
@@ -304,6 +328,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   }
 
 
+  def requiredCheckField = TextInput(
+    _data.bitransform(_.map(_.toString(1).take(5)).getOrElse("")) // check on the actual data is is non empty
+    (x => _data.get) // the text input will never been changed
+  )(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)) //in order to use HTML5 validation we insert an hidden field
 
   override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
@@ -315,26 +343,11 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     loadMap(mapDiv, p => new MapControlsIcons(p))
 
-    val observer = new MutationObserver({(mutations,observer) =>
-      if(document.contains(mapDiv) && mapDiv.offsetHeight > 0 ) {
-        observer.disconnect()
-        _afterRender()
-      }
-    })
-
-
-
-
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
-
     div(
       `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullScreen),
       mapStyleElement,
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
-      TextInput(
-        _data.bitransform(_.map(_.toString(1).take(5)).getOrElse("")) // check on the actual data is is non empty
-        (x => _data.get) // the text input will never been changed
-      )(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+      requiredCheckField,
       nested(produce(_data) { geo =>
         mapControls.toSeq.flatMap(_.renderControls(nested,geo))
       }),

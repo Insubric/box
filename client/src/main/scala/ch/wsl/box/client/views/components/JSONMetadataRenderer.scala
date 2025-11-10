@@ -56,16 +56,16 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     if(d.js(ChildRenderer.CHANGED_KEY) == Json.True) {
       changed.set(true,true)
       logger.debug(s"${metadata.name} has changes in child")
-    } else if(!currentData.get.removeNonDataFields(metadata,children,false).equals(d.removeNonDataFields(metadata,children,false))) {
+    } else if(!currentData.get.oneLayerData(metadata).equals(d.oneLayerData(metadata))) {
       changed.set(true,true)
       logger.debug(s"""
                 ${metadata.name} has changes
 
                 original:
-                ${currentData.get.removeNonDataFields(metadata,children,false)}
+                ${currentData.get.oneLayerData(metadata)}
 
                 new:
-                ${d.removeNonDataFields(metadata,children,false)}
+                ${d.oneLayerData(metadata)}
 
                 """)
 
@@ -132,7 +132,10 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   override def killWidget(): Unit = blocks.foreach(_.widget.killWidget())
 
 
-  override def afterRender() = Future.sequence(blocks.map(_.widget.afterRender())).map(_.forall(x => x))
+  override def afterRender() = {
+
+    Future.sequence(blocks.filter(_.layoutBlock.flatMap(_.tabGroup).isEmpty).map(_.widget.afterRender())).map(_.forall(x => x))
+  }
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderJsonMetadata(false,nested)
 
@@ -164,6 +167,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
             case None => frag()
           }, //renders title in blocks
           widget.render(write, nested)
+
         )
       )
     }
@@ -194,7 +198,9 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
           }
         ),
         nested(produce(selectedTab) { tabName =>
-          renderBlocks(blks.filter(_.block.tab == tabName)).render
+          val block = blks.filter(_.block.tab == tabName)
+          window.setTimeout(() => block.map(x => x.widget.afterRender()),0)
+          renderBlocks(block).render
         })
       )
     }

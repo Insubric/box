@@ -6,7 +6,7 @@ import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, JSONMetadata, SharedLabels}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, JSONMetadata, SharedLabels, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import ch.wsl.typings.ol.coordinateMod.Coordinate
 import ch.wsl.typings.ol.mod.MapBrowserEvent
@@ -26,12 +26,12 @@ import scribe.Level
 import scala.scalajs.js.JSConverters._
 import scala.util.Try
 
-class MapWidgetTest extends TestBase {
+class MapListWidgetTest extends TestBase {
 
   override val debug: Boolean = false
   override val waitOnAssertFail: Boolean = false
 
-  override def loggerLevel: Level = Level.Error
+  override def loggerLevel: Level = Level.Debug
 
   val formName = "formName"
   val idField = "idField"
@@ -52,47 +52,47 @@ class MapWidgetTest extends TestBase {
   class MockValues extends Values(loggerLevel){
     override def metadata: JSONMetadata = JSONMetadata.simple(UUID.randomUUID(),"form",formName,"it",Seq(
       JSONField.integer(idField,false),
-      JSONField(JSONFieldTypes.GEOMETRY,geomField,nullable = false,params = Some(
+      JSONField(JSONFieldTypes.GEOMETRY,geomField,widget = Some(WidgetsNames.mapList),nullable = false,params = Some(
         parse("""
-          |
-          |{
-          |    "features": {
-          |        "point": true,
-          |        "multiPoint": false,
-          |        "line": false,
-          |        "multiLine": false,
-          |        "polygon": true,
-          |        "multiPolygon": true,
-          |        "geometryCollection": true
-          |    },
-          |    "projections": [
-          |        {
-          |            "name": "EPSG:2056",
-          |            "proj": "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ",
-          |            "unit": "m",
-          |            "extent": [
-          |               	2485869.5728, 1076443.1884, 2837076.5648, 1299941.7864
-          |            ]
-          |        }
-          |    ],
-          |    "defaultProjection": "EPSG:2056",
-          |    "baseLayers": [
-          |        {
-          |            "name": "Swisstopo",
-          |            "capabilitiesUrl": "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml",
-          |            "layerId": "ch.swisstopo.pixelkarte-farbe"
-          |        },
-          |        {
-          |            "name": "SwissImage",
-          |            "capabilitiesUrl": "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml",
-          |            "layerId": "ch.swisstopo.swissimage"
-          |         }
-          |     ],
-          |     "precision": 0.01,
-          |     "enableSwisstopo": true
-          |}
-          |""".stripMargin).toOption.get
-        )
+                |
+                |{
+                |    "features": {
+                |        "point": true,
+                |        "multiPoint": false,
+                |        "line": false,
+                |        "multiLine": false,
+                |        "polygon": true,
+                |        "multiPolygon": true,
+                |        "geometryCollection": true
+                |    },
+                |    "projections": [
+                |        {
+                |            "name": "EPSG:2056",
+                |            "proj": "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ",
+                |            "unit": "m",
+                |            "extent": [
+                |               	2485869.5728, 1076443.1884, 2837076.5648, 1299941.7864
+                |            ]
+                |        }
+                |    ],
+                |    "defaultProjection": "EPSG:2056",
+                |    "baseLayers": [
+                |        {
+                |            "name": "Swisstopo",
+                |            "capabilitiesUrl": "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml",
+                |            "layerId": "ch.swisstopo.pixelkarte-farbe"
+                |        },
+                |        {
+                |            "name": "SwissImage",
+                |            "capabilitiesUrl": "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml",
+                |            "layerId": "ch.swisstopo.swissimage"
+                |         }
+                |     ],
+                |     "precision": 0.01,
+                |     "enableSwisstopo": true
+                |}
+                |""".stripMargin).toOption.get
+      )
       )
     ),Seq(idField))
 
