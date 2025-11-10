@@ -29,7 +29,7 @@ import scala.util.Try
 class MapListWidgetTest extends TestBase {
 
   override val debug: Boolean = false
-  override val waitOnAssertFail: Boolean = true
+  override val waitOnAssertFail: Boolean = false
 
   override def loggerLevel: Level = Level.Debug
 

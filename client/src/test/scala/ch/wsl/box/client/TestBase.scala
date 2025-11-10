@@ -110,7 +110,7 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
     }
   }
 
-  private def waiter(w:() => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
+  def waiter(w:() => Boolean,name:String = "", patience:Int = 10):Future[Assertion] = {
     val promise = Promise[Assertion]()
     logger.info("Waiter")
     var timeout:Option[Int] = None
