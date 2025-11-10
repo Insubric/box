@@ -6,7 +6,7 @@ import ch.wsl.box.client.mocks.Values
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.model.shared.GeoJson.{FeatureCollection, Geometry}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONMetadata, SharedLabels}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, JSONMetadata, SharedLabels}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import ch.wsl.typings.ol.coordinateMod.Coordinate
 import ch.wsl.typings.ol.mod.MapBrowserEvent
@@ -21,6 +21,7 @@ import java.util.UUID
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import io.circe.parser._
+import scribe.Level
 
 import scala.scalajs.js.JSConverters._
 import scala.util.Try
@@ -28,16 +29,24 @@ import scala.util.Try
 class MapWidgetTest extends TestBase {
 
   override val debug: Boolean = false
+  override val waitOnAssertFail: Boolean = false
+
+  override def loggerLevel: Level = Level.Error
 
   val formName = "formName"
   val idField = "idField"
   val geomField = "geomField"
+
+  var _data:Json = null
 
 
   val x = 2600000.0
   val y = 1100000.0
 
   val promise = Promise[Assertion]()
+
+  val promiseSaved = Promise[Boolean]()
+
 
 
   class MockValues extends Values(loggerLevel){
@@ -85,11 +94,13 @@ class MapWidgetTest extends TestBase {
           |""".stripMargin).toOption.get
         )
       )
-    ),Seq("id"))
+    ),Seq(idField))
 
+    override def get(id: JSONID): Json = _data
 
     override def insert(data: Json): Json = {
       val mapData = data.js(geomField).as[Geometry].toOption
+      _data = data
       promise.tryComplete { Try{
         mapData.isDefined shouldBe true
         mapData.get.geomName shouldBe "POINT"
@@ -100,6 +111,8 @@ class MapWidgetTest extends TestBase {
         mapData.get.allCoordinates.head.y > 0 shouldBe true
 
       }}
+      window.setTimeout(() => promiseSaved.success(true),0)
+
       data
     }
 
@@ -169,9 +182,15 @@ class MapWidgetTest extends TestBase {
         idEl.value = "1"
         idEl.onchange(new Event("change"))
       }
+      _ <- waitPropertyChange(TestHooks.formField(idField))
       _ = {
         document.getElementById(TestHooks.actionButton(SharedLabels.form.save)).asInstanceOf[HTMLElement].click()
       }
+      _ <- promiseSaved.future
+      _ <- waitNotElement(() => document.getElementById(TestHooks.dataChanged),"Data unchanged")
+      _ <- waitElement(() => document.querySelector(s".${TestHooks.formField(idField)}"),"Form Reloaded")
+      _ <- assertOrWait(document.querySelector(s".${TestHooks.formField(idField)}") != null)
+      _ <- assertOrWait(document.getElementById(TestHooks.dataChanged) == null)
       result <- promise.future
     } yield result
   }

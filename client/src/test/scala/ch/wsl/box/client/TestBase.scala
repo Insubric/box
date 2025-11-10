@@ -142,8 +142,19 @@ trait TestBase extends AsyncFlatSpec with should.Matchers with Logging {
 
   def waitPropertyChange(name:String):Future[Assertion] = {
     val promise = Promise[Assertion]
-    TestHooks.properties(name).listen(_ => promiseResolve(promise,Right(true),debug))
-    promise.future
+    println(TestHooks.properties.keys.toList)
+
+    TestHooks.properties.get(name) match {
+      case Some(prop) => {
+        prop.listen(_ => promiseResolve(promise,Right(true),debug))
+        promise.future
+      }
+      case None => {
+        val msg = s"Property $name not found. Registered properties are: ${TestHooks.properties.keys.toList.mkString(", ")}"
+        println(msg)
+        Future.failed(new Exception(msg))
+      }
+    }
   }
 
 
