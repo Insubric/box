@@ -1048,7 +1048,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
           if (presenter.hasGeometry()) {
             Seq(
-              button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
+              //button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
               button(`type` := "button", onclick :+= presenter.downloadGeoPackage, ClientConf.style.boxButton, Labels.entity.geoPackage)
             )
           } else frag(),

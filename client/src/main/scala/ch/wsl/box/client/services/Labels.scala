@@ -123,7 +123,7 @@ object Labels {
     def xls = get(SharedLabels.exports.xls)
     def pdf = get(SharedLabels.exports.pdf)
     def html = get(SharedLabels.exports.html)
-    def shp = get(SharedLabels.exports.shp)
+    def geopackage = get(SharedLabels.exports.geopackage)
   }
 
   object table{

@@ -9,7 +9,7 @@ import ch.wsl.box.model.shared.{Filter, GeoJson, GeoTypes, JSONID, JSONMetadata,
 import ch.wsl.box.rest.logic.ViewActions
 import ch.wsl.box.rest.utils.JSONSupport
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
-import io.circe.JsonObject
+import io.circe.{Json, JsonObject}
 import io.circe.syntax.EncoderOps
 
 import scala.concurrent.ExecutionContext
@@ -38,9 +38,11 @@ object GeoData {
             for {
               data <- db.run(actions.fetchGeom(gdr.properties,field, gdr.query))
             } yield {
-              val result: GeoTypes.GeoData = data.map { d =>
+              val result: GeoTypes.GeoData = data.map { case (id,props,geom) =>
 
-                  GeoJson.Feature(d._2, d._1.asObject)
+                  val data = props.deepMerge(Json.obj("jsonid" -> id.asJson))
+
+                  GeoJson.Feature(geom, data.asObject)
 
               }
               result

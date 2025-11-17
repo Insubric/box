@@ -5,8 +5,8 @@ object FunctionKind {
     val TABLE = "table"
     val PDF = "pdf"
     val HTML = "html"
-    val SHP = "shp"
+    val GEOPACKAGE = "geopackage"
 
-    val all = Seq(TABLE,PDF,HTML,SHP)
+    val all = Seq(TABLE,PDF,HTML,GEOPACKAGE)
   }
 }

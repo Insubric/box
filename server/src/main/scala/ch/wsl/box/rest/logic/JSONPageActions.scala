@@ -22,7 +22,7 @@ object JSONPageActions extends TableActions[Json] {
 
   override def findSimple(q:JSONQuery): wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 
-  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]] = DBIO.successful(Seq())
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Option[JSONID],Json,Geometry)]] = DBIO.successful(Seq())
 
   override def fetchFields(fields: Seq[String], query: JSONQuery): _root_.ch.wsl.box.jdbc.PostgresProfile.api.DBIO[Seq[Json]] = DBIO.successful(Seq())
 

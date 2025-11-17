@@ -15,9 +15,6 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
-import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
-import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
@@ -309,7 +306,7 @@ case class Form(
     privateOnly {
       xls ~
       csv ~
-      shp ~
+//      shp ~
       geoPkg ~
       GeoData(db, actions)
     }

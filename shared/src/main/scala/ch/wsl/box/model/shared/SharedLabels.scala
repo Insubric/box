@@ -198,7 +198,7 @@ object SharedLabels extends LabelsCollection {
     def xls = "exports.xls"
     def pdf = "exports.pdf"
     def html = "exports.html"
-    def shp = "exports.shp"
+    def geopackage = "exports.geopackage"
     def all = Seq(
       search,
       title,
@@ -208,7 +208,7 @@ object SharedLabels extends LabelsCollection {
       xls,
       pdf,
       html,
-      shp
+      geopackage
     )
   }
 

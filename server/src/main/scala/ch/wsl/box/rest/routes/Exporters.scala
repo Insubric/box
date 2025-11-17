@@ -11,7 +11,7 @@ import ch.wsl.box.rest.logic.FormActions
 import io.circe.parser.parse
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{FullDatabase, UserDatabase}
-import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter}
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.RegistryInstance
 import ch.wsl.box.rest.utils.BoxSession
@@ -58,25 +58,25 @@ trait Exporters {
       }
   }
 
-  def shp(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path("shp") {
-    get {
-      parameters('q) { q =>
-        val query = parse(q).right.get.as[JSONQuery].right.get
-        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
-          complete {
-            for {
-              metadata <- boxDb.adminDb.run(tabularMetadata())
-              formActions = FormActions(metadata, registry, metadataFactory)
-              data <- db.db.run(formActions.dataTable(query, None))
-              shapefile <- ShapeFileWriter.writeShapeFile(name, data)
-            } yield {
-              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
-            }
-          }
-        }
-      }
-    }
-  }
+//  def shp(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path("shp") {
+//    get {
+//      parameters('q) { q =>
+//        val query = parse(q).right.get.as[JSONQuery].right.get
+//        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
+//          complete {
+//            for {
+//              metadata <- boxDb.adminDb.run(tabularMetadata())
+//              formActions = FormActions(metadata, registry, metadataFactory)
+//              data <- db.db.run(formActions.dataTable(query, None))
+//              shapefile <- ShapeFileWriter.writeShapeFile(name, data)
+//            } yield {
+//              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
+//            }
+//          }
+//        }
+//      }
+//    }
+//  }
 
   def geoPkg(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path("gpkg") {
     get {

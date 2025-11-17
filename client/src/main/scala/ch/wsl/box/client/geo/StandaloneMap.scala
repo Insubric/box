@@ -238,13 +238,24 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     Box2d.fromSeq(extent.getOrElse(map.getView().calculateExtent()).toSeq)
   }
 
-  def addLayers(layers:Seq[layerBaseMod.default]) = {
+  def addLayers(layers:Seq[layerBaseMod.default], replace: Boolean = false, initialState:Option[Boolean] = None) = {
     layers.foreach { layer =>
-      if(map.getLayers().getArray().exists(_.getZIndex() == layer.getZIndex())) {
-        layer.setVisible(false)
+
+      map.getLayers().getArray().find(_.getZIndex() == layer.getZIndex()) match {
+        case Some(existingLayer) if replace => {
+          logger.info("replacing existing layer")
+          BrowserConsole.log(existingLayer)
+          map.removeLayer(existingLayer)
+        }
+        case Some(existingLayer) if initialState.isDefined => {
+          layer.setVisible(initialState.get)
+          map.addLayer(layer)
+        }
+        case Some(_) => ()
+        case None => map.addLayer(layer)
       }
-      layer.getZIndex()
-      map.addLayer(layer)
+
+
     }
     map.render()
   }
@@ -252,12 +263,13 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   def addFeaturesToLayer(db: DbVector, geoms:GeoData) = {
     map.sourceOf(db).map{s =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
+      BrowserConsole.log(features.toJSArray)
       s.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
     }
 
   }
 
-  def wmtsLayer(wmts:WMTS) = {
+  def wmtsLayer(wmts:WMTS,visible:Boolean) = {
     val layer = MapUtils.loadWmtsLayer(
       wmts.id,
       wmts.capabilitiesUrl,
@@ -266,7 +278,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       wmts.zIndex
     )
     layer.map{ l =>
-      addLayers(Seq(l))
+      addLayers(Seq(l),false,Some(visible))
       fit()
     }
   }
@@ -303,21 +315,21 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
 
 
-  metadata.wmts.foreach(wmtsLayer)
+  metadata.wmts.sortBy(_.order).zipWithIndex.foreach{ case (wmts,i) => wmtsLayer(wmts,i == 0) }
 
   def reload(d:Json): Unit = {
+    logger.info(s"Reload with $d")
     ready.set(false)
-    metadata.db.flatMap(map.layerOf).foreach(map.removeLayer)
 
     for {
       baseLayers <- Future.sequence(metadata.db.filter(_.autofocus).map(v => dbVectorLayer(v, d, None)))
-      _ = addLayers(baseLayers.map(x => geomsToLayer(x._1, x._2)))
+      _ = addLayers(baseLayers.map(x => geomsToLayer(x._1, x._2)),true)
       extent = fit()
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, d, Some(extent))))
     } yield {
 
       selectedLayerForEdit.set(selectedLayerForEdit.get, true) // retrigger layer listener
-      addLayers(extraLayers.map(x => geomsToLayer(x._1, x._2)))
+      addLayers(extraLayers.map(x => geomsToLayer(x._1, x._2)),false)
       redrawControl()
       ready.set(true)
     }
@@ -329,6 +341,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   val extentChange = Debounce(250.millis)((_: Unit) => {
     val extent = Box2d.fromSeq(view.calculateExtent().toSeq)
+    logger.info(s"Extent change $extent")
     for{
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, properties.get, Some(extent))))
     } yield {

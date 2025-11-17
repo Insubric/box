@@ -21,7 +21,7 @@ import scribe.Logging
 import slick.lifted.TableQuery
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.UpdateTable
-import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter}
 import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
 import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
@@ -106,23 +106,23 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     }
   }
 
-  def shp:Route = path("shp") {
-    get {
-      parameters('q) { q =>
-        val query = parse(q).right.get.as[JSONQuery].right.get
-        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
-          complete {
-            for{
-              data <- PSQLImpl.table(name, query)
-              shapefile <- ShapeFileWriter.writeShapeFile(name,data.get)
-            } yield {
-              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
-            }
-          }
-        }
-      }
-    }
-  }
+//  def shp:Route = path("shp") {
+//    get {
+//      parameters('q) { q =>
+//        val query = parse(q).right.get.as[JSONQuery].right.get
+//        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.zip"))) {
+//          complete {
+//            for{
+//              data <- PSQLImpl.table(name, query)
+//              shapefile <- ShapeFileWriter.writeShapeFile(name,data.get)
+//            } yield {
+//              HttpResponse(entity = HttpEntity(MediaTypes.`application/zip`, shapefile))
+//            }
+//          }
+//        }
+//      }
+//    }
+//  }
 
   def geoPkg: Route = path("gpkg") {
     get {
@@ -318,7 +318,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       list ~
       xls ~
       csv ~
-      shp ~
+//      shp ~
       geoPkg ~
       GeoData(db,dbActions) ~
       lookups(dbActions) ~
