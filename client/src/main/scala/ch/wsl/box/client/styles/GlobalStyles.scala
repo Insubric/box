@@ -1642,6 +1642,14 @@ object GlobalStyleFactory{
       )
     )
 
+    val thOver = style(
+      outlineStyle.dashed,
+      outlineWidth(1 px),
+      outlineOffset(-1 px),
+      outlineColor.lightgray,
+      backgroundColor.rgba(0,0,0,0.1)
+    )
+
 //
 //    val mapPopup = style(
 //      border.solid,

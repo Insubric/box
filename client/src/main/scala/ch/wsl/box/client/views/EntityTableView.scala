@@ -13,6 +13,7 @@ import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.client.views.elements.Offline
+import ch.wsl.box.client.views.helpers.TableColumnDrag
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.GeoJson.Polygon
 import ch.wsl.box.model.shared.geo.GeoDataRequest
@@ -30,9 +31,9 @@ import io.udash.bootstrap.utils.UdashIcons
 import io.udash.properties.single.Property
 import io.udash.utils.Registration
 import org.scalajs.dom
-import org.scalajs.dom.html.Div
+import org.scalajs.dom.html.{Div, TableCol}
 import scalacss.ScalatagsCss._
-import org.scalajs.dom.{Element, Event, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
+import org.scalajs.dom.{Element, Event, HTMLElement, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
 import scalacss.internal.Pseudo.Lang
 import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
@@ -907,12 +908,12 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def tableContent(metadata:Option[JSONMetadata]) = {
     produce(model.subProp(_.selectedColumns)) { columns =>
-      UdashTable(model.subSeq(_.rows))(
+      val table = UdashTable(model.subSeq(_.rows))(
 
         headerFactory = Some(_ => {
           frag(
             tr(
-              td(ClientConf.style.smallCells, verticalAlign.middle, colspan := 2)(
+              th(ClientConf.style.smallCells, verticalAlign.middle, colspan := 2)(
                 mainActions(metadata)
               ),
               columns.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { field =>
@@ -921,7 +922,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 val sort: ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
                 val order: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
 
-                td(ClientConf.style.smallCells, verticalAlign.middle)(
+                th(ClientConf.style.smallCells, verticalAlign.middle, draggable := true)(
                   a(
                     onclick :+= presenter.sort(fieldQuery),
                     span(bind(title), ClientConf.style.tableHeader), " ",
@@ -991,6 +992,31 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           row
         }
       ).render
+
+      def labelExtractor(el:Element):String = {
+        val head = if(el.classList.contains(ClientConf.style.tableHeader.className.value)) {
+          el
+        } else {
+          el.querySelector(ClientConf.style.tableHeader.selector)
+        }
+        head.innerText
+      }
+
+      new TableColumnDrag(table, labelExtractor,e => {
+        BrowserConsole.log(e)
+        val oldPosition = e.dataTransfer.getData("text")
+        val newPosition = labelExtractor(e.target.asInstanceOf[HTMLElement])
+
+        val sc = model.subProp(_.selectedColumns)
+
+        sc.set(sc.get.flatMap{ f =>
+          if(f.title == oldPosition) Seq()
+          else if(f.title == newPosition) metadata.flatMap(_.table.find(_.title == oldPosition)) ++ Seq(f)
+          else Seq(f)
+        })
+
+      })
+      table
     }
   }
 
