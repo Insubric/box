@@ -129,6 +129,7 @@ object Labels {
   object table{
     def showMore = get(SharedLabels.table.showMore)
     def showLess = get(SharedLabels.table.showLess)
+    def column_selection = get(SharedLabels.table.column_selection)
   }
 
   object entity{

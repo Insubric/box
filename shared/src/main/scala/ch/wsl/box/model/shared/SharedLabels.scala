@@ -49,9 +49,11 @@ object SharedLabels extends LabelsCollection {
   object table extends LabelsCollection {
     def showMore = "table.showMore"
     def showLess = "table.showLess"
+    def column_selection = "table.column_selection"
     def all = Seq(
       showMore,
-      showLess
+      showLess,
+      column_selection
     )
   }
 
