@@ -115,8 +115,18 @@ class DbActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTab
 
   override def fetchFields(fields: Seq[String], query: JSONQuery) = entity.baseTableRow.fetch(fields,query)
 
-  override def fetchGeom(fields:Seq[String],field: String, query: JSONQuery):DBIO[Seq[(Json,GeoJson.Geometry)]] =
-    entity.baseTableRow.fetchGeom(fields,field,query).map(_.map{ case (geom,fields) =>  (fields,GeoJsonSupport.fromJTS(geom)) })
+  override def fetchGeom(fields:Seq[String],field: String, query: JSONQuery):DBIO[Seq[(Option[JSONID],Json,GeoJson.Geometry)]] = {
+    for{
+      _keys <- keys()
+      _metadata <- metadata
+      geoms <- entity.baseTableRow.fetchGeom(fields++_keys, field, query)
+    } yield {
+      geoms.map { case (geom, fields) =>
+        (JSONID.fromData(fields, _metadata), fields, GeoJsonSupport.fromJTS(geom))
+      }
+    }
+
+  }
 
   def keys(): DBIOAction[Seq[String], NoStream, Effect] = DBIO.from(services.connection.adminDB.run(EntityMetadataFactory.keysOf(entity.baseTableRow.schemaName.getOrElse("public"),entity.baseTableRow.tableName)))
 

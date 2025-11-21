@@ -21,7 +21,7 @@ trait ViewActions[T] {
 
   def fetchFields(fields:Seq[String],query:JSONQuery):DBIO[Seq[Json]]
 
-  def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,Geometry)]]
+  def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Option[JSONID],Json,Geometry)]]
 
   def distinctOn(fields: Seq[String],query:JSONQuery): DBIO[Seq[Json]]
 

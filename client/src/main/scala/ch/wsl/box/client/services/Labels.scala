@@ -123,12 +123,13 @@ object Labels {
     def xls = get(SharedLabels.exports.xls)
     def pdf = get(SharedLabels.exports.pdf)
     def html = get(SharedLabels.exports.html)
-    def shp = get(SharedLabels.exports.shp)
+    def geopackage = get(SharedLabels.exports.geopackage)
   }
 
   object table{
     def showMore = get(SharedLabels.table.showMore)
     def showLess = get(SharedLabels.table.showLess)
+    def column_selection = get(SharedLabels.table.column_selection)
   }
 
   object entity{
