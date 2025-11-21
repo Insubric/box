@@ -50,9 +50,16 @@ class TableColumnDrag(table:Element,_extractor: dom.HTMLElement => String,_onDro
     // hide off‑screen (required for drag image)
     dragGhost.style.position = "absolute"
     dragGhost.style.top      = "-1500px"
+    dragGhost.style.left      = "-500px"
     document.body.appendChild(dragGhost)
 
     dragGhost
+  }
+
+  private def removeDragGhost():Unit = {
+    document.querySelectorAll(".tableGhost").foreach( e =>
+      document.body.removeChild(e)
+    )
   }
 
   // -----------------------------------------------------------------
@@ -100,6 +107,7 @@ class TableColumnDrag(table:Element,_extractor: dom.HTMLElement => String,_onDro
       col.classList.remove(ClientConf.style.thOver.className.value)
       col.asInstanceOf[dom.HTMLElement].style.opacity = "1"
     }
+    removeDragGhost()
   }
 
 

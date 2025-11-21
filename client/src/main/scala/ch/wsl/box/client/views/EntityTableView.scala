@@ -1003,7 +1003,6 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       }
 
       new TableColumnDrag(table, labelExtractor,e => {
-        BrowserConsole.log(e)
         val oldPosition = e.dataTransfer.getData("text")
         val newPosition = labelExtractor(e.target.asInstanceOf[HTMLElement])
 
