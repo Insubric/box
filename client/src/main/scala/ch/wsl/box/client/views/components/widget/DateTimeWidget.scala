@@ -278,11 +278,10 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       if(dateStr == "") {
         data.set(Json.Null)
       } else {
-        dateTimeFormatters.parse(dateStr, tzFromCurrent()) match {
-          case Some(dt) => data.set(dateTimeFormatters.format(dt).asJson)
-          case None => data.set(Json.Null)
+        DateTimeFormatters.intervalParser(x => dateTimeFormatters.parse(x, tzFromCurrent()), dateStr) match {
+          case Nil => data.set(Json.Null)
+          case l => data.set(l.map(x => dateTimeFormatters.format(x)).mkString(DateTimeFormatters.separator).asJson)
         }
-
       }
       setListener(false, instance)
     }
