@@ -221,7 +221,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         geoms = Seq(),
         extent = None,
         public = state.public,
-        selectedColumns = form.table
+        selectedColumns = form.preselectedTable
       )
 
       //saveIds(IDs(true,1,Seq(),0),query)
