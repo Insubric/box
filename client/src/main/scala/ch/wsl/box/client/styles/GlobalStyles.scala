@@ -1345,13 +1345,16 @@ object GlobalStyleFactory{
     val mapLayerSelectFullscreen = style(
       position.absolute,
       right.`0`,
-      bottom(30 px),
-      backgroundColor.white,
-      padding(10 px),
+      bottom.`0`,
+      backgroundColor.rgba(255,255,255,0.8),
+      padding.horizontal(10 px),
+      padding.vertical(5 px),
       unsafeChild("select") {
         width(90 %%)
       },
-      zIndex(1)
+      zIndex(1),
+      fontSize(11 px),
+      lineHeight(22 px)
     )
 
     val mapFullscreen = style(
