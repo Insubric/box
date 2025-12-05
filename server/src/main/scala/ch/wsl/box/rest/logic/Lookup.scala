@@ -28,32 +28,6 @@ object Lookup {
 
   }
 
-  /**
-   * Works only with remote lookups, TODO make it working with data and extractor
-   * @param lookupElements
-   * @param metadata
-   * @param field
-   * @param value
-   * @return
-   */
-  def valueExtractor(lookupElements:Option[Map[String,Seq[Json]]],metadata:JSONMetadata)(field:String, value:Json):Option[Json] = {
-
-    for{
-      elements <- lookupElements
-      field <- metadata.fields.find(_.name == field)
-      lookup <- field.lookup
-      remoteLookup <- lookup match {
-        case r:JSONFieldLookupRemote => Some(r)
-        case _ => None
-      }
-      foreignEntity <- elements.get(remoteLookup.lookupEntity)
-      foreignRow <- foreignEntity.find(_.js(remoteLookup.map.foreign.valueColumn) == value)
-    } yield {
-       JSONFieldLookup.toJsonLookup(remoteLookup.map.foreign)(foreignRow).id
-    }
-
-  }
-
   def values(entity:String, foreign:JSONFieldMapForeign, query:JSONQuery)(implicit ec: ExecutionContext, mat:Materializer, services: Services) :DBIO[Seq[JSONLookup]] = {
     Registry().actions(entity).findSimple(query).map{ _.map{ row =>
       JSONFieldLookup.toJsonLookup(foreign)(row)

@@ -91,7 +91,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
       parameters('q) { q =>
         val query = parse(q).right.get.as[JSONQuery].right.get
         val io = for {
-          //fkValues <- Lookup.valuesForEntity(metadata).map(Some(_))
+          fkValues <- Lookup.valuesForEntity(jsonMetadata)(ec,mat,services).map(Some(_))
           data <- jsonActions.findSimple(query)
         } yield {
           val table = XLSTable(
