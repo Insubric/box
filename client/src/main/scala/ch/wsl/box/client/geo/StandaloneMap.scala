@@ -34,50 +34,26 @@ import scalacss.ScalatagsCss._
 import MapUtils._
 import scribe.Logging
 
-class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) extends Logging {
+abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) extends Logging {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
 
   val editable = metadata.db.exists(_.editable)
 
+
   val ready = Property(false)
 
 
   val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
-  val selectedLayer: ReadableProperty[Option[BoxLayer]] = selectedLayerForEdit.transform(_.flatMap(x => map.layerOf(x).map{l =>
-    BoxLayer(l,MapParamsFeatures.fromDbVector(x))
-  }))
+  val selectedLayer: Property[Option[BoxLayer]] = selectedLayerForEdit.bitransform(_.flatMap(x => map.layerOf(x).map{l =>
+    BoxLayer(x.id,l,MapParamsFeatures.fromDbVector(x))
+  }))(bl => metadata.db.find(db => bl.map(_.uuid).contains(db.id)))
 
   val controlsDiv = div().render
 
 
   val fullscreen = Property(false)
-
-
-  val layersSelection = div(ClientConf.style.mapLayerSelectFullscreen ).render
-
-  ready.listenOnce(_ => {
-    layersSelection.appendChild(div(
-      (metadata.db.filterNot(_.editable) ++ metadata.wmts).filter(_.zIndex > 0).groupBy(_.zIndex).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
-        div(display.flex,
-          if (alternativeLayers.length == 1) div(flexGrow := 1, alternativeLayers.head.name) else {
-            val sortedLayers = alternativeLayers.sortBy(_.order)
-            val selected: Property[MapLayerMetadata] = Property(sortedLayers.head)
-            selected.listen(layer => {
-              sortedLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
-              map.layerOf(layer.id).foreach(_.setVisible(true))
-            },true)
-            Select[MapLayerMetadata](selected, SeqProperty(alternativeLayers))(x => StringFrag(x.name))
-          },
-          input(margin := 5.px, `type` := "checkbox", checked := "checked", onchange :+= { (e: Event) => map.getLayers().getArray().filter(_.getZIndex().getOrElse(-1) == i).map(_.setVisible(e.currentTarget.asInstanceOf[HTMLInputElement].checked)) })
-        ).render
-      }
-    ).render)
-  })
-
-
-  def layerSelector:Modifier = Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)), Labels("ui.map.perform-operation-on"))(x => x.name)
 
   val mapDiv:Div = if (editable) {
 
@@ -98,7 +74,6 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
     val wrapper = div( `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
       controlsDiv,
-      layersSelection,
       _mapDiv,
 
     ).render
@@ -110,7 +85,6 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     val _mapDiv = div(height := (_div.clientHeight).px).render
     val wrapper = div(
       _mapDiv,
-      layersSelection
     ).render
     _div.appendChild(wrapper)
 
@@ -132,13 +106,14 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     window.setTimeout(() => {
       controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
       nestedCustom.kill()
-      controlsDiv.appendChild(control.renderControls(nestedCustom,None))
+      control.foreach{ c =>
+        controlsDiv.appendChild(c.renderControls(nestedCustom,None))
+      }
+
     },0)
   }
 
-  selectedLayerForEdit.listen(sl => {
-   redrawControl()
-  }, true)
+
 
 
 
@@ -188,19 +163,20 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   }
 
 
-  val control = new MapControlStandalone(MapControlsParams(map,selectedLayer,proj,metadata.baseLayers.map(_.name),None,None,true,(_data,forceTrigger) => {
-    window.setTimeout({ () =>
-      save()
-    },0)
-    redrawControl()
-  }, None,fullscreen),layerSelector)
+  def control:Seq[Controls]
 
-  control.baseLayer.listen(layer => {
-    metadata.baseLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
-    metadata.baseLayers.find(_.name == layer).foreach { l =>
-      map.layerOf(l.id).foreach(_.setVisible(true))
+  def loadControlListener() {
+
+    control.foreach {
+      case m: MapControls => m.baseLayer.listen(layer => {
+        metadata.baseLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
+        metadata.baseLayers.find(_.name == layer).foreach { l =>
+          map.layerOf(l.id).foreach(_.setVisible(true))
+        }
+      }, true)
+      case _ => ()
     }
-  },true)
+  }
 
 
 

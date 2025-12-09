@@ -51,6 +51,7 @@ import ch.wsl.typings.ol.mapMod.MapOptions
 import ch.wsl.typings.ol.objectMod.ObjectEvent
 import org.scalajs.dom.window.setTimeout
 
+import java.util.UUID
 import scala.scalajs.js.{URIUtils, |}
 
 case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
@@ -292,7 +293,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
 
-    val controlParams = MapControlsParams(map.get,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
+    val controlParams = MapControlsParams(map.get,Property(Some(BoxLayer(UUID.randomUUID(),featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
     val _mapControls = controlFactory(controlParams)
     mapControls = Some(_mapControls)
     baseLayer.get.foreach( l => _mapControls.baseLayer.set(l.name))
