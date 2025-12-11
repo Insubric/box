@@ -3,16 +3,20 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.model.shared.GeoJson.{Geometry, LineString, MultiLineString, MultiPolygon, Point, Polygon}
 import ch.wsl.box.model.shared.geo.{DbVector, GEOMETRYCOLLECTION, LINESTRING, MULTILINESTRING, MULTIPOINT, MULTIPOLYGON, POINT, POLYGON}
 
-case class EnabledControls(point:Boolean,line:Boolean,polygon:Boolean,polygonHole:Boolean)
+case class EnabledControls(point:Boolean,multipoint:Boolean,line:Boolean,polygon:Boolean,polygonHole:Boolean)
 
 object EnabledControls{
 
-  def none = EnabledControls(point = false, line = false, polygon = false, polygonHole = false)
+  def none = EnabledControls(point = false, multipoint=false, line = false, polygon = false, polygonHole = false)
 
   def fromGeometry(geometry: Option[Geometry],options:MapParamsFeatures):EnabledControls = {
 
     val point = {
-      options.point &&
+      options.point
+    }
+
+    val multipoint = {
+      options.multiPoint &&
         (
           geometry.isEmpty || //if no geometry collection is enabled it should be the only geom
             (options.geometryCollection && geometry.toSeq.flatMap(_.toSingle).forall { // when gc is enabled check if is the only point
@@ -63,7 +67,7 @@ object EnabledControls{
       case _ => false
     }
 
-    EnabledControls(point,line,polygon,polygonHole)
+    EnabledControls(point,multipoint,line,polygon,polygonHole)
 
   }
 }

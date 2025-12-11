@@ -158,6 +158,33 @@ object MapUtils extends Logging {
     }
   }
 
+  def area(geometries:Seq[Geometry],precision:Double = 1):Double = {
+    val total = geometries.map {
+      case GeoJson.Empty => 0.0
+      case Point(coordinates, crs) => 0.0
+      case LineString(coordinates, crs) => 0.0
+      case p:Polygon => areaPolygon(p,0.0001)
+      case MultiPoint(coordinates, crs) => 0.0
+      case MultiLineString(coordinates, crs) => 0.0
+      case p:MultiPolygon => areaMultipolygon(p,0.0001)
+      case GeometryCollection(geometries, crs) => area(geometries,0.0001)
+    }.sum
+    approx(precision,total)
+  }
+
+  def areaPolygon(poly:GeoJson.Polygon,precision:Double = 1) = {
+    val jtsGeom = new ch.wsl.typings.jsts.mod.io.WKTReader().read(poly.toString(0.01))
+    logger.debug(s"Polygon area ${poly.toString(0.01)} ${jtsGeom} ${jtsGeom.getArea()}")
+    GeoJson.approx(precision,jtsGeom.getArea())
+  }
+
+  def areaMultipolygon(multipoly:GeoJson.MultiPolygon,precision:Double = 1) = {
+    val jtsGeom = new ch.wsl.typings.jsts.mod.io.WKTReader().read(multipoly.toString(0.01))
+    logger.debug(s"Mutlipolygon area ${jtsGeom.getArea()}")
+    GeoJson.approx(precision,jtsGeom.getArea())
+  }
+
+
 
   def vectorSourceGeoms(vectorSource:sourceMod.Vector[_],defaultProjection:String): Option[FeatureCollection] = {
     val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())

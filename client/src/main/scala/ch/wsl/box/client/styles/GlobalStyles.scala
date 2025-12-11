@@ -1236,6 +1236,12 @@ object GlobalStyleFactory{
       ),
     )
 
+    val controlButtonsBottom = style(
+      borderBottomStyle.solid,
+      borderBottomWidth(1 px),
+      borderBottomColor(conf.colors.main)
+    )
+
     val controlInputs = style(
       display.flex,
       flexWrap.wrap,
@@ -1345,7 +1351,7 @@ object GlobalStyleFactory{
     val mapLayerSelectFullscreen = style(
       position.absolute,
       right.`0`,
-      bottom.`0`,
+      bottom(36 px),
       backgroundColor.rgba(255,255,255,0.8),
       padding.horizontal(10 px),
       padding.vertical(5 px),

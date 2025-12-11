@@ -28,7 +28,7 @@ class MapControlStandaloneBase(params:MapControlsParams,override val activeContr
     goToField.set(None)
 
 
-    div(BootstrapStyles.Grid.row,ClientConf.style.controlButtons,
+    div(BootstrapStyles.Grid.row,ClientConf.style.controlButtons,BootstrapStyles.Grid.row,ClientConf.style.controlButtonsBottom,
       div(
         BootstrapCol.md(6),
         ClientConf.style.controlInputs,

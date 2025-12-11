@@ -28,7 +28,7 @@ class StandaloneMapExpanded(_div:Div, metadata:MapMetadata,properties:ReadablePr
   activeControlLayer.listen(println)
 
   private def _calculateControl: Seq[Controls] = {
-    metadata.db.filter(_.editable).flatMap { l =>
+    metadata.db.filter(_.editable).sortBy(_.order).flatMap { l =>
       map.layerOf(l).map { vl =>
         val layer = BoxLayer(l.id, vl, MapParamsFeatures.fromDbVector(l))
         val activeControl: Property[Control.Section] = activeControlLayer.bitransform(c => if(c._2.contains(layer)) c._1 else Control.VIEW)(l => (l,Some(layer)))
@@ -41,10 +41,18 @@ class StandaloneMapExpanded(_div:Div, metadata:MapMetadata,properties:ReadablePr
     if(_control.isEmpty) {
       val calculated = _calculateControl
       if(calculated.nonEmpty) {
-        val activeControl: Property[Control.Section] = activeControlLayer.bitransform(c => c._1)(l => (l,selectedLayer.get))
-        _control = Seq(new MapControlStandaloneBase(MapControlsParams(map, Property(None), proj, metadata.baseLayers.map(_.name), None, None, true, _save, None, fullscreen),activeControl)) ++ calculated
+
+        _control = calculated
       }
     }
     _control
   }
+
+  override val controlBottom: Seq[Controls] = {
+    val activeControl: Property[Control.Section] = activeControlLayer.bitransform(c => c._1)(l => (l,selectedLayer.get))
+    Seq(new MapControlStandaloneBase(MapControlsParams(map, Property(None), proj, metadata.baseLayers.map(_.name), None, None, true, _save, None, fullscreen),activeControl))
+  }
+
+  loadControlListener(controlBottom)
+
 }

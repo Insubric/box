@@ -5,7 +5,7 @@ import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{Empty, Feature, FeatureCollection, Geometry}
 import ch.wsl.box.model.shared.GeoTypes.GeoData
-import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.model.shared.{GeoJson, JSONQuery}
 import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GeoDataRequest, MapLayerMetadata, MapMetadata, WMTS}
 import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
@@ -51,15 +51,38 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
   }))(bl => metadata.db.find(db => bl.map(_.uuid).contains(db.id)))
 
   val controlsDiv = div().render
+  val controlsBottomDiv = div().render
 
 
   val fullscreen = Property(false)
 
+
+
+  val layersSelection = div(ClientConf.style.mapLayerSelectFullscreen ).render
+
+  ready.listenOnce(_ => {
+    layersSelection.appendChild(div(
+      (metadata.db.filterNot(_.editable) ++ metadata.wmts).filter(_.zIndex > 0).groupBy(_.zIndex).toSeq.sortBy(-_._1).map { case (i, alternativeLayers) =>
+        div(display.flex,
+          if (alternativeLayers.length == 1) div(flexGrow := 1, alternativeLayers.head.name) else {
+            val sortedLayers = alternativeLayers.sortBy(_.order)
+            val selected: Property[MapLayerMetadata] = Property(sortedLayers.head)
+            selected.listen(layer => {
+              sortedLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
+              map.layerOf(layer.id).foreach(_.setVisible(true))
+            },true)
+            Select[MapLayerMetadata](selected, SeqProperty(alternativeLayers))(x => StringFrag(x.name))
+          },
+          input(margin := 5.px, `type` := "checkbox", checked := "checked", onchange :+= { (e: Event) => map.getLayers().getArray().filter(_.getZIndex().getOrElse(-1) == i).map(_.setVisible(e.currentTarget.asInstanceOf[HTMLInputElement].checked)) })
+        ).render
+      }
+    ).render)
+  })
+
+
   val mapDiv:Div = if (editable) {
 
-
-
-    val _mapDiv = div(height := (_div.clientHeight - 62).px).render
+    val _mapDiv = div(flexGrow := 1).render
 
     fullscreen.listen{fs =>
       if(fs) {
@@ -71,20 +94,24 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
     }
 
 
-
-    val wrapper = div( `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
+    val wrapper = div( display.flex,flexDirection.column,width := 100.pct, `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
       controlsDiv,
+      layersSelection,
       _mapDiv,
-
+      controlsBottomDiv
     ).render
 
+    _div.style.setProperty("display","flex")
     _div.appendChild(wrapper)
+
 
     _mapDiv
   } else {
     val _mapDiv = div(height := (_div.clientHeight).px).render
     val wrapper = div(
       _mapDiv,
+      layersSelection,
+      controlsBottomDiv
     ).render
     _div.appendChild(wrapper)
 
@@ -105,17 +132,18 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
   def redrawControl():Unit = {
     window.setTimeout(() => {
       controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
+      controlsBottomDiv.children.toSeq.foreach(controlsBottomDiv.removeChild)
       nestedCustom.kill()
       control.foreach{ c =>
         controlsDiv.appendChild(c.renderControls(nestedCustom,None))
       }
 
+      controlBottom.foreach{ c =>
+        controlsBottomDiv.appendChild(c.renderControls(nestedCustom,None))
+      }
+
     },0)
   }
-
-
-
-
 
   val proj = new BoxMapProjections(Seq(metadata.srid),metadata.srid.name,metadata.boundingBox)
 
@@ -162,12 +190,13 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
     data.set(result.asJson)
   }
 
-
   def control:Seq[Controls]
 
-  def loadControlListener() {
+  def controlBottom:Seq[Controls] = Seq()
 
-    control.foreach {
+  def loadControlListener(controls:Seq[Controls]) {
+
+    controls.foreach {
       case m: MapControls => m.baseLayer.listen(layer => {
         metadata.baseLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
         metadata.baseLayers.find(_.name == layer).foreach { l =>
@@ -177,10 +206,6 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
       case _ => ()
     }
   }
-
-
-
-
 
   private def extentOfLayers(layers:js.Array[layerBaseMod.default]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
     val layersExtent = layers.flatMap {
