@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
-import ch.wsl.box.client.geo.{BoxOlMap, MapActions, MapParams, StandaloneMap}
+import ch.wsl.box.client.geo.{BoxOlMap, MapActions, MapParams, StandaloneMap, StandaloneMapDropdown, StandaloneMapExpanded}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -33,7 +33,7 @@ case class MapChild(params: WidgetParams) extends Widget with HasData { // with 
 
       val observer = new MutationObserver({ (mutations, observer) =>
         if (document.contains(mapDiv)) {
-          map = Some(new StandaloneMap(mapDiv,field.map.get,parameters,params.prop))
+          map = Some(new StandaloneMapExpanded(mapDiv,field.map.get,parameters,params.prop))
           observer.disconnect()
         }
       })

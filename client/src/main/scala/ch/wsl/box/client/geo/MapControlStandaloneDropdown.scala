@@ -15,7 +15,7 @@ import ch.wsl.typings.ol.viewMod.FitOptions
 
 import scala.concurrent.ExecutionContext
 
-class MapControlStandalone(params:MapControlsParams,layerSelector:Modifier)(implicit ec:ExecutionContext) extends MapControls(params) {
+class MapControlStandaloneDropdown(params:MapControlsParams, layerSelector:Modifier)(implicit ec:ExecutionContext) extends MapControls(params) {
 
   import params._
   import io.udash.css.CssView._

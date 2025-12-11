@@ -209,7 +209,7 @@ object GeoJson {
 
     override def geomName: String = "POLYGON"
 
-    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
+    override def toString(precision:Double): String = s"$geomName (${coordinates.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")})"
 
     override def convert(f: Coordinates => Coordinates,crs:CRS): Polygon = Polygon(coordinates.map(_.map(f)),crs)
 
@@ -222,7 +222,7 @@ object GeoJson {
 
     override def geomName: String = "MULTIPOLYGON"
 
-    override def toString(precision:Double): String = s"$geomName(${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
+    override def toString(precision:Double): String = s"$geomName (${coordinates.map(_.map(_.map(_.toString(precision)).mkString(",")).mkString("(","),(",")")).mkString("(","),(",")")}"
 
     override def toSingle: Seq[SingleGeometry] = toPolygons
     def toPolygons: Seq[Polygon] = coordinates.map(c => Polygon(c,crs))

@@ -30,6 +30,7 @@ import ch.wsl.typings.ol.interactionSelectMod.SelectEvent
 import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
 import ch.wsl.typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod, sourceVectorEventTypeMod}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.{URIUtils, |}
@@ -58,6 +59,7 @@ object Control {
 }
 
 case class BoxLayer(
+                      uuid:UUID,
                      olLayer: layerMod.Vector[_],
                      features:MapParamsFeatures
                    )
@@ -76,8 +78,8 @@ case class MapControlsParams(
                             ) {
 
 
-  def layerSource = layer.transform(_.map(_.olLayer))
-  def vectorSource = layerSource.transform(_.map(toVectorSource))
+  def layerSource: ReadableProperty[Option[layerMod.Vector[_]]] = layer.transform(_.map(_.olLayer))
+  def vectorSource: ReadableProperty[Option[sourceMod.Vector[geomGeometryMod.default]]] = layerSource.transform(_.map(toVectorSource))
   def sourceMap[T](f:sourceMod.Vector[geomGeometryMod.default] => T):Option[T] = vectorSource.get.map(f)
 }
 
@@ -85,7 +87,12 @@ object  MapControlsParams{
   def toVectorSource(l:layerMod.Vector[_]) = l.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]
 }
 
-abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContext) extends Logging {
+
+trait Controls {
+  def renderControls(nested:Binding.NestedInterceptor,geo:Option[Geometry]):Node
+}
+
+abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContext) extends Controls with Logging {
 
   TestHooks.setMap(params.map)
 
@@ -396,7 +403,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     val vs = MapControlsParams.toVectorSource(ls.olLayer)
     oldVectorSource = Some(vs)
 
-    val editing = Seq(Control.POLYGON,Control.POLYGON_HOLE,Control.POINT,Control.LINESTRING).contains(activeControl.get)
+    val editing = if(activeControl == null) false else Seq(Control.POLYGON,Control.POLYGON_HOLE,Control.POINT,Control.LINESTRING).contains(activeControl.get) // active control may be not yet initialized
 
     finishDrawing()
     if(editing && (ls.features.polygon || ls.features.multiPolygon)) {
@@ -409,7 +416,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
       }
     } else if(editing && ls.features.multiPoint) {
       activeControl.set(Control.POINT)
-    } else {
+    } else if(activeControl != null) {
       activeControl.set(Control.VIEW)
     }
 
@@ -536,34 +543,34 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     infoOverlay.setPosition()
 
     section match {
-      case Control.EDIT => {
+      case Control.EDIT if modify != null && snap != null => {
         modify.setActive(true)
         snap.setActive(true)
       }
-      case Control.POINT => {
+      case Control.POINT if drawPoint != null && modify != null && snap != null => {
         drawPoint.setActive(true)
         modify.setActive(true)
         snap.setActive(true)
       }
-      case Control.LINESTRING => {
+      case Control.LINESTRING if drawLineString != null && modify != null && snap != null => {
         drawLineString.setActive(true)
         modify.setActive(true)
         snap.setActive(true)
       }
-      case Control.POLYGON => {
+      case Control.POLYGON if drawPolygon != null && modify != null && snap != null =>{
         drawPolygon.setActive(true)
         modify.setActive(true)
         snap.setActive(true)
       }
-      case Control.POLYGON_HOLE => {
+      case Control.POLYGON_HOLE if drawHole != null && modify != null  => {
         drawHole.setActive(true)
         modify.setActive(true)
       }
-      case Control.MOVE => {
+      case Control.MOVE if drag != null && snap != null => {
         drag.setActive(true)
         snap.setActive(true)
       }
-      case Control.DELETE => {
+      case Control.DELETE if delete != null  && snap != null => {
         delete.setActive(true)
         snap.setActive(true)
       }
@@ -589,7 +596,6 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     layer.get.map(l => EnabledControls.fromGeometry(geoms,l.features)).getOrElse(EnabledControls.none)
   }
 
-  def renderControls(nested:Binding.NestedInterceptor,geo:Option[Geometry]):Node
 
 
 }
