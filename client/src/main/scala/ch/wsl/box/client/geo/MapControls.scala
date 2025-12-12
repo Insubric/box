@@ -90,6 +90,8 @@ object  MapControlsParams{
 
 trait Controls {
   def renderControls(nested:Binding.NestedInterceptor,geo:Option[Geometry]):Node
+
+  def clean():Unit = ()
 }
 
 abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContext) extends Controls with Logging {
@@ -320,7 +322,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     el
   }
 
-  private var ttgpsButtonInsert: Option[UdashTooltip] = None
+  protected var ttgpsButtonInsert: Option[UdashTooltip] = None
 
   protected def gpsButtonInsert = {
     val (el, tt) = WidgetUtils.addTooltip(Some(Labels.map.insertPointGPS)) {

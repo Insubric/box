@@ -1360,7 +1360,10 @@ object GlobalStyleFactory{
       },
       zIndex(1),
       fontSize(11 px),
-      lineHeight(22 px)
+      lineHeight(22 px),
+      media.maxWidth(600 px)(
+        bottom(100 px)
+      )
     )
 
     val mapFullscreen = style(

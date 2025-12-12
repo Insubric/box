@@ -48,6 +48,14 @@ class StandaloneMapExpanded(_div:Div, metadata:MapMetadata,properties:ReadablePr
     _control
   }
 
+  override def reload(d: Json): Unit = {
+    if(_control != null) {
+      _control.foreach(_.clean())
+    }
+    _control = Seq()
+    super.reload(d)
+  }
+
   override val controlBottom: Seq[Controls] = {
     val activeControl: Property[Control.Section] = activeControlLayer.bitransform(c => c._1)(l => (l,selectedLayer.get))
     Seq(new MapControlStandaloneBase(MapControlsParams(map, Property(None), proj, metadata.baseLayers.map(_.name), None, None, true, _save, None, fullscreen),activeControl))

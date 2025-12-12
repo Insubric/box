@@ -13,6 +13,7 @@ import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
 import ch.wsl.typings.ol.{featureMod, geomGeometryMod, geomMod, renderFeatureMod}
 import ch.wsl.typings.ol.viewMod.FitOptions
+import io.udash.bootstrap.tooltip.Tooltip
 import org.scalajs.dom
 
 import scala.concurrent.ExecutionContext
@@ -22,6 +23,13 @@ class MapControlStandaloneExpanded(params:MapControlsParams, title:String, selec
   import params._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
+
+  var tooltipDelete:Option[Tooltip] = None
+
+  override def clean(): Unit = {
+    tooltipDelete.foreach(_.destroy())
+    ttgpsButtonInsert.foreach(_.destroy())
+  }
 
   activeControl.listen(c => println(s"$title active control $c"))
 
@@ -52,6 +60,9 @@ class MapControlStandaloneExpanded(params:MapControlsParams, title:String, selec
 
 
   def renderControls(nested: Binding.NestedInterceptor, geo: Option[Geometry]): Node = {
+
+    tooltipDelete.foreach(_.destroy())
+    ttgpsButtonInsert.foreach(_.destroy())
 
     val enable = enabled()
 
@@ -90,15 +101,20 @@ class MapControlStandaloneExpanded(params:MapControlsParams, title:String, selec
         if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE,nested) else frag(),
         if (geometry.nonEmpty) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE,nested) else frag(),
         if (geometry.size > 1) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE,nested) else frag(),
-        if (geometry.size == 1) WidgetUtils.addTooltip(Some(SharedLabels.map.delete))(button(ClientConf.style.mapButton)(
-          onclick :+= { (e: Event) =>
-            if(dom.window.confirm(SharedLabels.form.removeMap)) {
-              sourceMap(_.clear())
-              activeControl.set(Control.VIEW)
+        if (geometry.size == 1) {
+          val (el,tt) = WidgetUtils.addTooltip(Some(SharedLabels.map.delete))(button(ClientConf.style.mapButton)(
+            onclick :+= { (e: Event) =>
+              if(dom.window.confirm(SharedLabels.form.removeMap)) {
+                sourceMap(_.clear())
+                activeControl.set(Control.VIEW)
+              }
+              e.preventDefault()
             }
-            e.preventDefault()
-          }
-        )(Icons.trash).render)._1 else frag(),
+          )(Icons.trash).render)
+
+          tooltipDelete = tt
+          el
+        } else frag(),
         button(ClientConf.style.mapButton)(
           if(geometry.isEmpty) disabled := true else Seq[Modifier](),
           onclick :+= { (e: Event) =>
