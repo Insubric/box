@@ -185,7 +185,6 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
     logger.debug("Saving fetures")
     val result = FeatureCollection(features)
     import ch.wsl.box.model.shared.GeoJson._
-    BrowserConsole.log(result.asJson)
     logger.debug(s"Saving standalone map with ${result.asJson}")
     data.set(result.asJson)
   }
@@ -245,7 +244,6 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
       map.getLayers().getArray().find(_.getZIndex() == layer.getZIndex()) match {
         case Some(existingLayer) if replace => {
           logger.info("replacing existing layer")
-          BrowserConsole.log(existingLayer)
           map.removeLayer(existingLayer)
         }
         case Some(existingLayer) if initialState.isDefined => {
@@ -264,7 +262,6 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
   def addFeaturesToLayer(db: DbVector, geoms:GeoData) = {
     map.sourceOf(db).map{s =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
-      BrowserConsole.log(features.toJSArray)
       s.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
     }
 
@@ -320,6 +317,7 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
 
   def reload(d:Json): Unit = {
     logger.info(s"Reload with $d")
+
     ready.set(false)
 
     for {

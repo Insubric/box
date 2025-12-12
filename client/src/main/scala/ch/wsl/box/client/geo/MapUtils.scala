@@ -163,11 +163,11 @@ object MapUtils extends Logging {
       case GeoJson.Empty => 0.0
       case Point(coordinates, crs) => 0.0
       case LineString(coordinates, crs) => 0.0
-      case p:Polygon => areaPolygon(p,0.0001)
+      case p:Polygon => areaPolygon(p,precision)
       case MultiPoint(coordinates, crs) => 0.0
       case MultiLineString(coordinates, crs) => 0.0
-      case p:MultiPolygon => areaMultipolygon(p,0.0001)
-      case GeometryCollection(geometries, crs) => area(geometries,0.0001)
+      case p:MultiPolygon => areaMultipolygon(p,precision)
+      case GeometryCollection(geometries, crs) => area(geometries,precision)
     }.sum
     approx(precision,total)
   }

@@ -24,12 +24,17 @@ case class MapChild(params: WidgetParams) extends Widget with HasData { // with 
 
   val parameters = params._allData.transform (js => Json.fromFields(field.map.toList.flatMap(_.parameters).map(f => f -> js.js(f))))
 
+  val mapHeight:Int = {
+    val h = params.field.params.flatMap(_.jsOpt("height").flatMap(_.as[Int].toOption)).getOrElse(400)
+    if(h > 0) h else 400
+  }
+
   private var map:Option[StandaloneMap] = None
 
   override protected def show(nested: Binding.NestedInterceptor): JsDom.all.Modifier = edit(nested)
 
   override protected def edit(nested: Binding.NestedInterceptor): JsDom.all.Modifier = {
-      val mapDiv = div(height := 400.px).render
+      val mapDiv = div(height := mapHeight.px).render
 
       val observer = new MutationObserver({ (mutations, observer) =>
         if (document.contains(mapDiv)) {
