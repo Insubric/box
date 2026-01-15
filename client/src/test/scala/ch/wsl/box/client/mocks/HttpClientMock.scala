@@ -5,6 +5,7 @@ import io.circe.{Decoder, Encoder}
 import org.scalajs.dom.File
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.scalajs.js
 
 class HttpClientMock extends HttpClient {
   override def post[D, R](url: String, obj: D)(implicit decoder: Decoder[R], encoder: Encoder[D], ec:ExecutionContext): Future[R] = throw new Exception("post not implemented")
@@ -20,6 +21,8 @@ class HttpClientMock extends HttpClient {
   override def delete[T](url: String)(implicit decoder: Decoder[T], ec:ExecutionContext): Future[T] = throw new Exception("delete not implemented")
 
   override def sendFile[T](url: String, file: File)(implicit decoder: Decoder[T], ec:ExecutionContext): Future[T] = throw new Exception("sendFile not implemented")
+
+  override def sendRaw[T](url: String, data: js.Any)(implicit decoder: Decoder[T], ex: ExecutionContext): Future[T] = ???
 
   override def setHandleAuthFailure(f: () => Unit): Unit = {}
 }

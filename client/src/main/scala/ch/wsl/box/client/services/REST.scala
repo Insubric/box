@@ -54,6 +54,8 @@ trait REST{
   //files
   def sendFile(file:File, id:JSONID, entity:String)(implicit ec:ExecutionContext): Future[Int]
 
+  def importXLS(kind:String, lang:String, entity:String,data:File)(implicit ec:ExecutionContext):Future[Int]
+
   //other utilsString
   def login(request:LoginRequest)(implicit ec:ExecutionContext):Future[UserInfo]
   def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext):Future[UserInfo]

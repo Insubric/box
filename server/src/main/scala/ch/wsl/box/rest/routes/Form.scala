@@ -58,7 +58,7 @@ case class Form(
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang,session.user)),10.seconds)
-   private def actions:FormActions = FormActions(metadata,registry,metadataFactory)
+  def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
   private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {

@@ -111,6 +111,13 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   //files
   def sendFile(file:File, id:JSONID, entity:String)(implicit ec:ExecutionContext): Future[Int] = httpClient.sendFile[Int](Routes.apiV1(s"/file/$entity/${id.asString}"),file)
 
+  override def importXLS(kind: String, lang: String, entity: String, data: File)(implicit ec:ExecutionContext): Future[Int] = {
+    for{
+      bytea <- data.arrayBuffer().toFuture
+      count <- httpClient.sendRaw[Int](Routes.apiV1(s"/$kind/$lang/$entity/xlsx/import"),bytea)
+    } yield count
+  }
+
   //other utilsString
   def login(request:LoginRequest)(implicit ec:ExecutionContext) = httpClient.post[LoginRequest,UserInfo](Routes.apiV1("/login"),request)
   def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1(s"/sso/$provider_id?code=$code"))
