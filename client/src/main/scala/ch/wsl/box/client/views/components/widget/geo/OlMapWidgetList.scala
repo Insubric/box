@@ -49,20 +49,6 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
 
     loadMap(mapDiv,p => new MapControlsList(p))
 
-    val observer = new MutationObserver({(mutations,observer) =>
-      if(document.contains(mapDiv) && mapDiv.offsetHeight > 0 ) {
-        observer.disconnect()
-        _afterRender()
-      }
-    })
-
-
-
-
-
-
-
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
 
 
@@ -79,7 +65,7 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         }
       ),
       br,
-      TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+      requiredCheckField, //in order to use HTML5 validation we insert an hidden field
 // WSS-232 not clear, consider to re-enable when geolocation is enabled
       div(
         div(
@@ -101,11 +87,11 @@ class OlMapListWidget(id: ReadableProperty[Option[String]], field: JSONField, da
         frag()
       ),
       mapDiv,
-      nested(produce(data) { geo =>
+      nested(produce(_data) { geo =>
         import ch.wsl.box.model.shared.GeoJson.Geometry._
         import ch.wsl.box.model.shared.GeoJson._
 
-        mapControls.toSeq.flatMap(_.renderControls(nested))
+        mapControls.toSeq.flatMap(_.renderControls(nested,geo))
 
 
 

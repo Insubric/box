@@ -40,10 +40,9 @@ trait BoxOlMap {
         layer.capabilitiesUrl,
         layer.layerId,
         layer.time
-      ).map { wmtsLayer =>
+      ).flatMap { wmtsLayer =>
         services.clientSession.setBaseLayer(layer.layerId)
         mapActions.setBaseLayer(wmtsLayer)
-        true
       }
     }
   }

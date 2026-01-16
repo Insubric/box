@@ -52,6 +52,7 @@ object MultiWidget extends ComponentWidgetFactory {
     private def multiWidget = field.params.flatMap(_.getOpt("widget")).getOrElse(WidgetsNames.input)
     private def showTotal = field.`type` == JSONFieldTypes.ARRAY_NUMBER && field.params.exists(_.js("showTotal") == Json.True)
     private def showTotalLabel = WidgetUtils.i18nLabel(params.field.params,"showTotalLabel")
+    private def totalValidate  = field.params.flatMap(_.js("totalValidate").as[Int].toOption)
 
 
     private val widgetJsonField = {
@@ -89,7 +90,16 @@ object MultiWidget extends ComponentWidgetFactory {
         if(showTotal) {
           nested(produce(data) { d =>
             val total = d.flatMap(_._1.as[Double].toOption).sum
-            div(textAlign.center,fontWeight.bold,total,showTotalLabel).render
+            val valid = totalValidate.forall(_ == total)
+            div(
+              textAlign.center,fontWeight.bold,total,showTotalLabel,
+              if(!valid) {
+                Seq[Modifier](
+                  input(required := "required", width := 1.px, height := 1.px, padding := 0, border := 0, float.left),
+                  color := ClientConf.colorDanger
+                )
+              } else Seq[Modifier]()
+            ).render
           })
         } else Seq[Modifier](),
         nested(showIf(data.transform(_.length < params.field.minMax.flatMap(_.max.map(_.toInt)).getOrElse(Int.MaxValue))) {

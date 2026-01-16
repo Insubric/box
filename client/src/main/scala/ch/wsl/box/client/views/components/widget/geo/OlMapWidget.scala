@@ -49,7 +49,9 @@ import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
 import ch.wsl.typings.ol.mapMod.MapOptions
 import ch.wsl.typings.ol.objectMod.ObjectEvent
+import org.scalajs.dom.window.setTimeout
 
+import java.util.UUID
 import scala.scalajs.js.{URIUtils, |}
 
 case class WidgetMapStyle(params:Option[Json]) extends StyleSheet.Inline {
@@ -85,12 +87,26 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   override def killWidget(): Unit = {
     super.killWidget()
+    map.foreach(_.dispose())
+    map = None
     dataListener.foreach(_.cancel())
+    featuresLayer = null
+    vectorSource = null
+    vectorSource = null
+    view = null
+
   }
 
   override def beforeSave(data: Json, metadata: JSONMetadata): Future[Json] = {
+    if(dataListener.isEmpty && _data.get.isEmpty) return Future.successful(data) // map never initializated
     mapControls.foreach(_.finishDrawing())
-    Future.successful(data.deepMerge(Json.fromFields(Map(field.name -> _data.get.map(_.asJson).getOrElse(Json.Null)))))
+    val promise = Promise[Json]()
+    setTimeout( () => {
+      promise.success{
+        data.deepMerge(Json.fromFields(Map(field.name -> _data.get.map(_.asJson).getOrElse(Json.Null))))
+      }
+    },0)
+    promise.future
   }
 
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
@@ -99,7 +115,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   val fullScreen = Property(false)
 
 
-  var map:mod.Map = null
+  var map:Option[mod.Map] = None
   logger.info(s"Loading ol map")
 
   lazy val mapActions = new MapActions(map,options.crs)
@@ -107,28 +123,61 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   var featuresLayer: layerMod.Vector[_] = null
 
 
+  var _loaded = false
 
-
-  protected def _afterRender(): Unit = {
-    if(map != null && featuresLayer != null) {
-      loadBase(baseLayer.get).map { _ =>
-        map.addLayer(featuresLayer)
-        map.updateSize()
-        map.renderSync()
-        data.touch()
+  protected def _afterRender(): Future[Boolean] = {
+    logger.debug("Complete loading map")
+    if(map.nonEmpty && featuresLayer != null) {
+      _loaded = false
+      loadBase(baseLayer.get).flatMap { _ =>
+        map.get.addLayer(featuresLayer)
+        map.get.updateSize()
+        map.get.renderSync()
+        //data.touch()
+        registerListener(true)
+        onLoad()
+        val promise = Promise[Boolean]
+        setTimeout(() => {
+          promise.success(true)
+          _loaded = true
+        },0)
+        promise.future
+      }.recover{  case t:Throwable =>
+         t.printStackTrace()
+        false
       }
     } else {
-      data.touch()
+      Future.successful(true)
     }
 
   }
 
 
+  override def afterRender(): Future[Boolean] = {
+    logger.debug(s"After render called on OlMapWidget ${_mapDiv}")
 
+    val promise = Promise[Boolean]()
+    var observer: Option[MutationObserver] = None
 
+    def check() = _mapDiv.exists { mapDiv =>
+      if (document.contains(mapDiv)) {
+        logger.debug("mapDiv found in body")
+        observer.foreach(_.disconnect())
+        _afterRender().map{ x =>
+          promise.success(x)
+        }
+        true
+      } else false
+    }
 
+    val exists = check()
+    if(!exists) {
+      observer = Some(new MutationObserver({ (mutations, observer) => check() }))
+    }
 
-
+    observer.foreach(_.observe(document,MutationObserverInit(childList = true, subtree = true)))
+    promise.future
+  }
 
   var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
   var view: viewMod.default = null
@@ -139,14 +188,29 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   def registerListener(initUpdate:Boolean) = {
       dataListener = Some(data.listen({ geo =>
         logger.debug(s"Data data listener $geo")
-        vectorSource.clear(true)
-        if (!geo.isNull) {
-          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-          vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
-          view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))//.setMinResolution(2))
-        } else {
-          view.fit(defaultProjection.getExtent())
+        map.foreach(_.renderSync())
+        Try {
+          vectorSource.clear(true)
+          setTimeout(() => {
+            Try {
+              if (!geo.isNull) {
+                val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+                vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
+                if (geom.getGeometry().get.getType() != geomGeometryMod.Type.Point) {
+                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50)) //.setMinResolution(2))
+                } else {
+                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setMinResolution(2))
+                }
+              } else {
+                logger.debug(s"Fit with default extent: ${defaultProjection.getExtent().mkString(",")}")
+                view.fit(defaultProjection.getExtent())
+              }
+            }
+          }, 0)
         }
+
+        val g = geo.as[Geometry].toOption
+        _data.set(g)
       },initUpdate))
   }
 
@@ -164,7 +228,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     logger.debug(s"Setting data")
     //data.set(newData.asJson)
     _data.set(newData)
-    action.setChanged()
+    if(_loaded)
+      action.setChanged()
     if(!forceTriggerListeners) {
       logger.debug(s"Resetting listeners")
       registerListener(false)
@@ -185,7 +250,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     } else {
       _mapDiv.foreach(md => md.style.height = originalHeight.getOrElse("400px"))
     }
-    map.render()
+    map.get.render()
   }
 
   def loadMap(mapDiv:Div,controlFactory:MapControlsParams => MapControls) = {
@@ -217,16 +282,18 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
 
 
-    map = new mod.Map(MapOptions()
+    map = Some(new mod.Map(MapOptions()
       .setTarget(mapDiv)
       .setControls(controls.getArray())
       .setView(view)
-    )
+    ))
 
-    onLoad()
+    window.asInstanceOf[js.Dynamic].boxMap = map.get
 
 
-    val controlParams = MapControlsParams(map,Property(Some(BoxLayer(featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
+
+
+    val controlParams = MapControlsParams(map.get,Property(Some(BoxLayer(UUID.randomUUID(),featuresLayer,options.features))),proj,options.baseLayers.toSeq.flatten.map(x => x.name),field.params,options.precision,options.enableSwisstopo.getOrElse(false),changedFeatures,options.formatters,fullScreen)
     val _mapControls = controlFactory(controlParams)
     mapControls = Some(_mapControls)
     baseLayer.get.foreach( l => _mapControls.baseLayer.set(l.name))
@@ -234,7 +301,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
       baseLayer.set(options.baseLayers.toSeq.flatten.find(_.name == bs))
     })
 
-    registerListener(true)
+
 
     (map,vectorSource)
 
@@ -246,14 +313,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     loadMap(mapDiv,p => new MapControlsIcons(p))
 
-    val observer = new MutationObserver({(mutations,observer) =>
-      if(document.contains(mapDiv)) {
-        observer.disconnect()
-        _afterRender()
-      }
-    })
 
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
 
     div(
@@ -269,6 +329,10 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   }
 
 
+  def requiredCheckField = TextInput(
+    _data.bitransform(_.map(_.toString(1).take(5)).getOrElse("")) // check on the actual data is is non empty
+    (x => _data.get) // the text input will never been changed
+  )(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)) //in order to use HTML5 validation we insert an hidden field
 
   override protected def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
@@ -280,25 +344,13 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     loadMap(mapDiv, p => new MapControlsIcons(p))
 
-    val observer = new MutationObserver({(mutations,observer) =>
-      if(document.contains(mapDiv) && mapDiv.offsetHeight > 0 ) {
-        observer.disconnect()
-        _afterRender()
-      }
-    })
-
-
-
-
-    observer.observe(document,MutationObserverInit(childList = true, subtree = true))
-
     div(
       `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullScreen),
       mapStyleElement,
       WidgetUtils.toLabel(field,WidgetUtils.LabelLeft),br,
-      TextInput(data.bitransform(_.string.take(5))(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
-      nested(produce(data) { geo =>
-        mapControls.toSeq.flatMap(_.renderControls(nested))
+      requiredCheckField,
+      nested(produce(_data) { geo =>
+        mapControls.toSeq.flatMap(_.renderControls(nested,geo))
       }),
       mapDiv
     )

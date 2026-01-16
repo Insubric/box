@@ -9,6 +9,7 @@ import org.scalajs.dom.{File, FormData, XMLHttpRequest}
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
+import scala.scalajs.js
 
 class HttpClientImpl extends HttpClient with Logging {
 
@@ -179,6 +180,13 @@ class HttpClientImpl extends HttpClient with Logging {
 
     httpCallWithNoticeInterceptor[T]("POST", url, false) { xhr =>
       xhr.send(formData)
+    }
+
+  }.map(handle404)
+
+  override def sendRaw[T](url: String, data: js.Any)(implicit decoder: Decoder[T], ex: ExecutionContext): Future[T] =  {
+    httpCallWithNoticeInterceptor[T]("POST", url, file = true) { xhr =>
+      xhr.send(data)
     }
 
   }.map(handle404)

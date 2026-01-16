@@ -88,7 +88,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
   map.addControl(geolocation.control)
 
-  override val mapActions: MapActions = new MapActions(map,options.crs)
+  override val mapActions: MapActions = new MapActions(Some(map),options.crs)
 
 
 

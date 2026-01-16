@@ -10,7 +10,6 @@ import ch.wsl.box.model.shared.JSONQuery
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 import io.circe.Json
-import org.opengis.feature.`type`.GeometryType
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext

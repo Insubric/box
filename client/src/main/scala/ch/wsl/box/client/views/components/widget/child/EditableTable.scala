@@ -174,7 +174,7 @@ object EditableTable extends ChildRendererFactory {
         fields <- fieldsJs.as[Seq[String]].toOption
       } yield fields
 
-      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field))
+      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field)).filterNot(_.widget.contains(WidgetsNames.hidden))
     }
 
     override protected def layoutForChild(metadata: JSONMetadata): Layout = {
@@ -529,7 +529,7 @@ object EditableTable extends ChildRendererFactory {
                               duplicateIcon)
                           } else frag()
                           , " ",
-                          if (!disableRemove && (!enableDeleteOnlyNew || childWidget.newRow)) {
+                          if (enableDelete(childWidget)) {
                             showIf(entity.transform(_.length > min)) {
                               a(ClientConf.style.childRemoveButton, tabindex := 0, id := TestHooks.deleteRowId(metadata.map(_.objId).getOrElse(UUID.randomUUID()), childWidget.id),
                                 onclick :+= removeItem(childWidget),

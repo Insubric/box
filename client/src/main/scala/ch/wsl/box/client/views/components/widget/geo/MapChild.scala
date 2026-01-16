@@ -1,6 +1,6 @@
 package ch.wsl.box.client.views.components.widget.geo
 
-import ch.wsl.box.client.geo.{BoxOlMap, MapActions, MapParams, StandaloneMap}
+import ch.wsl.box.client.geo.{BoxOlMap, MapActions, MapParams, StandaloneMap, StandaloneMapDropdown, StandaloneMapExpanded}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams}
 import ch.wsl.box.model.shared.{JSONField, JSONMetadata, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -24,16 +24,21 @@ case class MapChild(params: WidgetParams) extends Widget with HasData { // with 
 
   val parameters = params._allData.transform (js => Json.fromFields(field.map.toList.flatMap(_.parameters).map(f => f -> js.js(f))))
 
+  val mapHeight:Int = {
+    val h = params.field.params.flatMap(_.jsOpt("height").flatMap(_.as[Int].toOption)).getOrElse(400)
+    if(h > 0) h else 400
+  }
+
   private var map:Option[StandaloneMap] = None
 
   override protected def show(nested: Binding.NestedInterceptor): JsDom.all.Modifier = edit(nested)
 
   override protected def edit(nested: Binding.NestedInterceptor): JsDom.all.Modifier = {
-      val mapDiv = div(height := 400.px).render
+      val mapDiv = div(height := mapHeight.px).render
 
       val observer = new MutationObserver({ (mutations, observer) =>
         if (document.contains(mapDiv)) {
-          map = Some(new StandaloneMap(mapDiv,field.map.get,parameters,params.prop))
+          map = Some(new StandaloneMapExpanded(mapDiv,field.map.get,parameters,params.prop))
           observer.disconnect()
         }
       })

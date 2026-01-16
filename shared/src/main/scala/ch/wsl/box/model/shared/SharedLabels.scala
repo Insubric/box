@@ -49,9 +49,11 @@ object SharedLabels extends LabelsCollection {
   object table extends LabelsCollection {
     def showMore = "table.showMore"
     def showLess = "table.showLess"
+    def column_selection = "table.column_selection"
     def all = Seq(
       showMore,
-      showLess
+      showLess,
+      column_selection
     )
   }
 
@@ -198,7 +200,7 @@ object SharedLabels extends LabelsCollection {
     def xls = "exports.xls"
     def pdf = "exports.pdf"
     def html = "exports.html"
-    def shp = "exports.shp"
+    def geopackage = "exports.geopackage"
     def all = Seq(
       search,
       title,
@@ -208,7 +210,7 @@ object SharedLabels extends LabelsCollection {
       xls,
       pdf,
       html,
-      shp
+      geopackage
     )
   }
 
@@ -224,6 +226,7 @@ object SharedLabels extends LabelsCollection {
     def confirmRevert = "table.confirmRevert"
     def csv = "table.csv"
     def xls = "table.xls"
+    def importxls = "table.importxls"
     def shp = "table.shp"
     def geopackage = "table.geopackage"
     def all = Seq(
@@ -238,6 +241,7 @@ object SharedLabels extends LabelsCollection {
       confirmRevert,
       csv,
       xls,
+      importxls,
       shp,
       geopackage
     )

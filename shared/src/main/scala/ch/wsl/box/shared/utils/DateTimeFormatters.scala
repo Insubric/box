@@ -45,7 +45,12 @@ trait DateTimeFormatters[T] extends Logging {
         val resultTry = Try(parser(trimmedDate, head,tz))
 
 
-        if(resultTry.isSuccess) resultTry else normalize(tail)
+        resultTry match {
+          case Failure(exception) =>
+            logger.warn(s"Failed to parse $trimmedDate with ${exception.getMessage}")
+            normalize(tail)
+          case Success(_) => resultTry
+        }
       }
       case _ => Failure(new RuntimeException(s"no formatter match found for $dateStr"))
     }
@@ -62,8 +67,10 @@ trait DateTimeFormatters[T] extends Logging {
 
 object DateTimeFormatters extends Logging {
 
+  val separator = " → "
+
   def intervalParser[T](parser:String => Option[T],s:String):List[T] =  {
-    val tokens = s.split(" → ").map(_.trim)
+    val tokens = s.split(separator).map(_.trim)
     if(tokens.length > 1) {
       tokens.toList.flatMap(x => parser(x))
     } else {

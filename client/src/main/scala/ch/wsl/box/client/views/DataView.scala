@@ -95,6 +95,16 @@ case class DataPresenter(model:ModelProperty[DataModel]) extends Presenter[DataS
     e.preventDefault()
   }
 
+  val geopackage = (e:Event) => {
+    logger.info()
+    val url = Routes.apiV1(
+      s"/${model.get.kind}/${services.clientSession.lang()}/${model.get.metadata.get.name}/gpkg?q=${URIUtils.encodeURI(args.noSpaces)}".replaceAll("\n","")
+    )
+    logger.info(s"downloading: $url")
+    dom.window.open(url)
+    e.preventDefault()
+  }
+
   val xls = (e:Event) => {
     logger.info()
     val url = Routes.apiV1(
@@ -127,7 +137,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
   def table = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.TABLE))
   def pdf = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.PDF))
   def html = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.HTML))
-  def shp = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.SHP))
+  def geopackage = model.transform(_.exportDef.exists(_.mode == FunctionKind.Modes.GEOPACKAGE))
 
   override def getTemplate = div(
     produceWithNested(model.subProp(_.metadata)) {
@@ -151,7 +161,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
     showIf(table) { button(Labels.exports.xls,onclick :+= presenter.xls,ClientConf.style.boxButton).render },
     showIf(pdf) { button(Labels.exports.pdf,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
     showIf(html) { button(Labels.exports.html,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
-    showIf(shp) { button(Labels.exports.shp,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
+    showIf(geopackage) { button(Labels.exports.geopackage,onclick :+= presenter.csv,ClientConf.style.boxButton).render },
       UdashTable(model.subSeq(_.data))(
         headerFactory = Some(_ => {
           tr(

@@ -14,6 +14,8 @@ import scalacss.ScalatagsCss._
 import org.scalajs.dom.Event
 import scalatags.JsDom.all._
 
+import scala.concurrent.Future
+
 object TableChildFactory extends ChildRendererFactory {
 
 
@@ -42,8 +44,9 @@ object TableChildFactory extends ChildRendererFactory {
     } yield  border := s"1px solid $bc"}.getOrElse(Seq[Modifier]())
 
 
+    override def afterRender(): Future[Boolean] = Future.successful(true)
 
-    override protected def renderChild(write: Boolean,nested:Binding.NestedInterceptor): Modifier = {
+    override protected def renderChild(write: Boolean, nested:Binding.NestedInterceptor): Modifier = {
 
       metadata match {
         case None => p("child not found")

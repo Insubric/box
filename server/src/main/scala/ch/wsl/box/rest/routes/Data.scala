@@ -22,7 +22,7 @@ import io.circe.syntax._
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.{DataResult, DataResultObject, DataResultTable}
-import ch.wsl.box.rest.io.geotools.ShapeFileWriter
+import ch.wsl.box.rest.io.geotools.{GeoPackageWriter}
 import ch.wsl.box.rest.metadata.DataMetadataFactory
 import ch.wsl.box.rest.io.pdf.Pdf
 import ch.wsl.box.rest.io.xls.XLS
@@ -92,12 +92,12 @@ trait Data extends Logging with HasLookup[Json] {
           complete(pdf.map(p => HttpEntity(MediaTypes.`application/pdf`, p)))
         }
       }
-      case Some(dc) if dc.mode == FunctionKind.Modes.SHP => {
+      case Some(dc) if dc.mode == FunctionKind.Modes.GEOPACKAGE => {
 
-        val shp: Future[Array[Byte]] = ShapeFileWriter.writeShapeFile(function,dc.asTable)
+        val geopkg: Future[Array[Byte]] = GeoPackageWriter.write(function,dc.asTable)
 
-        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.zip"))) {
-          complete(shp.map(p => HttpEntity(MediaTypes.`application/zip`, p)))
+        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.gpkg"))) {
+          complete(geopkg.map(p => HttpEntity(MediaTypes.`application/octet-stream`, p)))
         }
       }
       case _ => complete(StatusCodes.BadRequest)

@@ -15,9 +15,6 @@ import io.circe.parser.parse
 import scribe.Logging
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.io.csv.CSV
-import ch.wsl.box.rest.io.geotools.{GeoPackageWriter, ShapeFileWriter}
-import ch.wsl.box.rest.io.xls.{XLS, XLSExport}
-import ch.wsl.box.rest.logic.functions.PSQLImpl
 import ch.wsl.box.rest.metadata.{EntityMetadataFactory, MetadataFactory}
 import ch.wsl.box.rest.runtime.{Registry, RegistryInstance}
 import ch.wsl.box.services.Services
@@ -61,7 +58,7 @@ case class Form(
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang,session.user)),10.seconds)
-   private def actions:FormActions = FormActions(metadata,registry,metadataFactory)
+  def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
   private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {
@@ -104,22 +101,10 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query, false))
+      csv <- db.run(formActions.csv(query))
     } yield csv
   }
 
-  def csvTable(q:String,fk:Option[String],fields:Option[String]):Future[CSVTable] = {
-    val query = parse(q).right.get.as[JSONQuery].right.get
-    //val formActions = FormActions(metadata, registry, metadataFactory)
-    for {
-      metadata <- boxDb.adminDb.run(tabularMetadata())
-      formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query, true, _.exportFieldsNoGeom.map(_.name)))
-    } yield csv.copy(
-      showHeader = true,
-      header = metadata.exportFieldsNoGeom.map(_.title)
-    )
-  }
 
   def csv:Route = path("csv") {
     post {
@@ -131,7 +116,7 @@ case class Form(
     } ~ get {
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-          onSuccess(csvTable(q,fk,fields))(csv => CSV.download(csv))
+          exportCsv(q,fk)
         }
       }
     }
@@ -309,7 +294,7 @@ case class Form(
     privateOnly {
       xls ~
       csv ~
-      shp ~
+//      shp ~
       geoPkg ~
       GeoData(db, actions)
     }

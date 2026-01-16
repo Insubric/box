@@ -37,11 +37,11 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
     }}.recover{ case t => t.printStackTrace()}
   }
 
-  def renderControls(nested: Binding.NestedInterceptor): Node = {
+  override def renderControls(nested: Binding.NestedInterceptor, geo: Option[Geometry]): Node = {
 
     val enable = enabled()
 
-    val geometry = geometries()
+    val geometry = geo
 
 
     if (!enable.point && activeControl.get == Control.POINT) activeControl.set(Control.VIEW)

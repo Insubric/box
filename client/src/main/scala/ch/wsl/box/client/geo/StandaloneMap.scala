@@ -5,7 +5,7 @@ import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{Empty, Feature, FeatureCollection, Geometry}
 import ch.wsl.box.model.shared.GeoTypes.GeoData
-import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.model.shared.{GeoJson, JSONQuery}
 import ch.wsl.box.model.shared.geo.{Box2d, DbVector, GeoDataRequest, MapLayerMetadata, MapMetadata, WMTS}
 import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
@@ -34,25 +34,28 @@ import scalacss.ScalatagsCss._
 import MapUtils._
 import scribe.Logging
 
-class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) extends Logging {
+abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) extends Logging {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
 
   val editable = metadata.db.exists(_.editable)
 
+
   val ready = Property(false)
 
 
   val selectedLayerForEdit: Property[Option[DbVector]] = Property(None)
-  val selectedLayer: ReadableProperty[Option[BoxLayer]] = selectedLayerForEdit.transform(_.flatMap(x => map.layerOf(x).map{l =>
-    BoxLayer(l,MapParamsFeatures.fromDbVector(x))
-  }))
+  val selectedLayer: Property[Option[BoxLayer]] = selectedLayerForEdit.bitransform(_.flatMap(x => map.layerOf(x).map{l =>
+    BoxLayer(x.id,l,MapParamsFeatures.fromDbVector(x))
+  }))(bl => metadata.db.find(db => bl.map(_.uuid).contains(db.id)))
 
   val controlsDiv = div().render
+  val controlsBottomDiv = div().render
 
 
   val fullscreen = Property(false)
+
 
 
   val layersSelection = div(ClientConf.style.mapLayerSelectFullscreen ).render
@@ -77,13 +80,9 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   })
 
 
-  def layerSelector:Modifier = Select.optional(selectedLayerForEdit, SeqProperty(metadata.db.filter(_.editable).map(x => x)), Labels("ui.map.perform-operation-on"))(x => x.name)
-
   val mapDiv:Div = if (editable) {
 
-
-
-    val _mapDiv = div(height := (_div.clientHeight - 62).px).render
+    val _mapDiv = div(flexGrow := 1).render
 
     fullscreen.listen{fs =>
       if(fs) {
@@ -95,22 +94,24 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     }
 
 
-
-    val wrapper = div( `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
+    val wrapper = div( display.flex,flexDirection.column,width := 100.pct, `class`.bindIf(Property(ClientConf.style.mapFullscreen.className.value),fullscreen) ,
       controlsDiv,
       layersSelection,
       _mapDiv,
-
+      controlsBottomDiv
     ).render
 
+    _div.style.setProperty("display","flex")
     _div.appendChild(wrapper)
+
 
     _mapDiv
   } else {
     val _mapDiv = div(height := (_div.clientHeight).px).render
     val wrapper = div(
       _mapDiv,
-      layersSelection
+      layersSelection,
+      controlsBottomDiv
     ).render
     _div.appendChild(wrapper)
 
@@ -131,16 +132,18 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
   def redrawControl():Unit = {
     window.setTimeout(() => {
       controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
+      controlsBottomDiv.children.toSeq.foreach(controlsBottomDiv.removeChild)
       nestedCustom.kill()
-      controlsDiv.appendChild(control.renderControls(nestedCustom))
+      control.foreach{ c =>
+        controlsDiv.appendChild(c.renderControls(nestedCustom,None))
+      }
+
+      controlBottom.foreach{ c =>
+        controlsBottomDiv.appendChild(c.renderControls(nestedCustom,None))
+      }
+
     },0)
   }
-
-  selectedLayerForEdit.listen(sl => {
-   redrawControl()
-  }, true)
-
-
 
   val proj = new BoxMapProjections(Seq(metadata.srid),metadata.srid.name,metadata.boundingBox)
 
@@ -182,29 +185,26 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     logger.debug("Saving fetures")
     val result = FeatureCollection(features)
     import ch.wsl.box.model.shared.GeoJson._
-    BrowserConsole.log(result.asJson)
     logger.debug(s"Saving standalone map with ${result.asJson}")
     data.set(result.asJson)
   }
 
+  def control:Seq[Controls]
 
-  val control = new MapControlStandalone(MapControlsParams(map,selectedLayer,proj,metadata.baseLayers.map(_.name),None,None,true,(_data,forceTrigger) => {
-    window.setTimeout({ () =>
-      save()
-    },0)
-    redrawControl()
-  }, None,fullscreen),layerSelector)
+  def controlBottom:Seq[Controls] = Seq()
 
-  control.baseLayer.listen(layer => {
-    metadata.baseLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
-    metadata.baseLayers.find(_.name == layer).foreach { l =>
-      map.layerOf(l.id).foreach(_.setVisible(true))
+  def loadControlListener(controls:Seq[Controls]) {
+
+    controls.foreach {
+      case m: MapControls => m.baseLayer.listen(layer => {
+        metadata.baseLayers.flatMap(l => map.layerOf(l.id)).foreach(_.setVisible(false))
+        metadata.baseLayers.find(_.name == layer).foreach { l =>
+          map.layerOf(l.id).foreach(_.setVisible(true))
+        }
+      }, true)
+      case _ => ()
     }
-  },true)
-
-
-
-
+  }
 
   private def extentOfLayers(layers:js.Array[layerBaseMod.default]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
     val layersExtent = layers.flatMap {
@@ -238,13 +238,23 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
     Box2d.fromSeq(extent.getOrElse(map.getView().calculateExtent()).toSeq)
   }
 
-  def addLayers(layers:Seq[layerBaseMod.default]) = {
+  def addLayers(layers:Seq[layerBaseMod.default], replace: Boolean = false, initialState:Option[Boolean] = None) = {
     layers.foreach { layer =>
-      if(map.getLayers().getArray().exists(_.getZIndex() == layer.getZIndex())) {
-        layer.setVisible(false)
+
+      map.getLayers().getArray().find(_.getZIndex() == layer.getZIndex()) match {
+        case Some(existingLayer) if replace => {
+          logger.info("replacing existing layer")
+          map.removeLayer(existingLayer)
+        }
+        case Some(existingLayer) if initialState.isDefined => {
+          layer.setVisible(initialState.get)
+          map.addLayer(layer)
+        }
+        case Some(_) => ()
+        case None => map.addLayer(layer)
       }
-      layer.getZIndex()
-      map.addLayer(layer)
+
+
     }
     map.render()
   }
@@ -257,7 +267,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   }
 
-  def wmtsLayer(wmts:WMTS) = {
+  def wmtsLayer(wmts:WMTS,visible:Boolean) = {
     val layer = MapUtils.loadWmtsLayer(
       wmts.id,
       wmts.capabilitiesUrl,
@@ -266,7 +276,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
       wmts.zIndex
     )
     layer.map{ l =>
-      addLayers(Seq(l))
+      addLayers(Seq(l),false,Some(visible))
       fit()
     }
   }
@@ -303,21 +313,22 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
 
 
-  metadata.wmts.foreach(wmtsLayer)
+  metadata.wmts.sortBy(_.order).zipWithIndex.foreach{ case (wmts,i) => wmtsLayer(wmts,i == 0) }
 
   def reload(d:Json): Unit = {
+    logger.info(s"Reload with $d")
+
     ready.set(false)
-    metadata.db.flatMap(map.layerOf).foreach(map.removeLayer)
 
     for {
       baseLayers <- Future.sequence(metadata.db.filter(_.autofocus).map(v => dbVectorLayer(v, d, None)))
-      _ = addLayers(baseLayers.map(x => geomsToLayer(x._1, x._2)))
+      _ = addLayers(baseLayers.map(x => geomsToLayer(x._1, x._2)),true)
       extent = fit()
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, d, Some(extent))))
     } yield {
 
       selectedLayerForEdit.set(selectedLayerForEdit.get, true) // retrigger layer listener
-      addLayers(extraLayers.map(x => geomsToLayer(x._1, x._2)))
+      addLayers(extraLayers.map(x => geomsToLayer(x._1, x._2)),false)
       redrawControl()
       ready.set(true)
     }
@@ -329,6 +340,7 @@ class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[J
 
   val extentChange = Debounce(250.millis)((_: Unit) => {
     val extent = Box2d.fromSeq(view.calculateExtent().toSeq)
+    logger.info(s"Extent change $extent")
     for{
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, properties.get, Some(extent))))
     } yield {

@@ -42,7 +42,7 @@ class JSONViewActions[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with Upd
 
   override def fetchFields(fields: Seq[String], query: JSONQuery) = dbActions.fetchFields(fields,query)
 
-  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Json,GeoJson.Geometry)]] = dbActions.fetchGeom(properties,field, query)
+  override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Option[JSONID],Json,GeoJson.Geometry)]] = dbActions.fetchGeom(properties,field, query)
 
   override def getById(id: JSONID=JSONID.empty):DBIO[Option[Json]] = for{
     keys <- dbActions.keys()

@@ -1236,6 +1236,12 @@ object GlobalStyleFactory{
       ),
     )
 
+    val controlButtonsBottom = style(
+      borderBottomStyle.solid,
+      borderBottomWidth(1 px),
+      borderBottomColor(conf.colors.main)
+    )
+
     val controlInputs = style(
       display.flex,
       flexWrap.wrap,
@@ -1345,13 +1351,19 @@ object GlobalStyleFactory{
     val mapLayerSelectFullscreen = style(
       position.absolute,
       right.`0`,
-      bottom(30 px),
-      backgroundColor.white,
-      padding(10 px),
+      bottom(36 px),
+      backgroundColor.rgba(255,255,255,0.8),
+      padding.horizontal(10 px),
+      padding.vertical(5 px),
       unsafeChild("select") {
         width(90 %%)
       },
-      zIndex(1)
+      zIndex(1),
+      fontSize(11 px),
+      lineHeight(22 px),
+      media.maxWidth(600 px)(
+        bottom(100 px)
+      )
     )
 
     val mapFullscreen = style(
@@ -1640,6 +1652,14 @@ object GlobalStyleFactory{
       unsafeChild("select")(
         width(300 px)
       )
+    )
+
+    val thOver = style(
+      outlineStyle.dashed,
+      outlineWidth(1 px),
+      outlineOffset(-1 px),
+      outlineColor.lightgray,
+      backgroundColor.rgba(0,0,0,0.1)
     )
 
 //

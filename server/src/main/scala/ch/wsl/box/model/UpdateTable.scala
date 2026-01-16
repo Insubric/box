@@ -321,7 +321,16 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
     val v = jsonQuery.getValue
 
-    def splitAndTrim(s:String):Seq[String] = s.split(",").toSeq.map(_.trim).filter(_.nonEmpty)
+
+
+    def splitAndTrim(s:String):Seq[String] = {
+      s.stripPrefix("[")
+        .stripSuffix("]")
+        .split(",")
+        .toSeq
+        .map(_.trim)
+        .filter(_.nonEmpty)
+    }
 
 
     if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {

@@ -8,6 +8,7 @@ import org.scalajs.dom.{File, FormData, XMLHttpRequest}
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.scalajs.js
 
 /**
   * Created by andre on 4/26/2017.
@@ -25,6 +26,7 @@ trait HttpClient{
   def maybeGet[T](url: String)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext): Future[Option[T]]
   def delete[T](url: String)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext): Future[T]
   def sendFile[T](url: String, file: File)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext):Future[T]
+  def sendRaw[T](url: String, data: js.Any)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext):Future[T]
   def setHandleAuthFailure(f:() => Unit)
 }
 
