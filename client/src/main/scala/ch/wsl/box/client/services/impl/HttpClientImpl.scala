@@ -3,7 +3,7 @@ package ch.wsl.box.client.services.impl
 import ch.wsl.box.client.services.HttpClient.Response
 import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Labels, Notification, RunNowExecutionContext}
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
-import io.circe.Decoder
+import io.circe.{Decoder, Json}
 import org.scalajs.dom
 import org.scalajs.dom.{File, FormData, XMLHttpRequest}
 import scribe.Logging

@@ -9,6 +9,7 @@ import io.udash.wrappers.jquery._
 import org.scalajs.dom
 import org.scalajs.dom.{Element, WebSocket, document, window}
 import scribe.{Level, Logger, Logging}
+import wvlet.airframe.Design
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -21,7 +22,13 @@ object Main extends Logging {
   def main(args: Array[String]): Unit = {
 
     val moduleName = window.asInstanceOf[js.Dynamic].boxUiModule.asInstanceOf[String]
-    Context.init(Module.byName(moduleName))
+    val design = Module.byName(moduleName)
+    boot(design)
+  }
+
+  def boot(module:Design) = {
+
+    Context.init(module)
 
     println(
       s"""
@@ -48,12 +55,9 @@ object Main extends Logging {
     })
 
     //window.onerror = ErrorHandler.onError
-
   }
 
   def setupUI(): Future[Unit] = {
-
-
     for {
       _ <- services.clientSession.refreshSession()
       appVersion <- services.rest.appVersion()
@@ -71,8 +75,6 @@ object Main extends Logging {
 
         //loads datetime picker
         //ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
-
-
 
 
         Labels.load(labels)

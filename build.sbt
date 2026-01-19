@@ -110,7 +110,7 @@ lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
 
 lazy val client: Project = (project in file("client"))
   .settings(
-    name := "client",
+    name := "box-client",
     scalaVersion := Settings.versions.scala213,
     scalacOptions ++= Settings.scalacOptions,
     resolvers += Resolver.jcenterRepo,
@@ -173,8 +173,9 @@ lazy val client: Project = (project in file("client"))
     stIgnore += "@fortawesome/fontawesome-free",
     stIgnore += "stream-browserify",
     stIgnore += "toolcool-range-slider",
+    stIgnore += "@tailwindcss/vite",
     stOutputPackage := "ch.wsl.typings",
-    scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule).withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("ch.wsl")))),
+    scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule).withModuleSplitStyle(ModuleSplitStyle.FewestModules)),
 
 
     //To use jsdom headless browser uncomment the following lines

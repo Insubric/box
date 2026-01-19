@@ -1,6 +1,6 @@
 //addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.1.0")
 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.19.0")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.20.2")
 
 
 addSbtPlugin("io.github.cquiroz" % "sbt-locales" % "4.2.0")

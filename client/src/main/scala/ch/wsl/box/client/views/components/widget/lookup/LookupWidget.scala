@@ -97,16 +97,12 @@ trait LookupWidget extends Widget with HasData {
     dataSyncRegistration.foreach(_.cancel())
     logger.debug(s"Fetching remote lookup $q")
 
-    val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
-
-
-
+    val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.hex(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
     LookupWidget.remoteLookup.get(cacheKey) match {
       case Some(value) => value.map(setNewLookup)
       case _ => {
         _lookup.set(Seq(), true) //reset lookup state
-
         val request = for{
           lookups <- services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public)
           singleLookup <- if(data.get != Json.Null && !lookups.exists(_.id == data.get)) {

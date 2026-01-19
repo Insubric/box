@@ -10,8 +10,10 @@ import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
 import io.circe._
 import io.circe.parser._
 import io.circe.generic.auto._
+import org.scalajs.dom
 import scribe.Level
 
+import scala.scalajs.js
 import scala.util.Try
 
 /**
@@ -59,7 +61,7 @@ object ClientConf {
   def labelAlign: String = Try(conf("label.align")).getOrElse("left")
 
   def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
-  def frontendUrl: String = Try(conf("frontendUrl")).getOrElse("http://localhost:8080")
+  def frontendUrl: String = dom.window.asInstanceOf[js.Dynamic].boxFrontendUrl.asInstanceOf[String]
 
   def colorMain: String = Try(conf("color.main")).getOrElse("#006268")
   def colorMainText: String = Try(conf("color.main.text")).getOrElse("#ffffff")

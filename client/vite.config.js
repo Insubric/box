@@ -2,11 +2,13 @@ import { defineConfig } from "vite";
 import scalaJSPlugin from "@scala-js/vite-plugin-scalajs";
 
 
+
 export default defineConfig({
     server: {
         proxy: {
             '/api': 'http://localhost:8080',
         },
+        cors: true
     },
     optimizeDeps: {
         exclude: ['@electric-sql/pglite'],
@@ -19,7 +21,8 @@ export default defineConfig({
             '~bootstrap': './node_modules/bootstrap',
         }
     },
-    plugins: [scalaJSPlugin({
+    plugins: [
+        scalaJSPlugin({
         // path to the directory containing the sbt build
         // default: '.'
         cwd: '..',
