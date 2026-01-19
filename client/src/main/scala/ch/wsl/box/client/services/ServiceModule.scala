@@ -1,5 +1,6 @@
 package ch.wsl.box.client.services
 
+import ch.wsl.box.client.styles.BoxStyleFactory
 import wvlet.airframe._
 
 trait ServiceModule {
@@ -9,4 +10,5 @@ trait ServiceModule {
   val clientSession = bind[ClientSession]
   val navigator  = bind[Navigator]
   val notification = bind[NotificationChannel]
+  val style = bind[BoxStyleFactory]
 }

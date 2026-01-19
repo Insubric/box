@@ -7,7 +7,6 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, REST, UI}
 import ch.wsl.box.client.styles.BootstrapCol
-import ch.wsl.box.client.styles.GlobalStyleFactory.GlobalStyles
 import ch.wsl.box.client.{EntitiesState, EntityFormState, EntityTableState}
 import ch.wsl.box.model.shared.EntityKind
 import io.udash._
