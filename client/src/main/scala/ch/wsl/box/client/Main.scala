@@ -1,6 +1,7 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.db.DB
+import ch.wsl.box.client.services.impl.DaoLocalDbImpl
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
 import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
@@ -67,7 +68,7 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
-      _ <- if(ClientConf.localDb) DB.init() else Future.successful()
+      _ <- if(services.data.name == DaoLocalDbImpl.name) DB.init() else Future.successful()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()

@@ -10,7 +10,13 @@ import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
+object DaoPassthroughImpl {
+  val name = "online"
+}
+
 class DaoPassthroughImpl(rest:REST, clientSession: ClientSession) extends DataAccessObject {
+
+  override def name: String = DaoPassthroughImpl.name
 
   override def get(kind: String, lang: String, entity: String, id: JSONID, public: Boolean)(implicit ec: ExecutionContext): Future[Record] = {
     rest.get(kind, lang, entity, id, public).map(x => Record(x,false))

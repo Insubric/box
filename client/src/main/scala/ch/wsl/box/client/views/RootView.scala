@@ -119,21 +119,8 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
 
 
   private def content = produce(viewModel.subProp(_.layout)) {
-      case Layouts.std => {
-        div(BootstrapStyles.containerFluid)(
-          Header.navbar(UI.title),
-          notifications,
-          main(ClientConf.style.fullHeight)(
-            div()(
-              child
-            )
-          ),
-          Footer.template(UI.logo),
-          LoginPopup.render
-        ).render
-      }
+      case Layouts.std => services.layout.container(child)
       case Layouts.blank => div(BootstrapStyles.containerFluid,overflowX.hidden,ClientConf.style.showFooterActionOnMobile)(
-        notifications,
         child
       ).render
     }
@@ -142,6 +129,7 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
 
   override def getTemplate: Modifier = div(
     loading,
+    notifications,
     content
   )
 

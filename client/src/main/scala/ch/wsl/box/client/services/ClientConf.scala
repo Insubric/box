@@ -44,8 +44,6 @@ object ClientConf {
     case _ => Level.Warn
   }
 
-  def localDb:Boolean = Try(conf("local.db").toBoolean).getOrElse(true)
-
   def version: String = _version
   def appVersion: String = _appVersion
 
