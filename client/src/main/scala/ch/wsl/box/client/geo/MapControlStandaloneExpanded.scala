@@ -102,7 +102,7 @@ class MapControlStandaloneExpanded(params:MapControlsParams, title:String, selec
         if (geometry.nonEmpty) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE,nested) else frag(),
         if (geometry.size > 1) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE,nested) else frag(),
         if (geometry.size == 1) {
-          val (el,tt) = WidgetUtils.addTooltip(Some(SharedLabels.map.delete))(button(ClientConf.style.mapButton)(
+          val (el,tt) = WidgetUtils.addTooltip(Some(Labels(SharedLabels.map.delete)))(button(ClientConf.style.mapButton)(
             onclick :+= { (e: Event) =>
               if(dom.window.confirm(SharedLabels.form.removeMap)) {
                 sourceMap(_.clear())

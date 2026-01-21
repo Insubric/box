@@ -2,7 +2,7 @@ package ch.wsl.box.rest.routes
 
 import akka.http.scaladsl.model.{HttpEntity, HttpResponse, MediaTypes}
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
-import akka.http.scaladsl.server.Directives.{_symbol2NR, complete, get, onSuccess, parameters, path, respondWithHeader}
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
 import ch.wsl.box.model.shared.{CSVTable, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONMetadata, JSONQuery, XLSTable}
@@ -38,6 +38,7 @@ trait Exporters {
   val name:String
   val metadataFactory: MetadataFactory
   def tabularMetadata(fields:Option[Seq[String]] = None): DBIO[JSONMetadata]
+  def actions:FormActions
 
   def mergeWithForeignKeys(extractFk: Boolean,data:Seq[Json],fk: Map[String,Seq[Json]],metadata:JSONMetadata):Seq[Json] = {
     if(extractFk) {
@@ -61,7 +62,10 @@ trait Exporters {
     }
   }
 
-  def xls(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = path("xlsx") {
+  def xls(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = pathPrefix("xlsx") {
+    path("import") {
+      XLS.importXls(actions.metadata,actions.jsonAction,db.db)
+    } ~
     get {
         parameters('q,'fk.?) { case (q,fk) =>
           val extractFk = fk.forall(_ == "resolve_fk")

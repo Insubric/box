@@ -86,7 +86,10 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     Await.result(fut,20.seconds)
   }
 
-  def xls:Route = path("xlsx") {
+  def xls:Route = pathPrefix("xlsx") {
+    path("import") {
+      XLS.importXls(jsonMetadata,jsonActions,db)
+    } ~
     get {
       parameters('q) { q =>
         val query = parse(q).right.get.as[JSONQuery].right.get
