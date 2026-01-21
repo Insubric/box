@@ -569,6 +569,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       el.files.headOption match {
         case Some(file) => services.rest.importXLS(kind,lang,modelName,file).map{ i =>
           Notification.add(Labels(s"Imported $i rows"))
+          println("reload rows AAAAA")
+          reloadRows(model.get.pages)
         }
         case None => Notification.add(Labels("No files found"))
       }
