@@ -1,7 +1,7 @@
 package io.udash.routing
 
 import ch.wsl.box.client.Context
-import ch.wsl.box.client.services.{BrowserConsole, Labels, Navigate}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate}
 import com.avsystem.commons._
 import io.udash.core.Url
 import io.udash.properties.MutableSetRegistration
@@ -92,7 +92,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider with Logging {
   }
 
   private def baseUri = {
-    val bu = dom.document.baseURI
+    val bu = ClientConf.frontendUrl
     logger.debug(s"Base URI with dom.document.baseURI: $bu")
     if(bu.startsWith("file:///")) {
       bu.split("html").headOption.map( x => s"${x}html").getOrElse(bu)

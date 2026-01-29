@@ -556,6 +556,27 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
+  val importXLS = (e:Event) => {
+
+    val kind = EntityKind(model.subProp(_.kind).get).entityOrForm
+    val modelName =  model.subProp(_.name).get
+    val lang = services.clientSession.lang()
+
+    import scalatags.JsDom.all._
+    val el = input(`type` := "file", accept := ".xlsx").render
+    el.onchange = (ev: Event) => {
+      ev.preventDefault()
+      el.files.headOption match {
+        case Some(file) => services.rest.importXLS(kind,lang,modelName,file).map{ i =>
+          Notification.add(Labels(s"Imported $i rows"))
+        }
+        case None => Notification.add(Labels("No files found"))
+      }
+    }
+    el.click()
+    e.preventDefault()
+  }
+
   private def download(format:String) = {
 
     val kind = EntityKind(model.subProp(_.kind).get).entityOrForm
@@ -1124,6 +1145,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           tableContent(metadata),
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
+          button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls),
           if (presenter.hasGeometry()) {
             Seq(
               //button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),

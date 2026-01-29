@@ -1,6 +1,7 @@
 package ch.wsl.box.client
 
 import ch.wsl.box.client.db.DB
+import ch.wsl.box.client.services.impl.DaoLocalDbImpl
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Notification, REST, UI}
 import ch.wsl.box.client.styles.{AutocompleteStyles, ChoicesStyles, OpenLayersStyles}
 import ch.wsl.box.client.utils._
@@ -9,6 +10,7 @@ import io.udash.wrappers.jquery._
 import org.scalajs.dom
 import org.scalajs.dom.{Element, WebSocket, document, window}
 import scribe.{Level, Logger, Logging}
+import wvlet.airframe.Design
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -21,7 +23,13 @@ object Main extends Logging {
   def main(args: Array[String]): Unit = {
 
     val moduleName = window.asInstanceOf[js.Dynamic].boxUiModule.asInstanceOf[String]
-    Context.init(Module.byName(moduleName))
+    val design = Module.byName(moduleName)
+    boot(design)
+  }
+
+  def boot(module:Design) = {
+
+    Context.init(module)
 
     println(
       s"""
@@ -48,12 +56,9 @@ object Main extends Logging {
     })
 
     //window.onerror = ErrorHandler.onError
-
   }
 
   def setupUI(): Future[Unit] = {
-
-
     for {
       _ <- services.clientSession.refreshSession()
       appVersion <- services.rest.appVersion()
@@ -63,17 +68,14 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
-      _ <- if(ClientConf.localDb) DB.init() else Future.successful()
+      _ <- if(services.data.name == DaoLocalDbImpl.name) DB.init() else Future.successful()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()
         println(s"Setting logger level to ${ClientConf.loggerLevel}")
 
         //loads datetime picker
-        ch.wsl.typings.bootstrap.bootstrapRequire
         //ch.wsl.typings.toolcoolRangeSlider.toolcoolRangeSliderRequire
-
-
 
 
         Labels.load(labels)
@@ -130,10 +132,9 @@ object Main extends Logging {
         document.body.appendChild(autocompleteStyle)
         document.body.appendChild(stepperStyle)
 
-        val app = document.createElement("div")
+        val app = document.getElementById("app")
 
         BrowserConsole.log(app)
-        document.body.appendChild(app)
 
       BrowserConsole.log(document.body)
         applicationInstance.run(app)

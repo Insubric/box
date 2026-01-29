@@ -110,7 +110,7 @@ case class FormActions(metadata:JSONMetadata,
     }
   }
 
-  private def listRenderer(json:Json,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false)(name:String):Json = {
+  private def listRenderer(json:Json,dropHtml:Boolean = false)(name:String):Json = {
 
     def jsonCSVRenderer(json:Json,field:JSONField):Json = {
 
@@ -127,8 +127,7 @@ case class FormActions(metadata:JSONMetadata,
       }
     }
 
-    Lookup.valueExtractor(lookupElements, metadata)(name, json.js(name)).map(_.asJson)
-      .orElse(metadata.fields.find(_.name == name).map(jsonCSVRenderer(json,_)))
+    metadata.fields.find(_.name == name).map(jsonCSVRenderer(json,_))
       .getOrElse(json.js(name))
   }
 
@@ -136,13 +135,13 @@ case class FormActions(metadata:JSONMetadata,
 
 
 
-  def dataTable(query:JSONQuery,lookupElements:Option[Map[String,Seq[Json]]],dropHtml:Boolean = false) = _list(query).map{ rows =>
+  def dataTable(query:JSONQuery,dropHtml:Boolean = false) = _list(query).map{ rows =>
 
     val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
 
     val data: Seq[Seq[Json]] = rows.map { row =>
       fields.map { f =>
-        listRenderer(row, lookupElements, dropHtml)(f.name)
+        listRenderer(row, dropHtml)(f.name)
       }
     }
     val keys = rows.map(row => JSONID.fromBoxObjectId(row,metadata).map(_.asString))
@@ -153,26 +152,6 @@ case class FormActions(metadata:JSONMetadata,
     }.toMap)
   }
 
-  private def fkDataComplete(tabularFieldsKey:Seq[String], rows:Seq[Json]): DBIO[Option[Seq[(String, Seq[Json])]]] = {
-    val tabularFields = metadata.fields.filter(x => tabularFieldsKey.contains(x.name))
-    val lookupFields = tabularFields.filter(_.remoteLookup.isDefined)
-
-    DBIO.sequence(lookupFields.map{ lf =>
-      val localFields = lf.remoteLookup.get.map.localKeysColumn
-      val foreignFields = lf.remoteLookup.get.map.foreign.keyColumns
-
-
-      val data: Seq[Seq[String]] = rows.map(r => localFields.map(f => r.get(f))).filterNot(_.forall(_ == "")).transpose.map(_.distinct)
-      val filters = data.zip(foreignFields).map{ case (d,ff) => JSONQueryFilter.WHERE.in(ff,d)}
-      val fkQuery = JSONQuery.filterWith(filters:_*).limit(100000)
-      Registry().actions(lf.remoteLookup.get.lookupEntity).findSimple(fkQuery).map{ fk =>
-        lf.remoteLookup.get.lookupEntity -> fk
-      }
-    }).map(x => Some(x))
-  }
-
-  private def noFkData = DBIO.successful(None)
-
   override def lookups(request: JSONLookupsRequest): DBIO[Seq[JSONLookups]] = {
     for{
       result <- DBIO.sequence(request.fields.map(r => fkTransform.singleLookup(metadata,r, request.query)))
@@ -180,31 +159,28 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  private def __list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Seq[(String,Json)]]] = {
+  private def __list(query:JSONQuery,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Seq[(String,Json)]]] = {
 
-    _list(query).flatMap{ rows =>
-      val fkData = if(resolveLookup) fkDataComplete(fields(metadata),rows) else noFkData
+    _list(query).map{ rows =>
 
-      fkData.map { lookupElements =>
         rows.map { row =>
           val columns = fields(metadata).map { f =>
-            (f, listRenderer(row, lookupElements.map(_.toMap), dropHtml)(f))
+            (f, listRenderer(row, dropHtml)(f))
           }
 
           columns
         }
       }
-    }
   }
 
-  def list(query:JSONQuery,resolveLookup:Boolean = false,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Json]] = __list(query,resolveLookup, dropHtml).map{ rows =>
+  def list(query:JSONQuery,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Json]] = __list(query, dropHtml).map{ rows =>
     rows.map(Json.fromFields)
   }
 
 
-  def csv(query:JSONQuery,resolveLookup:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
+  def csv(query:JSONQuery,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
 
-    __list(query,resolveLookup,false,fields).map{ rows =>
+    __list(query,fields = fields).map{ rows =>
         CSVTable(title = metadata.label, header = Seq(), rows = rows.map(_.map(_._2.string)), showHeader = false)
     }
   }

@@ -58,7 +58,7 @@ case class Form(
     implicit val boxDb = FullDatabase(db,services.connection.adminDB)
 
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang,session.user)),10.seconds)
-   private def actions:FormActions = FormActions(metadata,registry,metadataFactory)
+  def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
   private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
         fields match {
@@ -101,22 +101,10 @@ case class Form(
     for {
       metadata <- boxDb.adminDb.run(tabularMetadata())
       formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query, false))
+      csv <- db.run(formActions.csv(query))
     } yield csv
   }
 
-  def csvTable(q:String,fk:Option[String],fields:Option[String]):Future[CSVTable] = {
-    val query = parse(q).right.get.as[JSONQuery].right.get
-    //val formActions = FormActions(metadata, registry, metadataFactory)
-    for {
-      metadata <- boxDb.adminDb.run(tabularMetadata())
-      formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query, true, _.exportFieldsNoGeom.map(_.name)))
-    } yield csv.copy(
-      showHeader = true,
-      header = metadata.exportFieldsNoGeom.map(_.title)
-    )
-  }
 
   def csv:Route = path("csv") {
     post {
@@ -128,7 +116,7 @@ case class Form(
     } ~ get {
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-          onSuccess(csvTable(q,fk,fields))(csv => CSV.download(csv))
+          exportCsv(q,fk)
         }
       }
     }

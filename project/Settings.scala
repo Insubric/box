@@ -32,7 +32,7 @@ object Settings {
   object versions {
 
     //General
-    val scala213 = "2.13.16"
+    val scala213 = "2.13.18"
     val ficus = "1.5.2"
 
     val macWire = "2.3.7"
@@ -52,7 +52,7 @@ object Settings {
 
 
     //json parsers
-    val circe = "0.14.3"
+    val circe = "0.14.15"
 
     //database
     val postgres = "42.2.20"
@@ -88,7 +88,7 @@ object Settings {
     "io.circe" %%% "circe-core" % versions.circe,
     "io.circe" %%% "circe-generic" % versions.circe,
     "io.circe" %%% "circe-parser" % versions.circe,
-    "io.circe" %%% "circe-generic-extras" % versions.circe,
+    "io.circe" %%% "circe-generic-extras" % "0.14.4", // not same versioning of circe https://github.com/circe/circe-generic-extras?tab=readme-ov-file#versioning
     "com.outr" %%% "scribe" % versions.scribe,
     "com.nrinaudo" %%% "kantan.csv" % versions.kantan,
     "com.github.eikek" %%% "yamusca-core" % "0.8.0",
@@ -152,6 +152,8 @@ object Settings {
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
     "com.norbitltd" %% "spoiwo" % "2.2.1",
+    "org.apache.poi" % "poi" % "5.2.5",
+    "org.apache.poi" % "poi-ooxml" % "5.2.5",
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,

@@ -6,6 +6,7 @@ import io.circe.parser._
 import io.circe.generic.auto._
 import io.udash._
 import org.scalajs.dom.WebSocket
+import scribe.Logging
 
 import scala.concurrent.duration._
 import scala.scalajs.js.timers.setTimeout
@@ -35,7 +36,7 @@ class NoNotification() extends NotificationChannel {
   override def close(): Unit = {}
 }
 
-class NotificationWebSocket() extends NotificationChannel {
+class NotificationWebSocket() extends NotificationChannel with Logging {
 
   private var socket:WebSocket = null
 
@@ -45,7 +46,9 @@ class NotificationWebSocket() extends NotificationChannel {
       socket.close()
     }
 
-    socket = new WebSocket(Routes.wsV1("box-client"))
+    val url = Routes.wsV1("box-client")
+    logger.info(s"Opening websocket on $url")
+    socket = new WebSocket(url)
 
     socket.onmessage = (msg => {
 

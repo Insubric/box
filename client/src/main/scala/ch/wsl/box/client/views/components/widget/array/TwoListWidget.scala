@@ -2,7 +2,6 @@ package ch.wsl.box.client.views.components.widget.array
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.styles.GlobalStyleFactory.GlobalStyles
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
 import ch.wsl.box.client.views.components.widget.lookup.LookupWidget
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
