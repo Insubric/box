@@ -104,6 +104,7 @@ trait BoxStyle {
   val mapInfoChild:StyleA
   val mapGeomAction:StyleA
   val mapButton:StyleA
+  val mapTable:StyleA
   val controlButtons:StyleA
   val controlInputs:StyleA
   val controlButtonsBottom:StyleA

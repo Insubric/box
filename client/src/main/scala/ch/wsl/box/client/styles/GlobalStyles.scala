@@ -35,7 +35,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
   import dsl._
 
-  private val inputDefaultWidth = width(conf.inputPercentage %%)
+  protected val inputDefaultWidth = width(conf.inputPercentage %%)
 
   override val inputHighlight = style(
     borderWidth(0 px,0 px,1 px,0 px),
@@ -1380,6 +1380,17 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     zIndex(10),
     height :=! "calc(100vh - 105px)"
   )
+
+
+  override val mapTable = style(
+    height :=! "calc(100vh - 105px)",
+    media.maxWidth(600 px)(
+      height :=! "calc(100vh - 50px)",
+    ),
+    position.sticky,
+    top.`0`
+  )
+
 
   val simpleInputBottomBorder = style(
     margin.`0`,

@@ -174,6 +174,7 @@ lazy val client: Project = (project in file("client"))
     stIgnore += "stream-browserify",
     stIgnore += "toolcool-range-slider",
     stIgnore += "@tailwindcss/vite",
+    stIgnore += "string-strip-html",
     stOutputPackage := "ch.wsl.typings",
     scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule).withModuleSplitStyle(ModuleSplitStyle.FewestModules)),
 

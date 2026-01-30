@@ -200,7 +200,12 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
         nested(produce(selectedTab) { tabName =>
           val block = blks.filter(_.block.tab == tabName)
           window.setTimeout(() => block.map(x => x.widget.afterRender()),0)
+          // make tab fill the space
+          val fullwidth = block.map(b => b.copy(b.block.copy(width = 12/block.length)))
+          renderBlocks(fullwidth).render
+
           renderBlocks(block).render
+
         })
       )
     }

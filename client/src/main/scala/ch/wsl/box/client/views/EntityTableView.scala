@@ -772,11 +772,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       if(model.subProp(_.geoms).get.isEmpty)
         presenter.loadGeoms(model.subProp(_.extent).get)
 
-      if(window.innerWidth < 600)  { // is mobile
-        map = Some(div(height := (window.innerHeight - 50).px).render)
-      } else {
-        map = Some(div(height := (window.innerHeight - 105).px).render)
-      }
+      map = Some(div(ClientConf.style.mapTable).render)
 
 
       val observer = new MutationObserver({ (mutations, observer) =>

@@ -116,7 +116,8 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
         val metadata:Property[Option[JSONMetadata]] = Property(None)
 
-        services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,public).foreach(m => metadata.set(Some(m)))
+        logger.debug("Loading child metadata")
+        //services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,public).foreach(m => metadata.set(Some(m)))
 
         nested(produceWithNested(metadata) { (metadata,nested) =>
           div(metadata.map { metadata =>

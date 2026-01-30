@@ -87,7 +87,9 @@ object Main extends Logging {
         val CssSettings = scalacss.devOrProdDefaults
         import CssSettings._
 
+
         val mainStyle = document.createElement("style")
+        ClientConf.style.global //load unsaferoot global styles
         mainStyle.innerText = ClientConf.style.render(cssStringRenderer,cssEnv)
 
         val olStyle = document.createElement("style")
