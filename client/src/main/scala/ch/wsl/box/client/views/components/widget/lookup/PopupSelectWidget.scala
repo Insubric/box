@@ -217,11 +217,10 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
     override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modal,modalStatus) => {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
-      div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
-        BootstrapStyles.Display.flex(),BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Between))(
+      div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,BootstrapStyles.Float.right())(
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
-        tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
+        tooltip(button(ClientConf.style.popupButton,BootstrapStyles.Float.right(), onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
         }),nested(bind(model.transform(_.map(_.value).getOrElse(""))))).render)._1,

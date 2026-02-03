@@ -63,6 +63,7 @@ trait BoxStyle {
   val headerTitle: StyleA
   val linkHeaderFooter: StyleA
   val fullHeightMax: StyleA
+  val tableWrapper: StyleA
   val fullHeight: StyleA
   val loading: StyleA
   val noMargin: StyleA

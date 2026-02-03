@@ -204,8 +204,6 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
           val fullwidth = block.map(b => b.copy(b.block.copy(width = 12/block.length)))
           renderBlocks(fullwidth).render
 
-          renderBlocks(block).render
-
         })
       )
     }

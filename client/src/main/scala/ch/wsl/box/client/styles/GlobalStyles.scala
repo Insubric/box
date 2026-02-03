@@ -807,6 +807,10 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     overflow.auto
   )
 
+  override val tableWrapper = style(
+    addClassName("box-table-wrapper")
+  )
+
   override val fullHeight = style(
     height :=! "calc(100vh - 105px)",
     media.maxWidth(600 px)(

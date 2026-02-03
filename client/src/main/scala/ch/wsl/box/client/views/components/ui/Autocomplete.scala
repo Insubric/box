@@ -12,16 +12,21 @@ import org.scalajs.dom.html.Div
 import org.scalajs.dom.{Event, HTMLDivElement, HTMLInputElement, MutationObserver, MutationObserverInit, document}
 import scalatags.JsDom.all._
 import scribe.Logging
-import ch.wsl.typings.autocompleter
-import ch.wsl.typings.autocompleter.{autocompleterBooleans, mod}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSName
+import scala.scalajs.js.annotation.{JSImport, JSName}
 import scala.scalajs.js.{JSON, UndefOr, |}
 
 
 object Autocomplete extends Logging {
+
+  @js.native
+  @JSImport("autocompleter", JSImport.Default)
+  private object autocomplete extends js.Object {
+    def apply(opt:js.Object):Unit = js.native
+  }
+
   def apply[T](prop: Property[Option[T]], fetch: js.Function1[String,Future[Seq[T]]], toLabel: js.Function1[Option[T],String], toSuggestion: js.Function1[T,HTMLDivElement])(modifier: Modifier*)(implicit ec: ExecutionContext, enc:Encoder[T], dec:Decoder[T]): HTMLInputElement = {
     val el: HTMLInputElement = input(modifier).render
 
@@ -41,7 +46,7 @@ object Autocomplete extends Logging {
           val preventSubmit = true
 
           @JSName("fetch")
-          def fetch_false(text: String, update: js.Function1[js.Array[String] | autocompleterBooleans.`false`, Unit], trigger: mod.EventTrigger, cursorPos: Double): Unit = {
+          def fetch_false(text: String, update: js.Function1[js.Array[String], Unit], trigger: js.Any, cursorPos: Double): Unit = {
             logger.info(s"Fetching $text")
             fetch(text).map { data =>
               val dataJS: js.Array[String] = data.map(x => x.asJson.noSpaces).toJSArray
@@ -78,7 +83,7 @@ object Autocomplete extends Logging {
             }
           }
         }
-        autocompleter.mod.^.asInstanceOf[js.Dynamic](options)
+        autocomplete(options)
       }
     })
 

@@ -45,7 +45,7 @@ case class LoginView(presenter:LoginPresenter) extends View {
 
   override def getTemplate = div(
     div(BootstrapStyles.container)(raw(UI.loginTopHtml)),
-    div(BootstrapStyles.container, height := 400.px)(
+    div(BootstrapStyles.container, `class` := "login-container", height := 400.px)(
       div(BootstrapStyles.Grid.row,
           BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Center),
           BootstrapStyles.Flex.alignItems(BootstrapStyles.FlexAlign.Center),

@@ -1138,7 +1138,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
         ),
         div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
-          tableContent(metadata),
+          div(
+            ClientConf.style.fullHeightMax,
+            tableContent(metadata)
+          ),
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
           button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls),
