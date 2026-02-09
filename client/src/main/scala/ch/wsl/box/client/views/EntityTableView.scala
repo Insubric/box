@@ -1020,7 +1020,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         } else {
           el.querySelector(ClientConf.style.tableHeader.selector)
         }
-        head.innerText
+        head.innerHTML
       }
 
       new TableColumnDrag(table, labelExtractor,e => {
