@@ -18,7 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object GeoPackageWriter {
 
 
-  def geomSchema(builder:SimpleFeatureTypeBuilder,name:String,geo:Seq[Option[GeoJson.Geometry]]) = {
+  def geomSchema(builder:SimpleFeatureTypeBuilder,name:String,geo:Seq[Option[GeoJson.Geometry]],srid:Int) = {
     geo.toList.flatten.filterNot(_ == GeoJson.Empty).headOption match {
       case Some(value) => {
         value match {
@@ -33,7 +33,7 @@ object GeoPackageWriter {
           case GeoJson.GeometryCollection(_, crs) => builder.add(name, classOf[Geometry], crs.srid)
         }
       }
-      case None => builder.add(name, classOf[Geometry])
+      case None => builder.add(name, classOf[Geometry],srid)
     }
   }
 
@@ -70,9 +70,13 @@ object GeoPackageWriter {
     geopkg.init()
 
 
-
-
     data.geometry.foreach { case (geomName, values) =>
+
+      val srid = values.flatten
+        .groupBy(_.crs.srid) // group the entrys by their SRID
+        .maxByOption(_._2.length) //take the srid with more entries
+        .map(_._1) // take the SRID
+        .getOrElse(0) //dafault SRID 0 -> no information
 
       val builder: SimpleFeatureTypeBuilder = new SimpleFeatureTypeBuilder
       builder.setName(s"${name}_$geomName")
@@ -83,7 +87,7 @@ object GeoPackageWriter {
         t.typ match {
           case JSONFieldTypes.INTEGER => builder.add(t.name, classOf[Integer])
           case JSONFieldTypes.NUMBER => builder.add(t.name, classOf[Double])
-          case JSONFieldTypes.GEOMETRY if t.name == geomName => geomSchema(builder, t.name, values)
+          case JSONFieldTypes.GEOMETRY if t.name == geomName => geomSchema(builder, t.name, values,srid)
           case JSONFieldTypes.GEOMETRY => ()
           case _ => builder.add(t.name, classOf[String])
         }
