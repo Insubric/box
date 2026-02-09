@@ -164,6 +164,7 @@ object Labels {
     def search = get(SharedLabels.popup.search)
     def close = get(SharedLabels.popup.close)
     def remove = get(SharedLabels.popup.remove)
+    def back = get(SharedLabels.popup.back)
   }
 
   object home {

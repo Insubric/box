@@ -84,6 +84,7 @@ trait BoxStyle {
   val boxButtonDanger: StyleA
   val popupButton: StyleA
   val popupEntiresList: StyleA
+  val popupEntiresItem: StyleA
   val fullWidth: StyleA
   val maxFullWidth: StyleA
   val filterTableSelect: StyleA

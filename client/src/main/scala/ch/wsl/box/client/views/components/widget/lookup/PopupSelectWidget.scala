@@ -63,7 +63,10 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
 
     val mode:Property[Mode] = Property(Search)
+    val childMetadata:Property[Option[JSONMetadata]] = Property(None)
     val lookupData = Property(Json.obj())
+
+    val editForm:Option[String] = field.params.flatMap(_.getOpt("editForm"))
 
     def popupEdit(nested:Binding.NestedInterceptor)(mainRenderer:(UdashModal,Property[String]) => Modifier) = {
 
@@ -85,23 +88,29 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
             div(
               div(
                 nested(repeat(lookup.filter(opt => searchTerm == "" || opt.value.toLowerCase.contains(searchTerm.toLowerCase))) { x =>
-                  div(
-                    a(Icons.pencil_square,onclick :+= ((e: Event) => {
-                      val lookup = fieldLookup.asInstanceOf[JSONFieldLookupRemote]
-                      val keys = Seq((lookup.map.foreign.keyColumns.head,x.get.id)) // single lookup supported
-                      //val keys = lookup.map.localKeysColumn.zip(lookup.map.foreign.keyColumns).map{ case (local,remote) => remote -> x.get.id}
-                      services.rest.get(EntityKind.ENTITY.kind,services.clientSession.lang(),lookup.lookupEntity,JSONID.fromMap(keys),public).map { record =>
-                        lookupData.set(record)
-                        mode.set(Edit)
-                      }
-                      e.preventDefault()
-                    })), " ",
+                  div(ClientConf.style.popupEntiresItem,
                     a(bind(x.transform(_.value)), onclick :+= ((e: Event) => {
                       modalStatus.set(Status.Closed)
                       model.set(Some(x.get))
                       e.preventDefault()
-                    })
-                  )).render
+                    })),
+                    a(marginRight := 15.px, Icons.pencil_square,onclick :+= ((e: Event) => {
+                      val lookup = fieldLookup.asInstanceOf[JSONFieldLookupRemote]
+                      val keys = Seq((lookup.map.foreign.keyColumns.head,x.get.id)) // single lookup supported
+                      //val keys = lookup.map.localKeysColumn.zip(lookup.map.foreign.keyColumns).map{ case (local,remote) => remote -> x.get.id}
+
+                      val data = editForm match {
+                        case Some(value) => services.rest.get(EntityKind.FORM.kind,services.clientSession.lang(),value,JSONID.fromMap(keys),public)
+                        case None => services.rest.get(EntityKind.ENTITY.kind,services.clientSession.lang(),lookup.lookupEntity,JSONID.fromMap(keys),public)
+                      }
+
+                      data.map { record =>
+                        lookupData.set(record)
+                        mode.set(Edit)
+                      }
+                      e.preventDefault()
+                    }))
+                  ).render
                 }
                 )
               )
@@ -114,12 +123,15 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
 
 
-        val metadata:Property[Option[JSONMetadata]] = Property(None)
+
 
         logger.debug("Loading child metadata")
-        //services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,public).foreach(m => metadata.set(Some(m)))
+        editForm match {
+          case Some(value) => services.rest.metadata(EntityKind.FORM.kind,services.clientSession.lang(),value,public).foreach(m => childMetadata.set(Some(m)))
+          case None => services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,public).foreach(m => childMetadata.set(Some(m)))
+        }
 
-        nested(produceWithNested(metadata) { (metadata,nested) =>
+        nested(produceWithNested(childMetadata) { (metadata,nested) =>
           div(metadata.map { metadata =>
             val id = JSONID.fromData(lookupData.get, metadata)
             val action = WidgetCallbackActions.noAction
@@ -156,18 +168,59 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
           })
       ).render
 
-      val footer = (nested:NestedInterceptor) => div(
-        nested(showIf(model.transform(_.isDefined)) {
-          button(onclick :+= ((e: Event) => {
-            model.set(None)
-            modal.hide()
-            e.preventDefault()
-          }), Labels.popup.remove, ClientConf.style.boxButtonDanger).render
-        }),
-        button(onclick :+= ((e:Event) => {
-          modal.hide()
-          e.preventDefault()
-        }), Labels.popup.close,ClientConf.style.boxButton)
+      val footer = (n:NestedInterceptor) => div(
+        n(
+          produceWithNested(mode) { (m,nested) =>
+            m match {
+              case Edit => div(
+                button(onclick :+= ((e:Event) => {
+                  mode.set(Search)
+                  e.preventDefault()
+                }), Labels.popup.back,ClientConf.style.boxButton),
+                button(onclick :+= ((e:Event) => {
+                  val id = JSONID.fromData(lookupData.get,childMetadata.get.get).get
+                  val f = editForm match {
+                    case Some(value) => services.rest.update(EntityKind.FORM.kind,services.clientSession.lang(),value,id,lookupData.get,public)
+                    case None => services.rest.update(EntityKind.ENTITY.kind,services.clientSession.lang(),childMetadata.get.get.entity,id,lookupData.get,public)
+                  }
+
+                  f.foreach{ _ =>
+                    fieldLookup match {
+                      case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
+                        val id = lookupData.get.js(map.foreign.keyColumns.head)
+                        val values = map.foreign.labelColumns.flatMap(x => lookupData.get.getOpt(x))
+                        model.set(Some(JSONLookup(id,values)))
+                        modal.hide()
+                        mode.set(Search)
+                        fetchLookups(true)
+                      }
+                      case JSONFieldLookupExtractor(extractor) => ???
+                      case JSONFieldLookupData(data) => ???
+                    }
+
+                  }
+
+                  e.preventDefault()
+                }), Labels.form.save,ClientConf.style.boxButton)
+              ).render
+              case Search => div(
+                nested(showIf(model.transform(_.isDefined)) {
+                  button(onclick :+= ((e: Event) => {
+                    model.set(None)
+                    modal.hide()
+                    e.preventDefault()
+                  }), Labels.popup.remove, ClientConf.style.boxButtonDanger).render
+                }),
+                button(onclick :+= ((e:Event) => {
+                  modal.hide()
+                  e.preventDefault()
+                }), Labels.popup.close,ClientConf.style.boxButton)
+              ).render
+
+            }
+          }
+        ),
+
       ).render
 
       modal = nested(UdashModal(modalSize = Some(Size.Small).toProperty)(

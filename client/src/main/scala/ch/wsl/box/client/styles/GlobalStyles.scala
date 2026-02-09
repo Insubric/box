@@ -1030,6 +1030,11 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     overflowY.auto,
     maxHeight(70.vh)
   )
+  override val popupEntiresItem = style(
+    display.flex,
+    justifyContent.spaceBetween,
+    marginBottom(10 px)
+  )
 
   override val fullWidth = style(
     width(100 %%).important
