@@ -17,13 +17,14 @@ import wvlet.airframe.Design
 import ch.wsl.box.model.Migrate
 import ch.wsl.box.rest.logic.cron.{BoxCronLoader, CronScheduler}
 import ch.wsl.box.rest.logic.notification.{MailHandler, NotificationsHandler}
+import ch.wsl.box.rest.utils.CertificateUtils
 
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
 import scala.io.StdIn
 
 
-class Box(name:String,version:String)(implicit services: Services) {
+class Box(name:String,version:String,https:Boolean)(implicit services: Services) {
 
   implicit val executionContext = services.executionContext
   implicit val system: ActorSystem = services.actorSystem
@@ -66,10 +67,18 @@ class Box(name:String,version:String)(implicit services: Services) {
       Root(s"$name $version",akkaConf, origins).route
     }
 
+    def server = if(https) {
+      Http().newServerAt( host, port).enableHttps(CertificateUtils.sslContext).bind(routes)
+    } else {
+      Http().newServerAt( host, port).bind(routes)
+    }
+
+    val httpsStr = if(https) "https" else "http"
+
     for{
       //pl <- preloading
       //_ <- pl.terminate(1.seconds)
-      binding <- Http().bindAndHandle(routes, host, port) //attach the root route
+      binding <- server //attach the root route
       res <- {
         println(
           s"""
@@ -83,7 +92,7 @@ class Box(name:String,version:String)(implicit services: Services) {
              |
              |===================================
              |
-             |Box server started at http://$host:$port
+             |Box server started at $httpsStr://$host:$port
 
              |""".stripMargin)
         binding.whenTerminationSignalIssued.map{ _ =>
@@ -102,9 +111,10 @@ class Box(name:String,version:String)(implicit services: Services) {
 
 object Boot extends App  {
 
-  val (name,app_version) = args.length match {
-    case 2 => (args(0),args(1))
-    case _ => ("Standalone","DEV")
+  val (name,app_version,https) = args.length match {
+    case 3 => (args(0),args(1),args(2).toBoolean)
+    case 2 => (args(0),args(1),false)
+    case _ => ("Standalone","DEV",true)
   }
 
   def run(name:String,app_version:String,module:Design) {
@@ -124,7 +134,7 @@ object Boot extends App  {
     Registry.loadBox()
 
     module.build[Services] { services =>
-      val server = new Box(name, app_version)(services)
+      val server = new Box(name, app_version,https)(services)
       implicit val executionContext = services.executionContext
 
       val binding = {

@@ -47,7 +47,7 @@ object Auth extends Logging {
     for{
       validUser <- checkAuth(name,password)
       roles <- if(validUser) rolesOf(username) else Future.successful(Seq())
-    } yield if(validUser) Some(CurrentUser(DbInfo(username,name,roles),UserInfo(name,name,None,roles,Json.Null))) else None
+    } yield if(validUser) Some(CurrentUser(DbInfo(username,name,roles),UserInfo(name,name,name,None,roles,Json.Null))) else None
 
   }
 

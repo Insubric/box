@@ -39,20 +39,21 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
     if(ClientConf.openid.nonEmpty) {
       Seq(
         hr(clear.both),
-        label("Login providers:"), br
+        label("Login with:"), br
       )
     } else Seq[Modifier](),
-    ClientConf.openid.map{ openid =>
-      button(BootstrapStyles.Float.right(),ClientConf.style.boxButton,borderRadius := 10.px, borderColor := ClientConf.styleConf.colors.mainColor, borderWidth := 3.px, borderStyle := "solid",
-
-        img(src := openid.logo, maxWidth := 80.px),
-        onclick :+= ((e:Event) => {
-          e.preventDefault()
-          val redirectUri = URLEncoder.encode(s"${ClientConf.frontendUrl}/authenticate/${openid.provider_id}","UTF-8")
-          window.location.href = s"${openid.authorize_url}?client_id=${openid.client_id}&scope=${openid.scope}&response_type=code&state=${UUID.randomUUID()}&redirect_uri=$redirectUri"
-        })
-      )
-    },
+    div(display.flex,justifyContent.spaceAround,
+      ClientConf.openid.map{ openid =>
+        button(ClientConf.style.boxButton,
+          img(src := openid.logo, maxWidth := 80.px),
+          onclick :+= ((e:Event) => {
+            e.preventDefault()
+            val redirectUri = URLEncoder.encode(s"${ClientConf.frontendUrl}/authenticate/${openid.provider_id}","UTF-8")
+            window.location.href = s"${openid.authorize_url}?client_id=${openid.client_id}&scope=${openid.scope}&response_type=code&state=${UUID.randomUUID()}&redirect_uri=$redirectUri"
+          })
+        )
+      }
+    ),
     div(clear.both)
 
   )
