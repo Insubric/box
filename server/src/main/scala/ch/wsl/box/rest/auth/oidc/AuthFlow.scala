@@ -66,22 +66,29 @@ object AuthFlow {
   //  }
   def code(provider:OIDCConf,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
-    def authToken = basicRequest
-      .post(uri"${provider.token_url}")
-      .body(Map(
-        "grant_type" -> "authorization_code",
-        "client_id" -> provider.client_id,
-        "client_secret" -> provider.client_secret,
-        "code" -> c,
-        "redirect_uri" -> s"${services.config.frontendUrl}/authenticate/${provider.provider_id}"
-      ))
-      .response(asJson[OpenIDToken])
-      .send(backend)
+    def authToken = {
+      val r = basicRequest
+        .post(uri"${provider.token_url}")
+        .body(Map(
+          "grant_type" -> "authorization_code",
+          "client_id" -> provider.client_id,
+          "client_secret" -> provider.client_secret,
+          "code" -> c,
+          "redirect_uri" -> s"${services.config.frontendUrl}/authenticate/${provider.provider_id}"
+        ))
+        .response(asJson[OpenIDToken])
+
+//        println(r.toCurl)
+
+        r.send(backend).map{ x =>
+          x
+        }
+    }
 
     def userInfo(token:OpenIDToken) = {
       import UserInfo._
       basicRequest
-        .get(uri"https://gitlabext.wsl.ch/oauth/userinfo")
+        .get(uri"${provider.user_info_url}")
         .response(asJson[UserInfo])
         .auth.bearer(token.access_token)
         .send(backend)
