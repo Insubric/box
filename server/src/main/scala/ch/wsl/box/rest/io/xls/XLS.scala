@@ -5,9 +5,11 @@ import akka.http.scaladsl.model.{ContentType, HttpEntity, HttpResponse, MediaTyp
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.directives.AuthenticationDirective
 import ch.wsl.box.jdbc.UserDatabase
 import ch.wsl.box.model.shared.{JSONMetadata, XLSTable}
 import ch.wsl.box.rest.logic.{JSONTableActions, TableActions}
+import ch.wsl.box.services.Services
 import io.circe.Json
 import slick.dbio.DBIO
 
@@ -28,20 +30,20 @@ object XLS {
     }
   }
 
-  def importXls(metadata:JSONMetadata,actions:TableActions[Json],db:UserDatabase)(implicit ec:ExecutionContext):Route = post{
+  def importXls(metadata:JSONMetadata,actions:TableActions[Json],db:UserDatabase)(implicit ec:ExecutionContext, services:Services):Route = post{
     entity(as[Array[Byte]]) { data =>
-      XLSImport.xlsToJson(data, metadata) match {
-        case Failure(exception) => complete(StatusCodes.BadRequest, exception.toString)
-        case Success(value) => {
-          complete {
-            db.run {
-              DBIO.sequence {
-                value.map(row => actions.insert(row))
-              }
-            }.map(x => HttpResponse(entity = HttpEntity(MediaTypes.`application/json`,x.length.toString)))
+
+      val insertData = for {
+        data <- new XLSImport(db).xlsToJson(data, metadata)
+        insert <- db.run {
+          DBIO.sequence {
+            data.map(row => actions.insert(row))
           }
         }
-      }
+      } yield HttpResponse(entity = HttpEntity(MediaTypes.`application/json`, insert.length.toString))
+
+      completeOrRecoverWith(insertData) { ex => complete(StatusCodes.BadRequest, ex.toString) }
+
     }
   }
 }
