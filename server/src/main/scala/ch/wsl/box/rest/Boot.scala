@@ -114,7 +114,7 @@ object Boot extends App  {
   val (name,app_version,https) = args.length match {
     case 3 => (args(0),args(1),args(2).toBoolean)
     case 2 => (args(0),args(1),false)
-    case _ => ("Standalone","DEV",true)
+    case _ => ("Standalone","DEV",false)
   }
 
   def run(name:String,app_version:String,module:Design) {

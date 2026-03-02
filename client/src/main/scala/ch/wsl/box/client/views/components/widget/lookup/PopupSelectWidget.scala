@@ -63,6 +63,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
 
     val mode:Property[Mode] = Property(Search)
+    val enableEdit = field.params.exists(_.jsOpt("enableEdit").exists(_ == Json.True))
     val childMetadata:Property[Option[JSONMetadata]] = Property(None)
     val lookupData = Property(Json.obj())
 
@@ -79,10 +80,12 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
       def optionList(nested:NestedInterceptor):Modifier = div(
         label(Labels.popup.search),br,
         TextInput(searchProp,500.milliseconds)(width := 100.pct, id := searchId),br,br,
-        button(`type` := "button", Icons.plus, " ", Labels.entities.`new`,ClientConf.style.boxButtonImportant,onclick :+= ((e:Event) => {
-          lookupData.set(Json.obj())
-          mode.set(Edit)
-        })),br,br,
+        if(enableEdit) {
+          button(`type` := "button", Icons.plus, " ", Labels.entities.`new`, ClientConf.style.boxButtonImportant, onclick :+= ((e: Event) => {
+            lookupData.set(Json.obj())
+            mode.set(Edit)
+          }))
+        } else Seq[Modifier](),br,br,
         nested(showIf(modalStatus.transform(_ == Status.Open)) {
           div(ClientConf.style.popupEntiresList,nested(produce(searchProp) { searchTerm =>
             div(
@@ -94,22 +97,24 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
                       model.set(Some(x.get))
                       e.preventDefault()
                     })),
-                    a(marginRight := 15.px, Icons.pencil_square,onclick :+= ((e: Event) => {
-                      val lookup = fieldLookup.asInstanceOf[JSONFieldLookupRemote]
-                      val keys = Seq((lookup.map.foreign.keyColumns.head,x.get.id)) // single lookup supported
-                      //val keys = lookup.map.localKeysColumn.zip(lookup.map.foreign.keyColumns).map{ case (local,remote) => remote -> x.get.id}
+                    if(enableEdit) {
+                      a(marginRight := 15.px, Icons.pencil_square, onclick :+= ((e: Event) => {
+                        val lookup = fieldLookup.asInstanceOf[JSONFieldLookupRemote]
+                        val keys = Seq((lookup.map.foreign.keyColumns.head, x.get.id)) // single lookup supported
+                        //val keys = lookup.map.localKeysColumn.zip(lookup.map.foreign.keyColumns).map{ case (local,remote) => remote -> x.get.id}
 
-                      val data = editForm match {
-                        case Some(value) => services.rest.get(EntityKind.FORM.kind,services.clientSession.lang(),value,JSONID.fromMap(keys),public)
-                        case None => services.rest.get(EntityKind.ENTITY.kind,services.clientSession.lang(),lookup.lookupEntity,JSONID.fromMap(keys),public)
-                      }
+                        val data = editForm match {
+                          case Some(value) => services.rest.get(EntityKind.FORM.kind, services.clientSession.lang(), value, JSONID.fromMap(keys), public)
+                          case None => services.rest.get(EntityKind.ENTITY.kind, services.clientSession.lang(), lookup.lookupEntity, JSONID.fromMap(keys), public)
+                        }
 
-                      data.map { record =>
-                        lookupData.set(record)
-                        mode.set(Edit)
-                      }
-                      e.preventDefault()
-                    }))
+                        data.map { record =>
+                          lookupData.set(record)
+                          mode.set(Edit)
+                        }
+                        e.preventDefault()
+                      }))
+                    } else Seq[Modifier]()
                   ).render
                 }
                 )
