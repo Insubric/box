@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 import scalaJSPlugin from "@scala-js/vite-plugin-scalajs";
+import { loadEnv } from 'vite';
 
-
+const env = loadEnv(process.env.NODE_ENV, process.cwd());
 
 export default defineConfig({
     server: {
@@ -12,9 +13,6 @@ export default defineConfig({
     },
     optimizeDeps: {
         exclude: ['@electric-sql/pglite'],
-    },
-    worker: {
-        format: 'es',
     },
     resolve: {
         alias: {
@@ -35,4 +33,14 @@ export default defineConfig({
         // default: 'scalajs' (so the plugin recognizes URIs starting with 'scalajs:')
         uriPrefix: 'scalajs',
     })],
+    build: {
+        emptyOutDir: false,
+        rollupOptions: {
+            output: {
+                entryFileNames: `ui/[name].${env.VITE_BOX_VERSION}.js`,
+                chunkFileNames: `ui/[name].${env.VITE_BOX_VERSION}.js`,
+                assetFileNames: `ui/[name].${env.VITE_BOX_VERSION}.[ext]`,
+            },
+        },
+    },
 });

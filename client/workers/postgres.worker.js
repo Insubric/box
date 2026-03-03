@@ -1,7 +1,8 @@
+import { PGlite } from '@electric-sql/pglite'
+import { worker } from '@electric-sql/pglite/worker'
+
 console.log('Worker started');
 try {
-    import { PGlite } from '@electric-sql/pglite'
-    import { worker } from '@electric-sql/pglite/worker'
     worker({
         async init() {
             // Create and return a PGlite instance

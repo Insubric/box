@@ -68,7 +68,7 @@ object Main extends Logging {
       }
       uiConf <- services.rest.ui()
       labels <- services.rest.labels(services.clientSession.lang())
-      _ <- if(services.data.name == DaoLocalDbImpl.name) DB.init() else Future.successful()
+      _ <- if(services.data.name == DaoLocalDbImpl.name) DB.init(version) else Future.successful()
     } yield {
 
         Logger.root.clearHandlers().clearModifiers().withHandler(minimumLevel = Some(ClientConf.loggerLevel)).replace()

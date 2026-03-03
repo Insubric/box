@@ -74,6 +74,7 @@ lazy val server: Project  = project
     Compile / packageBin / mainClass := Some("ch.wsl.box.rest.Boot"),
     Compile / run / mainClass := Some("ch.wsl.box.rest.Boot"),
     Compile / resourceDirectory := baseDirectory.value / "../resources",
+    Compile / resourceDirectory := baseDirectory.value / "../client/dist",
     Test / unmanagedResourceDirectories += baseDirectory.value / "../db",
     Test / unmanagedSourceDirectories += baseDirectory.value / "../db",
     Test / fork := true,

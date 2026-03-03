@@ -18,9 +18,6 @@ trait FullConfig extends Config {
   def enableCache:Boolean
   def fksLookupLabels:com.typesafe.config.Config
   def fksLookupRowsLimit:Int
-  def enableRedactor:Boolean
-  def redactorJs:String
-  def redactorCSS:String
   def devServer:Boolean
   def frontendUrl:String
 

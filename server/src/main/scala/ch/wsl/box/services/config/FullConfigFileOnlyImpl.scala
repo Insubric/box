@@ -34,12 +34,6 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
 
   override def fksLookupRowsLimit: Int = throw new ConfigNotAvailableException
 
-  override def enableRedactor: Boolean = throw new ConfigNotAvailableException
-
-  override def redactorJs: String = throw new ConfigNotAvailableException
-
-  override def redactorCSS: String = throw new ConfigNotAvailableException
-
   override def devServer: Boolean = throw new ConfigNotAvailableException
 
   override def clientConf: Map[String, String] = throw new ConfigNotAvailableException

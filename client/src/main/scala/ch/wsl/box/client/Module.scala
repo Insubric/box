@@ -31,5 +31,6 @@ object Module {
     .bind[ClientSession].toEagerSingleton
     .bind[Navigator].toEagerSingleton
     .bind[NotificationChannel].to[NotificationWebSocket]
+    .bind[BoxStyleFactory].to[GlobalStyleFactory]
     .bind[MainLayout].to[BoxMainLayout]
 }

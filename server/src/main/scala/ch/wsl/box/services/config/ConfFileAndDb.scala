@@ -109,13 +109,6 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     result
   }
 
-  def enableRedactor:Boolean = {
-    Try(_conf("redactor.js")).toOption.exists(_.nonEmpty) &&
-      Try(_conf("redactor.css")).toOption.exists(_.nonEmpty)
-  }
-
-  def redactorJs = Try(_conf("redactor.js")).getOrElse("")
-  def redactorCSS = Try(_conf("redactor.css")).getOrElse("")
 
   def filterPrecisionDatetime = Try(_conf("filter.precision.datetime").toUpperCase).toOption match {
     case Some("DATE") => JSONFieldTypes.DATE
