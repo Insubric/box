@@ -4,6 +4,8 @@ Bring the power of PostgreSQL to the web
 
 [![Maven central](https://flat.badgen.net/maven/v/maven-central/com.boxframework/box-server_2.13)](https://maven-badges.herokuapp.com/maven-central/com.boxframework/box-server_2.13)
 
+[![DOI](https://zenodo.org/badge/54018097.svg)](https://zenodo.org/badge/latestdoi/54018097)
+
 [boxframework.com](https://www.boxframework.com)
 
 ## License
