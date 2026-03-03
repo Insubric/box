@@ -39,6 +39,8 @@ jobs:
       - name: Export VITE_BOX_VERSION
         run: echo "VITE_BOX_VERSION=${{ steps.tag.outputs.tag }}" >> $GITHUB_ENV
       - name: Build bundle
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
         run: |
           cd client
           npm install
