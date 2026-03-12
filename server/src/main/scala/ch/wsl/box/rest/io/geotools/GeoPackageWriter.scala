@@ -60,6 +60,7 @@ object GeoPackageWriter {
 
   }
 
+  def geomNameTrim(name:String) = if(name.trim.isEmpty) "geom" else name.trim
 
   def write(name:String, data: DataResultTable)(implicit ex:ExecutionContext) = Future{
 
@@ -69,19 +70,27 @@ object GeoPackageWriter {
     val geopkg = new GeoPackage(File.createTempFile("geopkg", "db"))
     geopkg.init()
 
-    val geometry_by_type: Map[String, Seq[Option[GeoJson.Geometry]]] = data.geometry.flatMap { case (geomName, values) =>
-      val kinds = values.groupBy(_.map(_.geomName))
-      kinds.map{ case (geomType, values) =>
-        Seq(geomName,geomType.getOrElse("no_geometry").toLowerCase).mkString("_") -> values
-      }
-    }
+    val geometry_by_type: Map[String, Seq[(GeoJson.Geometry,Map[String,Json])]] = data.types.filter(_.typ == JSONFieldTypes.GEOMETRY).flatMap { case geom =>
+      val values: Seq[(GeoJson.Geometry, Map[String, Json])] = data.toMap
+        .flatMap(r => r.get(geom.name)
+          .flatMap(_.as[GeoJson.Geometry].toOption
+            .map(x => (x,r))
+          )
+        )
+      val kinds = values.groupBy(_._1.geomName)
+      val r: Seq[(String, Seq[(GeoJson.Geometry, Map[String, Json])])] = kinds.map{ case (geomType, values) =>
+        val name = geomNameTrim(geom.name)
+        Seq(name,geomType.toLowerCase).mkString("_") -> values
+      }.toSeq
+      r
+    }.toMap
 
     geometry_by_type.foreach { case (geomName, values) =>
 
-      val geomFieldName = data.types.find(c => c.typ == JSONFieldTypes.GEOMETRY && geomName.startsWith(c.name)).map(_.name).getOrElse("no-field")
+      val geomFieldName = data.types.find(c => c.typ == JSONFieldTypes.GEOMETRY && geomName.startsWith(geomNameTrim(c.name))).map(_.name).getOrElse("no-field")
 
-      val srid = values.flatten
-        .groupBy(_.crs.srid) // group the entrys by their SRID
+      val srid = values
+        .groupBy(_._1.crs.srid) // group the entrys by their SRID
         .maxByOption(_._2.length) //take the srid with more entries
         .map(_._1) // take the SRID
         .getOrElse(0) //dafault SRID 0 -> no information
@@ -91,14 +100,26 @@ object GeoPackageWriter {
       //builder.setCRS(org.geotools.referencing.CRS.decode(s"EPSG:$srid"))
 
 
-      data.types.foreach { t =>
-        t.typ match {
-          case JSONFieldTypes.INTEGER => builder.add(t.name, classOf[Integer])
-          case JSONFieldTypes.NUMBER => builder.add(t.name, classOf[Double])
-          case JSONFieldTypes.GEOMETRY if geomFieldName == t.name => geomSchema(builder, geomName, values,srid)
-          case JSONFieldTypes.GEOMETRY => ()
-          case _ => builder.add(t.name, classOf[String])
-        }
+
+
+      data.types.zipWithIndex.foreach { case (t,i) =>
+
+          // to avoid double name of columns group data by name and in case add suffix
+          val sameName = data.types.map(_.name.trim).zipWithIndex.filter(_._1 == t.name.trim)
+          val n = if(sameName.length == 1) t.name.trim else {
+            val suffix = sameName.indexWhere{case (_,j) => i == j} + 1
+            t.name.trim + "_" + suffix
+          }
+
+
+          t.typ match {
+            case JSONFieldTypes.INTEGER => builder.add(n, classOf[Integer])
+            case JSONFieldTypes.NUMBER => builder.add(n, classOf[Double])
+            case JSONFieldTypes.GEOMETRY if geomNameTrim(geomFieldName) == geomNameTrim(n) => geomSchema(builder, geomName, values.map(x => Some(x._1)), srid)
+            case JSONFieldTypes.GEOMETRY => ()
+            case _ => builder.add(n, classOf[String])
+          }
+
       }
 
       val schema = builder.buildFeatureType()
@@ -108,16 +129,8 @@ object GeoPackageWriter {
       val featureBuilder = new SimpleFeatureBuilder(schema)
 
 
-      def filterSameGeom(r:Map[String,Json]):Boolean = {
-        for{
-          js <- r.get(geomFieldName)
-          obj <- js.as[GeoJson.Geometry].toOption
-          value <- values.find(_.nonEmpty).flatten
-        } yield value.geomName == obj.geomName
-      }.getOrElse(false)
-
-      for (r <- data.toMap if  filterSameGeom(r) ) yield {
-        data.types.filter(tt => tt.typ != JSONFieldTypes.GEOMETRY || geomName.startsWith(tt.name)).foreach { c =>
+      for (r <- values.map(_._2)) yield {
+        data.types.filter(tt => tt.typ != JSONFieldTypes.GEOMETRY || geomName.startsWith(geomNameTrim(tt.name))).foreach { c =>
           fieldWriter(r.getOrElse(c.name, Json.Null), c.typ, featureBuilder)
         }
         collection.add(featureBuilder.buildFeature(null))
@@ -132,7 +145,8 @@ object GeoPackageWriter {
 
       val entry = new FeatureEntry()
 
-      entry.setTableName(name)
+      entry.setTableName(name+"_"+geomName)
+      entry.setSrid(srid)
       //entry.setDescription("Cities of the world")
       geopkg.addCRS(srid)
       geopkg.add(entry, collection)
