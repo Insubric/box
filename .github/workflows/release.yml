@@ -32,10 +32,14 @@ jobs:
       - id: tag
         run: |
           if [[ "${GITHUB_REF#refs/tags/}" != "$GITHUB_REF" ]]; then
-          echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          tag=${GITHUB_REF#refs/tags/}
           else
-          echo "tag=$(git tag --points-at $GITHUB_SHA | head -n1 | cut -c2- )" >> "$GITHUB_OUTPUT"
+          tag=$(git tag --points-at "$GITHUB_SHA" | head -n1)
           fi
+          # strip a single leading v if present
+          tag=${tag#v}
+          echo $tag
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Export VITE_BOX_VERSION
         run: echo "VITE_BOX_VERSION=${{ steps.tag.outputs.tag }}" >> $GITHUB_ENV
       - name: Build bundle
