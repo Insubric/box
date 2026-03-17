@@ -20,7 +20,7 @@ import io.circe.syntax._
 import io.circe.generic.auto._
 
 class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends ConfigFileImpl with FullConfig with Logging {
-  private var _conf: Map[String, String] = Map()
+  var _conf: Map[String, String] = Map()
 
   def load() = {
 
@@ -57,7 +57,8 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
       "fks.lookup.labels",
       "fks.lookup.rowsLimit",
       "redactor.js",
-      "redactor.css"
+      "redactor.css",
+      "deeplKey"
     ).contains(k)}
 
 
@@ -141,4 +142,9 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
   override def localDb: Boolean = Try(_conf("local.db").toBoolean).getOrElse(true)
 
   override def singleUser: Boolean = conf.as[Option[Boolean]]("singleUser").getOrElse(false)
+
+  override def deeplKey: Option[String] = _conf.get("deeplKey")
+
+  override def deeplEndpoint: Option[String] = _conf.get("deeplEndpoint")
+
 }

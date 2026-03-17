@@ -5,7 +5,12 @@ import ch.wsl.box.viewmodel.MatomoConfig
 
 import java.time.{LocalDateTime, OffsetDateTime}
 
-trait FullConfig extends Config {
+trait DeepLConfig {
+  def deeplKey:Option[String] = None
+  def deeplEndpoint:Option[String] = None
+}
+
+trait FullConfig extends Config with DeepLConfig {
   def akkaHttpSession:com.typesafe.config.Config
   def host:String
   def port:Int

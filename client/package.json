@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --config vite.config.app.js",
     "build:app": "vite build --config vite.config.app.js",
     "build:worker": "vite build --config vite.config.worker.js",
     "build": "npm run build:worker && npm run build:app",

@@ -21,7 +21,7 @@ class BoxFormAdminSpec extends BaseSpec {
 
   "Admin Box schema form" should "handled" in withServices { implicit services =>
 
-    implicit val session = BoxSession(CurrentUser(DbInfo(services.connection.adminUser,services.connection.adminUser,Seq()),UserInfo(services.connection.adminUser,services.connection.adminUser,None,Seq(),Json.Null)))
+    implicit val session = BoxSession(CurrentUser(DbInfo(services.connection.adminUser,services.connection.adminUser,Seq()),UserInfo(services.connection.adminUser,services.connection.adminUser,services.connection.adminUser,None,Seq(),Json.Null)))
     implicit val bdb = FullDatabase(services.connection.adminDB,services.connection.adminDB)
 
     for{

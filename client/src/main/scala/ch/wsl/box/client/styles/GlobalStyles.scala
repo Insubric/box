@@ -246,6 +246,14 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
       height(55 px)
     ),
 
+    unsafeRoot(".action") (
+      cursor.pointer
+    ),
+
+    unsafeRoot(".nav-item") (
+      cursor.pointer
+    ),
+
     unsafeRoot(".form-control")( // this controls the datetime input
       paddingTop(1 px),
       paddingBottom(1 px),
