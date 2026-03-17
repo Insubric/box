@@ -20,6 +20,8 @@ import org.postgresql.ds.PGSimpleDataSource
 import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, ExecutionContext}
+import cats.effect._
+import skunk.{Session, _}
 
 /**
   * Created by andreaminetti on 16/02/16.
@@ -36,6 +38,8 @@ trait Connection extends Logging {
   def dataSource(name:String,schema:String): DataSource
   //val executor = AsyncExecutor("public-executor",50,50,10000,50)
 
+
+  def singleAdminSession():Resource[IO, skunk.Session[IO]]
 
 
   def adminDB = dbForUser(adminUser,"box_admin",adminDbConnection)
@@ -93,8 +97,17 @@ class ConnectionConfImpl extends Connection {
     ConfigValueFactory.fromAnyRef("disabled")
   }
 
+  import natchez.Trace.Implicits.noop
 
+  private val pgConf = JdbcParser.parse(dbPath).get
 
+  override def singleAdminSession(): Resource[IO, Session[IO]] = Session.single[IO](
+    host=pgConf.host,
+    port= pgConf.port,
+    user=adminUser,
+    database = pgConf.database,
+    password = Some(dbPassword)
+  )
 
   println(s"DB: $dbPath")
 
@@ -169,10 +182,9 @@ class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) 
   val idleTimeout =  300000
 
 
+  override def singleAdminSession(): Resource[IO, Session[IO]] = ???
 
-
-
-  override def dataSource(name:String,schema:String): DataSource = {
+  override def dataSource(name:String, schema:String): DataSource = {
     val ds = new PGSimpleDataSource()
     ds.setUrl(dbPath)
     ds.setUser(adminUser)

@@ -2,6 +2,7 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
+import ch.wsl.box.rest.logic.notification.{DbNotify, DbNotifyHandlerImpl}
 import ch.wsl.box.rest.routes.v1.{NotificationChannels, NotificationChannelsImpl}
 import ch.wsl.box.rest.utils.BoxSession
 import ch.wsl.box.services.{Services, ServicesWithoutGeneration}
@@ -46,6 +47,7 @@ object DefaultModule extends Module {
     .bind[ImageCacheStorage].to[PgImageCacheStorage]
     .bind[MailService].to[MailServiceCourier]
     .bind[Connection].to[ConnectionConfImpl]
+    .bind[DbNotify].to[DbNotifyHandlerImpl]
     .bind[NotificationChannels].to[NotificationChannelsImpl]
     .bind[FullConfig].to[ConfFileAndDb]
     .bind[MailDispatcherService].to[SingleHostMailDispatcherService]

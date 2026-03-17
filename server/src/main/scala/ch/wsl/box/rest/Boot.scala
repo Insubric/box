@@ -16,7 +16,7 @@ import scribe.writer.ConsoleWriter
 import wvlet.airframe.Design
 import ch.wsl.box.model.Migrate
 import ch.wsl.box.rest.logic.cron.{BoxCronLoader, CronScheduler}
-import ch.wsl.box.rest.logic.notification.{MailHandler, NotificationsHandler}
+import ch.wsl.box.rest.logic.notification.{MailHandler}
 import ch.wsl.box.rest.utils.CertificateUtils
 
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -58,7 +58,7 @@ class Box(name:String,version:String,https:Boolean)(implicit services: Services)
 
 
     //Registring handlers
-    new MailHandler(services.mailDispatcher).listen()
+    new MailHandler(services.dbNotify,services.mailDispatcher).listen()
 
     val scheduler = new CronScheduler(system)
     new BoxCronLoader(scheduler).load()

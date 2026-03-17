@@ -2,6 +2,7 @@ package ch.wsl.box.services
 
 import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.Connection
+import ch.wsl.box.rest.logic.notification.{DbNotify}
 import ch.wsl.box.rest.routes.v1.NotificationChannels
 import ch.wsl.box.rest.utils.BoxSession
 import ch.wsl.box.services.config.{Config, FullConfig}
@@ -18,8 +19,10 @@ trait Services extends ServicesWithoutGeneration {
   val actorSystem = bind[ActorSystem]
   val imageCacher = bind[ImageCache]
   val mail = bind[MailService]
+  val dbNotify = bind[DbNotify]
   val mailDispatcher = bind[MailDispatcherService]
   val notificationChannels = bind[NotificationChannels]
   val refreshTokenStorage = bind[RefreshTokenStorage[BoxSession]]
   val translation = bind[TranslateService]
+
 }

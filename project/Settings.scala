@@ -110,6 +110,7 @@ object Settings {
     "org.flywaydb" % "flyway-database-postgresql" % versions.flyway,
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j18"           % versions.scribe,
+    "org.tpolecat" %% "skunk-core" % "0.6.5"
   ))
 
   val codegenDependecies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
