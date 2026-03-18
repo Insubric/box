@@ -11,7 +11,7 @@ begin
         (now(),now(),_mail_from, _mail_to, _mail_cc,_mail_bcc, _subject, _text, _html,_params, now(),_mail_reply_to) returning id into _mail_id;
 
     -- subtracting the amount from the sender's account
-    PERFORM box_notify('mail_feedback_channel','{"sendMail": true}');
+    PERFORM box_notify('mail_feedback_channel','{"sendMail": true}'::jsonb);
 
     return _mail_id;
 end;

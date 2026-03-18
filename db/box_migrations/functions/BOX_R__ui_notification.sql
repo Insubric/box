@@ -7,7 +7,7 @@ declare
     output text := '';
 begin
 
-    output := row_to_json(
+    output := row_to_jsonb(
             (SELECT ColumnName FROM (SELECT topic,users,payload) AS ColumnName (topic,allowed_users,payload))
               )::text;
 

@@ -45,7 +45,7 @@ class DbNotifyHandlerImpl(connection:Connection,conf:FullConfig) extends DbNotif
 
   def listenAll() = {
     logger.info(s"Setting up DB Listen")
-    val io = connection.singleAdminSession().use{ s =>
+    val io = connection.notificationSession().use{ s =>
       val channelName = s"box_${conf.boxSchemaName}_channel"
       logger.info(s"Listening on $channelName")
       val ch = s.channel(Identifier.fromString(channelName).toOption.get)

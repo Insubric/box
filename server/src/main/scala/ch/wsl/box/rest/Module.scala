@@ -11,7 +11,7 @@ import ch.wsl.box.services.file.ImageCacheStorage
 import ch.wsl.box.services.files.{InMemoryImageCacheStorage, PgImageCacheStorage}
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDummy}
 import ch.wsl.box.services.mail_dispatcher.{MailDispatcherService, SingleHostMailDispatcherService}
-import ch.wsl.box.services.translation.{DeepLTranslateService, TranslateService}
+import ch.wsl.box.services.translation.{ColumnTranslate, DeepLTranslateService, TranslateService}
 import com.softwaremill.session.{InMemoryRefreshTokenStorage, RefreshTokenStorage}
 import scribe.Logging
 import wvlet.airframe._
@@ -62,6 +62,7 @@ object DefaultModule extends Module {
       s.connection.dbConnection.close()
       s.connection.adminDbConnection.close()
     }
+    .bind[ColumnTranslate].toEagerSingleton
 
 
 }
