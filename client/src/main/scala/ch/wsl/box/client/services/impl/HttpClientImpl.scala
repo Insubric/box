@@ -5,7 +5,7 @@ import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Labels, Notificat
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
 import io.circe.{Decoder, Json}
 import org.scalajs.dom
-import org.scalajs.dom.{File, FormData, XMLHttpRequest}
+import org.scalajs.dom.{Blob, File, FileReader, FormData, HttpMethod, RequestInit, XMLHttpRequest}
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
@@ -194,5 +194,15 @@ class HttpClientImpl extends HttpClient with Logging {
   private var handleAuthFailure: () => Unit = () => {}
   override def setHandleAuthFailure(f: () => Unit): Unit = {
     handleAuthFailure = f
+  }
+
+  override def getBlob(url: String)(implicit ex:ExecutionContext): Future[Blob] = {
+    for{
+      req <- dom.fetch(url,new RequestInit {
+        method = HttpMethod.GET
+      }).toFuture
+      blob <- req.blob().toFuture
+    } yield blob
+
   }
 }

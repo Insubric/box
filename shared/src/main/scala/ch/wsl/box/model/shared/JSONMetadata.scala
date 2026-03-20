@@ -51,6 +51,10 @@ case class JSONMetadata(
 //    }.dropWhile(_ == 0).headOption.getOrElse(0)
 //  }
   def table:Seq[JSONField] = tabularFields.flatMap(tf => fields.find(_.name == tf))
+  def exportTable:Seq[JSONField] = {
+    val r = exportFields.flatMap(tf => fields.find(_.name == tf))
+    r
+  }
   def preselectedTable:Seq[JSONField] = params.flatMap(_.jsOpt("preselectedFields").flatMap(_.as[Seq[String]].toOption)) match {
     case Some(preselected) => preselected.flatMap(tf => fields.find(_.name == tf))
     case None => table

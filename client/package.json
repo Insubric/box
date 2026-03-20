@@ -36,8 +36,8 @@
     "hotkeys-js": "3.10.0",
     "jquery": "3.4.1",
     "js-md5": "0.8.3",
-    "jspdf": "2.5.1",
-    "jspdf-autotable": "3.5.28",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.7",
     "jspreadsheet-ce": "git://github.com/jspreadsheet/ce.git#2e7389f8f6a84d260603bbac06f00bb404e1ba49",
     "jsts": "2.7.1",
     "jsuites": "5.9.1",
@@ -52,7 +52,8 @@
     "string-strip-html": "13.5.3",
     "tailwindcss": "^4.1.18",
     "toolcool-range-slider": "4.0.28",
-    "xlsx-js-style": "1.2.0"
+    "xlsx-js-style": "1.2.0",
+    "is-blob": "3.0.0"
   },
   "devDependencies": {
     "@scala-js/vite-plugin-scalajs": "^1.1.0",

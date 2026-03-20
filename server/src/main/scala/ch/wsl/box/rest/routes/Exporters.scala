@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Dispo
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{CSVTable, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{CSVTable, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.logic.{FormActions, Lookup}
 import io.circe.parser.parse
@@ -37,7 +37,7 @@ trait Exporters {
   val registry: RegistryInstance
   val name:String
   val metadataFactory: MetadataFactory
-  def tabularMetadata(fields:Option[Seq[String]] = None): DBIO[JSONMetadata]
+  def tabularMetadata(): DBIO[JSONMetadata]
   def actions:FormActions
 
   def mergeWithForeignKeys(extractFk: Boolean,data:Seq[Json],fk: Map[String,Seq[Json]],metadata:JSONMetadata):Seq[Json] = {
@@ -88,19 +88,29 @@ trait Exporters {
       }
   }
 
-  def exportCsv(q:String,fk:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = {
+  def exportCsv(q:String,fk:Option[String],fields:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = {
 
         val extractFk = fk.forall(_ == "resolve_fk")
         val query = parse(q).right.get.as[JSONQuery].right.get
+
+
+        def selectedFields(mf:Seq[JSONField]):Seq[JSONField] = {
+          fields.map(_.split(",").toSeq) match {
+            case Some(value) => value.flatMap(f => mf.find(_.name == f))
+            case None => mf
+          }
+        }
+
         val io = for {
           metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
           formActions = FormActions(metadata, registry, metadataFactory)
           fkValues <- Lookup.valuesForEntity(metadata)
-          data <- formActions.list(query, true, _.exportFieldsNoGeom.map(_.name))
+          fields = selectedFields(metadata.exportFieldsNoGeom)
+          data <- formActions.list(query, true, _ => fields.map(_.name))
           csvTable =  CSVTable(
             title = name,
-            header = metadata.exportFieldsNoGeom.map(_.title),
-            rows = mergeWithForeignKeys(extractFk,data,fkValues,metadata).map(row => metadata.exportFieldsNoGeom.map(cell => row.get(cell.name)))
+            header = fields.map(_.title),
+            rows = mergeWithForeignKeys(extractFk,data,fkValues,metadata).map(row => fields.map(cell => row.get(cell.name)))
           )
         } yield {
           CSV.download(csvTable)

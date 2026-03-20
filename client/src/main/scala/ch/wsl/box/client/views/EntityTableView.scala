@@ -4,7 +4,7 @@ import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, UI}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, UI}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
@@ -160,7 +160,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
   }
 
-  private def _handleState(state: EntityTableState,emptyFieldsForm:JSONMetadata): Unit = {
+  private def _handleState(state: EntityTableState,metadata:JSONMetadata): Unit = {
 
     services.clientSession.loading.set(true)
     logger.info(s"handling Entity table state name=${state.entity}, kind=${state.kind} and query=${state.query}")
@@ -169,9 +169,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val urlQuery:Option[JSONQuery] = URLQuery.fromQueryParameters(Routes.urlParams.get("q")).orElse(stateQuery)
     services.clientSession.setURLQuery(urlQuery.getOrElse(JSONQuery.empty))
 
-    val fields = emptyFieldsForm.fields.filter(field => emptyFieldsForm.tabularFields.contains(field.name))
-    val form = emptyFieldsForm.copy(fields = fields)
-
     val defaultQuery:JSONQuery = JSONQuery.empty.limit(ClientConf.pageLength)
 
     val queryWithGeom:JSONQuery = services.clientSession.getQueryFor(state.kind,state.entity,urlQuery) match {
@@ -179,12 +176,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       case _ => urlQuery.getOrElse(defaultQuery)
     }
 
-    val geomFields = emptyFieldsForm.geomFields.map(_.name)
+    val geomFields = metadata.geomFields.map(_.name)
     val query = queryWithGeom.copy(filter = queryWithGeom.filter.filterNot(f => geomFields.contains(f.column)))
 
     {for{
       access <- { if(!state.public)
-        services.rest.tableAccess(form.entity,state.kind)
+        services.rest.tableAccess(metadata.entity,state.kind)
       else Future.successful(TableAccess(false,false,false))
       }
       specificKind <- { if(!state.public)
@@ -199,7 +196,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         kind = specificKind,
         urlQuery = urlQuery,
         rows = Seq(),
-        fieldQueries = form.table.map{ field =>
+        fieldQueries = metadata.table.map{ field =>
 
           val operator = query.filter.find(_.column == field.name).flatMap(_.operator).getOrElse(Filter.default(field))
           val rawValue = query.filter.find(_.column == field.name).flatMap(_.value).getOrElse("")
@@ -211,7 +208,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
             filterOperator = operator
           )
         },
-        metadata = Some(form),
+        metadata = Some(metadata),
         selectedRow = Seq(),
         ids = IDsVMFactory.empty,
         pages = Navigation.pageCount(0),
@@ -221,7 +218,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         geoms = Seq(),
         extent = None,
         public = state.public,
-        selectedColumns = form.preselectedTable
+        selectedColumns = metadata.preselectedTable
       )
 
       //saveIds(IDs(true,1,Seq(),0),query)
@@ -551,6 +548,11 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
+  val downloadPdf = (e: Event) => {
+    download("pdf")
+    e.preventDefault()
+  }
+
   val downloadXLS = (e:Event) => {
     download("xlsx")
     e.preventDefault()
@@ -583,18 +585,21 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     val kind = EntityKind(model.subProp(_.kind).get).entityOrForm
     val modelName =  model.subProp(_.name).get
-    val exportFields = model.get.metadata.map(_.exportFields).getOrElse(Seq())
-    val fields = model.get.metadata.map(_.fields).getOrElse(Seq())
+
+    val fields = model.get.selectedColumns.map(_.name)
 
 
     val queryNoLimits = query(None).copy(paging = None)
 
-
-    val url = Routes.apiV1(
-      s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${exportFields.mkString(",")}&q=${URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)}".replaceAll("\n","")
-    )
-    logger.info(s"downloading: $url")
-    dom.window.open(url)
+    if(format == "pdf") {
+      PDF.table(kind,modelName,fields,queryNoLimits)
+    } else {
+      val url = Routes.apiV1(
+        s"/$kind/${services.clientSession.lang()}/$modelName/$format?fk=${ExportMode.RESOLVE_FK}&fields=${fields.mkString(",")}&q=${URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)}".replaceAll("\n", "")
+      )
+      logger.info(s"downloading: $url")
+      dom.window.open(url)
+    }
   }
 
   def getObj(id:JSONID):Future[Json] = {
@@ -1054,7 +1059,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         headerFactory = Some(_ => div(Labels.table.column_selection).render),
         bodyFactory = Some { nested =>
           div(
-              metadata.toSeq.flatMap(_.table).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
+              metadata.toSeq.flatMap(_.fields).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
                 div(
                   Checkbox(localModel.bitransform(_.contains(c)){
                     case true => localModel.get ++ Seq(c)
@@ -1146,6 +1151,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           ),
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
+          button(`type` := "button", onclick :+= presenter.downloadPdf, ClientConf.style.boxButton, Labels.entity.pdf),
           button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls),
           if (presenter.hasGeometry()) {
             Seq(

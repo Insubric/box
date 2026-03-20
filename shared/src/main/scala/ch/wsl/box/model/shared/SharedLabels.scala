@@ -226,6 +226,7 @@ object SharedLabels extends LabelsCollection {
     def confirmRevert = "table.confirmRevert"
     def csv = "table.csv"
     def xls = "table.xls"
+    def pdf = "table.pdf"
     def importxls = "table.importxls"
     def shp = "table.shp"
     def geopackage = "table.geopackage"
@@ -241,6 +242,7 @@ object SharedLabels extends LabelsCollection {
       confirmRevert,
       csv,
       xls,
+      pdf,
       importxls,
       shp,
       geopackage

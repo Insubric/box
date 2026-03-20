@@ -28,7 +28,7 @@ object BoxFileReader {
   }
 
 
-  def readAsDataURL(blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = _read(_.readAsDataURL(blob))
+  def readAsDataURL(blob:Blob)(implicit ex:ExecutionContext):Future[String] = _read(_.readAsDataURL(blob)).map(_.toString)
   def readAsArrayBuffer(blob:Blob)(implicit ex:ExecutionContext):Future[js.Any] = _read(_.readAsArrayBuffer(blob))
   def readAsText(blob:Blob)(implicit ex:ExecutionContext):Future[String] = _read(_.readAsText(blob)).map(_.toString)
 
