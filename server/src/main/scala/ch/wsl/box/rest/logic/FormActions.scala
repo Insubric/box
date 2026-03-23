@@ -49,7 +49,7 @@ case class FormActions(metadata:JSONMetadata,
 
 
     jsonAction.getById(id).flatMap{ row =>
-      DBIO.sequenceOption(row.map(expandJson))
+      DBIO.sequenceOption(row.map(expandJson(_,metadata.fields.map(_.name))))
     }
   }
 
@@ -58,23 +58,13 @@ case class FormActions(metadata:JSONMetadata,
   private def queryForm(query: JSONQuery):DBIO[JSONQuery] = {
     val base = metadata.query.map{ defaultQuery =>
       JSONQuery(
+        fields = query.fields,
         filter = defaultQuery.filter ++ query.filter,
         sort = query.sort ++ defaultQuery.sort,
         paging = query.paging
       )
     }.getOrElse(query)
     fkTransform.preFilter(metadata,base.filter).map{ fil => base.copy(filter = fil.filters.toList)}
-  }
-
-
-  private def streamSeq(query:JSONQuery):DBIO[Seq[Json]] = {
-
-    for{
-      q <- queryForm(query)
-      rows <- jsonAction.findSimple(q)
-      result <- DBIO.sequence(rows.map(expandJson))
-    } yield result
-
   }
 
 
@@ -85,7 +75,7 @@ case class FormActions(metadata:JSONMetadata,
     for{
       q <- queryForm(query)
       rows <- jsonAction.findSimple(q)
-      result <- DBIO.sequence(rows.map(expandJson))
+      result <- DBIO.sequence(rows.map(r => expandJson(r,query.fields.getOrElse(metadata.fields.map(_.name)))))
     } yield result
 
   }
@@ -104,7 +94,7 @@ case class FormActions(metadata:JSONMetadata,
   private def _list(query:JSONQuery):DBIO[Seq[Json]] = {
     queryForm(query).flatMap { q =>
       metadata.view.map(v => Registry().actions(v)) match {
-        case None => streamSeq(q)
+        case None => findSimple(q)
         case Some(v) => v.findSimple(q)
       }
     }
@@ -173,7 +163,7 @@ case class FormActions(metadata:JSONMetadata,
       }
   }
 
-  def list(query:JSONQuery,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Json]] = __list(query, dropHtml).map{ rows =>
+  def list(query:JSONQuery,dropHtml:Boolean = false,fields:Seq[String]):DBIO[Seq[Json]] = __list(query.copy(fields=Some(fields)), dropHtml).map{ rows =>
     rows.map(Json.fromFields)
   }
 
@@ -414,9 +404,9 @@ case class FormActions(metadata:JSONMetadata,
     FormActions(metadata,registry,metadataFactory,Some(field)).findSimple(query)
   }
 
-  private def expandJson(dataJson:Json):DBIO[Json] = {
+  private def expandJson(dataJson:Json,fields:Seq[String]):DBIO[Json] = {
 
-    val values = metadata.fields.map{ field =>
+    val values = metadata.fields.filter(x => fields.contains(x.name)).map{ field =>
       {(field.`type`,field.child) match {
         case ("static",_) => DBIO.successful(field.name -> field.default.asJson)  //set default value
         case (_,None) => DBIO.successful(field.name -> dataJson.js(field.name))        //use given value

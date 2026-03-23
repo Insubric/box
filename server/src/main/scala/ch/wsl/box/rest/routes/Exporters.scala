@@ -3,7 +3,7 @@ package ch.wsl.box.rest.routes
 import akka.http.scaladsl.model.{HttpEntity, HttpResponse, MediaTypes}
 import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Disposition`}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.stream.Materializer
 import ch.wsl.box.model.shared.{CSVTable, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.io.xls.XLS
@@ -20,7 +20,7 @@ import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 trait Exporters {
 
@@ -74,7 +74,7 @@ trait Exporters {
             metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
             formActions = FormActions(metadata, registry, metadataFactory)
             fkValues <- Lookup.valuesForEntity(metadata)
-            data <- formActions.list(query, true, _.exportFieldsNoGeom.map(_.name))
+            data <- formActions.list(query, true, metadata.exportFieldsNoGeom.map(_.name))
             xlsTable = XLSTable(
               title = name,
               header = metadata.exportFieldsNoGeom.map(_.title),
@@ -88,34 +88,38 @@ trait Exporters {
       }
   }
 
-  def exportCsv(q:String,fk:Option[String],fields:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = {
+  def exportCsv(q:String,fk:Option[String],_fields:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = {
 
         val extractFk = fk.forall(_ == "resolve_fk")
         val query = parse(q).right.get.as[JSONQuery].right.get
 
 
         def selectedFields(mf:Seq[JSONField]):Seq[JSONField] = {
-          fields.map(_.split(",").toSeq) match {
+          _fields.map(_.split(",").toSeq) match {
             case Some(value) => value.flatMap(f => mf.find(_.name == f))
             case None => mf
           }
         }
 
-        val io = for {
-          metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-          formActions = FormActions(metadata, registry, metadataFactory)
-          fkValues <- Lookup.valuesForEntity(metadata)
-          fields = selectedFields(metadata.exportFieldsNoGeom)
-          data <- formActions.list(query, true, _ => fields.map(_.name))
-          csvTable =  CSVTable(
-            title = name,
-            header = fields.map(_.title),
-            rows = mergeWithForeignKeys(extractFk,data,fkValues,metadata).map(row => fields.map(cell => row.get(cell.name)))
-          )
-        } yield {
-          CSV.download(csvTable)
-        }
-        onSuccess(db.db.run(io))(x => x)
+    val fut: Future[Route] = boxDb.adminDb.run(tabularMetadata()).flatMap { metadata =>
+
+      val formActions = FormActions(metadata, registry, metadataFactory)
+      val fields =  selectedFields(metadata.exportFieldsNoGeom)
+      val io = for {
+        fkValues <- Lookup.valuesForEntity(metadata)
+        data <- formActions.list(query, true, fields.map(_.name))
+        csvTable = CSVTable(
+          title = name,
+          header = fields.map(_.title),
+          rows = mergeWithForeignKeys(extractFk, data, fkValues, metadata).map(row => fields.map(cell => row.get(cell.name)))
+        )
+      } yield {
+        CSV.download(csvTable)
+      }
+      db.db.run(io)
+    }
+
+    rc:RequestContext => fut.flatMap(x => x(rc))
   }
 
 //  def shp(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path("shp") {

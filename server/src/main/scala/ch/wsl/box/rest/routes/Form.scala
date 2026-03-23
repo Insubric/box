@@ -258,7 +258,7 @@ case class Form(
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
                 formActions = FormActions(metadata, registry, metadataFactory)
-                result <- formActions.list(query, true)
+                result <- formActions.list(query, true, metadata.tabularFields)
               } yield {
                 result
               }
