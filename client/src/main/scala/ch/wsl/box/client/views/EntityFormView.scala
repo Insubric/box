@@ -304,8 +304,24 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       val errors = document.querySelectorAll("*:invalid")
       for(i <- 0 to errors.length) {
         errors.item(i) match {
-          case e:HTMLElement => logger.warn(s"Error on: ${e.outerHTML}")
-          case _ => logger.warn(s"Error on non HTMLElement")
+          case e:dom.HTMLElement => {
+            logger.warn(s"Error on: ${e} cass: ${e.className}")
+            window.asInstanceOf[js.Dynamic].testEL = e
+            e.closest(".box-tab") match {
+              case element: dom.HTMLElement => element.dataset.get("boxTab") match {
+                case Some(value) => document.getElementById(JSONMetadataRenderer.tabSelectorId(value)) match {
+                  case element: dom.HTMLElement => {
+                    element.click()
+                    _form.reportValidity()
+                  }
+                  case _ => ???
+                }
+                case None => logger.warn("Box tab element not found")
+              }
+              case _ => logger.warn("Non HTMLElement box-tab")
+            }
+          }
+          case e => logger.warn(s"Error on non HTMLElement: ${e}")
         }
       }
       logger.warn(s"Form validation failed")
