@@ -20,7 +20,7 @@ object DB {
     val worker_options = new WorkerOptions {}
     worker_options.`type` = WorkerType.module
 
-    val worker = new Worker(s"./ui/postgres.worker.${version}.js",worker_options)
+    val worker = new Worker(s"./ui/postgres.worker.${version}.js?version=$version",worker_options)
 
     connection = new PGliteWorker(worker)
 
