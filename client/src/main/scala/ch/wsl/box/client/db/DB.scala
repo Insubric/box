@@ -1,8 +1,9 @@
 package ch.wsl.box.client.db
 
+import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.vendors.PGliteWorker
 import ch.wsl.typings.electricSqlPglite.mod.PGlite
-import ch.wsl.typings.electricSqlPglite.workerMod.PGliteWorker
 import org.scalajs.dom
 import org.scalajs.dom.{URL, Worker, WorkerOptions, WorkerType}
 
@@ -20,7 +21,7 @@ object DB {
     val worker_options = new WorkerOptions {}
     worker_options.`type` = WorkerType.module
 
-    val worker = new Worker(s"./ui/postgres.worker.${version}.js?version=$version",worker_options)
+    val worker = new Worker(s"${Routes.baseUri}ui/workers/postgres.worker.${version}.js?version=$version",worker_options)
 
     connection = new PGliteWorker(worker)
 

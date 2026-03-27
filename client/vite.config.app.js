@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import scalaJSPlugin from "@scala-js/vite-plugin-scalajs";
 import { loadEnv } from 'vite';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 const env = loadEnv(process.env.NODE_ENV, process.cwd());
 
@@ -8,6 +9,14 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': 'http://localhost:8080',
+            '/ui/workers': {
+                target: 'http://127.0.0.1:5174',
+                changeOrigin: true,
+                rewrite: (path) => {
+                    console.log(path)
+                    return path.replace(/^\/ui\/workers/, '')
+                },
+            }
         },
         cors: true
     },
@@ -32,7 +41,17 @@ export default defineConfig({
         // URI prefix of imports that this plugin catches (without the trailing ':')
         // default: 'scalajs' (so the plugin recognizes URIs starting with 'scalajs:')
         uriPrefix: 'scalajs',
-    })],
+    }),
+    viteStaticCopy({
+        targets: [
+            {
+                src: './node_modules/@electric-sql/pglite-repl/dist-webcomponent/*',
+                dest: 'public',
+                rename: { stripBase: 1 }
+            }
+        ]
+    })
+    ],
     build: {
         emptyOutDir: false,
         rollupOptions: {

@@ -59,10 +59,19 @@ object Main extends Logging {
   }
 
   def setupUI(): Future[Unit] = {
+
+    val (_version,_appVersion) = {
+      val local = dom.window.asInstanceOf[js.Dynamic].boxVersion.asInstanceOf[js.UndefOr[String]]
+      local.toOption match {
+        case Some(v) => (Future.successful(v),Future.successful(v))
+        case None => (services.rest.version(),services.rest.appVersion())
+      }
+    }
+
     for {
       _ <- services.clientSession.refreshSession()
-      appVersion <- services.rest.appVersion()
-      version <- services.rest.version()
+      appVersion <- _appVersion
+      version <- _version
       _ <- services.rest.conf().map{ conf =>
         ClientConf.load(conf,version,appVersion) //needs to be loaded before labels, fix #91
       }

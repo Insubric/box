@@ -8,13 +8,15 @@ try {
             const params = new URLSearchParams(location.search)
             const version = params.get("version")
 
-            const [pgliteWasmModule, fsBundle] = await Promise.all([
-                WebAssembly.compileStreaming(fetch(`./postgres.${version}.wasm`)),
-                fetch(`./postgres.${version}.data`).then((response) => response.blob()),
+            const [pgliteWasmModule, initdbWasmModule, fsBundle] = await Promise.all([
+                WebAssembly.compileStreaming(fetch(`./pglite.${version}.wasm`)),
+                WebAssembly.compileStreaming(fetch(`./initdb.${version}.wasm`)),
+                fetch(`./pglite.${version}.data`).then((response) => response.blob()),
             ])
             // Create and return a PGlite instance
-            return new PGlite('idb://box-pgdata',{
+            return PGlite.create('idb://box-pgdata',{
                 pgliteWasmModule: pgliteWasmModule,
+                initdbWasmModule: initdbWasmModule,
                 fsBundle: fsBundle
             })
         },

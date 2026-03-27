@@ -24,6 +24,17 @@ object UI {
 
   import Directives._
 
+  def resourcesAt(basePath:String) = pathPrefix(basePath) {
+    extractUnmatchedPath { path =>
+      val assetName = path.toString().substring(1)
+      path.endsWith("wasm") match {
+        case false => getFromResource(s"$basePath/$assetName")
+        case true => getFromResource(s"$basePath/$assetName", contentType = ContentType.apply(MediaType.applicationBinary("wasm",MediaType.Compressible)))
+      }
+
+    }
+  }
+
   def clientFiles(implicit system:ActorSystem,services:Services):Route = {
 
     pathPrefix("icon") {
@@ -85,16 +96,8 @@ object UI {
         complete(HttpEntity(ContentType(MediaType.applicationWithOpenCharset("manifest+json","webmanifest"),HttpCharsets.`UTF-8`) ,manifest))
       }
     } ~
-    pathPrefix("ui") {
-      extractUnmatchedPath { path =>
-        val assetName = path.toString().substring(1)
-        path.endsWith("wasm") match {
-          case false => getFromResource(s"ui/$assetName")
-          case true => getFromResource(s"ui/$assetName", contentType = ContentType.apply(MediaType.applicationBinary("wasm",MediaType.Compressible)))
-        }
-
-      }
-    } ~
+    resourcesAt("ui") ~
+    resourcesAt("public") ~
     get {
       complete {
         val module = if(services.config.localDb) AvailableUIModule.prod else AvailableUIModule.prodNoLocalDb

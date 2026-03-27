@@ -9,15 +9,16 @@ export default defineConfig({
     },
     build: {
         outDir: './dist',
+        //watch: {},
         emptyOutDir: false,
         rollupOptions: {
             input: ['./workers/postgres.worker.js','./workers/sw.js'],
             // externalize the package so Rollup doesn't bundle its JS/WASM
             output: {
                 // keep emitted asset names predictable
-                entryFileNames: `ui/[name].${env.VITE_BOX_VERSION}.js`,
-                chunkFileNames: `ui/[name].${env.VITE_BOX_VERSION}.js`,
-                assetFileNames: `ui/[name].${env.VITE_BOX_VERSION}.[ext]`,
+                entryFileNames: `ui/workers/[name].${env.VITE_BOX_VERSION}.js`,
+                chunkFileNames: `ui/workers/[name].${env.VITE_BOX_VERSION}.js`,
+                assetFileNames: `ui/workers/[name].${env.VITE_BOX_VERSION}.[ext]`,
             },
         }
 

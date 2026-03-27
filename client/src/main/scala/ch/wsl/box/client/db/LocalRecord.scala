@@ -1,8 +1,8 @@
 package ch.wsl.box.client.db
 
 import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.vendors.PGliteWorker
 import ch.wsl.box.model.shared.{EntityKind, JSONID}
-import ch.wsl.typings.electricSqlPglite.workerMod.PGliteWorker
 import io.circe.Json
 import scribe.Logging
 
