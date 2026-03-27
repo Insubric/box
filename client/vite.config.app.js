@@ -9,6 +9,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': 'http://localhost:8080',
+            '/pdf': 'http://localhost:8080',
             '/ui/workers': {
                 target: 'http://127.0.0.1:5174',
                 changeOrigin: true,
