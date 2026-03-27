@@ -47,6 +47,8 @@ object ClientConf {
   def version: String = _version
   def appVersion: String = _appVersion
 
+  def applicationId:String = conf.get("application_id").getOrElse("box-app")
+
   def pageLength: Int = Try(conf("page_length").toInt).getOrElse(30)
 //  def lookupMaxRows  = Try(conf("fk_rows").toInt).getOrElse(30)
 

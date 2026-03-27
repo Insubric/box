@@ -7,6 +7,7 @@ try {
         async init() {
             const params = new URLSearchParams(location.search)
             const version = params.get("version")
+            const id = params.get("appId")
 
             const [pgliteWasmModule, initdbWasmModule, fsBundle] = await Promise.all([
                 WebAssembly.compileStreaming(fetch(`./pglite.${version}.wasm`)),
@@ -14,7 +15,7 @@ try {
                 fetch(`./pglite.${version}.data`).then((response) => response.blob()),
             ])
             // Create and return a PGlite instance
-            return PGlite.create('idb://box-pgdata',{
+            return PGlite.create(`idb://box-pgdata-${id}`,{
                 pgliteWasmModule: pgliteWasmModule,
                 initdbWasmModule: initdbWasmModule,
                 fsBundle: fsBundle
