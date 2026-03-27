@@ -278,6 +278,8 @@ lazy val publishAllTask = {
     (codegen / clean),
     (codegen / Compile / compile),
     (sharedJVM / publishSigned),
+    (sharedJS / publishSigned),
+    (client / publishSigned),
     (codegen / publishSigned),
     (server / publishSigned),
     (serverCacheRedis / publishSigned),
