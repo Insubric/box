@@ -42,6 +42,13 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Export VITE_BOX_VERSION
         run: echo "VITE_BOX_VERSION=${{ steps.tag.outputs.tag }}" >> $GITHUB_ENV
+      - name: Install node dependencies
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+        run: |
+          cd client
+          npm install
+          cd ..
       - name: Import TS Types
         env:
           SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
@@ -52,7 +59,6 @@ jobs:
           SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
         run: |
           cd client
-          npm install
           npm run build
           cd ..
       - name: Version info
