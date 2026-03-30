@@ -26,7 +26,6 @@ import scribe.Logging
 import ch.wsl.typings.gridstack.mod._
 import ch.wsl.typings.gridstack.distTypesMod._
 import ch.wsl.typings.gridstack.gridstackStrings
-import ch.wsl.typings.std.global.{HTMLInputElement, HTMLSelectElement}
 import io.udash.bootstrap.utils.BootstrapStyles.Form
 import io.udash.bootstrap.utils.{BootstrapTags, UdashIcons}
 import org.scalajs.dom.html.Input

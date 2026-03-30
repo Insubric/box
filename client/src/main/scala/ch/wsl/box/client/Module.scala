@@ -4,7 +4,6 @@ import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, Http
 import ch.wsl.box.client.styles.{BoxStyle, BoxStyleFactory, GlobalStyleFactory}
 import ch.wsl.box.client.views.components.{BoxMainLayout, MainLayout}
 import ch.wsl.box.model.shared.AvailableUIModule
-import ch.wsl.typings.std.WebAssembly.Global
 import wvlet.airframe._
 
 object Module {

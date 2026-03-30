@@ -1,4 +1,6 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
+import org.scalablytyped.converter.internal.Json
+import org.scalablytyped.converter.internal.ts.PackageJson
 //import xerial.sbt.Sonatype.sonatypeCentralHost
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
@@ -120,21 +122,15 @@ lazy val client: Project = (project in file("client"))
     // use Scala.js provided launcher code to start the client app
     scalaJSUseMainModuleInitializer := true,
     scalaJSStage := FullOptStage,
-    externalNpm := baseDirectory.value,
-    stIncludeDev := false,
-    stStdlib := List("es6", "es2018.asyncgenerator"),
-    stIgnore += "@fontsource/open-sans",
-    stIgnore += "redux",
-    stIgnore += "node",
-    stIgnore += "crypto-browserify",
-    stIgnore += "ol-ext",
-    stIgnore += "@fortawesome/fontawesome-free",
-    stIgnore += "stream-browserify",
-    stIgnore += "toolcool-range-slider",
-    stIgnore += "@tailwindcss/vite",
-    stIgnore += "string-strip-html",
-    stIgnore += "autocompleter",
-    stOutputPackage := "ch.wsl.typings",
+
+//    Compile / sourceGenerators += Def.task {
+//      generateScalaTypesTask.value
+//    },
+
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "target" / "scala-2.13" / "src_scalablytypes" / "main",
+
+    generateScalaTypes := generateScalaTypesTask.value,
+
     scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule).withModuleSplitStyle(ModuleSplitStyle.FewestModules)),
 
 
@@ -168,12 +164,11 @@ lazy val client: Project = (project in file("client"))
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
     localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
-    publishTo := sonatypeCentralPublishToBundle.value
+    publishTo := sonatypeCentralPublishToBundle.value,
   )
   .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
-    ScalablyTypedConverterExternalNpmPlugin,
     LocalesPlugin
   )
   .dependsOn(sharedJS)
@@ -318,3 +313,5 @@ lazy val dropBoxTask = Def.sequential(
   }
 )
 
+lazy val generateScalaTypes = taskKey[Unit]("generateScalaTypes")
+lazy val generateScalaTypesTask = BoxScalablyTypes.generateSJSFromTS(baseDirectory)

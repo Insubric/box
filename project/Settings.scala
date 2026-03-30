@@ -66,7 +66,7 @@ object Settings {
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M39"
+    val udash = "0.22.0"
     val udashJQuery = "3.0.4"
 
     val scribe = "3.0.2"
@@ -203,6 +203,7 @@ object Settings {
     "org.http4s" %%% "http4s-dom" % "0.2.3",
     "org.http4s" %%% "http4s-client" % "0.23.16",
     "org.http4s" %%% "http4s-circe" % "0.23.16",
+    "com.olvind" %%% "scalablytyped-runtime" % "2.4.2"
     //"io.github.cquiroz" %%% "scala-java-locales" % "1.5.1",
 //    "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.5.0"
   ))

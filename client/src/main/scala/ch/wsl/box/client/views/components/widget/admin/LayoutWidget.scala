@@ -19,12 +19,11 @@ import io.udash.bootstrap.BootstrapStyles
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
-import org.scalajs.dom.{DOMParser, Event, HTMLDivElement, HTMLElement, MIMEType, MutationObserver, MutationObserverInit, document}
+import org.scalajs.dom.{DOMParser, Event, HTMLDivElement, HTMLElement, HTMLInputElement, HTMLSelectElement, MIMEType, MutationObserver, MutationObserverInit, document}
 import scribe.Logging
 import ch.wsl.typings.gridstack.mod._
 import ch.wsl.typings.gridstack.distTypesMod._
 import ch.wsl.typings.gridstack.gridstackStrings
-import ch.wsl.typings.std.global.{HTMLInputElement, HTMLSelectElement}
 import io.udash.bootstrap.utils.BootstrapStyles.Form
 import io.udash.bootstrap.utils.BootstrapTags
 import org.scalajs.dom.html.Input
