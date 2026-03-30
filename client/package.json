@@ -7,7 +7,7 @@
     "dev": "npm run dev:app & npm run dev:worker-build & npm run dev:worker-serve",
     "dev:app": "vite --config vite.config.app.js",
     "dev:worker-build": "VITE_BOX_VERSION=dev vite build --config vite.config.worker.js --watch",
-    "dev:worker-serve": "http-server ./dist/ui/workers -c-1 -p 5174 --cors --base-path /ui/workers",
+    "dev:worker-serve": "http-server ./dist/ui/workers -c-1 -p 5174 --cors --base-path /ui/workers -a 0.0.0.0",
     "build:app": "vite build --config vite.config.app.js",
     "build:worker": "vite build --config vite.config.worker.js",
     "build": "npm run build:worker && npm run build:app",
@@ -16,7 +16,7 @@
   "dependencies": {
     "@electric-sql/pglite": "0.4.2",
     "@electric-sql/pglite-repl": "0.3.2",
-    "@fontsource/open-sans": "5.0.15",
+    "@fontsource/open-sans": "^5.0.15",
     "@fortawesome/fontawesome-free": "5.15.4",
     "@tailwindcss/vite": "^4.1.18",
     "@types/bootstrap": "4.1.3",

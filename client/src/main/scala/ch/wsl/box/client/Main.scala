@@ -98,7 +98,6 @@ object Main extends Logging {
 
 
         val mainStyle = document.createElement("style")
-        ClientConf.style.global //load unsaferoot global styles
         mainStyle.innerText = ClientConf.style.render(cssStringRenderer,cssEnv)
 
         val olStyle = document.createElement("style")

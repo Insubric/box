@@ -6,7 +6,7 @@ import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
-import ch.wsl.box.client.styles.{GlobalStyleFactory, StyleConf}
+import ch.wsl.box.client.styles.{BoxStyle, GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
 import io.circe._
@@ -29,11 +29,13 @@ object ClientConf {
   private var conf:Map[String,String] = Map()
   private var _version:String = ""
   private var _appVersion:String = ""
+  private var _style:BoxStyle = null
 
   def load(table:Map[String,String],version:String,appVersion:String) = {
     conf = table
     _version = version
     _appVersion = appVersion
+    _style = services.style.build(scalacss.devOrProdDefaults)
   }
 
   def loggerLevel = conf.get("client.logger.level") match {
@@ -96,7 +98,7 @@ object ClientConf {
   )
 
   //lazy val style = new GlobalStyleFactory.GlobalStyles(styleConf)
-  lazy val style = services.style.build(scalacss.devOrProdDefaults)
+  def style = _style
 
   def filterPrecisionDatetime: String = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
       case Some("DATE") => JSONFieldTypes.DATE
