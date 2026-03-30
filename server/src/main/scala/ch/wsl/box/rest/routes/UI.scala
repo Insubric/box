@@ -101,7 +101,7 @@ object UI {
     get {
       complete {
         val module = if(services.config.localDb) AvailableUIModule.prod else AvailableUIModule.prodNoLocalDb
-        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,module,services.config.basePath,services.config.mainColor,services.config.matomo)
+        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,module,services.config.frontendUrl,services.config.mainColor,services.config.matomo)
       }
     }
   }
