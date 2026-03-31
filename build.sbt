@@ -165,6 +165,8 @@ lazy val client: Project = (project in file("client"))
     ),
     localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
     publishTo := sonatypeCentralPublishToBundle.value,
+    Compile / doc / sources := Seq()
+
   )
   .settings(publishSettings)
   .enablePlugins(
