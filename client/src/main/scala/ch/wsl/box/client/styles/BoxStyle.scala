@@ -12,7 +12,6 @@ trait BoxStyle {
 
   val inputHighlight: StyleA
   val inputInvalid: StyleA
-  val global: StyleA
   val spaceBetween: StyleA
   val flexContainer: StyleA
   val sidebarRightContent: StyleA

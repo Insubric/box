@@ -255,6 +255,8 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     get[Seq[TableChildElement]](TABLECHILD_OPEN).toSeq.flatten.filterNot(_ == tc)
   )
 
+
+
   def lang():String = {
 
     Routes.urlParams.get(LANG).foreach(l =>
@@ -271,7 +273,10 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
     }
   }
 
+  val langProperty = Property(lang())
+
   def setLang(lang:String) = rest.labels(lang).map{ labels =>
+    langProperty.set(lang)
     Labels.load(labels)
     dom.window.sessionStorage.setItem(LANG,lang)
     Context.applicationInstance.reload()

@@ -3,22 +3,18 @@ package ch.wsl.box.client.geo
 import ch.wsl.typings.ol
 import ch.wsl.typings.ol.geomMod.Point
 import ch.wsl.typings.ol.{controlControlMod, controlMod, geolocationMod, geomGeometryMod, geomMod, imageMod, layerBaseVectorMod, layerMod, mod, renderFeatureMod, sourceMod, sourceVectorMod, styleMod}
-import org.scalajs.dom.{Event, HTMLInputElement}
+import org.scalajs.dom.{Event, HTMLInputElement, PositionOptions}
 import scalatags.JsDom.all.{`class`, `type`, div, input, onchange, style}
 
 import scala.scalajs.js
-
 import scalatags.JsDom.all._
 import io.udash._
 
 class MapGeolocation(map:mod.Map) {
-  val positionOptions = new org.scalajs.dom.PositionOptions()
-  positionOptions.enableHighAccuracy = true
 
   val geolocation = new mod.Geolocation(
     geolocationMod.Options()
       .setProjection(map.getView().getProjection())
-      .setTrackingOptions(positionOptions)
   )
 
   val accuracyFeature = new mod.Feature[geomMod.Geometry]()
