@@ -24,8 +24,8 @@ class FormMetadataFactorySpec  extends BaseSpec {
 
   "Form metadata" should "not include roles specific fields" in withServices[Assertion] { implicit services =>
 
-    val userWithRoles = CurrentUser(DbInfo("test","test",Seq("testRole")),UserInfo("test","test",None,Seq("testRole"),Json.Null))
-    val userWithoutRoles = CurrentUser(DbInfo("test2","test2",Seq()),UserInfo("test2","test2",None,Seq(),Json.Null))
+    val userWithRoles = CurrentUser(DbInfo("test","test",Seq("testRole")),UserInfo("test","test","test",None,Seq("testRole"),Json.Null))
+    val userWithoutRoles = CurrentUser(DbInfo("test2","test2",Seq()),UserInfo("test2","test2","test2",None,Seq(),Json.Null))
     implicit val up = UserProfile(services.connection.adminUser,services.connection.adminUser)
 
 

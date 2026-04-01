@@ -31,8 +31,11 @@ import org.scalajs.dom.{Event, window}
   * Created by andre on 4/25/2017.
   */
 
+object JSONMetadataRenderer {
+  def tabSelectorId(value:String):String = s"box-tab-select-${value.replaceAll(" ","-")}"
+}
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], id: ReadableProperty[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], _id: ReadableProperty[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -120,7 +123,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   val blocks: Seq[FormBlock] = metadata.layout.blocks.map { block =>
 
     FormBlock(
-      new BlockRendererWidget(WidgetParams(id,data,field,metadata,data,children,actions,public),block.fields,block.layoutType),
+      new BlockRendererWidget(WidgetParams(_id,data,field,metadata,data,children,actions,public),block.fields,block.layoutType),
       block.extractFields(metadata),
       Some(block),
     )
@@ -180,28 +183,46 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
       val tabKey = SelectedTabKey(metadata.objId,tabGroup)
       val selectedTab = Property(services.clientSession.selectedTab(tabKey).orElse(tabs.headOption.flatten))
       div(BootstrapCol.md(blks.map(_.block.width).max),
-        ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,
+        ul(BootstrapStyles.Navigation.nav, BootstrapStyles.Navigation.tabs, BootstrapStyles.Navigation.fill,role := "tablist",
           tabs.map { tabId =>
             val title:String = blocks.find(_.layoutBlock.exists(_.tab == tabId))
               .flatMap(_.layoutBlock.flatMap(_.title).flatMap(Internationalization.either(services.clientSession.lang()))).orElse(tabId).getOrElse("")
 
+            val isSelected = selectedTab.transform(_ == tabId)
+
             li(BootstrapStyles.Navigation.item,
-              a(BootstrapStyles.Navigation.link,
-                BootstrapStyles.active.styleIf(selectedTab.transform(_ == tabId)),
+              //input(`class` := s"box-tab-validator-$tabId",width := 1.px, height := 1.px, padding := 0, border := 0, float.left),
+              button(BootstrapStyles.Navigation.link,
+                id := JSONMetadataRenderer.tabSelectorId(tabId.getOrElse("")),
+                role := "tab",
+                aria.selected.bind(isSelected.transform(_.toString)),
+                aria.controls := s"box-panel-$tabId",
+                tabindex.bind(isSelected.transform{
+                  case true => "0"
+                  case false => "-1"
+                }),
+                BootstrapStyles.active.styleIf(isSelected),
                 onclick :+= { (e: Event) =>
                   selectedTab.set(tabId);
                   tabId.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
                   e.preventDefault() },
-                title
+                Labels(title)
               ).render
             ).render
           }
         ),
-        nested(produce(selectedTab) { tabName =>
+        tabs.map{ tabName =>
           val block = blks.filter(_.block.tab == tabName)
           window.setTimeout(() => block.map(x => x.widget.afterRender()),0)
-          renderBlocks(block).render
-        })
+          // make tab fill the space
+          val fullwidth = block.map(b => b.copy(b.block.copy(width = 12/block.length)))
+          val isSelected = selectedTab.transform(_ == tabName)
+          isSelected.listen({
+            case true => window.setTimeout(() => block.map(x => x.widget.afterRender()),0)
+            case _ => ()
+          },true)
+          div(id := s"box-panel-${tabName.getOrElse("")}",`class` := "box-tab",attr("data-box-tab") := tabName.getOrElse("noname"), role := "tabpanel", (style := "display: none;").attrIfNot(isSelected), renderBlocks(fullwidth)).render
+        }
       )
     }
 

@@ -24,72 +24,19 @@ object UI {
 
   import Directives._
 
-  val postgresWorker = path("postgres.worker.js") {
-    get{
-      val worker = s"""
-                      |try {
-                      |    import { PGlite } from '@electric-sql/pglite'
-                      |} catch (error) {
-                      |    console.error('Error importing PGlite:', error);
-                      |}
-                      |
-                      |try {
-                      |    import { worker } from '@electric-sql/pglite/worker'
-                      |} catch (error) {
-                      |    console.error('Error importing worker:', error);
-                      |}
-                      |
-                      |try{
-                      |  worker({
-                      |    async init() {
-                      |      // Create and return a PGlite instance
-                      |      return new PGlite('idb://box-pgdata')
-                      |    },
-                      |  })
-                      |} catch (error) {
-                      |    console.error('Error starting worker:', error);
-                      |}
-                      |""".stripMargin
+  def resourcesAt(basePath:String) = pathPrefix(basePath) {
+    extractUnmatchedPath { path =>
+      val assetName = path.toString().substring(1)
+      path.endsWith("wasm") match {
+        case false => getFromResource(s"$basePath/$assetName")
+        case true => getFromResource(s"$basePath/$assetName", contentType = ContentType.apply(MediaType.applicationBinary("wasm",MediaType.Compressible)))
+      }
 
-      val simpleWorker =
-        s"""
-           |console.log('Worker started');
-           |
-           |try {
-           |    const { PGlite } = await import('./assets/@electric-sql/pglite/dist/index.js')
-           |    const { worker } = await import('./assets/@electric-sql/pglite/dist/worker/index.js')
-           |    worker({
-           |      async init() {
-           |        // Create and return a PGlite instance
-           |        return new PGlite('idb://box-pgdata')
-           |      },
-           |    })
-           |} catch (error) {
-           |    console.error('Error starting worker:', error);
-           |}
-           |
-           |self.onmessage = function(event) {
-           |    console.log('Message received in worker:', event.data);
-           |};
-           |""".stripMargin
-
-      complete(HttpEntity(MediaTypes.`application/javascript`.toContentType(HttpCharsets.`UTF-8`) ,simpleWorker))
     }
-  }
-
-  val postgresWasm = path("postgres.wasm") {
-    WebJarsSupport.fullPath("@electric-sql/pglite/dist/postgres.wasm",ContentType.apply(MediaType.applicationBinary("wasm",MediaType.Compressible)))
-  }
-  val postgresData = path("postgres.data") {
-    WebJarsSupport.fullPath("@electric-sql/pglite/dist/postgres.data",ContentTypes.`text/plain(UTF-8)`)
   }
 
   def clientFiles(implicit system:ActorSystem,services:Services):Route = {
 
-    pathPrefix("dev") {
-      getFromBrowseableDirectories("./client/target/scala-2.13/scalajs-bundler/main")
-    } ~
-    postgresWorker ~
     pathPrefix("icon") {
       pathPrefix("icon.png") {
         get{
@@ -111,9 +58,6 @@ object UI {
       get{
         File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,16,8)),Some("image/png"),"favicon-16x16.png"))
       }
-    } ~
-    pathPrefix("sw.js") {
-      getFromResource("sw.js")
     } ~
     pathPrefix("pdf") {
       extractUnmatchedPath { e =>
@@ -152,28 +96,12 @@ object UI {
         complete(HttpEntity(ContentType(MediaType.applicationWithOpenCharset("manifest+json","webmanifest"),HttpCharsets.`UTF-8`) ,manifest))
       }
     } ~
-    pathPrefix("assets") {
-      postgresWasm ~
-      postgresData ~
-      WebJarsSupport.webJars
-    } ~
-    pathPrefix("bundle") {
-      WebJarsSupport.bundle
-    } ~
-    pathPrefix("redactor.js") {
-      get{
-        complete(HttpEntity(ContentType(MediaTypes.`application/javascript`,HttpCharsets.`UTF-8`) ,services.config.redactorJs))
-      }
-    }~
-    pathPrefix("redactor.css") {
-      get{
-        complete(HttpEntity(ContentType(MediaTypes.`text/css`,HttpCharsets.`UTF-8`) ,services.config.redactorCSS))
-      }
-    } ~
+    resourcesAt("ui") ~
+    resourcesAt("public") ~
     get {
       complete {
         val module = if(services.config.localDb) AvailableUIModule.prod else AvailableUIModule.prodNoLocalDb
-        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,module,services.config.enableRedactor,services.config.devServer,services.config.basePath,services.config.mainColor,services.config.matomo)
+        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,module,services.config.frontendUrl,services.config.mainColor,services.config.matomo)
       }
     }
   }

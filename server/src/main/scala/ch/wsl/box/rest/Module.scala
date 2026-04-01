@@ -2,14 +2,16 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import ch.wsl.box.jdbc.{Connection, ConnectionConfImpl}
+import ch.wsl.box.rest.logic.notification.{DbNotify, DbNotifyHandlerImpl}
 import ch.wsl.box.rest.routes.v1.{NotificationChannels, NotificationChannelsImpl}
 import ch.wsl.box.rest.utils.BoxSession
 import ch.wsl.box.services.{Services, ServicesWithoutGeneration}
-import ch.wsl.box.services.config.{ConfFileAndDb, Config, ConfigFileImpl, FullConfig, FullConfigFileOnlyImpl}
+import ch.wsl.box.services.config.{ConfFileAndDb, Config, ConfigFileImpl, DeepLConfig, FullConfig, FullConfigFileOnlyImpl}
 import ch.wsl.box.services.file.ImageCacheStorage
 import ch.wsl.box.services.files.{InMemoryImageCacheStorage, PgImageCacheStorage}
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDummy}
 import ch.wsl.box.services.mail_dispatcher.{MailDispatcherService, SingleHostMailDispatcherService}
+import ch.wsl.box.services.translation.{ColumnTranslate, DeepLTranslateService, TranslateService}
 import com.softwaremill.session.{InMemoryRefreshTokenStorage, RefreshTokenStorage}
 import scribe.Logging
 import wvlet.airframe._
@@ -45,9 +47,12 @@ object DefaultModule extends Module {
     .bind[ImageCacheStorage].to[PgImageCacheStorage]
     .bind[MailService].to[MailServiceCourier]
     .bind[Connection].to[ConnectionConfImpl]
+    .bind[DbNotify].to[DbNotifyHandlerImpl]
     .bind[NotificationChannels].to[NotificationChannelsImpl]
     .bind[FullConfig].to[ConfFileAndDb]
     .bind[MailDispatcherService].to[SingleHostMailDispatcherService]
+    .bind[DeepLConfig].to[ConfFileAndDb]
+    .bind[TranslateService].to[DeepLTranslateService]
     .bind[RefreshTokenStorage[BoxSession]].toInstance(new InMemoryRefreshTokenStorage[BoxSession] with Logging {
       override def log(msg: String): Unit = logger.info(msg)
     })
@@ -57,6 +62,7 @@ object DefaultModule extends Module {
       s.connection.dbConnection.close()
       s.connection.adminDbConnection.close()
     }
+    .bind[ColumnTranslate].toEagerSingleton
 
 
 }

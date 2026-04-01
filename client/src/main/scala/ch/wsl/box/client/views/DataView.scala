@@ -152,7 +152,7 @@ case class DataView(model:ModelProperty[DataModel], presenter:DataPresenter) ext
       metadata.label
     ),
     produce(model.subProp(_.exportDef)){ ed =>
-      div(ClientConf.style.global)(ed.map(_.description.getOrElse[String]("")).getOrElse[String]("")).render
+      div(ed.map(_.description.getOrElse[String]("")).getOrElse[String]("")).render
     },
     br,
     JSONMetadataRenderer(metadata, model.subProp(_.queryData),Seq(),Property(model.get.queryData.ID(metadata.keyFields).map(_.asString)),WidgetCallbackActions.noAction,Property(false),false).edit(nested),

@@ -38,17 +38,7 @@ object Routes extends Logging {
   def fullUrl = dom.document.asInstanceOf[js.Dynamic].baseURI.asInstanceOf[String]
   def originUrl = dom.window.location.origin
 
-  def baseUri = {
-    val bu = fullUrl
-    if(bu.contains("//")) {
-      bu.split("/").drop(3).toList match {
-        case Nil => "/"
-        case x => x.mkString("/","/","/")
-      }
-    } else {
-      bu
-    }
-  }
+  def baseUri = ClientConf.frontendUrl
 
   def removeBase(s:String):String = {
     val result = s.stripPrefix(baseUri.stripSuffix("/"))
@@ -62,7 +52,7 @@ object Routes extends Logging {
   }
 
   def wsV1(topic:String):String = {
-    fullUrl.replace("http","ws") + "api/v1/notifications/"+topic
+    originUrl.replace("http","ws") + "/api/v1/notifications/"+topic
   }
 
   def apply(kind:String, entityName:String,public:Boolean) = new Routes{

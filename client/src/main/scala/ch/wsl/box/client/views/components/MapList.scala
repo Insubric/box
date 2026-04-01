@@ -22,7 +22,6 @@ import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
 import ch.wsl.typings.ol.objectMod.ObjectEvent
 import ch.wsl.typings.ol.viewMod.FitOptions
 import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
-import ch.wsl.typings.std.PositionOptions
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js

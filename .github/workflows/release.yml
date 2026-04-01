@@ -11,10 +11,10 @@ jobs:
       - uses: actions/checkout@v2.3.4
         with:
           fetch-depth: 0
-      - name: Node 16.x
+      - name: Node 22.x
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 22
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
@@ -29,8 +29,38 @@ jobs:
           passphrase: ${{ secrets.PGP_PASSPHRASE }}
       - name: List keys
         run: gpg -K
+      - id: tag
+        run: |
+          if [[ "${GITHUB_REF#refs/tags/}" != "$GITHUB_REF" ]]; then
+          tag=${GITHUB_REF#refs/tags/}
+          else
+          tag=$(git tag --points-at "$GITHUB_SHA" | head -n1)
+          fi
+          # strip a single leading v if present
+          tag=${tag#v}
+          echo $tag
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Export VITE_BOX_VERSION
+        run: echo "VITE_BOX_VERSION=${{ steps.tag.outputs.tag }}" >> $GITHUB_ENV
+      - name: Install node dependencies
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+        run: |
+          cd client
+          npm install
+          cd ..
+      - name: Import TS Types
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+        run: |
+          sbt client/generateScalaTypes
       - name: Build bundle
-        run: sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m client/fullOptJS::webpack
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+        run: |
+          cd client
+          npm run build
+          cd ..
       - name: Version info
         run: |
           sbt server/version

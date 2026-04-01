@@ -142,7 +142,7 @@ class RestMock(values:Values) extends REST with Logging {
 
   override def importXLS(kind: String, lang: String, entity: String, data: File)(implicit ec:ExecutionContext): Future[Int] = ???
 
-  val userInfo = UserInfo("t","t",None,Seq(),Json.Null)
+  val userInfo = UserInfo("t","t","t",None,Seq(),Json.Null)
   override def login(request: LoginRequest)(implicit ec:ExecutionContext): Future[UserInfo] = Future.successful{
     userInfo
   }

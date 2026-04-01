@@ -11,6 +11,6 @@ object Footer {
 
   def template(logo:Option[String]) = footer(ClientConf.style.noMobile,
     div(BootstrapStyles.Float.left())(copyright),
-    div(BootstrapStyles.Float.right())( logo.map(x => img(ClientConf.style.headerLogo,src := x)))
+    div(BootstrapStyles.Float.right())( logo.map(x => img(ClientConf.style.headerLogo,src := ClientConf.frontendUrl +  x)))
   ).render
 }

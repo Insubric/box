@@ -9,6 +9,9 @@ import scala.concurrent.{ExecutionContext, Future}
 case class Record(data:Json,local_version:Boolean)
 
 trait DataAccessObject {
+
+  def name:String
+
   def get(kind:String, lang:String, entity:String, id:JSONID,public:Boolean = false)(implicit ec:ExecutionContext):Future[Record]
   def insert(kind:String, lang:String, entity:String, data:Json, public:Boolean)(implicit ec:ExecutionContext): Future[Json]
   def update(kind:String, lang:String, entity:String, id:JSONID, data:Json,public:Boolean = false)(implicit ec:ExecutionContext):Future[Json]

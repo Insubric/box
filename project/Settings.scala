@@ -32,7 +32,7 @@ object Settings {
   object versions {
 
     //General
-    val scala213 = "2.13.16"
+    val scala213 = "2.13.18"
     val ficus = "1.5.2"
 
     val macWire = "2.3.7"
@@ -52,7 +52,7 @@ object Settings {
 
 
     //json parsers
-    val circe = "0.14.3"
+    val circe = "0.14.15"
 
     //database
     val postgres = "42.2.20"
@@ -66,7 +66,7 @@ object Settings {
     //js
     val bootstrap =  "3.4.1-1"
 
-    val udash = "0.9.0-M39"
+    val udash = "0.22.0"
     val udashJQuery = "3.0.4"
 
     val scribe = "3.0.2"
@@ -88,7 +88,7 @@ object Settings {
     "io.circe" %%% "circe-core" % versions.circe,
     "io.circe" %%% "circe-generic" % versions.circe,
     "io.circe" %%% "circe-parser" % versions.circe,
-    "io.circe" %%% "circe-generic-extras" % versions.circe,
+    "io.circe" %%% "circe-generic-extras" % "0.14.4", // not same versioning of circe https://github.com/circe/circe-generic-extras?tab=readme-ov-file#versioning
     "com.outr" %%% "scribe" % versions.scribe,
     "com.nrinaudo" %%% "kantan.csv" % versions.kantan,
     "com.github.eikek" %%% "yamusca-core" % "0.8.0",
@@ -110,6 +110,7 @@ object Settings {
     "org.flywaydb" % "flyway-database-postgresql" % versions.flyway,
     "com.outr"                 %% "scribe"           % versions.scribe,
     "com.outr"                 %% "scribe-slf4j18"           % versions.scribe,
+    "org.tpolecat" %% "skunk-core" % "0.6.5"
   ))
 
   val codegenDependecies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
@@ -202,6 +203,7 @@ object Settings {
     "org.http4s" %%% "http4s-dom" % "0.2.3",
     "org.http4s" %%% "http4s-client" % "0.23.16",
     "org.http4s" %%% "http4s-circe" % "0.23.16",
+    "com.olvind" %%% "scalablytyped-runtime" % "2.4.2"
     //"io.github.cquiroz" %%% "scala-java-locales" % "1.5.1",
 //    "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.5.0"
   ))

@@ -218,15 +218,19 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
     } ~
       respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment,Map("filename" -> s"$name.csv"))) {
         get {
-          parameters('q) { q =>
+          parameters('q,'fields.?) { (q,fields) =>
             import kantan.csv._
             import kantan.csv.ops._
             val query = parse(q).right.get.as[JSONQuery].right.get
 
             val csvString = for{
               metadata <- EntityMetadataFactory.of(name, registry)
-              data <- db.run(dbActions.findSimple(query))
-            } yield (Seq(metadata.fields.map(_.name)) ++ data.map(_.values())).asCsv(rfc)
+              selectedFields = fields.map(_.split(",").toSeq) match {
+                case Some(value) => value.flatMap(f => metadata.fields.find(_.name == f.name)).map(_.name)
+                case None => metadata.fields.map(_.name)
+              }
+              data <- db.run(dbActions.fetchFields(selectedFields,query))
+            } yield (Seq(selectedFields) ++ data.map(r => selectedFields.map(f => r.get(f)))).asCsv(rfc)
 
             onComplete(csvString) {
               case Success(csv) => complete(csv)

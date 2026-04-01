@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream
 import ch.wsl.box.client.{Context, IndexState}
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
 import org.scalajs.dom
-import org.scalajs.dom.{File, FormData, XMLHttpRequest}
+import org.scalajs.dom.{Blob, File, FormData, XMLHttpRequest}
 import scribe.Logging
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -28,6 +28,7 @@ trait HttpClient{
   def sendFile[T](url: String, file: File)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext):Future[T]
   def sendRaw[T](url: String, data: js.Any)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext):Future[T]
   def setHandleAuthFailure(f:() => Unit)
+  def getBlob(url:String)(implicit ex:ExecutionContext):Future[Blob]
 }
 
 

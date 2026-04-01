@@ -184,11 +184,15 @@ object EntityMetadataFactory extends Logging {
     }
   }
 
-  def keysOf(schema:String,table:String)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[String]] = {
-
+  def cachedKeyOf(schema:String,table:String) = {
     val cacheKey = (schema,table)
     logger.info("Getting " + cacheKey + " keys")
-    getSchema(schema).cacheKeys.get(table) match {
+    getSchema(schema).cacheKeys.get(table)
+  }
+
+  def keysOf(schema:String,table:String)(implicit ec:ExecutionContext,services:Services):DBIO[Seq[String]] = {
+
+    cachedKeyOf(schema,table) match {
       case Some(r) => DBIO.successful(r)
       case None => {
         logger.info(s"Metadata keys cache miss! cache key: ($table)")

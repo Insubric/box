@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
 import ch.wsl.box.information_schema.PgInformationSchema
 import ch.wsl.box.model.shared.admin.FormCreationRequest
-import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge, InformationSchema}
+import ch.wsl.box.model.{BoxDefinition, BoxDefinitionMerge, InformationSchema, Translations}
 import ch.wsl.box.model.shared.{BoxTranslationsFields, EntityKind}
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormCreationHandler, StubMetadataFactory}
 import ch.wsl.box.rest.routes.{Form, Table}
@@ -19,8 +19,9 @@ import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.rest.logic.LangHelper
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: UserProfile, mat:Materializer, system:ActorSystem, services: Services) {
 
@@ -117,6 +118,45 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
   }
 
 
+  def translate =pathPrefix("translate") {
+    pathPrefix(Segment) { from =>
+      path(Segment) { to =>
+        post {
+          entity(as[String]) { body =>
+            complete {
+              services.translation.translate(from, to, body)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def translateAll = pathPrefix("translate-all") {
+    pathPrefix(Segment) { from =>
+      pathPrefix(Segment) { to =>
+        get{
+          complete{
+            Translations.autoTranslate(from,to)
+          }
+        }
+      }
+    }
+  }
+
+  def translateAllForce = pathPrefix("translate-all-force") {
+    pathPrefix(Segment) { from =>
+      pathPrefix(Segment) { to =>
+        get{
+          complete{
+            Translations.autoTranslate(from,to,true)
+          }
+        }
+      }
+    }
+  }
+
+
   val route = Auth.onlyAdminstrator(session) { //need to be at the end or non administrator request are not resolved
     //access to box tables for administrator
     form(session) ~
@@ -128,6 +168,9 @@ case class Admin(session:BoxSession)(implicit ec:ExecutionContext, userProfile: 
     boxDefinition ~
     childCandidates ~
     roles ~
-    createForm
+    createForm ~
+    translate ~
+    translateAll ~
+      translateAllForce
   }
 }

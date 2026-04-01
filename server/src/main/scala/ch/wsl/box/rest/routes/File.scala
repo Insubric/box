@@ -24,6 +24,7 @@ import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 import ch.wsl.box.services.file.FileId
+import org.apache.tika.Tika
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -41,10 +42,15 @@ object File{
 
   def completeFile(f:BoxFile) =
     complete {
+      val file = f.file.getOrElse(Array())
       val contentType = f.mime.flatMap{ mime =>
         ContentType.parse(mime).right.toOption
+      }.orElse{
+        val tika = new Tika()
+        val mime = tika.detect(file.take(4096))
+        ContentType.parse(mime).right.toOption
       }.getOrElse(ContentTypes.`application/octet-stream`)
-      val file = f.file.getOrElse(Array())
+
       val name = f.name
 
       val entity = HttpEntity(contentType,file)

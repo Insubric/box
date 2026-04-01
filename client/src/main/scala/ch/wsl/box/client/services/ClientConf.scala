@@ -1,17 +1,21 @@
 package ch.wsl.box.client.services
 
+import ch.wsl.box.client.Context.services
+
 import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
-import ch.wsl.box.client.styles.{GlobalStyleFactory, StyleConf}
+import ch.wsl.box.client.styles.{BoxStyle, GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
 import io.circe._
 import io.circe.parser._
 import io.circe.generic.auto._
+import org.scalajs.dom
 import scribe.Level
 
+import scala.scalajs.js
 import scala.util.Try
 
 /**
@@ -25,11 +29,13 @@ object ClientConf {
   private var conf:Map[String,String] = Map()
   private var _version:String = ""
   private var _appVersion:String = ""
+  private var _style:BoxStyle = null
 
   def load(table:Map[String,String],version:String,appVersion:String) = {
     conf = table
     _version = version
     _appVersion = appVersion
+    _style = services.style.build(scalacss.devOrProdDefaults)
   }
 
   def loggerLevel = conf.get("client.logger.level") match {
@@ -40,10 +46,10 @@ object ClientConf {
     case _ => Level.Warn
   }
 
-  def localDb:Boolean = Try(conf("local.db").toBoolean).getOrElse(true)
-
   def version: String = _version
   def appVersion: String = _appVersion
+
+  def applicationId:String = conf.get("application_id").getOrElse("box-app")
 
   def pageLength: Int = Try(conf("page_length").toInt).getOrElse(30)
 //  def lookupMaxRows  = Try(conf("fk_rows").toInt).getOrElse(30)
@@ -59,7 +65,7 @@ object ClientConf {
   def labelAlign: String = Try(conf("label.align")).getOrElse("left")
 
   def menuSeparator: String = Try(conf("menu.separator")).getOrElse(" ")
-  def frontendUrl: String = Try(conf("frontendUrl")).getOrElse("http://localhost:8080")
+  def frontendUrl: String = dom.window.asInstanceOf[js.Dynamic].boxFrontendUrl.asInstanceOf[String]
 
   def colorMain: String = Try(conf("color.main")).getOrElse("#006268")
   def colorMainText: String = Try(conf("color.main.text")).getOrElse("#ffffff")
@@ -91,7 +97,8 @@ object ClientConf {
     inputWidth
   )
 
-  lazy val style = GlobalStyleFactory.GlobalStyles(styleConf)
+  //lazy val style = new GlobalStyleFactory.GlobalStyles(styleConf)
+  def style = _style
 
   def filterPrecisionDatetime: String = Try(conf("filter.precision.datetime").toUpperCase).toOption match {
       case Some("DATE") => JSONFieldTypes.DATE

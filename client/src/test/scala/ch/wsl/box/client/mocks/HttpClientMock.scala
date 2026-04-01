@@ -2,7 +2,7 @@ package ch.wsl.box.client.mocks
 
 import ch.wsl.box.client.services.HttpClient
 import io.circe.{Decoder, Encoder}
-import org.scalajs.dom.File
+import org.scalajs.dom.{Blob, File}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -25,4 +25,6 @@ class HttpClientMock extends HttpClient {
   override def sendRaw[T](url: String, data: js.Any)(implicit decoder: Decoder[T], ex: ExecutionContext): Future[T] = ???
 
   override def setHandleAuthFailure(f: () => Unit): Unit = {}
+
+  override def getBlob(url: String)(implicit ex: ExecutionContext): Future[Blob] = ???
 }

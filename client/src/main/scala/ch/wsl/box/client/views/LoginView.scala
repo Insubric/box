@@ -29,7 +29,8 @@ case class LoginPresenter() extends Presenter[LoginStateAbstract]  {
   override def handleState(state: LoginStateAbstract): Unit = {}
 
   def login(model:ModelProperty[LoginData]) = {
-    services.clientSession.login(model.get.username,model.get.password).recover { case _ =>
+    services.clientSession.login(model.get.username,model.get.password).recover { case t =>
+      t.printStackTrace()
       model.subProp(_.message).set(Labels.login.failed)
     }
   }
@@ -44,7 +45,7 @@ case class LoginView(presenter:LoginPresenter) extends View {
 
   override def getTemplate = div(
     div(BootstrapStyles.container)(raw(UI.loginTopHtml)),
-    div(BootstrapStyles.container, height := 400.px)(
+    div(BootstrapStyles.container, `class` := "login-container", height := 400.px)(
       div(BootstrapStyles.Grid.row,
           BootstrapStyles.Flex.justifyContent(BootstrapStyles.FlexContentJustification.Center),
           BootstrapStyles.Flex.alignItems(BootstrapStyles.FlexAlign.Center),

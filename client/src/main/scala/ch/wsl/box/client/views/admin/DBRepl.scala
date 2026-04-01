@@ -34,7 +34,7 @@ class DBReplView( presenter:DBReplPresenter) extends View {
 
 
   val content:HTMLDivElement = div(
-    script(src := Routes.baseUri + "assets/@electric-sql/pglite-repl/dist-webcomponent/Repl.js", `type` := "module",onload :+= loaded),
+    script(src := Routes.baseUri + "public/@electric-sql/pglite-repl/dist-webcomponent/Repl.js", `type` := "module",onload :+= loaded),
   ).render
 
   def loaded(e:Event) = {

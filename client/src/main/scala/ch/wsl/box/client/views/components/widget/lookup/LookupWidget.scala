@@ -93,20 +93,16 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
-  private def fetchRemoteLookup(fieldLookup:JSONFieldLookupRemote)(q: JSONQuery)(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {
+  private def fetchRemoteLookup(fieldLookup:JSONFieldLookupRemote,force:Boolean)(q: JSONQuery)(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {
     dataSyncRegistration.foreach(_.cancel())
     logger.debug(s"Fetching remote lookup $q")
 
-    val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.^(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
-
-
-
+    val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.hex(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
     LookupWidget.remoteLookup.get(cacheKey) match {
-      case Some(value) => value.map(setNewLookup)
+      case Some(value) if !force => value.map(setNewLookup)
       case _ => {
         _lookup.set(Seq(), true) //reset lookup state
-
         val request = for{
           lookups <- services.rest.lookup(metadata.kind, services.clientSession.lang(), metadata.name, field.name, q, public)
           singleLookup <- if(data.get != Json.Null && !lookups.exists(_.id == data.get)) {
@@ -140,11 +136,11 @@ trait LookupWidget extends Widget with HasData {
       case Some(query) => {
         autoRelease(allData.listen({ allJs =>
           val newQuery = query.withData(allJs,services.clientSession.lang())
-          fetchRemoteLookup(fieldLookup)(newQuery)
+          fetchRemoteLookup(fieldLookup,force = false)(newQuery)
 
         }, true))
       }
-      case None => fetchRemoteLookup(fieldLookup)(JSONQuery.empty.limit(1000))
+      case None => fetchRemoteLookup(fieldLookup,force = false)(JSONQuery.empty.limit(1000))
     }
 
 
@@ -201,16 +197,16 @@ trait LookupWidget extends Widget with HasData {
   }
 
 
-  private def fetchLookups()(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {
+  protected def fetchLookups(force:Boolean = false)(implicit ec: ExecutionContext):Future[Seq[JSONLookup]] = {
     fieldLookup match {
       case r:JSONFieldLookupRemote => {
         r.lookupQuery.flatMap(JSONQuery.fromJson) match {
           case Some(query) => {
             val newQuery = query.withData(allData.get,services.clientSession.lang())
-            fetchRemoteLookup(r)(newQuery)(ec)
+            fetchRemoteLookup(r,force)(newQuery)(ec)
 
           }
-          case None => fetchRemoteLookup(r)(JSONQuery.empty.limit(1000))(ec)
+          case None => fetchRemoteLookup(r,force)(JSONQuery.empty.limit(1000))(ec)
         }
       }
       case JSONFieldLookupExtractor(extractor) => Future.successful(

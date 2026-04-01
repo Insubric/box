@@ -60,31 +60,21 @@ case class Form(
     def metadata: JSONMetadata = Await.result(boxDb.adminDb.run(metadataFactory.of(name,lang,session.user)),10.seconds)
   def actions:FormActions = FormActions(metadata,registry,metadataFactory)
 
-  private def _tabMetadata(fields:Option[Seq[String]] = None,m:JSONMetadata): Seq[JSONField] = {
-        fields match {
-          case Some(fields) => m.fields.filter(field => fields.contains(field.name))
-          case None => m.fields.filter(field => m.tabularFields.contains(field.name) || m.exportFields.contains(field.name))
-        }
-    }
 
-  private def viewTableMetadata(fields:Seq[String],tableMetadata:JSONMetadata,viewMetadata:JSONMetadata): Seq[JSONField] = {
-    val tableFields = _tabMetadata(Some(fields),tableMetadata)
-    val viewFields = _tabMetadata(Some(fields),viewMetadata)
-    fields.flatMap{ field =>
-      tableFields.find(_.name == field).orElse(viewFields.find(_.name == field))
-    }
 
+  private def viewTableMetadata(formMetadata:JSONMetadata,viewMetadata:JSONMetadata): JSONMetadata = {
+
+    val allFields = formMetadata.fields ++ viewMetadata.fields.filter(f => !formMetadata.fields.map(_.name).contains(f.name))
+    formMetadata.copy(fields = allFields)
   }
 
-    def tabularMetadata(fields:Option[Seq[String]] = None): DBIO[JSONMetadata] = {
-      val filteredFields = metadata.view match {
-        case None => DBIO.successful(_tabMetadata(fields,metadata))
+    def tabularMetadata(): DBIO[JSONMetadata] = {
+      metadata.view match {
+        case None => DBIO.successful(metadata)
         case Some(view) => DBIO.from(EntityMetadataFactory.of(view,registry).map{ vm =>
-          viewTableMetadata(fields.getOrElse(metadata.tabularFields),metadata,vm)
+          viewTableMetadata(metadata,vm)
         })
       }
-
-      filteredFields.map( ff => metadata.copy(fields = ff ))
 
     }
 
@@ -116,7 +106,7 @@ case class Form(
     } ~ get {
       privateOnly {
         parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-          exportCsv(q,fk)
+          exportCsv(q,fk,fields)
         }
       }
     }
@@ -268,7 +258,7 @@ case class Form(
               val io = for {
                 metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
                 formActions = FormActions(metadata, registry, metadataFactory)
-                result <- formActions.list(query, true)
+                result <- formActions.list(query, true, metadata.tabularFields)
               } yield {
                 result
               }

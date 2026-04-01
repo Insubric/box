@@ -3,7 +3,7 @@ package ch.wsl.box.model
 import ch.wsl.box.jdbc.UserDatabase
 import ch.wsl.box.model.boxentities.{BoxField, BoxForm, BoxLabels}
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.model.shared.{BoxTranslationsFields, Field}
+import ch.wsl.box.model.shared.{BoxTranslationField, BoxTranslationsFields, Field}
 import ch.wsl.box.services.Services
 
 import java.util.UUID
@@ -184,4 +184,28 @@ object Translations {
     }.recover{ case t => t.printStackTrace(); throw t }
 
   }
+
+  def autoTranslate(from:String, to:String, force:Boolean = false)(implicit services: Services, ec:ExecutionContext): Future[Int] = {
+    val c = services.connection.adminDB
+    for {
+      source <- exportFields(from,c)
+      dest <- exportFields(from,c)
+      sourceToTranslate = source.filter(f => force || !dest.exists(d => f.uuid == d.uuid && d.label != ""))
+      translated <- services.translation.translateAll(from,to,sourceToTranslate.map(_.label))
+      result <- updateFields(BoxTranslationsFields(from,to,
+        sourceToTranslate.zip(translated).map{case (src,translated) =>
+          BoxTranslationField(src,src.copy(
+            label = translated,
+            lookup_columns = src.lookup_columns.map{
+              case l if l == from => to
+              case l if l.endsWith(s"_$from") => l.substring(0,l.length - (from.length + 1)) + "_" + to
+              case l => l
+            }
+          ))
+        }
+      ),c)
+    } yield  result
+  }
+
+
 }

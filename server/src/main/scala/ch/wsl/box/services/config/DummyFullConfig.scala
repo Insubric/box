@@ -34,12 +34,6 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
 
   override def fksLookupRowsLimit: Int = 50
 
-  override def enableRedactor: Boolean = false
-
-  override def redactorJs: String = ""
-
-  override def redactorCSS: String = ""
-
   override def devServer: Boolean = false
 
   override def clientConf: Map[String, String] = Map()

@@ -1,6 +1,8 @@
 package ch.wsl.box.client
 import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Navigator, Notification, NotificationChannel, NotificationWebSocket, REST}
 import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, HttpClientImpl, RestImpl}
+import ch.wsl.box.client.styles.{BoxStyle, BoxStyleFactory, GlobalStyleFactory}
+import ch.wsl.box.client.views.components.{BoxMainLayout, MainLayout}
 import ch.wsl.box.model.shared.AvailableUIModule
 import wvlet.airframe._
 
@@ -18,6 +20,8 @@ object Module {
     .bind[ClientSession].toEagerSingleton
     .bind[Navigator].toEagerSingleton
     .bind[NotificationChannel].to[NotificationWebSocket]
+    .bind[BoxStyleFactory].to[GlobalStyleFactory]
+    .bind[MainLayout].to[BoxMainLayout]
 
   val prod = newDesign
     .bind[HttpClient].to[HttpClientImpl]
@@ -26,5 +30,6 @@ object Module {
     .bind[ClientSession].toEagerSingleton
     .bind[Navigator].toEagerSingleton
     .bind[NotificationChannel].to[NotificationWebSocket]
-
+    .bind[BoxStyleFactory].to[GlobalStyleFactory]
+    .bind[MainLayout].to[BoxMainLayout]
 }

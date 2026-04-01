@@ -144,6 +144,7 @@ object Labels {
     def confirmRevert = get(SharedLabels.entity.confirmRevert)
     def csv = get(SharedLabels.entity.csv)
     def xls = get(SharedLabels.entity.xls)
+    def pdf = get(SharedLabels.entity.pdf)
     def importxls = get(SharedLabels.entity.importxls)
     def shp = get(SharedLabels.entity.shp)
     def geoPackage = get(SharedLabels.entity.geopackage)
@@ -164,6 +165,7 @@ object Labels {
     def search = get(SharedLabels.popup.search)
     def close = get(SharedLabels.popup.close)
     def remove = get(SharedLabels.popup.remove)
+    def back = get(SharedLabels.popup.back)
   }
 
   object home {

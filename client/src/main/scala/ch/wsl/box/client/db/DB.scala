@@ -1,8 +1,9 @@
 package ch.wsl.box.client.db
 
-import ch.wsl.box.client.services.BrowserConsole
+import ch.wsl.box.client.routes.Routes
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
+import ch.wsl.box.client.vendors.PGliteWorker
 import ch.wsl.typings.electricSqlPglite.mod.PGlite
-import ch.wsl.typings.electricSqlPglite.workerMod.PGliteWorker
 import org.scalajs.dom
 import org.scalajs.dom.{URL, Worker, WorkerOptions, WorkerType}
 
@@ -12,18 +13,19 @@ import scala.scalajs.js
 
 object DB {
 
-  private val worker_options = new WorkerOptions {}
-  worker_options.`type` = WorkerType.module
-  //val worker_url = new URL("./postgres.worker.js",js.`import`.meta.asInstanceOf[String]).asInstanceOf[String]
-  private val worker = new Worker("./postgres.worker.js",worker_options)
+  var connection:PGliteWorker = null
+  var localRecord: LocalRecordDAO = null
 
-  val connection = new PGliteWorker(worker)
+  def init(version:String)(implicit ex:ExecutionContext) = {
 
-  val localRecord = new LocalRecordDAO(connection)
+    val worker_options = new WorkerOptions {}
+    worker_options.`type` = WorkerType.module
 
-  def init()(implicit ex:ExecutionContext) = {
+    val worker = new Worker(s"${Routes.baseUri}ui/workers/postgres.worker.${version}.js?version=$version&appId=${ClientConf.applicationId}",worker_options)
 
+    connection = new PGliteWorker(worker)
 
+    localRecord = new LocalRecordDAO(connection)
 
     for {
       result <- localRecord.init()

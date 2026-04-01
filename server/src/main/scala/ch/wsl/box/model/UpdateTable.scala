@@ -389,7 +389,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
         case ("org.locationtech.jts.geom.Geometry",_) => filter[Geometry](col.nullable,Geo.fromEWKT(v))
         case ("java.util.UUID",_) => filter[java.util.UUID](col.nullable,Try(UUID.fromString(v)).toOption)
         case ("Boolean",_) => filter[Boolean](col.nullable,Some(v == "true"))
-        case t => throw new Exception(s"$t is not supported for simple query")
+        case t => throw new Exception(s"$t is not supported for simple query. On table ${table.tableName} $jsonQuery")
       }
     }
 

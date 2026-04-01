@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Directives
 import akka.stream.{CompletionStrategy, Materializer, OverflowStrategy}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import ch.wsl.box.jdbc.Connection
-import ch.wsl.box.rest.logic.notification.NotificationsHandler
+import ch.wsl.box.rest.logic.notification.{DbNotify}
 import ch.wsl.box.rest.utils.UserProfile
 import ch.wsl.box.services.Services
 import io.circe._
@@ -62,7 +62,7 @@ trait NotificationChannels {
   def start()
 }
 
-class NotificationChannelsImpl(connection:Connection) extends NotificationChannels with Logging {
+class NotificationChannelsImpl(connection:Connection,dbNotify: DbNotify) extends NotificationChannels with Logging {
 
   private var notificationChannels: ListBuffer[NotificationChannel] = ListBuffer.empty[NotificationChannel]
   def add(user:String,topic: String)(implicit mat: Materializer) = {
@@ -74,19 +74,16 @@ class NotificationChannelsImpl(connection:Connection) extends NotificationChanne
 
   final val ALL_USERS = "ALL_USERS"
 
-  private def handleNotification(str:String): Future[Boolean] = {
-    parse(str) match {
-      case Left(err) => Future.failed(new Exception(err.message))
-      case Right(js) => js.as[UiNotification] match {
-        case Left(err) => Future.failed(new Exception(err.message + err.history))
-        case Right(notification) => {
-          logger.info(s"Send notification: $notification")
-          notification.allowed_users.contains(ALL_USERS) match {
-            case true => notificationChannels.foreach(_.sendBroadcast(notification))
-            case false => notificationChannels.foreach(_.sendNotification(notification))
-          }
-          Future.successful(true)
+  private def handleNotification(js:Json): Future[Boolean] = {
+    js.as[UiNotification] match {
+      case Left(err) => Future.failed(new Exception(err.message + err.history))
+      case Right(notification) => {
+        logger.info(s"Send notification: $notification")
+        notification.allowed_users.contains(ALL_USERS) match {
+          case true => notificationChannels.foreach(_.sendBroadcast(notification))
+          case false => notificationChannels.foreach(_.sendNotification(notification))
         }
+        Future.successful(true)
       }
     }
   }
@@ -95,5 +92,5 @@ class NotificationChannelsImpl(connection:Connection) extends NotificationChanne
 
 
 
-  override def start(): Unit = NotificationsHandler.create("ui_feedback_channel",connection,handleNotification)
+  override def start(): Unit = dbNotify.listen("ui_feedback_channel",handleNotification)
 }
