@@ -206,7 +206,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
                   selectedTab.set(tabId);
                   tabId.foreach(n => services.clientSession.setSelectedTab(tabKey,n))
                   e.preventDefault() },
-                title
+                Labels(title)
               ).render
             ).render
           }
