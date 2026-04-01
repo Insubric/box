@@ -74,7 +74,7 @@ object AuthFlow {
           "client_id" -> provider.client_id,
           "client_secret" -> provider.client_secret,
           "code" -> c,
-          "redirect_uri" -> s"${services.config.frontendUrl}/authenticate/${provider.provider_id}"
+          "redirect_uri" -> s"${services.config.frontendUrl}authenticate/${provider.provider_id}"
         ))
         .response(asJson[OpenIDToken])
 

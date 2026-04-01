@@ -6,6 +6,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 const env = loadEnv(process.env.NODE_ENV, process.cwd());
 
 export default defineConfig({
+    base: './',
     server: {
         proxy: {
             '/api': 'http://localhost:8080',
