@@ -12,5 +12,8 @@ class ConfigFileImpl extends Config {
   override def postgisSchemaName: String = conf.as[Option[String]]("db.postgis.schema").getOrElse(schemaName)
   override def langs:Seq[String] = conf.as[Option[String]]("langs").map(_.split(",").map(_.trim).toSeq).getOrElse(Seq("en"))
 
-  override def frontendUrl: String = conf.as[String]("box.frontend.url").stripSuffix("/")
+  override def frontendUrl: String = {
+    val url = conf.as[String]("box.frontend.url")
+    if(url.endsWith("/")) url else url + "/"
+  }
 }
