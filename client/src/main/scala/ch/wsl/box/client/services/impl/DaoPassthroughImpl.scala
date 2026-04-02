@@ -45,10 +45,9 @@ class DaoPassthroughImpl(rest:REST, clientSession: ClientSession) extends DataAc
     rest.tabularMetadata(kind, lang, entity, public)
   }
 
-  override def list(kind: String, lang: String, entity: String, q: JSONQuery, public: Boolean)(implicit ec: ExecutionContext): Future[Seq[Row]] = {
+  override def list(kind: String, lang: String, entity: String, q: JSONQuery, public: Boolean,metadata:JSONMetadata)(implicit ec: ExecutionContext): Future[Seq[Row]] = {
     for {
-      metadata <- tabularMetadata(kind,lang,entity,public)
-      csv <- rest.csv(kind, clientSession.lang(), entity, q,public).map(_.map(r => RowDb(r, metadata)))
+      csv <- rest.csv(kind, clientSession.lang(), entity, q,public).map(_.map(r => RowDb(r, metadata,q)))
     } yield csv
   }
 }

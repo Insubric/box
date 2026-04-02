@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Dispo
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{CSVTable, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{CSVTable, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.logic.{FormActions, Lookup}
 import io.circe.parser.parse
@@ -38,20 +38,24 @@ trait Exporters {
   val name:String
   val metadataFactory: MetadataFactory
   def tabularMetadata(): DBIO[JSONMetadata]
+  def metadata: JSONMetadata
   def actions:FormActions
 
-  def mergeWithForeignKeys(extractFk: Boolean,data:Seq[Json],fk: Map[String,Seq[Json]],metadata:JSONMetadata):Seq[Json] = {
+  def mergeWithForeignKeys(extractFk: Boolean,data:Seq[Json],fk: Seq[JSONLookups],metadata:JSONMetadata, fields:Seq[String]):Seq[Json] = {
     if(extractFk) {
       data.map { row =>
-        val fkData:Json = Json.fromFields(metadata.fields.filter(_.lookup.isDefined).map { f =>
+        val fkData:Json = Json.fromFields(metadata.fields.filter(f => f.lookup.isDefined && fields.contains(f.name)).map { f =>
           f.lookup.get  match {
             case JSONFieldLookupData(data) => f.name -> data.find(_.id == row.js(f.name)).map(_.value).getOrElse(row.get(f.name))
             case JSONFieldLookupExtractor(extractor) => f.name -> extractor.map.get(row.js(extractor.key)).toList.flatten.find(_.id == row.js(f.name)).map(_.value).getOrElse(row.get(f.name))
             case r: JSONFieldLookupRemote => {
-              val local = r.map.localKeysColumn.map(row.js)
-              val remote = fk.get(r.lookupEntity).flatMap(_.find(fkRow => r.map.foreign.keyColumns.map(fkRow.js) == local)).map( remoteRow => r.map.foreign.labelColumns.map(remoteRow.get))
-              val value:String = remote.map(x => x.mkString(" - ")).getOrElse(row.get(f.name))
-              f.name -> value
+
+              val local: Json = row.js(f.name)
+              val res = fk.find(_.fieldName == f.name).flatMap(_.lookups.find(_.id == local).map(_.value)).getOrElse(local.string)
+
+
+
+              f.name -> res
             }
           }
         }.map{ case (k,v) => k -> Json.fromString(v)})
@@ -67,26 +71,44 @@ trait Exporters {
       XLS.importXls(actions.metadata,actions.jsonAction,db.db)
     } ~
     get {
-        parameters('q,'fk.?) { case (q,fk) =>
+        parameters('q,'fk.?,'fields.?) { case (q,fk,fields) =>
           val extractFk = fk.forall(_ == "resolve_fk")
           val query = parse(q).right.get.as[JSONQuery].right.get
-          val io = for {
-            metadata <- DBIO.from(boxDb.adminDb.run(tabularMetadata()))
-            formActions = FormActions(metadata, registry, metadataFactory)
-            fkValues <- Lookup.valuesForEntity(metadata)
-            data <- formActions.list(query, true, metadata.exportFieldsNoGeom.map(_.name))
-            xlsTable = XLSTable(
-              title = name,
-              header = metadata.exportFieldsNoGeom.map(_.title),
-              rows = mergeWithForeignKeys(extractFk,data,fkValues,metadata).map(row => metadata.exportFieldsNoGeom.map(cell => row.get(cell.name)))
-            )
-          } yield {
-            XLS.route(xlsTable)
+          val m = metadata
+          val fut: Future[Route]  = {
+            for {
+              route <- {
+
+                val formActions = FormActions(m, registry, metadataFactory)
+                val rFields = fields.map(_.split(",").toSeq)
+                val requestedFields = rFields.orElse(query.fields).getOrElse(m.tabularFields)
+
+                val f = requestedFields.flatMap(x => m.fields.find(_.name == x))
+
+                val fkFields = m.fields.filter(f => f.lookup.isDefined && requestedFields.contains(f.name))
+
+                val io = for {
+                  fkValues <- actions.lookups(JSONLookupsRequest(fkFields.map(_.name),query))
+                  data <- formActions.list(query, true,requestedFields)
+                  xlsTable = XLSTable(
+                    title = name,
+                    header = f.map(_.title),
+                    rows = mergeWithForeignKeys(extractFk, data, fkValues, m,requestedFields).map(row => f.map(cell => row.get(cell.name)))
+                  )
+                } yield {
+                  XLS.route(xlsTable)
+                }
+                db.db.run(io)
+              }
+            } yield route
           }
-          onSuccess(db.db.run(io))(x => x)
-        }
+
+          rc:RequestContext => fut.flatMap(x => x(rc))
+
+
       }
   }
+    }
 
   def exportCsv(q:String,fk:Option[String],_fields:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = {
 
@@ -101,23 +123,36 @@ trait Exporters {
           }
         }
 
-    val fut: Future[Route] = boxDb.adminDb.run(tabularMetadata()).flatMap { metadata =>
+    val fut: Future[Route] = {
+      for{
 
-      val formActions = FormActions(metadata, registry, metadataFactory)
-      val fields =  selectedFields(metadata.exportFieldsNoGeom)
-      val io = for {
-        fkValues <- Lookup.valuesForEntity(metadata)
-        data <- formActions.list(query, true, fields.map(_.name))
-        csvTable = CSVTable(
-          title = name,
-          header = fields.map(_.title),
-          rows = mergeWithForeignKeys(extractFk, data, fkValues, metadata).map(row => fields.map(cell => row.get(cell.name)))
-        )
-      } yield {
-        CSV.download(csvTable)
+       route <- {
+
+
+         val m = metadata
+        val formActions = FormActions(m, registry, metadataFactory)
+
+         val requestedFields = m.fields.filter(f => query.fields.getOrElse(m.tabularFields).contains(f.name))
+         val fkFields = m.fields.filter(f => f.lookup.isDefined && requestedFields.exists(_.name == f.name))
+
+        val fields =  selectedFields(requestedFields)
+
+
+
+        val io = for {
+          fkValues <- actions.lookups(JSONLookupsRequest(fkFields.map(_.name),query))
+          data <- formActions.list(query, true, fields.map(_.name))
+          csvTable = CSVTable(
+            title = name,
+            header = fields.map(_.title),
+            rows = mergeWithForeignKeys(extractFk, data, fkValues, metadata,fields.map(_.name)).map(row => fields.map(cell => row.get(cell.name)))
+          )
+        } yield {
+          CSV.download(csvTable)
+        }
+        db.db.run(io)
       }
-      db.db.run(io)
-    }
+    } yield route }
 
     rc:RequestContext => fut.flatMap(x => x(rc))
   }

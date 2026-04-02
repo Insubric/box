@@ -8,7 +8,8 @@ import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 object Lookup {
 
@@ -18,13 +19,24 @@ object Lookup {
 
   private def remoteLookups(metadata: JSONMetadata):Seq[JSONFieldLookupRemote] =  metadata.fields.flatMap(_.remoteLookup)
 
-  def valuesForEntity(metadata:JSONMetadata)(implicit ec: ExecutionContext, mat:Materializer,services: Services) :DBIO[Map[String,Seq[Json]]] = {
+  def valuesForEntity(metadata:JSONMetadata)(implicit ec: ExecutionContext, mat:Materializer,services: Services,db:FullDatabase) :Future[Map[String,Seq[Json]]] = Future{
 
-    DBIO.sequence{
-        remoteLookups(metadata).map(_.lookupEntity).map{ lookupEntity =>
-          Registry().actions(lookupEntity).findSimple(JSONQuery.empty.limit(10000)).map{ jq => lookupEntity -> jq}
-        }
-      }.map(_.toMap)
+    val z:Seq[(String,Seq[Json])] = Seq[(String,Seq[Json])]()
+
+    remoteLookups(metadata).map(_.lookupEntity).foldRight(z){ case (lookupEntity,acc) =>
+      def le:Future[(String,Seq[Json])] = db.db.run{
+        Registry().actions(lookupEntity).findSimple(JSONQuery.empty.limit(10000)).map{ jq => (lookupEntity,jq) }
+      }
+
+       acc ++ Seq(Await.result(le,10.seconds))
+
+    }.toMap
+
+//    DBIO.sequence{
+//        remoteLookups(metadata).map(_.lookupEntity).map{ lookupEntity =>
+//          Registry().actions(lookupEntity).findSimple(JSONQuery.empty.limit(10000)).map{ jq => lookupEntity -> jq}
+//        }
+//      }.map(_.toMap)
 
   }
 

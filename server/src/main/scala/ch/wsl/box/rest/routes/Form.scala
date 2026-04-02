@@ -89,9 +89,9 @@ case class Form(
 
   def csvTable(query:JSONQuery):Future[CSVTable] = {
     for {
-      metadata <- boxDb.adminDb.run(tabularMetadata())
-      formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(formActions.csv(query))
+//      metadata <- boxDb.adminDb.run(tabularMetadata())
+//      formActions = FormActions(metadata, registry, metadataFactory)
+      csv <- db.run(actions.csv(query))
     } yield csv
   }
 

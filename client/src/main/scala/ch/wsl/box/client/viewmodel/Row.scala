@@ -1,7 +1,7 @@
 package ch.wsl.box.client.viewmodel
 
 import ch.wsl.box.client.db.LocalRecord
-import ch.wsl.box.model.shared.{JSONID, JSONMetadata}
+import ch.wsl.box.model.shared.{JSONField, JSONID, JSONMetadata, JSONQuery}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 
@@ -11,16 +11,18 @@ sealed trait Row {
   def rowJs:Json
   def id:Option[JSONID]
   def isLocal:Boolean
+
+  protected def fields(q:JSONQuery,metadata: JSONMetadata):Seq[Option[JSONField]] = q.fields.getOrElse(metadata.tabularFields).map(f => metadata.fields.find(_.name == f))
 }
 
-case class RowDb(data: Seq[String],metadata:JSONMetadata) extends Row {
+case class RowDb(data: Seq[String],metadata: JSONMetadata,query:JSONQuery) extends Row {
   def field(name:String) = {
-    metadata.table.zipWithIndex.find{ case (f,_) => f.name == name }.flatMap{ case (f,i) => data.lift(i).filter(_.nonEmpty).map(f.fromString) }
+    fields(query,metadata).zipWithIndex.find{ case (f,_) => f.exists(_.name == name) }.flatMap{ case (f,i) => f.flatMap( f=> data.lift(i).filter(_.nonEmpty).map(f.fromString)) }
   }
 
   def rowJs:Json = {
     Json.fromFields(
-      metadata.tabularFields.map(k => k -> field(k).getOrElse(Json.Null))
+      query.fields.getOrElse(metadata.tabularFields).map(k => k -> field(k).getOrElse(Json.Null))
     )
   }
 
@@ -29,8 +31,8 @@ case class RowDb(data: Seq[String],metadata:JSONMetadata) extends Row {
   override def isLocal: Boolean = false
 }
 
-case class RowLocal(lr:LocalRecord,metadata:JSONMetadata) extends Row {
-  override def data: Seq[String] = metadata.tabularFields.map(lr.data.get)
+case class RowLocal(lr:LocalRecord,metadata:JSONMetadata,query:JSONQuery) extends Row {
+  override def data: Seq[String] = query.fields.getOrElse(metadata.tabularFields).map(lr.data.get)
 
   override def field(name: String): Option[Json] = lr.data.jsOpt(name)
 
