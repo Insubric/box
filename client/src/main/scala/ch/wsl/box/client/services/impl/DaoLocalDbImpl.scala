@@ -52,11 +52,10 @@ class DaoLocalDbImpl(rest:REST, clientSession: ClientSession) extends DataAccess
     rest.tabularMetadata(kind, lang, entity, public)
   }
 
-  override def list(kind: String, lang: String, entity: String, q: JSONQuery, public: Boolean)(implicit ec: ExecutionContext): Future[Seq[Row]] = {
+  override def list(kind: String, lang: String, entity: String, q: JSONQuery, public: Boolean, metadata:JSONMetadata)(implicit ec: ExecutionContext): Future[Seq[Row]] = {
     for {
-      metadata <- tabularMetadata(kind,lang,entity,public)
-      csv <- rest.csv(kind, clientSession.lang(), entity, q,public).map(_.map(r => RowDb(r, metadata)))
-      local <- DB.localRecord.list(Some(s"kind='$kind' and name='$entity'")).map(_.map(r => RowLocal(r, metadata)))
+      csv <- rest.csv(kind, clientSession.lang(), entity, q,public).map(_.map(r => RowDb(r, metadata,q)))
+      local <- DB.localRecord.list(Some(s"kind='$kind' and name='$entity'")).map(_.map(r => RowLocal(r, metadata,q)))
     } yield {
       val localIds = local.flatMap(_.id)
       local ++ csv.filterNot(r => r.id.exists(localIds.contains))

@@ -18,5 +18,5 @@ trait DataAccessObject {
   def delete(kind:String, lang:String, entity:String, id:JSONID)(implicit ec:ExecutionContext):Future[JSONCount]
 
   def tabularMetadata(kind:String, lang:String, entity:String, public:Boolean)(implicit ec:ExecutionContext): Future[JSONMetadata]
-  def list(kind:String, lang:String, entity:String, q:JSONQuery,public:Boolean)(implicit ec:ExecutionContext):Future[Seq[Row]]
+  def list(kind:String, lang:String, entity:String, q:JSONQuery,public:Boolean,metadata:JSONMetadata)(implicit ec:ExecutionContext):Future[Seq[Row]]
 }

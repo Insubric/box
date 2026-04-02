@@ -415,12 +415,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
     val qOrig = query(extent)
-    val newQuery = !model.subProp(_.query).get.contains(qOrig)
     model.subProp(_.query).set(Some(qOrig))
-    val q = qOrig.copy(paging = Some(JSONQueryPaging(ClientConf.pageLength, page)))
+    val q = qOrig.copy(
+      paging = Some(JSONQueryPaging(ClientConf.pageLength, page)),
+      fields = Some(model.subProp(_.selectedColumns).get.map(_.name))
+    )
 
     //start request in parallel
-    val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get)
+    val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get,model.subProp(_.metadata).get.get)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
     if(hasGeometry() && !defaultClose) {
       loadGeoms(extent)
@@ -441,7 +443,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val r = for {
       csv <- csvRequest
       ids <- idsRequest
-      lookups <- if(newQuery) lookupReq(csv) else Future.successful( model.subProp(_.lookups).get)
+      lookups <- if(model.subProp(_.lookups).get.isEmpty) lookupReq(csv) else Future.successful( model.subProp(_.lookups).get)
     } yield {
       if(currentCount == reloadCount) {
         model.subProp(_.lookups).set(lookups)
@@ -463,7 +465,9 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
 
-
+  model.subProp(_.selectedColumns).listen{ c =>
+    reloadRows(model.subProp(_.ids).get.currentPage)
+  }
 
   def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {
     e.preventDefault()

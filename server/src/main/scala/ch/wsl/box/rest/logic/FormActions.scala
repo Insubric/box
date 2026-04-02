@@ -149,12 +149,12 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  private def __list(query:JSONQuery,dropHtml:Boolean = false,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[Seq[Seq[(String,Json)]]] = {
+  private def __list(query:JSONQuery,dropHtml:Boolean = false):DBIO[Seq[Seq[(String,Json)]]] = {
 
     _list(query).map{ rows =>
 
         rows.map { row =>
-          val columns = fields(metadata).map { f =>
+          val columns = query.fields.getOrElse(metadata.tabularFields).map { f =>
             (f, listRenderer(row, dropHtml)(f))
           }
 
@@ -168,9 +168,9 @@ case class FormActions(metadata:JSONMetadata,
   }
 
 
-  def csv(query:JSONQuery,fields:JSONMetadata => Seq[String] = _.tabularFields):DBIO[CSVTable] = {
+  def csv(query:JSONQuery):DBIO[CSVTable] = {
 
-    __list(query,fields = fields).map{ rows =>
+    __list(query).map{ rows =>
         CSVTable(title = metadata.label, header = Seq(), rows = rows.map(_.map(_._2.string)), showHeader = false)
     }
   }
