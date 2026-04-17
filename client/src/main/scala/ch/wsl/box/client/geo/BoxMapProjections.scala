@@ -96,7 +96,8 @@ object BoxMapConstants {
     None,
     None,
     None,
-    None
+    None,
+    Some(0.1)
   )
 
   val wgs84 = MapProjection(
