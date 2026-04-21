@@ -35,18 +35,26 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
 
-
   override def allData: ReadableProperty[Json] = Property(Json.Null)
+
 
 
   override def id: ReadableProperty[Option[String]] = Property(None)
 
   override val options: MapParams = ClientConf.mapOptions.as[MapParams].getOrElse(BoxMapConstants.defaultParams)
+
+  val minResolution = {for{
+    params <- metadata.params
+    js <- params.jsOpt("mapMinResolution")
+    minR <- js.as[Double].toOption
+  } yield minR}.orElse(options.minResolution).getOrElse(0.3)
+
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
 
   val view = new viewMod.default(viewMod.ViewOptions()
     .setZoom(3)
+    .setMinResolution(minResolution)
     .setProjection(proj.defaultProjection)
     .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
   )
@@ -101,6 +109,8 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
       case Some(value) => io.circe.scalajs.convertJsonToJs(value).asInstanceOf[js.Array[ch.wsl.typings.ol.styleStyleMod.Style]]
       case None => MapStyle.vectorStyle()
     }
+
+
 
     val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
     val featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()

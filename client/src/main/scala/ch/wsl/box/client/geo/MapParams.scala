@@ -100,7 +100,8 @@ case class MapParams(
                       precision: Option[Double],
                       formatters: Option[MapFormatters],
                       enableSwisstopo: Option[Boolean],
-                      lookups:Option[Seq[MapLookup]]
+                      lookups:Option[Seq[MapLookup]],
+                      minResolution: Option[Double]
                     ) {
   def crs = CRS(defaultProjection)
   def bbox = Box2d.fromSeq(projections.find(_.name == defaultProjection).get.extent.get)

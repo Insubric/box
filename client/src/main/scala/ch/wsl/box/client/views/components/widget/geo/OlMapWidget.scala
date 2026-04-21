@@ -84,6 +84,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   logger.info(s"Loading ol map1")
 
   val options: MapParams = MapWidgetUtils.options(field)
+  val minResolution = options.minResolution.getOrElse(0.1)
 
   override def killWidget(): Unit = {
     super.killWidget()
@@ -197,9 +198,9 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
                 val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
                 vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
                 if (geom.getGeometry().get.getType() != geomGeometryMod.Type.Point) {
-                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50)) //.setMinResolution(2))
+                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))
                 } else {
-                  view.fit(geom.getGeometry().get.getExtent(), FitOptions().setMinResolution(2))
+                  view.fit(geom.getGeometry().get.getExtent(), FitOptions())
                 }
               } else {
                 logger.debug(s"Fit with default extent: ${defaultProjection.getExtent().mkString(",")}")
@@ -276,6 +277,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     view = new viewMod.default(viewMod.ViewOptions()
       .setZoom(3)
+      .setMinResolution(minResolution)
       .setProjection(defaultProjection)
       .setCenter(extentMod.getCenter(defaultProjection.getExtent()))
     )

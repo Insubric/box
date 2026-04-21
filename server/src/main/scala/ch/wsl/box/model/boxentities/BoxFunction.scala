@@ -10,14 +10,15 @@ object BoxFunction {
 
 
   private val schema = Some(Registry.box().schema)
-  case class BoxFunction_row(function_uuid: Option[java.util.UUID] = None, name: String, mode:String, function:String, presenter:Option[String], description: Option[String] = None, layout: Option[String] = None, order: Option[Double], access_role:Option[List[String]])
+  case class BoxFunction_row(function_uuid: Option[java.util.UUID] = None, name: String, mode:String, function:String, presenter:Option[String], description: Option[String] = None, layout: Option[String] = None, order: Option[Double], access_role:Option[List[String]], public:Boolean)
 
   class BoxFunction(_tableTag: Tag) extends Table[BoxFunction_row](_tableTag,schema, "function") {
-    def * = (Rep.Some(function_uuid), name, mode, function, presenter, description, layout, order ,access_role) <> (BoxFunction_row.tupled, BoxFunction_row.unapply)
-    def ? = (Rep.Some(function_uuid), name, mode, function, presenter, description, layout, order, access_role).shaped.<>({ r=>import r._; _1.map(_=> BoxFunction_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8, _9)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def * = (Rep.Some(function_uuid), name, mode, function, presenter, description, layout, order ,access_role, public) <> (BoxFunction_row.tupled, BoxFunction_row.unapply)
+    def ? = (Rep.Some(function_uuid), name, mode, function, presenter, description, layout, order, access_role, public).shaped.<>({ r=>import r._; _1.map(_=> BoxFunction_row.tupled((_1, _2, _3, _4, _5, _6, _7, _8, _9, _10)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     val function_uuid: Rep[java.util.UUID] = column[java.util.UUID]("function_uuid", O.AutoInc, O.PrimaryKey)
     val name: Rep[String] = column[String]("name")
+    val public: Rep[Boolean] = column[Boolean]("public")
     val mode: Rep[String] = column[String]("mode", O.Default(FunctionKind.Modes.TABLE))
     val function: Rep[String] = column[String]("function")
     val presenter: Rep[Option[String]] = column[Option[String]]("presenter", O.Default(None))
