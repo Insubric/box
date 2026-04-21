@@ -10,7 +10,7 @@ import ch.wsl.box.rest.utils.{Auth, UserProfile}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.model.shared.EntityKind
 import ch.wsl.box.rest.metadata.FormMetadataFactory
-import ch.wsl.box.rest.routes.Form
+import ch.wsl.box.rest.routes.{Form, Functions}
 import ch.wsl.box.rest.runtime.Registry
 import ch.wsl.box.services.Services
 
@@ -43,6 +43,10 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
         }
       }
     }
+  }
+
+  def function(implicit up:UserProfile) = pathPrefix("function") {
+    Functions(public = true).route
   }
 
   def form:Route = pathPrefix(EntityKind.FORM.kind) {
@@ -88,6 +92,7 @@ class PublicArea(implicit ec:ExecutionContext, mat:Materializer, system:ActorSys
   val route:Route = pathPrefix("public") {
     form ~
     file ~
+    function ~
     pathPrefix("entity") { // keep same path structure than private API
       pathPrefix(Segment) { lang =>
         entityRoute

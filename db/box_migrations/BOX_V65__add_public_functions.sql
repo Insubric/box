@@ -1,0 +1,1 @@
+alter table function add public boolean default false;

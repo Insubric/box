@@ -39,7 +39,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
   }
 
   def function(implicit up:UserProfile) = pathPrefix("function") {
-    Functions().route
+    Functions(public = false).route
   }
 
   def file(implicit up:UserProfile) = pathPrefix("file") {

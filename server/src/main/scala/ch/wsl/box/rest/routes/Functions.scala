@@ -12,7 +12,7 @@ import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Functions()(implicit val up: UserProfile,  val mat: Materializer, val ec: ExecutionContext, val system:ActorSystem, val services:Services) extends Data {
+case class Functions(public:Boolean)(implicit val up: UserProfile,  val mat: Materializer, val ec: ExecutionContext, val system:ActorSystem, val services:Services) extends Data {
 
   import ch.wsl.box.jdbc.PostgresProfile.api._
   import ch.wsl.box.shared.utils.JSONUtils._
@@ -28,7 +28,10 @@ case class Functions()(implicit val up: UserProfile,  val mat: Materializer, val
 
     for{
       functionDef <- services.connection.adminDB.run{
-        functions.BoxFunctionTable.filter(_.name === function).result
+        if(public)
+          functions.BoxFunctionTable.filter(x => x.name === function && x.public).result
+        else
+          functions.BoxFunctionTable.filter(x => x.name === function).result
       }.map(_.headOption)
       result <- functionDef match {
         case None => Future.successful(None)
