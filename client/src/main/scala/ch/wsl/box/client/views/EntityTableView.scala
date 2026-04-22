@@ -4,11 +4,11 @@ import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, UI}
+import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, TablePreference, UI}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
-import ch.wsl.box.client.viewmodel.Row
+import ch.wsl.box.client.viewmodel.{Row}
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
@@ -160,6 +160,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
   }
 
+
   private def _handleState(state: EntityTableState,metadata:JSONMetadata): Unit = {
 
     services.clientSession.loading.set(true)
@@ -191,6 +192,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     } yield {
 
 
+
       val m = EntityTableModel(
         name = state.entity,
         kind = specificKind,
@@ -218,7 +220,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         geoms = Seq(),
         extent = None,
         public = state.public,
-        selectedColumns = metadata.preselectedTable
+        selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable)
       )
 
       //saveIds(IDs(true,1,Seq(),0),query)
@@ -467,6 +469,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   model.subProp(_.selectedColumns).listen{ c =>
     reloadRows(model.subProp(_.ids).get.currentPage)
+    val metadata = model.get.metadata.get
+    val tp = services.preferences.table(metadata) match {
+      case Some(value) => value.copy(selectedFields = Some(c.map(_.name)))
+      case None => TablePreference.fromMetadata(metadata,selectedFields = Some(c.map(_.name)))
+    }
+    services.preferences.saveTable(tp)
   }
 
   def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {

@@ -182,6 +182,22 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  def preferences(up:UserProfile) = path("user-preferences") {
+    get{
+      complete{
+        services.userPreferences.get(up.app_user)
+      }
+    } ~
+    post{
+      entity(as[Json]) { data =>
+        complete {
+          services.userPreferences.set(up.app_user,data)
+        }
+      }
+
+    }
+  }
+
   val websocket = new WebsocketNotifications()
 
   val route = auth ~
@@ -209,6 +225,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         exportXLS ~
         translations ~
         websocket.route ~
+        preferences(up) ~
         Admin(session).route
     }
     case None => invalidateSession(oneOff, usingCookies) {

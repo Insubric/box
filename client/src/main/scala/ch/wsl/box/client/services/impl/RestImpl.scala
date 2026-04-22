@@ -2,7 +2,7 @@ package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.Context
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.client.services.{BrowserConsole, HttpClient, REST}
+import ch.wsl.box.client.services.{BrowserConsole, HttpClient, REST, UserPreferences}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared.admin.FormCreationRequest
@@ -31,6 +31,10 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
   def appVersion()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/app_version"))
   def validSession()(implicit ec:ExecutionContext) = httpClient.get[Boolean](Routes.apiV1("/validSession"))
   def me()(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1("/me"))
+
+  override def preferences()(implicit ec: ExecutionContext): Future[Option[UserPreferences]] = httpClient.get[Option[UserPreferences]](Routes.apiV1("/user-preferences"))
+  override def savePreferences(preferences: UserPreferences)(implicit ec: ExecutionContext): Future[Boolean] = httpClient.post[UserPreferences,Boolean](Routes.apiV1("/user-preferences"),preferences)
+
   def cacheReset()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/cache/reset"))
 
   def entities(kind:String)(implicit ec:ExecutionContext):Future[Seq[String]] = httpClient.get[Seq[String]](Routes.apiV1(s"/${EntityKind(kind).plural}"))

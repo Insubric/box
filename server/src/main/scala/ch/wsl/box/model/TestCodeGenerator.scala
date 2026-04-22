@@ -72,7 +72,7 @@ object TestCodeGenerator extends App {
     override def postgisSchema: String = TestDatabase.publicSchema
   })
 
-  val connection = new ConnectionTestContainerImpl(container,TestDatabase.publicSchema)
+  val connection = new ConnectionTestContainerImpl(container,TestDatabase.publicSchema,TestDatabase.boxSchema)
 
   TestDatabase.setUp(connection)
 

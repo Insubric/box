@@ -6,6 +6,7 @@ import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
 import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{CurrentUser, EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
+import io.udash.Registration
 import io.udash.properties.single.Property
 import io.udash.routing.RoutingRegistry
 import org.scalajs.dom
@@ -37,7 +38,7 @@ object ClientSession {
   case class SelectedTabElement(key:SelectedTabKey, selected:String)
 }
 
-class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
+class ClientSession(rest:REST,httpClient: HttpClient, preferences:Preferences) extends Logging {
 
   import Context._
   import Context.Implicits._
@@ -155,7 +156,11 @@ class ClientSession(rest:REST,httpClient: HttpClient) extends Logging {
 
   def createSession(user:UserInfo) = {
 
-    rest.ui().map(UI.load).map{ _ =>
+    for{
+      ui <- rest.ui()
+      _ <- preferences.load()
+    } yield {
+      UI.load(ui)
       dom.window.sessionStorage.setItem(USER,user.preferred_username)
       userInfo = Some(user)
       services.notification.setup()

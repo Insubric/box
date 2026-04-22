@@ -13,4 +13,5 @@ trait ServiceModule {
   val notification = bind[NotificationChannel]
   val style = bind[BoxStyleFactory]
   val layout = bind[MainLayout]
+  val preferences = bind[Preferences]
 }

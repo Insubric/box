@@ -1,6 +1,6 @@
 package ch.wsl.box.client
-import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Navigator, Notification, NotificationChannel, NotificationWebSocket, REST}
-import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, HttpClientImpl, RestImpl}
+import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Navigator, Notification, NotificationChannel, NotificationWebSocket, Preferences, REST}
+import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, HttpClientImpl, PreferencesImpl, RestImpl}
 import ch.wsl.box.client.styles.{BoxStyle, BoxStyleFactory, GlobalStyleFactory}
 import ch.wsl.box.client.views.components.{BoxMainLayout, MainLayout}
 import ch.wsl.box.model.shared.AvailableUIModule
@@ -17,6 +17,7 @@ object Module {
     .bind[HttpClient].to[HttpClientImpl]
     .bind[REST].to[RestImpl]
     .bind[DataAccessObject].to[DaoPassthroughImpl]
+    .bind[Preferences].to[PreferencesImpl]
     .bind[ClientSession].toEagerSingleton
     .bind[Navigator].toEagerSingleton
     .bind[NotificationChannel].to[NotificationWebSocket]
@@ -27,6 +28,7 @@ object Module {
     .bind[HttpClient].to[HttpClientImpl]
     .bind[REST].to[RestImpl]
     .bind[DataAccessObject].to[DaoLocalDbImpl]
+    .bind[Preferences].to[PreferencesImpl]
     .bind[ClientSession].toEagerSingleton
     .bind[Navigator].toEagerSingleton
     .bind[NotificationChannel].to[NotificationWebSocket]
