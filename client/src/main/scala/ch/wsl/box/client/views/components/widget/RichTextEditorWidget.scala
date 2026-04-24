@@ -1,9 +1,7 @@
 package ch.wsl.box.client.views.components.widget
 
-import java.util.UUID
-import ch.wsl.box.client.services.BrowserConsole
-import ch.wsl.box.client.utils.Shorten
 import ch.wsl.box.client.views.components.widget.RichTextEditorWidget.Mode
+import ch.wsl.box.client.views.components.widget.`trait`.HasCounter
 import ch.wsl.box.model.shared.{JSONField, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils._
 import io.circe.Json
@@ -16,12 +14,10 @@ import scalatags.JsDom
 import scribe.Logging
 import ch.wsl.typings.quill.mod.{DeltaStatic, Quill, QuillOptionsStatic, Sources}
 
-import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.JSRichIterableOnce
-import scala.util.Try
 
-case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], mode:Mode) extends Widget with HasData with Logging {
+case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], mode:Mode, allData:ReadableProperty[Json]) extends Widget with HasData with Logging with HasCounter {
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
 
@@ -102,7 +98,8 @@ case class RichTextEditorWidget(_id: ReadableProperty[Option[String]], field: JS
         })
 
       div(
-        parent
+        parent,
+        counterDiv
       ).render
 
 
@@ -123,6 +120,6 @@ case class RichTextEditorWidgetFactory(mode:Mode) extends ComponentWidgetFactory
   }
 
 
-  override def create(params: WidgetParams): Widget = RichTextEditorWidget(params.id,params.field,params.prop,mode)
+  override def create(params: WidgetParams): Widget = RichTextEditorWidget(params.id,params.field,params.prop,mode,params.allData)
 
 }

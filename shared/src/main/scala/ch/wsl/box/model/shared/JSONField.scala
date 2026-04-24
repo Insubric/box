@@ -10,6 +10,9 @@ import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.syntax.EncoderOps
 
+
+
+
 /**
   * Created by andreaminetti on 16/03/16.
   */
@@ -70,6 +73,8 @@ case class JSONField(
     params = Some(params.getOrElse(Json.obj()).deepMerge(Json.fromFields(Seq(("widget",widget.getOrElse(WidgetsNames.input).asJson))))),
     widget = Some(WidgetsNames.popupWidget)
   )
+
+  def getParam(key:String,data:Json): Option[Json] = params.flatMap(_.interpolate(key,data))
 
 }
 

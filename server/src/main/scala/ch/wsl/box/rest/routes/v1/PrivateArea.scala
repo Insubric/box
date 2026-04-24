@@ -185,7 +185,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
   def preferences(up:UserProfile) = path("user-preferences") {
     get{
       complete{
-        services.userPreferences.get(up.app_user)
+        services.userPreferences.get(up.app_user).map(_.getOrElse(Json.Null))
       }
     } ~
     post{

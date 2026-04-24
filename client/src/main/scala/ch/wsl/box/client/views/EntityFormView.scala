@@ -204,6 +204,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       document.activeElement match {
         case element: HTMLInputElement => ()
         case element: HTMLTextAreaElement => ()
+        case element:dom.HTMLElement if element.contentEditable == "true" => ()
         case element:dom.HTMLElement => {
           event.preventDefault()
           println("PasingAAAA")

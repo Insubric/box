@@ -169,6 +169,8 @@ trait Widget extends Logging {
   def subForm = false
 
 
+
+
 }
 
 object Widget{
@@ -183,6 +185,8 @@ object Widget{
 
 trait HasData extends Widget {
   def data:Property[Json]
+
+
 
 
 

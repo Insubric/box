@@ -4,6 +4,7 @@ import ch.wsl.box.model.shared.JSONID.BOX_OBJECT_ID
 import ch.wsl.box.model.shared.{FileUtils, JSONDiff, JSONDiffField, JSONDiffModel, JSONField, JSONFieldTypes, JSONID, JSONMetadata, LayoutBlock, SubLayoutBlock}
 import ch.wsl.box.model.shared.JSONMetadata.childPlaceholder
 import io.circe._
+import io.circe.generic.semiauto.deriveDecoder
 import io.circe.syntax.EncoderOps
 import scribe.Logging
 import yamusca.imports._
@@ -13,7 +14,12 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by andre on 5/22/2017.
   */
+
+case class InterpolatedParam(extract_field:String)
+
 object JSONUtils extends Logging {
+
+  private implicit val iterpolateDecoder = deriveDecoder[InterpolatedParam]
 
   val LANG = "::lang"
   val FIRST = "::first"
@@ -98,7 +104,40 @@ object JSONUtils extends Logging {
         field.default.flatMap(d => JSONUtils.toJs(d,field.`type`))
       }.getOrElse(Json.Null)
     }
-    def jsOpt(field:String):Option[Json] = el.hcursor.get[Json](field).right.toOption
+
+    private def extract(e:Json,field:String):Option[Json] =  {
+      field.toIntOption match {
+        case Some(value) => e.asArray.flatMap(_.lift(value))
+        case None => e.hcursor.get[Json](field).right.toOption
+      }
+
+    }
+
+    def jsOpt(field:String):Option[Json] = {
+      val path = field.split("\\.").toList
+
+      def subEl(e:Json,path:List[String]):Option[Json] = {
+        path match {
+          case head :: Nil => extract(e,head)
+          case head :: next => extract(e,head).flatMap(x => subEl(x,next))
+          case Nil => None
+        }
+      }
+
+      subEl(el,path)
+
+
+    }
+
+    def interpolate(field:String,data:Json):Option[Json] = jsOpt(field).flatMap{ p =>
+      p.as[InterpolatedParam].toOption match {
+        case Some(value) => {
+          data.jsOpt(value.extract_field)
+        }
+        case None => Some(p)
+      }
+    }
+
 
     def seq(field:String):Seq[Json] = {
       val result = el.hcursor.get[Seq[Json]](field)
@@ -114,13 +153,7 @@ object JSONUtils extends Logging {
 
     def get(field: String):String = getOpt(field).getOrElse("")
 
-    def getOpt(field: String):Option[String] = el.hcursor.get[Json](field).fold(
-      { _ =>
-        None
-      }, { x =>
-        if(!x.isNull) Some(x.string) else None
-      }
-    )
+    def getOpt(field: String):Option[String] = jsOpt(field).map(_.string)
 
     def filterFields(fields:Seq[JSONField]):Json = el.asObject match {
       case Some(value) => value.filter{case (k,_) => fields.map(_.name).contains(k)}.asJson
