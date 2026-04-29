@@ -1,7 +1,7 @@
 package ch.wsl.box.client.services
 
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
-import ch.wsl.box.client.viewmodel.BoxDefinition
+import ch.wsl.box.client.viewmodel.{BoxDefinition}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.admin.FormCreationRequest
 import ch.wsl.box.model.shared.geo.GeoDataRequest
@@ -20,6 +20,8 @@ trait REST{
   def appVersion()(implicit ec:ExecutionContext):Future[String]
   def validSession()(implicit ec:ExecutionContext):Future[Boolean]
   def me()(implicit ec:ExecutionContext):Future[UserInfo]
+  def preferences()(implicit ec:ExecutionContext):Future[Option[UserPreferences]]
+  def savePreferences(preferences:UserPreferences)(implicit ec:ExecutionContext):Future[Boolean]
   def cacheReset()(implicit ec:ExecutionContext):Future[String]
   def entities(kind:String)(implicit ec:ExecutionContext):Future[Seq[String]]
 

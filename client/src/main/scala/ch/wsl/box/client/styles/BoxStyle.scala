@@ -147,6 +147,7 @@ trait BoxStyle {
   val mobileBoxActionPanel:StyleA
   val sidebarButton:StyleA
   val showHide:StyleA
+  val error:StyleA
 
   def render[Out](implicit r: Renderer[Out], env: Env):Out
 }

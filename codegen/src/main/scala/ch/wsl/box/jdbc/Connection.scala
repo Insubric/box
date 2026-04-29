@@ -34,6 +34,7 @@ trait Connection extends Logging {
   def adminUser:String
   def user:String
   def dbSchema:String
+  def boxSchema:String
   def dbPath:String
   def dataSource(name:String,schema:String): DataSource
   //val executor = AsyncExecutor("public-executor",50,50,10000,50)
@@ -79,7 +80,9 @@ trait Connection extends Logging {
 }
 
 class ConnectionConfImpl extends Connection {
-  val dbConf: Config = ConfigFactory.load().as[Config]("db")
+  private val conf = ConfigFactory.load()
+  val boxSchema = conf.as[String]("box.db.schema")
+  val dbConf: Config = conf.as[Config]("db")
   val dbPath = dbConf.as[String]("url")
   val dbPassword = dbConf.as[String]("password")
   val dbSchema = dbConf.as[String]("schema")
@@ -180,10 +183,12 @@ class ConnectionConfImpl extends Connection {
   )
 }
 
-class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String) extends Connection {
+class ConnectionTestContainerImpl(container: PostgreSQLContainer,schema:String,box_schema:String) extends Connection {
   val dbPath = container.jdbcUrl
   val dbPassword = container.password
   val dbSchema = schema
+  val boxSchema: String = box_schema
+
   val adminPoolSize = 15
   val adminUser = container.username
   val user = container.username

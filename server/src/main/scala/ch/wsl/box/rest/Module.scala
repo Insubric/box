@@ -12,6 +12,7 @@ import ch.wsl.box.services.files.{InMemoryImageCacheStorage, PgImageCacheStorage
 import ch.wsl.box.services.mail.{MailService, MailServiceCourier, MailServiceDummy}
 import ch.wsl.box.services.mail_dispatcher.{MailDispatcherService, SingleHostMailDispatcherService}
 import ch.wsl.box.services.translation.{ColumnTranslate, DeepLTranslateService, TranslateService}
+import ch.wsl.box.services.user_preferences.{UserPreference, UserPreferenceImpl}
 import com.softwaremill.session.{InMemoryRefreshTokenStorage, RefreshTokenStorage}
 import scribe.Logging
 import wvlet.airframe._
@@ -53,6 +54,7 @@ object DefaultModule extends Module {
     .bind[MailDispatcherService].to[SingleHostMailDispatcherService]
     .bind[DeepLConfig].to[ConfFileAndDb]
     .bind[TranslateService].to[DeepLTranslateService]
+    .bind[UserPreference].to[UserPreferenceImpl]
     .bind[RefreshTokenStorage[BoxSession]].toInstance(new InMemoryRefreshTokenStorage[BoxSession] with Logging {
       override def log(msg: String): Unit = logger.info(msg)
     })

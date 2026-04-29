@@ -1701,6 +1701,12 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     backgroundColor.rgba(0,0,0,0.1)
   )
 
+  val error = style(
+    Font.bold,
+    backgroundColor.rgba(255,0,0,0.3),
+    color.red
+  )
+
 //
 //    val mapPopup = style(
 //      border.solid,

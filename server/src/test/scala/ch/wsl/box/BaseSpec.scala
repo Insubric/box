@@ -74,7 +74,7 @@ trait BaseSpec extends AsyncFlatSpec with Matchers with Logging {
     logginSetupPhase()
 
     val container = TestDatabase.containerDef.start()
-    val connection = new ConnectionTestContainerImpl(container, TestDatabase.publicSchema)
+    val connection = new ConnectionTestContainerImpl(container, TestDatabase.publicSchema,TestDatabase.boxSchema)
     TestModule(connection).injector.run[Services, A] { implicit services =>
       Registry.inject(new GenRegistry())
       Registry.injectBox(new boxentities.GenRegistry())

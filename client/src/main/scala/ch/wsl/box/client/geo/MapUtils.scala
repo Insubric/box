@@ -254,7 +254,11 @@ object MapUtils extends Logging {
     import io.circe.generic.auto._
     val ol = new formatGeoJSONMod.default().readFeature(convertJsonToJs(box.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
     box.properties.flatMap(_.apply("jsonid").flatMap(_.as[JSONID].toOption)).map(_.asString).foreach{ id =>
-      ol.setId(id)
+      if(id.nonEmpty) {
+        ol.setId(id)
+      } else {
+        ol.setId(UUID.randomUUID().toString)
+      }
     }
     ol
   }
