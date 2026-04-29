@@ -147,9 +147,8 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
       def editEntry(nested:NestedInterceptor):Modifier = {
         fieldLookup match {
-          case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => editEntity(lookupEntity,nested)
-          case JSONFieldLookupExtractor(extractor) => ???
-          case JSONFieldLookupData(data) => ???
+          case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) if lookupEntity.nonEmpty => editEntity(lookupEntity,nested)
+          case _ => ???
         }
       }
 

@@ -62,8 +62,10 @@ object QueryBuilderWidget extends ComponentWidgetFactory {
       import Implicits.executionContext
 
       def fetchFieldForEntity(entity:String):Unit  = {
-        services.rest.metadata(EntityKind.ENTITY.kind,services.clientSession.lang(),entity,false).foreach { m =>
-          columns.set(m.fields)
+        if(entity.nonEmpty) {
+          services.rest.metadata(EntityKind.ENTITY.kind, services.clientSession.lang(), entity, false).foreach { m =>
+            columns.set(m.fields)
+          }
         }
       }
 
