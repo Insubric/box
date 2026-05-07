@@ -158,9 +158,11 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
       val mapParams = params.copy(field = field.copy(params = Some(mapOptions.asJson)))
 
       div(
-        div(
-          WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, nested)
-        )
+        nested(showIf(modalStatus.transform(_ == Status.Open)){
+          div(
+            WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, nested)
+          ).render
+        })
       ).render
     }
 
