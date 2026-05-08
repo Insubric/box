@@ -417,10 +417,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
     val qOrig = query(extent)
+
     model.subProp(_.query).set(Some(qOrig))
     val q = qOrig.copy(
       paging = Some(JSONQueryPaging(ClientConf.pageLength, page)),
-      fields = Some(model.subProp(_.selectedColumns).get.map(_.name))
+      fields = Some(
+        (
+          model.subProp(_.selectedColumns).get.map(_.name) ++
+          model.subProp(_.metadata).get.toList.flatMap(_.keys)
+        ).distinct
+      )
     )
 
     //start request in parallel
@@ -517,7 +523,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   def toggleSelection(row: => Row) = (e:Event) => {
-
     row.id.foreach { id =>
       val currentSel = model.subProp(_.selectedRow).get
       if (currentSel.contains(id)) {
