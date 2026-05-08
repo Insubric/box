@@ -661,7 +661,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.client.Context.Implicits._
 
-
+  val empty:Modifier = Seq[Modifier]()
 
 
   def labelTitle(m:Option[JSONMetadata]) = {
@@ -1067,6 +1067,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def mainContent(metadata:Option[JSONMetadata],nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
 
+    val disableSelection = metadata.exists(_.params.exists(_.js("disableSelection") == Json.True))
+    val enableImport = metadata.exists(_.params.exists(_.js("enableImport") == Json.True))
+
     val columnSelector = {
       var modal:Option[UdashModal] = None
       val localModel = Property(model.get.selectedColumns)
@@ -1124,7 +1127,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       )
     }
 
-    val disableSelection = metadata.exists(_.params.exists(_.js("disableSelection") == Json.True))
+
 
 
       div(
@@ -1146,7 +1149,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 presenter.selectAll()
                 e.preventDefault()
               }))
-            } else Seq[Modifier]()
+            } else empty
           ),
           if(!disableSelection) {
             div(
@@ -1161,7 +1164,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 ).render
               })
             )
-          } else Seq[Modifier](),
+          } else empty,
           div( display.flex,
             columnSelector,
             pagination.render,
@@ -1176,7 +1179,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           button(`type` := "button", onclick :+= presenter.downloadCSV, ClientConf.style.boxButton, Labels.entity.csv),
           button(`type` := "button", onclick :+= presenter.downloadXLS, ClientConf.style.boxButton, Labels.entity.xls),
           button(`type` := "button", onclick :+= presenter.downloadPdf, ClientConf.style.boxButton, Labels.entity.pdf),
-          button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls),
+          if(enableImport) {
+            button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls)
+
+          } else empty,
           if (presenter.hasGeometry()) {
             Seq(
               //button(`type` := "button", onclick :+= presenter.downloadSHP, ClientConf.style.boxButton, Labels.entity.shp),
