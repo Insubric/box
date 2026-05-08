@@ -14,6 +14,7 @@ object FormParamLayoutWidget extends ComponentWidgetFactory {
     JSONField.boolean("hideHeader"),
     JSONField.boolean("hideFooter"),
     JSONField.boolean("mapClosed"),
+    JSONField.boolean("disableSelection"),
     JSONField.json("mapStyle").asPopup
   )
 

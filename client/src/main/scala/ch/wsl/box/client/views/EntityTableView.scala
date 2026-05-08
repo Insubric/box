@@ -392,6 +392,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
   def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
+
   def loadGeoms(extent:Option[Polygon] = None) = {
     model.get.metadata.foreach{ m =>
       Future.sequence(m.geomFields.map{ f =>
@@ -1123,6 +1124,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       )
     }
 
+    val disableSelection = metadata.exists(_.params.exists(_.js("disableSelection") == Json.True))
+
 
       div(
         div(ClientConf.style.spaceBetween,
@@ -1138,23 +1141,27 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 })
               ).render
             }),
-            a(ClientConf.style.chipLink,Labels.navigation.selectAll, onclick :+= ((e:Event) => {
-              presenter.selectAll()
-              e.preventDefault()
-            }))
+            if(!disableSelection) {
+              a(ClientConf.style.chipLink, Labels.navigation.selectAll, onclick :+= ((e: Event) => {
+                presenter.selectAll()
+                e.preventDefault()
+              }))
+            } else Seq[Modifier]()
           ),
-          div(
-            nested(showIf(model.subProp(_.selectedRow).transform(_.nonEmpty)){
-              div(
-                Labels.navigation.recordsSelected,nested(bind(model.subProp(_.selectedRow).transform(_.length))),
-                presenter.actions(true).map(actionButton(model.subProp(_.selectedRow).get,ClientConf.style.chipLink)),
-                a(ClientConf.style.chipLink,Labels.navigation.removeSelection," \uD83D\uDDD9", onclick :+= ((e:Event) => {
-                  presenter.resetSelection()
-                  e.preventDefault()
-                })),
-              ).render
-            })
-          ),
+          if(!disableSelection) {
+            div(
+              nested(showIf(model.subProp(_.selectedRow).transform(_.nonEmpty)) {
+                div(
+                  Labels.navigation.recordsSelected, nested(bind(model.subProp(_.selectedRow).transform(_.length))),
+                  presenter.actions(true).map(actionButton(model.subProp(_.selectedRow).get, ClientConf.style.chipLink)),
+                  a(ClientConf.style.chipLink, Labels.navigation.removeSelection, " \uD83D\uDDD9", onclick :+= ((e: Event) => {
+                    presenter.resetSelection()
+                    e.preventDefault()
+                  })),
+                ).render
+              })
+            )
+          } else Seq[Modifier](),
           div( display.flex,
             columnSelector,
             pagination.render,
