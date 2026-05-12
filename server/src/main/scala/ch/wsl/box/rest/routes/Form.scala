@@ -96,7 +96,7 @@ case class Form(
   }
 
 
-  def csv:Route = path("csv") {
+  def csv:Route = path(ExportTableFormat.CSV.code) {
     post {
       privateOnly {
         entity(as[JSONQuery]) { query =>

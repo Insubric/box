@@ -71,6 +71,10 @@ case class JSONMetadata(
   def geomFields = fields.filter(_.`type` == JSONFieldTypes.GEOMETRY)
 
   def exportFieldsNoGeom = fields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY)
+
+  def nativeFields:Seq[JSONField] = fields
+    .filterNot(_.`type` == JSONFieldTypes.STATIC)
+    .filterNot(_.`type` == JSONFieldTypes.CHILD)
 }
 
 object JSONMetadata extends Logging {

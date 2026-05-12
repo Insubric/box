@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.headers.{ContentDispositionTypes, `Content-Dispo
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{RequestContext, Route}
 import akka.stream.Materializer
-import ch.wsl.box.model.shared.{CSVTable, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, XLSTable}
+import ch.wsl.box.model.shared.{CSVTable, ExportTableFormat, JSONField, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONLookups, JSONLookupsRequest, JSONMetadata, JSONQuery, XLSTable}
 import ch.wsl.box.rest.io.xls.XLS
 import ch.wsl.box.rest.logic.{FormActions, Lookup}
 import io.circe.parser.parse
@@ -66,7 +66,7 @@ trait Exporters {
     }
   }
 
-  def xls(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = pathPrefix("xlsx") {
+  def xls(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = pathPrefix(ExportTableFormat.XLS.code) {
     path("import") {
       XLS.importXls(actions.metadata,actions.jsonAction,db.db)
     } ~
@@ -177,10 +177,18 @@ trait Exporters {
 //    }
 //  }
 
-  def geoPkg(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path("gpkg") {
+  def geoPkg(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path(ExportTableFormat.GeoPackage.code) {
     get {
-      parameters('q) { q =>
-        val query = parse(q).right.get.as[JSONQuery].right.get
+      parameters('q,'fk.?,'fields.?) { (q,fk,fields) =>
+        val _query = parse(q).right.get.as[JSONQuery].right.get
+
+        val query = fields.map(_.split(",").toSeq) match {
+          case Some(fields) => _query.copy(fields = Some(fields))
+          case None => _query
+        }
+
+
+
         respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.gpkg"))) {
           complete {
             for {
