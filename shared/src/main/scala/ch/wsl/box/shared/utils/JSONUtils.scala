@@ -155,8 +155,10 @@ object JSONUtils extends Logging {
 
     def getOpt(field: String):Option[String] = jsOpt(field).map(_.string)
 
-    def filterFields(fields:Seq[JSONField]):Json = el.asObject match {
-      case Some(value) => value.filter{case (k,_) => fields.map(_.name).contains(k)}.asJson
+    def filterFields(fields:Seq[JSONField]):Json = filter(k => fields.map(_.name).contains(k))
+
+    def filter(f:String => Boolean) = el.asObject match {
+      case Some(value) => value.filter{case (k,_) => f(k)}.asJson
       case None => el
     }
 

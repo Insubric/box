@@ -105,8 +105,8 @@ case class Form(
       }
     } ~ get {
       privateOnly {
-        parameters('q, 'fk.?, 'fields.?) { (q, fk, fields) =>
-          exportCsv(q,fk,fields)
+        parameters(ExportTableFormat.queryParamName,ExportTableFormat.fkParamName.?,ExportTableFormat.fieldsParamName.?,GeometryTableFormat.paramName.?) { (q, fk, fields,geomFormat) =>
+          exportCsv(q,fk,fields,geomFormat)
         }
       }
     }

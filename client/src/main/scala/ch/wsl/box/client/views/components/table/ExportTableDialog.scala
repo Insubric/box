@@ -3,7 +3,8 @@ package ch.wsl.box.client.views.components.table
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels, PDF}
-import ch.wsl.box.model.shared.{EntityKind, ExportMode, ExportTableFormat, JSONField, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.ExportTableFormat.GeoPackage
+import ch.wsl.box.model.shared.{EntityKind, ExportMode, ExportTableFormat, GeometryTableFormat, JSONField, JSONFieldTypes, JSONMetadata, JSONQuery}
 import io.circe.syntax.EncoderOps
 import io.udash._
 import io.udash.bindings.modifiers.Binding
@@ -37,6 +38,7 @@ class ExportTableDialog extends Logging {
   def fieldSelectors:Seq[HTMLInputElement] = modalBodyDiv.querySelectorAll(s".$fieldSelectionClass").map(_.asInstanceOf[HTMLInputElement]).toList
 
   val exportType = Property[ExportTableFormat](ExportTableFormat.XLS)
+  val exportGeomFormat = Property[GeometryTableFormat](GeometryTableFormat.XY)
   var metadata:JSONMetadata = null
   var query:JSONQuery = null
 
@@ -58,15 +60,29 @@ class ExportTableDialog extends Logging {
 
     val fields:Seq[String] = fieldSelectors.filter(_.checked).map(_.value)
 
-    val resolveFK = document.getElementById(resolveFKId).asInstanceOf[HTMLInputElement].value
+    val resolveFK = if(document.getElementById(resolveFKId).asInstanceOf[HTMLInputElement].checked) {
+      Seq(ExportTableFormat.fkParamName -> ExportMode.RESOLVE_FK)
+    } else Seq()
 
     val queryNoLimits = query.copy(paging = None)
+
+    val exportGeomFormatParam = metadata.geomFields.exists(f => fields.contains(f.name)) && format != ExportTableFormat.GeoPackage match {
+      case true => Seq("exportGeomFormat" -> exportGeomFormat.get.toString)
+      case false => Seq()
+    }
+
+    val params = Seq(
+      ExportTableFormat.fieldsParamName -> fields.mkString(","),
+      ExportTableFormat.queryParamName -> URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)
+    ) ++ resolveFK ++ exportGeomFormatParam
+
+    val paramsString = params.map{ case (k,v) => s"$k=$v"}.mkString("&").replaceAll("\n", "")
 
     if(format == ExportTableFormat.PDF) {
       PDF.table(kind,modelName,fields,queryNoLimits)
     } else {
       val url = Routes.apiV1(
-        s"/$kind/${services.clientSession.lang()}/$modelName/${format.code}?fk=$resolveFK&fields=${fields.mkString(",")}&q=${URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)}".replaceAll("\n", "")
+        s"/$kind/${services.clientSession.lang()}/$modelName/${format.code}?$paramsString"
       )
       logger.info(s"downloading: $url")
       dom.window.open(url)
@@ -75,9 +91,9 @@ class ExportTableDialog extends Logging {
 
   def open(modal:UdashModal,params:ExportParams) = {
     modalBodyDiv.innerHTML = ""
-    modalBodyDiv.append(body(params))
     metadata = params.metadata
     query = params.query
+    modalBodyDiv.append(body(params))
     modal.show()
   }
 
@@ -89,27 +105,49 @@ class ExportTableDialog extends Logging {
       h3("Export - " + params.metadata.label),
       h5(marginTop := 15.px, "Format"),
       Select(
-        exportType.bitransform(_.toString)(ExportTableFormat.fromString), ExportTableFormat.all.map(_.toString).toSeqProperty
+        exportType.bitransform(_.toString)(ExportTableFormat.fromString), ExportTableFormat.allSupported(params.metadata).map(_.toString).toSeqProperty
       )(Select.defaultLabel).render,
       h5(marginTop := 15.px,"Options"),
       div(
-        div(width := 230.px, padding := 10.px, input(id := resolveFKId, `type` := "checkbox", value := ExportMode.RESOLVE_FK, checked)," Resolve Foreign Keys")
+        div(width := 230.px, padding := 10.px, input(id := resolveFKId, `type` := "checkbox", checked)," Resolve Foreign Keys")
       ),
-      h5(marginTop := 15.px,"Select fields"),
-      div(float.right)(
+      div(float.right,marginTop := 10.px)(
         button("Select All", onclick :+= {(e:Event) =>
           fieldSelectors.foreach(_.checked = true)
-        }),
+        },ClientConf.style.boxButton),
         button("Unselect All", onclick :+= {(e:Event) =>
           fieldSelectors.foreach(_.checked = false)
-        })
+        },ClientConf.style.boxButton)
       ),
+      h5(marginTop := 15.px,"Select fields"),
+      div(clear.both),
       div( display.flex, flexWrap.wrap,
-        params.metadata.nativeFields.sortBy(_.title).map{ f =>
+        params.metadata.nativeFields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).sortBy(_.title).map{ f =>
           val _checked = params.selectedFields.contains(f)
           div(width := 230.px, padding := 10.px, input(`type` := "checkbox", `class` := fieldSelectionClass, value := f.name, checked.attrIf(_checked))," ",f.title)
         }
-      )
+      ),
+      if(params.metadata.geomFields.nonEmpty) {
+
+          div(
+            h5(marginTop := 15.px,"Geometry fields"),
+            showIf(exportType.transform(_ != GeoPackage)) {
+              div(
+                p("Mode"),
+                Select(
+                  exportGeomFormat.bitransform(_.toString)(GeometryTableFormat.fromString), GeometryTableFormat.all.map(_.toString).toSeqProperty
+                )(Select.defaultLabel).render
+              ).render
+            },
+            div( display.flex, flexWrap.wrap,
+              params.metadata.geomFields.sortBy(_.title).map{ f =>
+                val _checked = params.selectedFields.contains(f)
+                div(width := 230.px, padding := 10.px, input(`type` := "checkbox", `class` := fieldSelectionClass, value := f.name, checked)," ",f.title)
+              }
+            )
+          )
+
+      } else frag()
     ).render
   }
 

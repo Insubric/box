@@ -374,6 +374,17 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     alignContent.center
   )
 
+  override val topTableContainer = style(
+    display.flex,
+    flexDirection.column,
+    media.minWidth(600 px)(
+      flexDirection.row,
+    ),
+    justifyContent.spaceBetween,
+    alignItems.center,
+    alignContent.center
+  )
+
   override val flexContainer = style(
     display.flex,
     flexDirection.row,

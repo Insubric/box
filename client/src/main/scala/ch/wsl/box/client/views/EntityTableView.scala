@@ -1088,7 +1088,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
 
       div(
-        div(ClientConf.style.spaceBetween,
+        div(ClientConf.style.topTableContainer,
           div(
             h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
           ),
@@ -1123,6 +1123,11 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             )
           } else empty,
           div( display.flex,
+            exportDialog.render(nested, () => ExportParams(
+              metadata = metadata.get,
+              selectedFields = model.subProp(_.selectedColumns).get,
+              query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
+            )),
             columnSelector,
             pagination.render,
           )
@@ -1133,11 +1138,6 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             ClientConf.style.fullHeightMax,
             tableContent(metadata)
           ),
-          exportDialog.render(nested, () => ExportParams(
-            metadata = metadata.get,
-            selectedFields = model.subProp(_.selectedColumns).get,
-            query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
-          )),
           if(enableImport) {
             button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls)
 
