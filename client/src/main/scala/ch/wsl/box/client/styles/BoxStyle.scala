@@ -78,6 +78,7 @@ trait BoxStyle {
   val boxIconButton: StyleA
   val boxIconButtonDanger: StyleA
   val boxButton: StyleA
+  val boxButtonIconMini: StyleA
   val boxNavigationLabel: StyleA
   val spacedList: StyleA
   val boxButtonImportant: StyleA
@@ -149,6 +150,9 @@ trait BoxStyle {
   val sidebarButton:StyleA
   val showHide:StyleA
   val error:StyleA
+  val iconBig:StyleA
+  val filterBlock:StyleA
+
 
   def render[Out](implicit r: Renderer[Out], env: Env):Out
 }

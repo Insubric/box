@@ -978,6 +978,28 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     )
   )
 
+  override val boxButtonIconMini = style(
+    backgroundColor.rgb(250,250,250),
+    borderWidth(1 px),
+    borderStyle.solid,
+    borderColor.rgb(200,200,200),
+    borderRadius(50 px),
+    width(20 px),
+    height(20 px),
+    marginTop(-43 px),
+    marginRight(-10 px),
+    unsafeChild("svg")(
+      width(13 px),
+      marginTop(-9 px),
+      marginLeft(-3 px)
+    ),
+    &.hover(
+      borderColor(conf.colors.danger),
+      color(conf.colors.danger),
+      backgroundColor(ColorUtils.RGB.fromHex(conf.colors.dangerColor).withTrasparency(0.3))
+    )
+  )
+
   override val boxNavigationLabel = style(
     textAlign.center,
     lineHeight(26 px),
@@ -1716,6 +1738,36 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     Font.bold,
     backgroundColor.rgba(255,0,0,0.3),
     color.red
+  )
+
+  val iconBig = style(
+    unsafeChild("svg")(
+      width(30 px),
+      height(30 px),
+      margin(15 px)
+    )
+  )
+
+  val filterBlock = style(
+    display.flex,
+    alignItems.center,
+    backgroundColor.rgb(250,250,250),
+    borderWidth(1 px),
+    borderRadius(2 px),
+    borderStyle.solid,
+    borderColor.rgb(200,200,200),
+    margin(10 px),
+    unsafeChild("select")(
+      width(100 px).important,
+      margin(10 px),
+      fontSize(12 px)
+    ),
+    unsafeChild("input")(
+      width(100 px).important,
+      margin(10 px),
+      fontSize(12 px)
+    )
+
   )
 
 //

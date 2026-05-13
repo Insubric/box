@@ -9,7 +9,7 @@ import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
 import ch.wsl.box.client.viewmodel.Row
-import ch.wsl.box.client.views.components.table.{ExportParams, ExportTableDialog}
+import ch.wsl.box.client.views.components.table.{ExportParams, ExportTableDialog, FilterBarDyn, FilterEveryField}
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
@@ -621,129 +621,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   val exportDialog = new ExportTableDialog
 
-  def labelTitle(m:Option[JSONMetadata]) = {
-    val name = m.map(_.label).getOrElse(model.get.name)
+  def labelTitle(m:JSONMetadata) = {
+    val name = m.label
     span(name).render
-  }
-
-  def filterOptions(metadata:Option[JSONMetadata], field:String, operator: Property[String]) = {
-
-
-    def label = (id:String) => id match {
-      case Filter.FK_NOT => StringFrag(Labels.filter.not)
-      case Filter.FK_EQUALS => StringFrag(Labels.filter.equals)
-      case Filter.FK_LIKE => StringFrag(Labels.filter.contains)
-      case Filter.FK_DISLIKE => StringFrag(Labels.filter.without)
-      case Filter.LIKE => StringFrag(Labels.filter.contains)
-      case Filter.DISLIKE => StringFrag(Labels.filter.without)
-      case Filter.BETWEEN => StringFrag(Labels.filter.between)
-      case Filter.< => StringFrag(Labels.filter.lt)
-      case Filter.> => StringFrag(Labels.filter.gt)
-      case Filter.<= => StringFrag(Labels.filter.lte)
-      case Filter.>= => StringFrag(Labels.filter.gte)
-      case Filter.EQUALS => StringFrag(Labels.filter.equals)
-      case Filter.IN => StringFrag(Labels.filter.in)
-      case Filter.NONE => StringFrag(Labels.filter.none)
-      case Filter.NOTIN => StringFrag(Labels.filter.notin)
-      case Filter.NOT => StringFrag(Labels.filter.not)
-      case _ => StringFrag(id)
-    }
-
-    val options = SeqProperty{
-      metadata.toSeq.flatMap(_.fields).find(_.name == field).toSeq.flatMap(f => UI.enabledFilters(Filter.options(f)))
-    }
-
-    Select(operator, options)(label,ClientConf.style.fullWidth,ClientConf.style.filterTableSelect)
-
-  }
-
-
-
-  def filterField(filterValue: Property[String], field:Option[JSONField], filterOperator:String,nested:Binding.NestedInterceptor):Modifier = {
-
-    filterValue.listen(v => logger.info(s"Filter for ${field.map(_.name)} changed in: $v"))
-
-
-
-    def filterFieldStd = field.map(_.`type`) match {
-      case Some(JSONFieldTypes.TIME) => DateTimeWidget.Time(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null)).edit(nested)
-      case Some(JSONFieldTypes.DATE) => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
-      case Some(JSONFieldTypes.DATETIME) => ClientConf.filterPrecisionDatetime match{
-        case JSONFieldTypes.DATE => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
-        case _ => DateTimeWidget.DateTime(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
-      }
-      case Some(JSONFieldTypes.DATETIMETZ) => ClientConf.filterPrecisionDatetime match{
-        case JSONFieldTypes.DATE => DateTimeWidget.Date(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
-        case _ => DateTimeWidget.DateTimeTZ(Property(None),JSONField.fullWidth,filterValue.bitransform(_.asJson)(_.string),Property(Json.Null),true).edit(nested)
-      }
-      case Some(JSONFieldTypes.NUMBER) | Some(JSONFieldTypes.INTEGER) if field.flatMap(_.widget).contains(WidgetsNames.integerDecimal2) && !Seq(Filter.BETWEEN, Filter.IN, Filter.NOTIN).contains(filterOperator) => {
-        if(Try(filterValue.get.toDouble).toOption.isEmpty) filterValue.set("")
-        val properyNumber = Property("")
-        filterValue.sync(properyNumber)(_.toDoubleOption.map(_ / 100).map(_.toString).getOrElse(""),_.toDoubleOption.map(_ * 100).map(_.toString).getOrElse("") )
-        NumberInput(properyNumber)(ClientConf.style.fullWidth)
-      }
-      case Some(JSONFieldTypes.NUMBER) | Some(JSONFieldTypes.INTEGER) if field.flatMap(_.lookup).isEmpty && !Seq(Filter.BETWEEN, Filter.IN, Filter.NOTIN).contains(filterOperator) => {
-        if(Try(filterValue.get.toDouble).toOption.isEmpty) filterValue.set("")
-        NumberInput(filterValue)(ClientConf.style.fullWidth)
-      }
-      case _ => TextInput(filterValue)(ClientConf.style.fullWidth)
-    }
-
-    def filterFieldLookup(lookup:JSONFieldLookup) = {
-      def choises(lookups:JSONLookups):Seq[InputChoice] = lookup match {
-        case JSONFieldLookupRemote(lookupEntity, map, lookupQuery) => {
-           lookups.lookups.map(l => InputChoice(l.value,l.id.string))
-        }
-        case JSONFieldLookupExtractor(extractor) => Seq()
-        case JSONFieldLookupData(data) => data.map(x => InputChoice(x.value,x.id.string))
-      }
-
-      val el = select().render
-
-
-      val observer = new MutationObserver({ (mutations, observer) =>
-        observer.disconnect()
-        val options = PartialOptions()
-          .setRemoveItemButton(true)
-          .setShouldSort(false)
-          .setItemSelectText("")
-        val choicesJs = new ch.wsl.typings.choicesJs.mod.default(el, options)
-        el.addEventListener("change", (e: Event) => {
-          (choicesJs.getValue(true): Any) match {
-            case list: js.Array[String] => println(list)
-            case a: String => filterValue.set(a)
-            case _ => filterValue.set("")
-          }
-        })
-
-        model.subProp(_.lookups).listen({l =>
-          l.find(_.fieldName == field.get.name).foreach{ fl =>
-            choicesJs.clearChoices()
-            val c = choises(fl)
-            choicesJs.asInstanceOf[js.Dynamic].setChoices(c.toJSArray)
-            if(filterValue.get.nonEmpty) {
-              choicesJs.setChoiceByValue(filterValue.get)
-            }
-          }
-
-        },true)
-
-        filterValue.listen{ fv =>
-          if(fv.isEmpty && choicesJs.getValue(true).toString.nonEmpty) {
-            choicesJs.clearStore()
-          }
-        }
-
-      })
-      observer.observe(document,MutationObserverInit(childList = true, subtree = true))
-      el
-    }
-
-    field.flatMap(_.lookup) match {
-      case Some(value) => filterFieldLookup(value)
-      case None => filterFieldStd
-    }
-
   }
 
   var map:Option[Div] = None
@@ -777,27 +657,31 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
 
   override def getTemplate: generic.Modifier[Element] = div(
-    produceWithNested(model.subProp(_.metadata)) { (metadata,nested) =>
-      if (presenter.hasGeometry()) {
-        div(new TwoPanelResize(presenter.defaultClose)(showMap(metadata.getOrElse(JSONMetadata.stub)),mainContent(metadata,nested))).render
-      } else {
-        div(mainContent(metadata,nested)).render
+    produceWithNested(model.subProp(_.metadata)) { (metadata, nested) =>
+      metadata match {
+        case Some(metadata) => if (presenter.hasGeometry()) {
+          div(new TwoPanelResize(presenter.defaultClose)(showMap(metadata), mainContent(metadata, nested))).render
+        } else {
+          div(mainContent(metadata, nested)).render
+        }
+        case None => div().render
       }
     }
+
   )
 
 
-  def mainActions(metadata:Option[JSONMetadata]) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
+  def mainActions(metadata:JSONMetadata) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
 
     val adminActions = if(services.clientSession.isAdmin() && model.subProp(_.kind).get == EntityKind.FORM.kind) {
-      Seq(FormAction(NoAction,Primary,Some(s"/box/box-form/form/row/true/form_uuid::${metadata.map(_.objId).getOrElse("")}"),Labels("Edit UI")))
+      Seq(FormAction(NoAction,Primary,Some(s"/box/box-form/form/row/true/form_uuid::${metadata.objId}"),Labels("Edit UI")))
     } else Seq()
 
     Seq(
       div(ClientConf.style.noMobile)(
         releaser(produce(model.subProp(_.name)) { m =>
           div({
-            val out: Seq[Modifier] = (metadata.toSeq.flatMap(_.action.topTable(a)) ++ adminActions).map { ta =>
+            val out: Seq[Modifier] = (metadata.action.topTable(a) ++ adminActions).map { ta =>
 
               val importance: StyleA = ta.importance match {
                 case Primary => ClientConf.style.boxButtonImportant
@@ -909,7 +793,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def tableContent(metadata:Option[JSONMetadata]) = {
+  def tableContent(metadata:JSONMetadata) = {
     produce(model.subProp(_.selectedColumns)) { columns =>
       val table = UdashTable(model.subSeq(_.rows))(
 
@@ -938,26 +822,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 ).render
               }
             ),
-            tr(
-              td(ClientConf.style.smallCells, colspan := 2)(Labels.entity.filters),
-              columns.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { _field =>
-                val fieldQuery: Property[Option[FieldQuery]] = model.subProp(_.fieldQueries).bitransform(_.find(_.field.name == _field.name)) { el =>
-                  model.subProp(_.fieldQueries).get.map { old =>
-                    if (old.field.name == _field.name && el.isDefined) el.get else old
-                  }
-                }
-                val filterValue: Property[String] = fieldQuery.bitransform(_.map(_.filterValue).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterValue = value)))
-                val operator: Property[String] = fieldQuery.bitransform(_.map(_.filterOperator).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterOperator = value)))
-
-                td(ClientConf.style.smallCells)(
-                  filterOptions(metadata, _field.name, operator),
-                  produceWithNested(operator) { (op, nested) =>
-                    div(position.relative, filterField(filterValue, Some(_field), op, nested)).render
-                  }
-                ).render
-
-              }
-            )
+            //new FilterEveryField(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(columns,metadata)
           ).render
         }),
         rowFactory = (el, nested) => {
@@ -1013,7 +878,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
         sc.set(sc.get.flatMap{ f =>
           if(f.title == oldPosition) Seq()
-          else if(f.title == newPosition) metadata.flatMap(_.table.find(_.title == oldPosition)) ++ Seq(f)
+          else if(f.title == newPosition) metadata.table.find(_.title == oldPosition) ++ Seq(f)
           else Seq(f)
         })
 
@@ -1022,10 +887,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     }
   }
 
-  def mainContent(metadata:Option[JSONMetadata],nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
+  def mainContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
 
-    val disableSelection = metadata.exists(_.params.exists(_.js("disableSelection") == Json.True))
-    val enableImport = metadata.exists(_.params.exists(_.js("enableImport") == Json.True))
+    val disableSelection = metadata.params.exists(_.js("disableSelection") == Json.True)
+    val enableImport = metadata.params.exists(_.js("enableImport") == Json.True)
 
     val columnSelector = {
       var modal:Option[UdashModal] = None
@@ -1037,7 +902,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         headerFactory = Some(_ => div(Labels.table.column_selection).render),
         bodyFactory = Some { nested =>
           div(
-              metadata.toSeq.flatMap(_.nativeFields).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
+              metadata.nativeFields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
                 div(
                   Checkbox(localModel.bitransform(_.contains(c)){
                     case true => localModel.get ++ Seq(c)
@@ -1124,7 +989,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           } else empty,
           div( display.flex,
             exportDialog.render(nested, () => ExportParams(
-              metadata = metadata.get,
+              metadata = metadata,
               selectedFields = model.subProp(_.selectedColumns).get,
               query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
             )),
@@ -1136,6 +1001,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
           div(
             ClientConf.style.fullHeightMax,
+            new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata),
             tableContent(metadata)
           ),
           if(enableImport) {
