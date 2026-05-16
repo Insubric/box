@@ -38,6 +38,7 @@ class FilterBarDyn(val fieldQueries:Property[Seq[FieldQuery]], val lookups:Reada
 
 
     div( display.flex,alignItems.center,
+      //div(pre(bind(fieldQueries.transform(_.map(x => s"Field: ${x.field.name}, ${x.filterValue} , Sort: ${x.sort} ${x.sortOrder}").mkString("\n"))))),
       div(Icons.filter,"Filters",fontWeight.bold,marginLeft := 15.px),
       repeat(_filterFields) { (fieldProp) =>
         div(ClientConf.style.filterBlock,
@@ -71,13 +72,25 @@ class FilterBarDyn(val fieldQueries:Property[Seq[FieldQuery]], val lookups:Reada
           Select(fieldProp,fieldQueries.transformToSeq(_.map(_.field)))(_.title),
           produce(fieldProp.combine(i)((x,y) => (x,y))) { case (field, i) =>
 
-            val sortProp = fieldQueries.bitransform(_.find(_.field == field).map(_.sort))(x => fieldQueries.get.map { fq => if (fq.field == field) fq.copy(sort = x.getOrElse(""), sortOrder = Some(i+1)) else fq })
+            val sortProp = fieldQueries.bitransform(_.find(_.field == field).map(_.sort))(x => fieldQueries.get.map { fq => if (fq.field == field) {
+              x match {
+                case Some(value) => fq.copy(sort = value, sortOrder = Some(i+1))
+                case None => fq.copy(sort = "", sortOrder = None)
+              }
+
+            } else fq })
             div(
               display.flex,alignItems.center,
               Select.optional(sortProp, SeqProperty(Seq(Sort.ASC,Sort.DESC)),"---")(x => x.toUpperCase),
               button(Icons.x,ClientConf.style.boxButtonIconMini,onclick :+= ((e:Event) => {
                 sortProp.set(None)
                 _sortFields.remove(field)
+                fieldQueries.set(fieldQueries.get.map{fq =>
+                  if(fq.sortOrder.exists(_ > i+1)) {
+                    fq.copy(sortOrder = fq.sortOrder.map(_ - 1))
+                  } else fq
+                })
+
               }))
             ).render
           }
