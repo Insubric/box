@@ -840,8 +840,9 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     height :=! "calc(100vh - 105px)",
     media.maxWidth(600 px)(
       height :=! "calc(100vh - 53px)",
+      overflow.auto,
     ),
-    overflow.auto,
+    overflow.hidden,
     width(100.%%)
   )
 

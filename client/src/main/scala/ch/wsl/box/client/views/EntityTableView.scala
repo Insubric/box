@@ -998,7 +998,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           )
 
         ),
-        div(id := "box-table", ClientConf.style.fullHeightMax,ClientConf.style.tableHeaderFixed,
+        div(id := "box-table", ClientConf.style.tableHeaderFixed,
           div(
             ClientConf.style.fullHeightMax,
             new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata),
