@@ -127,9 +127,9 @@ case class FormActions(metadata:JSONMetadata,
 
 
 
-  def dataTable(query:JSONQuery,dropHtml:Boolean = false) = _list(query).map{ rows =>
+  def dataTable(query:JSONQuery,dropHtml:Boolean = false): DBIO[DataResultTable] = _list(query).map{ rows =>
 
-    val fields = metadata.exportFields.flatMap(f => metadata.fields.find(_.name == f))
+    val fields: Seq[JSONField] =  query.fields.getOrElse(metadata.exportFields).flatMap(f => metadata.fields.find(_.name == f))
 
     val data: Seq[Seq[Json]] = rows.map { row =>
       fields.map { f =>

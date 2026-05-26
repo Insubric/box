@@ -13,6 +13,7 @@ trait BoxStyle {
   val inputHighlight: StyleA
   val inputInvalid: StyleA
   val spaceBetween: StyleA
+  val topTableContainer: StyleA
   val flexContainer: StyleA
   val sidebarRightContent: StyleA
   val sidebar: StyleA
@@ -49,6 +50,7 @@ trait BoxStyle {
   val removeFlexChild: StyleA
   val tableContainer: StyleA
   val table: StyleA
+  val tableView: StyleA
   val field: StyleA
   val fieldHighlight: StyleA
   val removeFieldMargin: StyleA
@@ -77,6 +79,7 @@ trait BoxStyle {
   val boxIconButton: StyleA
   val boxIconButtonDanger: StyleA
   val boxButton: StyleA
+  val boxButtonIconMini: StyleA
   val boxNavigationLabel: StyleA
   val spacedList: StyleA
   val boxButtonImportant: StyleA
@@ -148,6 +151,9 @@ trait BoxStyle {
   val sidebarButton:StyleA
   val showHide:StyleA
   val error:StyleA
+  val iconBig:StyleA
+  val filterBlock:StyleA
+
 
   def render[Out](implicit r: Renderer[Out], env: Env):Out
 }

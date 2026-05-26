@@ -41,7 +41,9 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
   override def id: ReadableProperty[Option[String]] = Property(None)
 
-  override val options: MapParams = ClientConf.mapOptions.as[MapParams].getOrElse(BoxMapConstants.defaultParams)
+  val mapParams = metadata.params.flatMap(_.jsOpt("mapParams")).getOrElse(Json.obj()).deepMerge(ClientConf.mapOptions)
+
+  override val options: MapParams = mapParams.as[MapParams].getOrElse(BoxMapConstants.defaultParams)
 
   val minResolution = {for{
     params <- metadata.params

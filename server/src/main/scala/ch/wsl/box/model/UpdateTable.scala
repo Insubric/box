@@ -344,7 +344,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
         case "BigDecimal" | "scala.math.BigDecimal" => filterMany[BigDecimal](Some(splitAndTrim(v).flatMap(x => Try(BigDecimal(x)).toOption)))
         case "io.circe.Json" => filterMany[Json](Some(splitAndTrim(v).flatMap(x => parser.parse(x).toOption)))
         case "java.util.UUID" => filterMany[java.util.UUID](Some(splitAndTrim(v).flatMap(x => Try(UUID.fromString(x)).toOption)))
-        case t => throw new Exception(s"$t is not supported for simple multi query")
+        case t => throw new Exception(s"Field $key of type $t is not supported for simple multi query")
       }
     } else {
       (col.name,jsonQuery.operator) match {

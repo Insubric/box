@@ -1,6 +1,6 @@
 package ch.wsl.box.shared.utils
 
-import ch.wsl.box.model.shared.{Condition, JSONMetadata, SubLayoutBlock}
+import ch.wsl.box.model.shared.{Condition, JSONMetadata, JSONQuery, SubLayoutBlock}
 import io.circe.{Encoder => Decoder, _}
 
 import java.time.LocalDateTime
@@ -52,6 +52,9 @@ object Formatters {
   }
 
   import io.circe.generic.semiauto._
-  implicit val fooDecoder: Decoder[JSONMetadata] = deriveDecoder[JSONMetadata]
-  implicit val fooEncoder: Encoder[JSONMetadata] = deriveEncoder[JSONMetadata]
+  implicit val jmDecoder: Decoder[JSONMetadata] = deriveDecoder[JSONMetadata]
+  implicit val jmEncoder: Encoder[JSONMetadata] = deriveEncoder[JSONMetadata]
+
+  implicit val jqDecoder: Decoder[JSONQuery] = deriveDecoder[JSONQuery]
+  implicit val jqEncoder: Encoder[JSONQuery] = deriveEncoder[JSONQuery]
 }
