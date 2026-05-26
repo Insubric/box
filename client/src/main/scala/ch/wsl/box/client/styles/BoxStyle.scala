@@ -50,6 +50,7 @@ trait BoxStyle {
   val removeFlexChild: StyleA
   val tableContainer: StyleA
   val table: StyleA
+  val tableView: StyleA
   val field: StyleA
   val fieldHighlight: StyleA
   val removeFieldMargin: StyleA

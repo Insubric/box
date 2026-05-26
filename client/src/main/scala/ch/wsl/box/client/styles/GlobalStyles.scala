@@ -686,6 +686,8 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     )
   )
 
+  override val tableView = style()
+
   override val tableContainer = style(
     paddingLeft(10.px),
     paddingRight(10.px),

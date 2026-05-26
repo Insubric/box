@@ -9,7 +9,7 @@ import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
 import ch.wsl.box.client.viewmodel.Row
-import ch.wsl.box.client.views.components.table.{ExportParams, ExportTableDialog, FilterBarDyn, FilterEveryField}
+import ch.wsl.box.client.views.components.table.{BoxTable, ExportParams, ExportTableDialog, FilterBarDyn, FilterEveryField}
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
@@ -793,9 +793,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def tableContent(metadata:JSONMetadata) = {
-    produce(model.subProp(_.selectedColumns)) { columns =>
-      val table = UdashTable(model.subSeq(_.rows))(
+  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = {
+    nested(produceWithNested(model.subProp(_.selectedColumns)) { (columns,nested) =>
+      val table = new BoxTable(model.subSeq(_.rows),nested,ClientConf.style.tableView)(
 
         headerFactory = Some(_ => {
           frag(
@@ -822,7 +822,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 ).render
               }
             ),
-            //new FilterEveryField(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(columns,metadata)
+            if(filterStyleAll) {
+              new FilterEveryField(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(columns,metadata)
+            } else frag(),
           ).render
         }),
         rowFactory = (el, nested) => {
@@ -884,13 +886,21 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
       })
       table
-    }
+    })
   }
 
   def mainContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
 
     val disableSelection = metadata.params.exists(_.js("disableSelection") == Json.True)
     val enableImport = metadata.params.exists(_.js("enableImport") == Json.True)
+    val filterStyle:String = metadata.params.flatMap(_.getOpt("filterStyle")) match {
+      case Some(value) => value
+      case None => "all"
+    }
+
+    val filterStyleDyn = filterStyle == "both" || filterStyle == "dyn"
+    val filterStyleAll = filterStyle == "both" || filterStyle == "all"
+
 
     val columnSelector = {
       var modal:Option[UdashModal] = None
@@ -1001,8 +1011,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         div(id := "box-table", ClientConf.style.tableHeaderFixed,
           div(
             ClientConf.style.fullHeightMax,
-            new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata),
-            tableContent(metadata)
+            if(filterStyleDyn) {
+              new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata)
+            } else frag(),
+            tableContent(metadata,nested,filterStyleAll)
           ),
           if(enableImport) {
             button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls)
