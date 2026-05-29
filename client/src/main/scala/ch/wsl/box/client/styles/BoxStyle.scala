@@ -14,6 +14,7 @@ trait BoxStyle {
   val inputInvalid: StyleA
   val spaceBetween: StyleA
   val topTableContainer: StyleA
+  val topBarContainer: StyleA
   val flexContainer: StyleA
   val sidebarRightContent: StyleA
   val sidebar: StyleA
@@ -152,7 +153,11 @@ trait BoxStyle {
   val showHide:StyleA
   val error:StyleA
   val iconBig:StyleA
+  val filterDynBar:StyleA
   val filterBlock:StyleA
+  val filterBlockTitle:StyleA
+  val tableTitle:StyleA
+  val tableMainActions:StyleA
 
 
   def render[Out](implicit r: Renderer[Out], env: Env):Out

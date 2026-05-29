@@ -37,9 +37,9 @@ class FilterBarDyn(val fieldQueries:Property[Seq[FieldQuery]], val lookups:Reada
 
 
 
-    div( display.flex,alignItems.center,
+    div( ClientConf.style.filterDynBar,
       //div(pre(bind(fieldQueries.transform(_.map(x => s"Field: ${x.field.name}, ${x.filterValue} , Sort: ${x.sort} ${x.sortOrder}").mkString("\n"))))),
-      div(Icons.filter,"Filters",fontWeight.bold,marginLeft := 15.px),
+      div(ClientConf.style.filterBlockTitle,Icons.filter,"Filters"),
       repeat(_filterFields) { (fieldProp) =>
         div(ClientConf.style.filterBlock,
           Select(fieldProp,fieldQueries.transformToSeq(_.map(_.field)))(_.title),
@@ -66,7 +66,7 @@ class FilterBarDyn(val fieldQueries:Property[Seq[FieldQuery]], val lookups:Reada
       button(Icons.plus,ClientConf.style.boxButton,onclick :+= ((e:Event) => {
         fieldQueries.get.find(_.filterValue.isEmpty).map(x => _filterFields.append(x.field))
       })),
-      div(Icons.asc,"Sort",fontWeight.bold,marginLeft := 15.px),
+      div(Icons.asc,"Sort",ClientConf.style.filterBlockTitle),
       repeatWithIndex(_sortFields) { case (fieldProp,i,nested) =>
         div(ClientConf.style.filterBlock,
           Select(fieldProp,fieldQueries.transformToSeq(_.map(_.field)))(_.title),
