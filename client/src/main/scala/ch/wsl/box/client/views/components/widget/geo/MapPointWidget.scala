@@ -159,9 +159,13 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
 
       div(
         nested(showIf(modalStatus.transform(_ == Status.Open)){
-          div(
-            WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams).render(true, nested)
+
+          val widget = WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams)
+          val result = div(
+            widget.render(true, nested)
           ).render
+          widget.afterRender()
+          result
         })
       ).render
     }
