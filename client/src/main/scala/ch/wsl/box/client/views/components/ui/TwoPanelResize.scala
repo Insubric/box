@@ -16,7 +16,7 @@ import scala.util.Random
 //  Ref https://phuoc.ng/collection/html-dom/create-resizable-split-views/
 class TwoPanelResize(defaultClose:Boolean) {
 
-  val leftDefaultWidth = 500
+  val leftDefaultWidth = 80
 
   case class Style(conf:StyleConf) extends StyleSheet.Inline{
     import dsl._
@@ -29,7 +29,7 @@ class TwoPanelResize(defaultClose:Boolean) {
     )
 
     val containerLeft = style(
-      width(leftDefaultWidth px),
+      width(leftDefaultWidth %%),
       if(defaultClose) width.`0` else { media.maxWidth(600 px)(
         width.`0` //:= "calc(100% - 15px)"
       )},
@@ -87,9 +87,10 @@ class TwoPanelResize(defaultClose:Boolean) {
 
   import scalatags.JsDom.all._
 
+  private def toShowable(m:Seq[Node]) = (show:ReadableProperty[Boolean]) => showIf(show){ m }
 
 
-  def apply(leftPanel:ReadableProperty[Boolean] => Binding,rightPanel:Modifier):Modifier = {
+  def apply(leftPanel:() => Node,rightPanel:() => Node):Modifier = {
 
     val open = Property(true)
 
@@ -217,10 +218,10 @@ class TwoPanelResize(defaultClose:Boolean) {
     Seq[Modifier](
       styleElement,
       div(style.container,
-        div(style.containerLeft,leftPanel(open)),
+        div(style.containerLeft,toShowable(leftPanel())(open)),
         resizer,
         div(style.containerRight,
-          rightPanel
+          rightPanel()
         )
       )
     )

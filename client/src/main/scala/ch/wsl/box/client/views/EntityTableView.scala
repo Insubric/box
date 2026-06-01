@@ -628,7 +628,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   var map:Option[Div] = None
 
-  def showMap(metadata:JSONMetadata) = (show:ReadableProperty[Boolean]) => showIf(show){
+  def showMap(metadata:JSONMetadata) = () => {
     if(presenter.hasGeometry()) {
 
       if(model.subProp(_.geoms).get.isEmpty)
@@ -672,8 +672,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             div(
               topBar(metadata,nested,filterStyleDyn),
               new TwoPanelResize(presenter.defaultClose)(
+                tableContent(metadata,nested,filterStyleAll),
                 showMap(metadata),
-                tableContent(metadata,nested,filterStyleAll)
               )
             ).render
           } else {
@@ -812,7 +812,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = div(
+  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = () =>  div(
     ClientConf.style.fullHeightMax, ClientConf.style.tableHeaderFixed,{
     nested(produceWithNested(model.subProp(_.selectedColumns)) { (columns,nested) =>
       val table = new BoxTable(model.subSeq(_.rows),nested,ClientConf.style.tableView)(
@@ -907,7 +907,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       })
       table
     })
-  })
+  }).render
 
   def topBar(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleDyn:Boolean) = {
 
@@ -1034,7 +1034,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
       div(
         div(id := "box-table", ClientConf.style.tableHeaderFixed,
-          tableContent(metadata,nested,filterStyleAll),
+          tableContent(metadata,nested,filterStyleAll)(),
           if(enableImport) {
             button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls)
 
