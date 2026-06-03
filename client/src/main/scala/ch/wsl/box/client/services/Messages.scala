@@ -1,5 +1,6 @@
 package ch.wsl.box.client.services
 
+import ch.wsl.box.client.viewmodel.Row
 import ch.wsl.box.model.shared.JSONID
 import io.circe.Json
 import io.udash.Registration
@@ -14,7 +15,8 @@ trait Messages {
 
 object Messages {
   case object Empty extends Message
-  case class RowHover(id:Option[JSONID],row:Json) extends Message
+  case class RowHover(row:Row) extends Message
+  case class RowOut(row:Row) extends Message
 }
 
 

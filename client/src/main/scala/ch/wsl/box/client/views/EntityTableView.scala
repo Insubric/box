@@ -3,6 +3,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
+import ch.wsl.box.client.services.Messages.{RowHover, RowOut}
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, TablePreference, UI}
 import ch.wsl.box.client.styles.Icons.Icon
@@ -73,14 +74,14 @@ case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filte
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
                             metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: IDsVM, pages:Int, access:TableAccess,
-                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],public:Boolean,selectedColumns:Seq[JSONField])
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],extentFilter:Boolean,public:Boolean,selectedColumns:Seq[JSONField])
 
 
 case class VMAction(code:String,action: JSONID => Future[Boolean],icon:Option[Icon],label:String,button_class:String = "primary",confirm:Option[String] = None, reloadAfter:Boolean = false)
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,Seq())
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq())
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -220,6 +221,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         query = Some(query),
         geoms = Seq(),
         extent = None,
+        extentFilter = false,
         public = state.public,
         selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable)
       )
@@ -262,6 +264,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   model.subProp(_.extent).listen { extent =>
+    if(model.subProp(_.extentFilter).get) {
+      reloadRows(1)
+    } else {
+      loadGeoms(extent)
+    }
+  }
+
+  model.subProp(_.extentFilter).listen { extent =>
     reloadRows(1)
   }
 
@@ -392,13 +402,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   var reloadCount = 0 // avoid out of order
 
 
-  def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
+  def leftOpen = Property(true)
+  def rightOpen = Property(model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True)))
 
   def loadGeoms(extent:Option[Polygon] = None) = {
     model.get.metadata.foreach{ m =>
       Future.sequence(m.geomFields.map{ f =>
-        val tableEntity = m.view.getOrElse(m.entity)
-        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys),model.subProp(_.public).get)
+        services.rest.geoData(m.kind, services.clientSession.lang(), m.name, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys),model.subProp(_.public).get)
 
       }).foreach{ geoms =>
         model.subProp(_.geoms).set(geoms.flatten)
@@ -414,7 +424,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     services.clientSession.loading.set(true)
 
-    val extent = model.subProp(_.extent).get
+    val extent = if(model.subProp(_.extentFilter).get) model.subProp(_.extent).get else None
 
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
@@ -434,7 +444,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     //start request in parallel
     val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get,model.subProp(_.metadata).get.get)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
-    if(hasGeometry() && !defaultClose) {
+    if(hasGeometry() && rightOpen.get) {
       loadGeoms(extent)
     }
 
@@ -522,6 +532,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
       model.subProp(_.fieldQueries).set(newFieldQueries)
     }
+  }
+
+  def hoverRow(row: => Row) =  (e:Event) => {
+    services.messages.pub(RowHover(row))
+    e.preventDefault()
+  }
+
+  def exitRow(row: => Row) =  (e:Event) => {
+    services.messages.pub(RowOut(row))
+    e.preventDefault()
   }
 
   def toggleSelection(row: => Row) = (e:Event) => {
@@ -641,7 +661,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent))
+            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent),model.subProp(_.extentFilter))
           }
           case None => observer.disconnect()
         }
@@ -671,7 +691,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           if (presenter.hasGeometry()) {
             div(
               topBar(metadata,nested,filterStyleDyn),
-              new TwoPanelResize(presenter.defaultClose)(
+              new TwoPanelResize(presenter.leftOpen,presenter.rightOpen)(
                 tableContent(metadata,nested,filterStyleAll),
                 showMap(metadata),
               )
@@ -852,7 +872,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
           val row = tr(
             id := ElementId.tableRow(el.get.id.map(_.asString).getOrElse("")),
-            ClientConf.style.rowStyle, onclick :+= presenter.toggleSelection(el.get),
+            ClientConf.style.rowStyle,
+            onmouseover :+= presenter.hoverRow(el.get),
+            onmouseout :+= presenter.exitRow(el.get),
+            onclick :+= presenter.toggleSelection(el.get),
             td(ClientConf.style.smallCells)(
               Offline(el.transform(_.isLocal)),
             ),

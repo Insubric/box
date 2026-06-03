@@ -1,6 +1,7 @@
 package ch.wsl.box.client.views.components
 
 import ch.wsl.box.client.geo.{BoxMapConstants, BoxMapProjections, BoxOlMap, MapActions, MapGeolocation, MapParams, MapStyle, MapUtils}
+import ch.wsl.box.client.services.Messages.{RowHover, RowOut}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf}
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.utils.{Debounce, ElementId}
@@ -18,7 +19,7 @@ import org.scalajs.dom.{Event, HTMLInputElement, MutationObserver, document, win
 import ch.wsl.typings.ol._
 import ch.wsl.typings.ol.geomMod.Point
 import ch.wsl.typings.ol.mapMod.MapOptions
-import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
+import ch.wsl.typings.ol.mod.{Feature, MapBrowserEvent, Overlay}
 import ch.wsl.typings.ol.objectMod.ObjectEvent
 import ch.wsl.typings.ol.viewMod.FitOptions
 import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
@@ -30,7 +31,7 @@ import scalatags.JsDom.all._
 import io.udash._
 import io.udash.wrappers.jquery.jQ
 
-class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]]) extends BoxOlMap {
+class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]],extentFilter:Property[Boolean]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
@@ -66,8 +67,11 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
   val mapDiv = div(width := 100.pct, height := 100.pct).render
 
+  //https://openlayers.org/en/latest/examples/tooltip-on-hover.html
+  // Add info popup
+
   val dispatchElements:Property[Seq[JSONID]] = Property(Seq())
-  val popupDiv = div(display.none,ClientConf.style.mapPopup,
+  val dispatchElementsDiv = div(display.none,ClientConf.style.mapPopup,
     ul(
       produce(dispatchElements) { _.map{ id =>
         li(
@@ -80,7 +84,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
 
   _div.appendChild(mapDiv)
-  _div.appendChild(popupDiv)
+  _div.appendChild(dispatchElementsDiv)
 
   val map = new mod.Map(MapOptions()
     .setTarget(mapDiv)
@@ -89,13 +93,25 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
 
 
-  val overlay = new Overlay(overlayMod.Options().setElement(popupDiv))
+  val overlayDispatch = new Overlay(overlayMod.Options().setElement(dispatchElementsDiv))
 
-  map.addOverlay(overlay)
+  map.addOverlay(overlayDispatch)
 
   val geolocation = new MapGeolocation(map)
 
+
+  def extentFilterControl = new controlMod.Control(controlControlMod.Options().setElement(
+    div(
+      `class` := "ol-control",
+      style := "top: 40px; right:10px; padding: 1px 6px",
+      Checkbox(extentFilter)()
+      ,"Filter"
+    ).render
+  ))
+
   map.addControl(geolocation.control)
+  map.addControl(extentFilterControl)
+
 
   override val mapActions: MapActions = new MapActions(Some(map),options.crs)
 
@@ -119,8 +135,15 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
       .setSource(vectorSource)
       .setStyle(style)
     )
-    map.addLayer(featuresLayer)
 
+    val hoverLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+      .setStyle(style)
+      .setZIndex(100)
+      .setSource(new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options()))
+    )
+
+    map.addLayer(featuresLayer)
+    map.addLayer(hoverLayer)
 
 
     val extentChange = Debounce(250.millis)((_: Unit) => {
@@ -145,6 +168,10 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
       if (extent.get.isEmpty && layers.nonEmpty) {
 
         val sourceExtent = vectorSource.getExtent()
+
+        BrowserConsole.log(map.getSize())
+        BrowserConsole.log(map.getLayers().getArray())
+
         map.getView().fit(sourceExtent,FitOptions().setPadding(js.Array(20.0,20.0,20.0,20.0)))
 
         if (!extentListenerInitialized) {
@@ -182,17 +209,30 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     })
 
     map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e:MapBrowserEvent[_]) => {
-      jQ(popupDiv).hide()
+      jQ(dispatchElementsDiv).hide()
       val ids = MapUtils.toJsonId(map,metadata.keys,e)
       if(ids.length == 1) {
         edit(ids.head.asString)
       } else if(ids.length > 1) {
         println("Dispatch " + ids)
         dispatchElements.set(ids)
-        jQ(popupDiv).show()
-        overlay.setPosition(e.coordinate);
+        jQ(dispatchElementsDiv).show()
+        overlayDispatch.setPosition(e.coordinate);
       }
     })
+
+    services.messages.sub{
+      case RowHover(row) => {
+        val f = vectorSource.getFeatureById(row.id.map(_.asString).getOrElse("")).asInstanceOf[Feature[_]]
+        if(f != null) {
+            MapUtils.flash(f,map,hoverLayer)
+        }
+      }
+      case RowOut(row) => {
+        MapUtils.stopFlashing()
+      }
+      case _ => ()
+    }
 
   }
 

@@ -88,7 +88,8 @@ case class FormActions(metadata:JSONMetadata,
 
   override def fetchGeom(properties:Seq[String],field:String,query:JSONQuery):DBIO[Seq[(Option[JSONID],Json,Geometry)]] = for {
     q <- queryForm(query)
-    result <- jsonAction.fetchGeom((properties ++ metadata.keys).distinct,field, q)
+    viewActions = metadata.view.map(v => Registry().actions(v)).getOrElse(jsonAction)
+    result <- viewActions.fetchGeom((properties ++ metadata.keys).distinct,field, q)
   } yield result.map{ case (_,data,geom) =>
     (JSONID.fromData(data,metadata),data,geom)
   }

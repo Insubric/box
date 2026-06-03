@@ -14,7 +14,7 @@ import scala.util.Random
 
 
 //  Ref https://phuoc.ng/collection/html-dom/create-resizable-split-views/
-class TwoPanelResize(defaultClose:Boolean) {
+class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
 
   val leftDefaultWidth = 80
 
@@ -29,8 +29,11 @@ class TwoPanelResize(defaultClose:Boolean) {
     )
 
     val containerLeft = style(
-      width(leftDefaultWidth %%),
-      if(defaultClose) width.`0` else { media.maxWidth(600 px)(
+      if(leftOpen.get && rightOpen.get)
+        width(leftDefaultWidth %%)
+      else
+        width(100 %%),
+      if(!leftOpen.get) width.`0` else { media.maxWidth(600 px)(
         width.`0` //:= "calc(100% - 15px)"
       )},
       flexShrink(0),
@@ -92,7 +95,7 @@ class TwoPanelResize(defaultClose:Boolean) {
 
   def apply(leftPanel:() => Node,rightPanel:() => Node):Modifier = {
 
-    val open = Property(true)
+
 
     val style = Style(ClientConf.styleConf)
     val styleElement = document.createElement("style")
@@ -103,9 +106,10 @@ class TwoPanelResize(defaultClose:Boolean) {
     val closeId = s"close-${Random.alphanumeric.take(8)}"
     val openLabel = i(UdashIcons.FontAwesome.Solid.caretRight, id := openId).render
     val closeLabel = i(UdashIcons.FontAwesome.Solid.caretLeft, id := closeId).render
-    if(window.innerWidth < 600 || defaultClose) { // on mobile default not showing map
+    if(window.innerWidth < 600 ) { // on mobile default not showing map
       closeLabel.classList.add(style.hide.htmlClass)
-      open.set(false)
+      leftOpen.set(true)
+      rightOpen.set(false)
     } else {
       openLabel.classList.add(style.hide.htmlClass)
     }
@@ -136,13 +140,13 @@ class TwoPanelResize(defaultClose:Boolean) {
         document.getElementById(openId).classList.add(style.hide.htmlClass)
         document.getElementById(closeId).classList.remove(style.hide.htmlClass)
         window.dispatchEvent(new Event("resize"))
-        open.set(true)
+        leftOpen.set(true)
       } else {
         rightSide.style.display =  "block"
         leftSide.style.width =  "0%"
         document.getElementById(openId).classList.remove(style.hide.htmlClass)
         document.getElementById(closeId).classList.add(style.hide.htmlClass)
-        open.set(false)
+        leftOpen.set(false)
       }
     })
 
@@ -218,7 +222,7 @@ class TwoPanelResize(defaultClose:Boolean) {
     Seq[Modifier](
       styleElement,
       div(style.container,
-        div(style.containerLeft,toShowable(leftPanel())(open)),
+        div(style.containerLeft,toShowable(leftPanel())(leftOpen)),
         resizer,
         div(style.containerRight,
           rightPanel()
