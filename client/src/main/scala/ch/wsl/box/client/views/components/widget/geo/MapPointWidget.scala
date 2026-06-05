@@ -234,7 +234,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
       }
       e.preventDefault() // needed in order to avoid triggering the form validation
     }
-  )(Icons.target).render)._1
+  )(Icons.target()).render)._1
 
   private def showMap(modalStatus:Property[String],mod:Modifier*) = {
     WidgetUtils.addTooltip(Some("Show on map"))(a(BootstrapStyles.Button.btn, backgroundColor := scalacss.internal.Color.transparent.value, paddingTop := 0.px, paddingBottom := 0.px, onclick :+= ((e: Event) => {

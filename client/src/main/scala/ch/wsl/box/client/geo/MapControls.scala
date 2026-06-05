@@ -316,7 +316,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
           }
           e.preventDefault()
         })
-      )(Icons.target).render
+      )(Icons.target()).render
     }
     ttgpsButtonGoTo = tt
     el
@@ -337,7 +337,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
           }
           e.preventDefault()
         })
-      )(Icons.target).render
+      )(Icons.target()).render
     }
     ttgpsButtonInsert = tt
     el

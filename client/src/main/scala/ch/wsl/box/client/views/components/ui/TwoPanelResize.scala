@@ -14,7 +14,7 @@ import scala.util.Random
 
 
 //  Ref https://phuoc.ng/collection/html-dom/create-resizable-split-views/
-class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
+class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean], changed: () => Unit = () => ()) {
 
   val leftDefaultWidth = 80
 
@@ -29,13 +29,12 @@ class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
     )
 
     val containerLeft = style(
-      if(leftOpen.get && rightOpen.get)
+      if(window.innerWidth < 600)
+        width(100 %%)
+      else if(leftOpen.get && rightOpen.get)
         width(leftDefaultWidth %%)
       else
-        width(100 %%),
-      if(!leftOpen.get) width.`0` else { media.maxWidth(600 px)(
-        width.`0` //:= "calc(100% - 15px)"
-      )},
+        width := "calc(100% - 15px)",
       flexShrink(0),
       backgroundColor.white,
       zIndex(2)
@@ -83,9 +82,6 @@ class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
       userSelect.none
     )
 
-    val hide = style(
-      display.none
-    )
   }
 
   import scalatags.JsDom.all._
@@ -102,19 +98,17 @@ class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
     styleElement.innerText = style.render(cssStringRenderer, cssEnv)
 
     import io.udash.css.CssView._
-    val openId = s"open-${Random.alphanumeric.take(8)}"
-    val closeId = s"close-${Random.alphanumeric.take(8)}"
-    val openLabel = i(UdashIcons.FontAwesome.Solid.caretRight, id := openId).render
-    val closeLabel = i(UdashIcons.FontAwesome.Solid.caretLeft, id := closeId).render
+    val rightLabel = div(i(UdashIcons.FontAwesome.Solid.caretRight)).render
+    val leftLabel = div(i(UdashIcons.FontAwesome.Solid.caretLeft)).render
     if(window.innerWidth < 600 ) { // on mobile default not showing map
-      closeLabel.classList.add(style.hide.htmlClass)
       leftOpen.set(true)
       rightOpen.set(false)
-    } else {
-      openLabel.classList.add(style.hide.htmlClass)
     }
 
-    val resizerLabel = p(style.resizerLabel, openLabel,closeLabel).render
+    val resizerLabel = p(style.resizerLabel,
+      showIf(leftOpen)(leftLabel),
+      showIf(rightOpen)(rightLabel)
+    ).render
 
 
     val resizer = div(style.resizer,
@@ -128,25 +122,36 @@ class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
     var leftWidth = 0.0
     var dragging = false
 
-    resizerLabel.addEventListener("click", (e: Event) => {
-      if(leftSide.getBoundingClientRect().width < 10) {
-        if(window.innerWidth < 600) {
-          leftSide.style.width =  "100%"
-          rightSide.style.display =  "none"
-        } else {
-          leftSide.style.width = leftDefaultWidth + "px"
-        }
+    def currentLeftWidthPct = leftSide.getBoundingClientRect().width / (resizer.parentNode.asInstanceOf[HTMLDivElement].getBoundingClientRect().width-15) * 100
 
-        document.getElementById(openId).classList.add(style.hide.htmlClass)
-        document.getElementById(closeId).classList.remove(style.hide.htmlClass)
-        window.dispatchEvent(new Event("resize"))
-        leftOpen.set(true)
-      } else {
-        rightSide.style.display =  "block"
-        leftSide.style.width =  "0%"
-        document.getElementById(openId).classList.remove(style.hide.htmlClass)
-        document.getElementById(closeId).classList.add(style.hide.htmlClass)
+    leftLabel.addEventListener("click", (e: Event) => {
+      if(window.innerWidth < 600 || currentLeftWidthPct < 60) {
         leftOpen.set(false)
+        rightOpen.set(true)
+        leftSide.style.width =  "0%"
+
+      } else {
+        leftOpen.set(true)
+        rightOpen.set(true)
+        leftSide.style.width = "50%"
+
+      }
+    })
+
+    rightLabel.addEventListener("click", (e: Event) => {
+      if(window.innerWidth < 600 || currentLeftWidthPct > 50) {
+        leftOpen.set(true)
+        rightOpen.set(false)
+        if(window.innerWidth < 600)
+          leftSide.style.width =  "100%"
+        else
+          leftSide.style.width =  "calc(100% - 15px)"
+
+      } else {
+        leftOpen.set(true)
+        rightOpen.set(true)
+        leftSide.style.width = "80%"
+
       }
     })
 
@@ -158,13 +163,23 @@ class TwoPanelResize(leftOpen:Property[Boolean],rightOpen:Property[Boolean]) {
         var newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.asInstanceOf[HTMLDivElement].getBoundingClientRect().width
         newLeftWidth = math.max(0,math.min(newLeftWidth,100))
         leftSide.style.width = newLeftWidth + "%"
-        if(newLeftWidth > 10) {
-          document.getElementById(openId).classList.add(style.hide.htmlClass)
-          document.getElementById(closeId).classList.remove(style.hide.htmlClass)
+        if(newLeftWidth < 5) {
+          leftOpen.set(false)
+          rightOpen.set(true)
+        } else if(newLeftWidth > 95) {
+          leftOpen.set(true)
+          rightOpen.set(false)
         } else {
-          document.getElementById(openId).classList.remove(style.hide.htmlClass)
-          document.getElementById(closeId).classList.add(style.hide.htmlClass)
+          leftOpen.set(true)
+          rightOpen.set(true)
         }
+//        if(newLeftWidth < 10) {
+//          document.getElementById(rightId).classList.remove(style.hide.htmlClass)
+//          document.getElementById(leftId).classList.remove(style.hide.htmlClass)
+//        } else if() {
+//          document.getElementById(openId).classList.remove(style.hide.htmlClass)
+//          document.getElementById(closeId).classList.add(style.hide.htmlClass)
+//        }
 
       }
     }

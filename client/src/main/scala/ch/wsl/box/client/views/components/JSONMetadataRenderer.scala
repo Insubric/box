@@ -140,7 +140,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     Future.sequence(blocks.filter(_.layoutBlock.flatMap(_.tabGroup).isEmpty).map(_.widget.afterRender())).map(_.forall(x => x))
   }
 
-  override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderJsonMetadata(false,nested)
+  override def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderJsonMetadata(false,nested)
 
   override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = renderJsonMetadata(true,nested)
 

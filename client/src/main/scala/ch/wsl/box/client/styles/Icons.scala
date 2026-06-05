@@ -239,9 +239,9 @@ object Icons {
        |""".stripMargin)
 
   //http://simpleicon.com/wp-content/uploads/target1.svg
-  val target:Icon = raw(
+  def target(w:Int = 16,h:Int = 16):Icon = raw(
     s"""
-       |<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1em" height="1em" viewBox="0 0 512 512">
+       |<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="$w" height="$h" viewBox="0 0 512 512">
        |	<path d="M384.645 256c0 70.942-57.702 128.655-128.655 128.655-70.942 0-128.655-57.712-128.655-128.655 0-70.912 57.723-128.635 128.655-128.635 70.963 0 128.655 57.713 128.655 128.635zM255.99 98.969c-86.558 0-157.020 70.42-157.020 157.031s70.462 157.041 157.020 157.041c86.579 0 157.061-70.441 157.061-157.041 0-86.61-70.482-157.030-157.061-157.030z" fill="currentColor" />
        |	<path d="M270.192 216.75v-206.428h-28.395v206.418c4.485-1.607 9.196-2.631 14.203-2.631s9.707 1.024 14.192 2.642z"  fill="currentColor" />
        |	<path d="M241.787 295.26v206.418h28.395v-206.418c-4.485 1.608-9.195 2.642-14.203 2.642s-9.708-1.034-14.192-2.642z" fill="currentColor" />
@@ -408,5 +408,30 @@ object Icons {
        |  <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
        |</svg>
        |""".stripMargin)
+
+  //https://icons.getbootstrap.com/icons/zoom-in/
+  val zoom:Icon = raw(
+    s"""
+       |<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-zoom-in" viewBox="0 0 16 16">
+       |  <path fill-rule="evenodd" d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11M13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0"/>
+       |  <path d="M10.344 11.742q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1 6.5 6.5 0 0 1-1.398 1.4z"/>
+       |  <path fill-rule="evenodd" d="M6.5 3a.5.5 0 0 1 .5.5V6h2.5a.5.5 0 0 1 0 1H7v2.5a.5.5 0 0 1-1 0V7H3.5a.5.5 0 0 1 0-1H6V3.5a.5.5 0 0 1 .5-.5"/>
+       |</svg>
+       |""".stripMargin
+  )
+
+  //https://www.svgrepo.com/svg/451040/layer-zoom-to
+  def layerZoom(w:Int = 16,h:Int = 16):Icon = raw(
+    s"""
+       |<svg width="$w" height="$h" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.277 20.442a7.294 7.294 0 0 0 1.304.744 21.448 21.448 0 0 1-5.157.614A13.093 13.093 0 0 1 0 20.783L3.05 3.078a15.028 15.028 0 0 0 4.52.722c3.849 0 3.893-1.6 7.74-1.6a12.674 12.674 0 0 1 4.52.878l2.642 15.678-1.113-1.114c-.031-.031-.07-.052-.102-.081L18.94 3.815a11.86 11.86 0 0 0-3.63-.615 7.791 7.791 0 0 0-3.49.725 9.805 9.805 0 0 1-4.25.875 16.193 16.193 0 0 1-3.723-.457L1.124 20.15a13.726 13.726 0 0 0 4.3.65 19.768 19.768 0 0 0 3.853-.358zm13.519 1.467a.68.68 0 0 1 0 .962l-.934.932a.666.666 0 0 1-.943 0l-2.855-2.855a.668.668 0 0 1 0-.943l.129-.13-1.32-1.318a5.362 5.362 0 1 1 .69-.69l1.32 1.319.124-.124a.668.668 0 0 1 .943 0zm-4.994-7.41a4.3 4.3 0 1 0-4.3 4.3 4.304 4.304 0 0 0 4.3-4.3zm4.06 7.89l-2.383-2.385-.473.473 2.385 2.383zM14 12h-1v2h-2v1h2v2h1v-2h2v-1h-2z"/><path fill="none" d="M0 0h24v24H0z"/></svg>
+       |""".stripMargin
+  )
+
+  //https://www.svgrepo.com/svg/450856/extent-filter
+  def extentFilter(w:Int = 16,h:Int = 16):Icon = raw(
+    s"""
+       |<svg width="$w" height="$h" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 16h1v6h-6v-1h5zM3 3h5V2H2v6h1zm13 0h5v5h1V2h-6zm-2 6v2l-4 4-1 8H6l-1-8-4-4V9zm-5.133 6H6.133l.75 7h1.234zm2.719-3H3.414l2 2h4.172zM13 10H2v.586l.414.414h10.172l.414-.414z"/><path fill="none" d="M0 0h24v24H0z"/></svg>
+       |""".stripMargin
+  )
 
 }

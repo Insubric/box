@@ -1,5 +1,6 @@
 package ch.wsl.box.client.geo
 
+import ch.wsl.box.client.styles.Icons
 import ch.wsl.typings.ol
 import ch.wsl.typings.ol.geomMod.Point
 import ch.wsl.typings.ol.{controlControlMod, controlMod, geolocationMod, geomGeometryMod, geomMod, imageMod, layerBaseVectorMod, layerMod, mod, renderFeatureMod, sourceMod, sourceVectorMod, styleMod}
@@ -50,7 +51,7 @@ class MapGeolocation(map:mod.Map) {
     }
   })
 
-  def control = new controlMod.Control(controlControlMod.Options().setElement(div(`class` := "ol-control", style := "top: 10px; right:10px; padding: 1px 6px", input(
+  def control = div(padding := 3.px,display.flex,justifyContent.spaceAround,alignItems.center, input(
     `type`:="checkbox",
     onchange :+= {(e:Event) =>
       if(e.target.asInstanceOf[HTMLInputElement].checked) {
@@ -63,7 +64,7 @@ class MapGeolocation(map:mod.Map) {
 
 
     }
-  ).render ,"GPS").render))
+  ).render,Icons.target(24,24)).render
 
 
 }

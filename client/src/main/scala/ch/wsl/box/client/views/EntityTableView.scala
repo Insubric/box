@@ -2,6 +2,7 @@ package ch.wsl.box.client.views
 
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.db.{DB, LocalRecord}
+import ch.wsl.box.client.geo.MapUtils
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.Messages.{RowHover, RowOut}
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
@@ -403,7 +404,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
   def leftOpen = Property(true)
-  def rightOpen = Property(model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True)))
+  def rightOpen = Property(!model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True)))
 
   def loadGeoms(extent:Option[Polygon] = None) = {
     model.get.metadata.foreach{ m =>

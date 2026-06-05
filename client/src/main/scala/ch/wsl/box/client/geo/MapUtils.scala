@@ -285,7 +285,6 @@ object MapUtils extends Logging {
 
 
     def animate(event: RenderEvent): Unit = {
-      println("Animate")
       val frameState = event.frameState
       val elapsed = frameState.get.time - start
 
