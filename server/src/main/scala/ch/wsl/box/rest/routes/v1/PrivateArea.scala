@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Directives.{complete, get, path, pathPrefix}
 import akka.stream.Materializer
 import ch.wsl.box.model.Translations
-import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, EntityKind, PDFTable, XLSTable}
+import ch.wsl.box.model.shared.{BoxTranslationsFields, CSVTable, EntityKind, JSONQuery, PDFTable, XLSTable}
 import ch.wsl.box.rest.logic.NewsLoader
 import ch.wsl.box.rest.metadata.{BoxFormMetadataFactory, FormMetadataFactory, StubMetadataFactory}
 import ch.wsl.box.rest.io.pdf.PDFExport
@@ -198,6 +198,14 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
     }
   }
 
+  def lookupData(implicit up:UserProfile) = path("lookup-data") {
+    get{
+      complete {
+        up.db.run(Registry.box().actions("v_lookup_data").findSimple(JSONQuery.empty))
+      }
+    }
+  }
+
   val websocket = new WebsocketNotifications()
 
   val route = auth ~
@@ -226,6 +234,7 @@ class PrivateArea(implicit ec:ExecutionContext, sessionManager: SessionManager[B
         translations ~
         websocket.route ~
         preferences(up) ~
+        lookupData ~
         Admin(session).route
     }
     case None => invalidateSession(oneOff, usingCookies) {
