@@ -13,10 +13,16 @@ import org.scalajs.dom
 import scalatags.JsDom.all.s
 import scribe.Logging
 import ch.wsl.typings.ol.coordinateMod.Coordinate
+import ch.wsl.typings.ol.layerLayerMod.Layer
+import ch.wsl.typings.ol.layerTileMod.TileLayer
 import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
-import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseMod, layerBaseTileMod, layerMod, mod, projMod, sourceMod, sourceWmtsMod}
+import ch.wsl.typings.ol.renderEventMod.RenderEvent
+import ch.wsl.typings.ol.styleCircleMod.CircleStyle
+import ch.wsl.typings.ol.styleMod.{Circle, Stroke, Style}
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseMod, layerBaseTileMod, layerMod, mod, observableMod, projMod, sourceMod, sourceWmtsMod, styleCircleMod, styleFillMod, styleMod, styleStrokeMod, styleStyleMod}
+import org.scalajs.dom.Event
 
-import java.util.UUID
+import java.util.{Date, UUID}
 import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.|._
@@ -261,6 +267,72 @@ object MapUtils extends Logging {
       }
     }
     ol
+  }
+
+  var listenerKey:ch.wsl.typings.ol.eventsMod.EventsKey = null
+
+  def stopFlashing() = {
+    ch.wsl.typings.ol.eventsMod.unlistenByKey(listenerKey)
+  }
+
+  def flash(feature: ch.wsl.typings.ol.featureMod.Feature[_], map: ch.wsl.typings.ol.mod.Map,layer:ch.wsl.typings.ol.layerMod.Vector[_]): Unit = {
+    val period = 1000
+    val start = new Date().getTime
+
+    val flashGeom = feature.getGeometry().get.asInstanceOf[js.Dynamic].clone().asInstanceOf[ch.wsl.typings.ol.geomMod.Geometry]
+    val flashGeom2 = feature.getGeometry().get.asInstanceOf[js.Dynamic].clone().asInstanceOf[ch.wsl.typings.ol.geomMod.Geometry]
+
+
+
+    def animate(event: RenderEvent): Unit = {
+      val frameState = event.frameState
+      val elapsed = frameState.get.time - start
+
+//      if (elapsed >= duration) {
+//        ch.wsl.typings.ol.eventsMod.unlistenByKey(listenerKey)
+//        return
+//      }
+
+      val vectorContext = ch.wsl.typings.ol.renderMod.getVectorContext(event)
+      val vectorContext2 = ch.wsl.typings.ol.renderMod.getVectorContext(event)
+      val elapsedRatio = elapsed / period - (elapsed / period).toInt
+      // radius will be 5 at start and 20 at end.
+      val radius = ch.wsl.typings.ol.easingMod.easeOut(elapsedRatio) * 15 + 5
+      val opacity = ch.wsl.typings.ol.easingMod.easeOut(1 - elapsedRatio)
+
+      val style = new Style( ch.wsl.typings.ol.styleStyleMod.Options().setImage(
+        new Circle(styleCircleMod.Options(radius)
+          .setStroke(new Stroke( ch.wsl.typings.ol.styleStrokeMod.Options()
+            .setColor(s"rgba(85, 10, 33, $opacity)")
+            .setWidth(1 + opacity)
+          ))
+        ).asInstanceOf[ch.wsl.typings.ol.imageMod.default]
+      ) )
+
+      val styleFIX = new Style( ch.wsl.typings.ol.styleStyleMod.Options().setImage(
+        new Circle(styleCircleMod.Options(10)
+          .setStroke(new Stroke( ch.wsl.typings.ol.styleStrokeMod.Options()
+            .setColor(s"rgba(85,10,33, 1)")
+            .setWidth(1)
+          ))
+          .setFill(new styleMod.Fill(styleFillMod.Options().setColor("rgba(85,10,33,0.6)")))
+        ).asInstanceOf[ch.wsl.typings.ol.imageMod.default]
+      ) )
+
+      vectorContext.setStyle(style)
+      vectorContext.drawGeometry(flashGeom)
+
+      vectorContext.setStyle(styleFIX)
+      vectorContext.drawGeometry(flashGeom2)
+
+
+      // tell OpenLayers to continue postrender animation
+      map.render()
+    }
+
+    listenerKey = layer.onInternal("postrender", (event) => animate(event.asInstanceOf[RenderEvent])).asInstanceOf[ch.wsl.typings.ol.eventsMod.EventsKey]
+    map.render()
+
   }
 
 

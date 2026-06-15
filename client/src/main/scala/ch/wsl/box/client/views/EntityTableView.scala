@@ -2,7 +2,9 @@ package ch.wsl.box.client.views
 
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.db.{DB, LocalRecord}
+import ch.wsl.box.client.geo.MapUtils
 import ch.wsl.box.client.routes.Routes
+import ch.wsl.box.client.services.Messages.{RowHover, RowOut}
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, TablePreference, UI}
 import ch.wsl.box.client.styles.Icons.Icon
@@ -73,14 +75,14 @@ case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filte
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
                             metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: IDsVM, pages:Int, access:TableAccess,
-                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],public:Boolean,selectedColumns:Seq[JSONField])
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],extentFilter:Boolean,public:Boolean,selectedColumns:Seq[JSONField])
 
 
 case class VMAction(code:String,action: JSONID => Future[Boolean],icon:Option[Icon],label:String,button_class:String = "primary",confirm:Option[String] = None, reloadAfter:Boolean = false)
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,Seq())
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq())
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -220,6 +222,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         query = Some(query),
         geoms = Seq(),
         extent = None,
+        extentFilter = false,
         public = state.public,
         selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable)
       )
@@ -262,6 +265,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   model.subProp(_.extent).listen { extent =>
+    if(model.subProp(_.extentFilter).get) {
+      reloadRows(1)
+    } else {
+      loadGeoms(extent)
+    }
+  }
+
+  model.subProp(_.extentFilter).listen { extent =>
     reloadRows(1)
   }
 
@@ -392,13 +403,13 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   var reloadCount = 0 // avoid out of order
 
 
-  def defaultClose = model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True))
+  def leftOpen = Property(true)
+  def rightOpen = Property(!model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True)))
 
   def loadGeoms(extent:Option[Polygon] = None) = {
     model.get.metadata.foreach{ m =>
       Future.sequence(m.geomFields.map{ f =>
-        val tableEntity = m.view.getOrElse(m.entity)
-        services.rest.geoData(EntityKind.ENTITY.kind, services.clientSession.lang(), tableEntity, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys),model.subProp(_.public).get)
+        services.rest.geoData(m.kind, services.clientSession.lang(), m.name, f.name, GeoDataRequest(query(extent).limit(10000000),m.keys),model.subProp(_.public).get)
 
       }).foreach{ geoms =>
         model.subProp(_.geoms).set(geoms.flatten)
@@ -414,7 +425,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     services.clientSession.loading.set(true)
 
-    val extent = model.subProp(_.extent).get
+    val extent = if(model.subProp(_.extentFilter).get) model.subProp(_.extent).get else None
 
     logger.info(s"reloading rows page: $page")
     logger.info("filterUpdateHandler "+filterUpdateHandler)
@@ -434,7 +445,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     //start request in parallel
     val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get,model.subProp(_.metadata).get.get)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
-    if(hasGeometry() && !defaultClose) {
+    if(hasGeometry() && rightOpen.get) {
       loadGeoms(extent)
     }
 
@@ -522,6 +533,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
       model.subProp(_.fieldQueries).set(newFieldQueries)
     }
+  }
+
+  def hoverRow(row: => Row) =  (e:Event) => {
+    services.messages.pub(RowHover(row))
+    e.preventDefault()
+  }
+
+  def exitRow(row: => Row) =  (e:Event) => {
+    services.messages.pub(RowOut(row))
+    e.preventDefault()
   }
 
   def toggleSelection(row: => Row) = (e:Event) => {
@@ -628,7 +649,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   var map:Option[Div] = None
 
-  def showMap(metadata:JSONMetadata) = (show:ReadableProperty[Boolean]) => showIf(show){
+  def showMap(metadata:JSONMetadata) = () => {
     if(presenter.hasGeometry()) {
 
       if(model.subProp(_.geoms).get.isEmpty)
@@ -641,7 +662,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent))
+            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent),model.subProp(_.extentFilter))
           }
           case None => observer.disconnect()
         }
@@ -658,11 +679,30 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   override def getTemplate: generic.Modifier[Element] = div(
     produceWithNested(model.subProp(_.metadata)) { (metadata, nested) =>
+
       metadata match {
-        case Some(metadata) => if (presenter.hasGeometry()) {
-          div(new TwoPanelResize(presenter.defaultClose)(showMap(metadata), mainContent(metadata, nested))).render
-        } else {
-          div(mainContent(metadata, nested)).render
+        case Some(metadata) => {
+          val filterStyle:String = metadata.params.flatMap(_.getOpt("filterStyle")) match {
+            case Some(value) => value
+            case None => "all"
+          }
+
+          val filterStyleDyn = filterStyle == "both" || filterStyle == "dyn"
+          val filterStyleAll = filterStyle == "both" || filterStyle == "all"
+          if (presenter.hasGeometry()) {
+            div(
+              topBar(metadata,nested,filterStyleDyn),
+              new TwoPanelResize(presenter.leftOpen,presenter.rightOpen)(
+                tableContent(metadata,nested,filterStyleAll),
+                showMap(metadata),
+              )
+            ).render
+          } else {
+            div(
+              topBar(metadata,nested,filterStyleDyn),
+              mainContent(metadata, nested,filterStyleAll)
+            ).render
+          }
         }
         case None => div().render
       }
@@ -678,7 +718,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     } else Seq()
 
     Seq(
-      div(ClientConf.style.noMobile)(
+      div(ClientConf.style.tableMainActions)(
         releaser(produce(model.subProp(_.name)) { m =>
           div({
             val out: Seq[Modifier] = (metadata.action.topTable(a) ++ adminActions).map { ta =>
@@ -793,7 +833,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = {
+  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = () =>  div(
+    ClientConf.style.fullHeightMax, ClientConf.style.tableHeaderFixed,{
     nested(produceWithNested(model.subProp(_.selectedColumns)) { (columns,nested) =>
       val table = new BoxTable(model.subSeq(_.rows),nested,ClientConf.style.tableView)(
 
@@ -832,7 +873,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
           val row = tr(
             id := ElementId.tableRow(el.get.id.map(_.asString).getOrElse("")),
-            ClientConf.style.rowStyle, onclick :+= presenter.toggleSelection(el.get),
+            ClientConf.style.rowStyle,
+            onmouseover :+= presenter.hoverRow(el.get),
+            onmouseout :+= presenter.exitRow(el.get),
+            onclick :+= presenter.toggleSelection(el.get),
             td(ClientConf.style.smallCells)(
               Offline(el.transform(_.isLocal)),
             ),
@@ -887,19 +931,12 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       })
       table
     })
-  }
+  }).render
 
-  def mainContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor): scalatags.generic.Modifier[Element] = {
+  def topBar(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleDyn:Boolean) = {
 
     val disableSelection = metadata.params.exists(_.js("disableSelection") == Json.True)
-    val enableImport = metadata.params.exists(_.js("enableImport") == Json.True)
-    val filterStyle:String = metadata.params.flatMap(_.getOpt("filterStyle")) match {
-      case Some(value) => value
-      case None => "all"
-    }
 
-    val filterStyleDyn = filterStyle == "both" || filterStyle == "dyn"
-    val filterStyleAll = filterStyle == "both" || filterStyle == "all"
 
 
     val columnSelector = {
@@ -912,14 +949,14 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         headerFactory = Some(_ => div(Labels.table.column_selection).render),
         bodyFactory = Some { nested =>
           div(
-              metadata.nativeFields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
-                div(
-                  Checkbox(localModel.bitransform(_.contains(c)){
-                    case true => localModel.get ++ Seq(c)
-                    case false => localModel.get.filterNot(_ == c)
-                  })()," ",c.title
-                )
-              }
+            metadata.nativeFields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
+              div(
+                Checkbox(localModel.bitransform(_.contains(c)){
+                  case true => localModel.get ++ Seq(c)
+                  case false => localModel.get.filterNot(_ == c)
+                })()," ",c.title
+              )
+            }
 
           ).render
         },
@@ -960,62 +997,68 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
     }
 
 
+    div(ClientConf.style.topBarContainer,
+
+      div(ClientConf.style.topTableContainer,
+        div(ClientConf.style.tableTitle,
+          h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata)),
+        ),
+        div(display.flex,flexDirection.row,alignItems.center,
+          div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count)))),
+          nested(showIf(model.subProp(_.query).transform(presenter.isFiltered)){
+            a(ClientConf.style.chipLink,Labels.navigation.recordsFiltered," \uD83D\uDDD9", onclick :+= ((e:Event) => {
+              presenter.resetFilters()
+              e.preventDefault()
+            })
+            ).render
+          }),
+          if(!disableSelection) {
+            a(ClientConf.style.chipLink, Labels.navigation.selectAll, onclick :+= ((e: Event) => {
+              presenter.selectAll()
+              e.preventDefault()
+            }))
+          } else empty
+        ),
+        if(!disableSelection) {
+          div(
+            nested(showIf(model.subProp(_.selectedRow).transform(_.nonEmpty)) {
+              div(
+                Labels.navigation.recordsSelected, nested(bind(model.subProp(_.selectedRow).transform(_.length))),
+                presenter.actions(true).map(actionButton(model.subProp(_.selectedRow).get, ClientConf.style.chipLink)),
+                a(ClientConf.style.chipLink, Labels.navigation.removeSelection, " \uD83D\uDDD9", onclick :+= ((e: Event) => {
+                  presenter.resetSelection()
+                  e.preventDefault()
+                })),
+              ).render
+            })
+          )
+        } else empty,
+        div( display.flex,
+          exportDialog.render(nested, () => ExportParams(
+            metadata = metadata,
+            selectedFields = model.subProp(_.selectedColumns).get,
+            query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
+          )),
+          columnSelector,
+          pagination.render,
+        )
+
+      ),
+      if(filterStyleDyn) {
+        new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata)
+      } else frag(),
+    )
+  }
+
+  def mainContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean): scalatags.generic.Modifier[Element] = {
+
+    val enableImport = metadata.params.exists(_.js("enableImport") == Json.True)
+
 
 
       div(
-        div(ClientConf.style.topTableContainer,
-          div(
-            h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata))
-          ),
-          div(display.flex,flexDirection.row,alignItems.center,
-            div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count)))),
-            nested(showIf(model.subProp(_.query).transform(presenter.isFiltered)){
-                a(ClientConf.style.chipLink,Labels.navigation.recordsFiltered," \uD83D\uDDD9", onclick :+= ((e:Event) => {
-                  presenter.resetFilters()
-                  e.preventDefault()
-                })
-              ).render
-            }),
-            if(!disableSelection) {
-              a(ClientConf.style.chipLink, Labels.navigation.selectAll, onclick :+= ((e: Event) => {
-                presenter.selectAll()
-                e.preventDefault()
-              }))
-            } else empty
-          ),
-          if(!disableSelection) {
-            div(
-              nested(showIf(model.subProp(_.selectedRow).transform(_.nonEmpty)) {
-                div(
-                  Labels.navigation.recordsSelected, nested(bind(model.subProp(_.selectedRow).transform(_.length))),
-                  presenter.actions(true).map(actionButton(model.subProp(_.selectedRow).get, ClientConf.style.chipLink)),
-                  a(ClientConf.style.chipLink, Labels.navigation.removeSelection, " \uD83D\uDDD9", onclick :+= ((e: Event) => {
-                    presenter.resetSelection()
-                    e.preventDefault()
-                  })),
-                ).render
-              })
-            )
-          } else empty,
-          div( display.flex,
-            exportDialog.render(nested, () => ExportParams(
-              metadata = metadata,
-              selectedFields = model.subProp(_.selectedColumns).get,
-              query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
-            )),
-            columnSelector,
-            pagination.render,
-          )
-
-        ),
         div(id := "box-table", ClientConf.style.tableHeaderFixed,
-          div(
-            ClientConf.style.fullHeightMax,
-            if(filterStyleDyn) {
-              new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata)
-            } else frag(),
-            tableContent(metadata,nested,filterStyleAll)
-          ),
+          tableContent(metadata,nested,filterStyleAll)(),
           if(enableImport) {
             button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls)
 

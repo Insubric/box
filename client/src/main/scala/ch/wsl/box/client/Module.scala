@@ -1,5 +1,5 @@
 package ch.wsl.box.client
-import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Navigator, Notification, NotificationChannel, NotificationWebSocket, Preferences, REST}
+import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Messages, MessagesPropertyImpl, Navigator, Notification, NotificationChannel, NotificationWebSocket, Preferences, REST}
 import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, HttpClientImpl, PreferencesImpl, RestImpl}
 import ch.wsl.box.client.styles.{BoxStyle, BoxStyleFactory, GlobalStyleFactory}
 import ch.wsl.box.client.views.components.{BoxMainLayout, MainLayout}
@@ -23,6 +23,7 @@ object Module {
     .bind[NotificationChannel].to[NotificationWebSocket]
     .bind[BoxStyleFactory].to[GlobalStyleFactory]
     .bind[MainLayout].to[BoxMainLayout]
+    .bind[Messages].to[MessagesPropertyImpl]
 
   val prod = newDesign
     .bind[HttpClient].to[HttpClientImpl]
@@ -34,4 +35,5 @@ object Module {
     .bind[NotificationChannel].to[NotificationWebSocket]
     .bind[BoxStyleFactory].to[GlobalStyleFactory]
     .bind[MainLayout].to[BoxMainLayout]
+    .bind[Messages].to[MessagesPropertyImpl]
 }

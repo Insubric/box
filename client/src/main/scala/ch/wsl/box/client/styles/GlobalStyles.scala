@@ -382,8 +382,13 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     ),
     justifyContent.spaceBetween,
     alignItems.center,
-    alignContent.center
+    alignContent.center,
+    boxShadow := "0px 2px 6px #999",
+    zIndex(5),
+    position.relative
   )
+
+  override val topBarContainer = style()
 
   override val flexContainer = style(
     display.flex,
@@ -844,7 +849,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
       height :=! "calc(100vh - 53px)",
       overflow.auto,
     ),
-    overflow.hidden,
+    overflow.auto,
     width(100.%%)
   )
 
@@ -1751,6 +1756,11 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     )
   )
 
+  override val filterDynBar =style(
+    display.flex,
+    alignItems.center
+  )
+
   val filterBlock = style(
     display.flex,
     alignItems.center,
@@ -1773,7 +1783,17 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
   )
 
-//
+  override val filterBlockTitle = style(
+    fontWeight.bold,
+    marginLeft(15 px)
+  )
+
+
+  override val tableTitle = style()
+  override val tableMainActions = style(
+    noMobile
+  )
+  //
 //    val mapPopup = style(
 //      border.solid,
 //      borderColor(conf.colors.main),
