@@ -849,7 +849,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
       height :=! "calc(100vh - 53px)",
       overflow.auto,
     ),
-    overflow.hidden,
+    overflow.auto,
     width(100.%%)
   )
 
