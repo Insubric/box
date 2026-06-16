@@ -27,7 +27,7 @@ object MapStyle {
     )
   }
 
-  def vectorStyle(color:String = "rgb(237, 28, 36)"): js.Array[ch.wsl.typings.ol.styleStyleMod.Style] = js.Array(
+  def vectorStyle(color:String = "rgb(237, 28, 36)"):js.Array[ch.wsl.typings.ol.styleStyleMod.Style]  = js.Array(
     simpleStyle(color),
     new styleMod.Style(styleStyleMod.Options()
       .setImage(

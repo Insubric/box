@@ -1,6 +1,7 @@
 package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.Context.services
+import ch.wsl.box.client.geo.OlTypes.BoxBaseLayer
 import ch.wsl.box.client.services.BrowserConsole
 import io.circe.Json
 import io.udash.{Property, ReadableProperty}
@@ -32,7 +33,7 @@ trait BoxOlMap {
   def loadBase(l: Option[MapParamsLayers])(implicit ex:ExecutionContext): Future[Boolean] = {
     l match {
       case None => {
-        mapActions.setBaseLayer(BoxMapConstants.openStreetMapLayer)
+        mapActions.setBaseLayer(BoxMapConstants.openStreetMapLayer.asInstanceOf[BoxBaseLayer])
         Future.successful(true)
       }
       case Some(layer) => MapUtils.loadWmtsLayer(

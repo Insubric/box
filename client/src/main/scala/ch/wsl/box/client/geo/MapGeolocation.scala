@@ -1,9 +1,10 @@
 package ch.wsl.box.client.geo
 
+import ch.wsl.box.client.geo.OlTypes.{BoxBaseLayer, BoxFeatureType, BoxProperyType, BoxVectorSourceType}
 import ch.wsl.box.client.styles.Icons
 import ch.wsl.typings.ol
 import ch.wsl.typings.ol.geomMod.Point
-import ch.wsl.typings.ol.{controlControlMod, controlMod, geolocationMod, geomGeometryMod, geomMod, imageMod, layerBaseVectorMod, layerMod, mod, renderFeatureMod, sourceMod, sourceVectorMod, styleMod}
+import ch.wsl.typings.ol.{controlControlMod, controlMod, geolocationMod, geomGeometryMod, geomMod, imageMod, layerBaseVectorMod, layerMod, layerVectorMod, mod, renderFeatureMod, sourceMod, sourceVectorMod, styleMod}
 import org.scalajs.dom.{Event, HTMLInputElement, PositionOptions}
 import scalatags.JsDom.all.{`class`, `type`, div, input, onchange, style}
 
@@ -18,13 +19,13 @@ class MapGeolocation(map:mod.Map) {
       .setProjection(map.getView().getProjection())
   )
 
-  val accuracyFeature = new mod.Feature[geomMod.Geometry]()
-  val positionFeature = new mod.Feature[Point]()
+  val accuracyFeature = new BoxFeatureType()
+  val positionFeature = new BoxFeatureType()
 
-  val gpsVectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
-  gpsVectorSource.addFeature(accuracyFeature.asInstanceOf[renderFeatureMod.default])
-  gpsVectorSource.addFeature(positionFeature.asInstanceOf[renderFeatureMod.default])
-  val gpsFeaturesLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+  val gpsVectorSource = new BoxVectorSourceType(sourceVectorMod.Options[BoxFeatureType]())
+  gpsVectorSource.addFeature(accuracyFeature)
+  gpsVectorSource.addFeature(positionFeature)
+  val gpsFeaturesLayer = new layerMod.Vector[BoxVectorSourceType,BoxFeatureType](layerVectorMod.Options[BoxVectorSourceType,BoxFeatureType]()
     .setSource(gpsVectorSource)
   )
 
@@ -56,10 +57,10 @@ class MapGeolocation(map:mod.Map) {
     onchange :+= {(e:Event) =>
       if(e.target.asInstanceOf[HTMLInputElement].checked) {
         geolocation.setTracking(true)
-        map.addLayer(gpsFeaturesLayer)
+        map.addLayer(gpsFeaturesLayer.asInstanceOf[BoxBaseLayer])
       } else {
         geolocation.setTracking(false)
-        map.removeLayer(gpsFeaturesLayer)
+        map.removeLayer(gpsFeaturesLayer.asInstanceOf[BoxBaseLayer])
       }
 
 

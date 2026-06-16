@@ -10,7 +10,7 @@ import io.udash.bootstrap.utils.BootstrapStyles
 import io.udash._
 import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
-import ch.wsl.typings.ol.renderFeatureMod
+import ch.wsl.typings.ol.{extentMod, renderFeatureMod}
 import ch.wsl.typings.ol.viewMod.FitOptions
 
 import scala.concurrent.ExecutionContext
@@ -67,7 +67,7 @@ class MapControlStandaloneDropdown(params:MapControlsParams, layerSelector:Modif
         button(ClientConf.style.mapButton)(
           if(geometry.isEmpty) disabled := true else Seq[Modifier](),
           onclick :+= { (e: Event) =>
-            sourceMap(_.getExtent()).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
+            sourceMap(_.getExtent().asInstanceOf[extentMod.Extent]).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
             e.preventDefault()
           }
         )(Icons.search).render,

@@ -26,6 +26,7 @@ import ch.wsl.typings.ol.mod.{Feature, MapBrowserEvent, Overlay}
 import ch.wsl.typings.ol.objectMod.ObjectEvent
 import ch.wsl.typings.ol.viewMod.FitOptions
 import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, renderFeatureMod, sourceMod, sourceVectorMod, viewMod}
+import ch.wsl.box.client.geo.OlTypes._
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
@@ -34,6 +35,7 @@ import scalatags.JsDom.all._
 import io.udash._
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import io.udash.wrappers.jquery.jQ
+import org.scalablytyped.runtime.StringDictionary
 
 class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]],extentFilter:Property[Boolean]) extends BoxOlMap {
 
@@ -124,10 +126,10 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
   val geolocation = new MapGeolocation(map)
 
-  val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
+  val vectorSource = new sourceMod.Vector[BoxFeatureType](sourceVectorMod.Options())
 
   def zoomToFeatures() = {
-    val sourceExtent = vectorSource.getExtent()
+    val sourceExtent = vectorSource.getExtent().asInstanceOf[extentMod.Extent]
     map.getView().fit(sourceExtent,FitOptions().setPadding(js.Array(20.0,20.0,20.0,20.0)))
   }
 
@@ -188,19 +190,19 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
 
 
-    val featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+    val featuresLayer = new layerMod.Vector[BoxVectorSourceType,BoxFeatureType](layerVectorMod.Options[BoxVectorSourceType,BoxFeatureType]()
       .setSource(vectorSource)
       .setStyle(style)
     )
 
-    val hoverLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+    val hoverLayer = new layerMod.Vector[BoxVectorSourceType,BoxFeatureType](layerVectorMod.Options[BoxVectorSourceType,BoxFeatureType]()
       .setStyle(style)
       .setZIndex(100)
-      .setSource(new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options()))
+      .setSource(new sourceMod.Vector[BoxFeatureType](sourceVectorMod.Options[BoxFeatureType]()))
     )
 
-    map.addLayer(featuresLayer)
-    map.addLayer(hoverLayer)
+    map.addLayer(featuresLayer.asInstanceOf[layerBaseMod.default[StringDictionary[Any]]])
+    map.addLayer(hoverLayer.asInstanceOf[layerBaseMod.default[StringDictionary[Any]]])
 
 
     val extentChange = Debounce(250.millis)((_: Unit) => {
@@ -214,15 +216,15 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
     geoms.listen({ layers =>
       extentChangeListenerActive = false
-      map.removeLayer(featuresLayer)
+      map.removeLayer(featuresLayer.asInstanceOf[layerBaseMod.default[StringDictionary[Any]]])
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
       layers.foreach { g =>
         val geom = MapUtils.boxFeatureToOlFeature(g)
-        vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
+        vectorSource.addFeature(geom)
       }
 
-      map.addLayer(featuresLayer)
+      map.addLayer(featuresLayer.asInstanceOf[layerBaseMod.default[StringDictionary[Any]]])
 
       if (extent.get.isEmpty && layers.nonEmpty) {
 
@@ -319,7 +321,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
     services.messages.sub{
       case RowHover(row) => {
-        val f = vectorSource.getFeatureById(row.id.map(_.asString).getOrElse("")).asInstanceOf[Feature[_]]
+        val f = vectorSource.getFeatureById(row.id.map(_.asString).getOrElse("")).asInstanceOf[Feature[_,_]]
         if(f != null) {
             MapUtils.flash(f,map,hoverLayer)
         }
