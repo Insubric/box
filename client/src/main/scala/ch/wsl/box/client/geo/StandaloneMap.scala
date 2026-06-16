@@ -16,7 +16,7 @@ import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom.MutationObserver
 import scalatags.JsDom.{StringFrag, _}
 import scalatags.JsDom.all._
-import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mod, olStrings, sourceMod, sourceVectorMod, viewMod}
+import ch.wsl.typings.ol.{extentMod, featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, layerVectorMod, mod, olStrings, sourceMod, sourceVectorMod, viewMod}
 import org.scalajs.dom._
 import org.scalajs.dom.html.Div
 import ch.wsl.typings.ol.mapMod.MapOptions
@@ -32,6 +32,7 @@ import scala.util.Try
 import io.udash.css.CssView._
 import scalacss.ScalatagsCss._
 import MapUtils._
+import ch.wsl.box.client.geo.OlTypes.{BoxBaseLayer, BoxFeatureType, BoxProperyType, BoxVectorSourceType}
 import scribe.Logging
 
 abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableProperty[Json],data:Property[Json]) extends Logging {
@@ -206,25 +207,28 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
     }
   }
 
-  private def extentOfLayers(layers:js.Array[layerBaseMod.default]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
-    val layersExtent = layers.flatMap {
-      case v: layerMod.Vector[_] => {
-        val vs = v.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]
-        if (vs.getFeatures().isEmpty) None else Some(vs.getExtent())
+  private def extentOfLayers(layers:js.Array[BoxBaseLayer]):Option[extentMod.Extent] = { // calculate extent only of nonEmpty layers
+    val layersExtent = layers.map(_.asInstanceOf[js.Any]).flatMap {
+      case v: layerMod.Vector[BoxVectorSourceType,BoxFeatureType] => {
+        val vs = v.getSource().asInstanceOf[BoxVectorSourceType]
+        if (vs.getFeatures().isEmpty) None else Some(vs.getExtent().asInstanceOf[extentMod.Extent])
       }
       case _ => None
+    }
+    layersExtent.tail.foreach{ e =>
+      extentMod.extend(layersExtent.head,e)
     }
     if (layersExtent.isEmpty) {
       None
     } else {
-      Some(layersExtent.reduce(extentMod.extend))
+      Some(layersExtent.head)
     }
   }
 
   def fit():Box2d = {
     val focusedExtent = Try{
-      val layers = metadata.db.filter(_.autofocus).flatMap(map.layerOf).map(_.asInstanceOf[layerBaseMod.default]).toJSArray
-      extentOfLayers(layers)
+      val layers = metadata.db.filter(_.autofocus).flatMap(map.layerOf).toJSArray
+      extentOfLayers(layers.map(_.asInstanceOf[BoxBaseLayer]))
     }.toOption.flatten
 
     val extent = if (focusedExtent.nonEmpty && !focusedExtent.contains(null)) Some(focusedExtent.get) else {
@@ -238,7 +242,7 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
     Box2d.fromSeq(extent.getOrElse(map.getView().calculateExtent()).toSeq)
   }
 
-  def addLayers(layers:Seq[layerBaseMod.default], replace: Boolean = false, initialState:Option[Boolean] = None) = {
+  def addLayers(layers:Seq[BoxBaseLayer], replace: Boolean = false, initialState:Option[Boolean] = None) = {
     layers.foreach { layer =>
 
       map.getLayers().getArray().find(_.getZIndex() == layer.getZIndex()) match {
@@ -262,7 +266,7 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
   def addFeaturesToLayer(db: DbVector, geoms:GeoData) = {
     map.sourceOf(db).map{s =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
-      s.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
+      s.addFeatures(features.toJSArray)
     }
 
   }
@@ -295,20 +299,20 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
 
 
 
-  def geomsToLayer(vector:DbVector,geoms:GeoData):layerMod.Vector[_] = {
-    val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
+  def geomsToLayer(vector:DbVector,geoms:GeoData):BoxBaseLayer = {
+    val vectorSource = new sourceMod.Vector[BoxFeatureType](sourceVectorMod.Options())
     val features = geoms.map(MapUtils.boxFeatureToOlFeature)
 
-    vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
+    vectorSource.addFeatures(features.toJSArray)
 
-    val layer = new layerMod.Vector(layerBaseVectorMod.Options()
+    val layer = new layerMod.Vector[BoxVectorSourceType,BoxFeatureType](layerVectorMod.Options[BoxVectorSourceType,BoxFeatureType]()
       .setSource(vectorSource)
       .setZIndex(vector.zIndex)
       .setProperties(StringDictionary((MapUtils.BOX_LAYER_ID, vector.id.toString)))
       .setStyle(MapStyle.vectorStyle(vector.color))
     )
 
-    layer
+    layer.asInstanceOf[BoxBaseLayer]
   }
 
 

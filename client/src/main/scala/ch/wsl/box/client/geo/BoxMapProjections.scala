@@ -6,10 +6,9 @@ import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.GeoJson.Coordinates
 import ch.wsl.box.model.shared.geo.{Box2d, MapProjection}
 import scribe.Logging
-import ch.wsl.typings.ol.anon.FnCall
 import ch.wsl.typings.ol.extentMod.Extent
 import ch.wsl.typings.ol.geomMod.Geometry
-import ch.wsl.typings.ol.{extentMod, layerBaseTileMod, layerMod, projMod, projProj4Mod, projProjectionMod, sourceMod}
+import ch.wsl.typings.ol.{anon, extentMod, layerBaseTileMod, layerMod, projMod, projProj4Mod, projProjectionMod, sourceMod}
 
 import scala.scalajs.js
 
@@ -32,14 +31,14 @@ class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:Strin
   }
 
 
-  projProj4Mod.register(proj4.asInstanceOf[FnCall])
+  projProj4Mod.register(proj4.asInstanceOf[js.Any with anon.DefaultDatum ])
 
   def convert(from:String,to:String):(Coordinates => Coordinates) = {
     val f = projMod.getTransform(projections(from),projections(to))
 
     { c:Coordinates =>
       val coords = js.Array(c.x, c.y)
-      val out:js.Array[Double] = f(coords,js.undefined,js.undefined)
+      val out:js.Array[Double] = f(coords,js.undefined,js.undefined,js.undefined)
       Coordinates(out(0),out(1))
     }
   }
@@ -107,5 +106,5 @@ object BoxMapConstants {
 //    unit = "m"
   )
 
-  val openStreetMapLayer = new layerMod.Tile(layerBaseTileMod.Options().setSource(new sourceMod.OSM()))
+  val openStreetMapLayer = new layerMod.Tile[sourceMod.OSM](layerBaseTileMod.Options[sourceMod.OSM]().setSource(new sourceMod.OSM()))
 }

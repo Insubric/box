@@ -1,6 +1,7 @@
 package ch.wsl.box.client.geo
 
 
+import ch.wsl.box.client.geo.OlTypes.BoxFeatureType
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.views.components.widget.WidgetUtils
@@ -11,7 +12,7 @@ import io.udash.bootstrap.utils.BootstrapStyles
 import io.udash._
 import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
-import ch.wsl.typings.ol.{featureMod, geomGeometryMod, geomMod, renderFeatureMod}
+import ch.wsl.typings.ol.{extentMod, featureMod, geomGeometryMod, geomMod, renderFeatureMod}
 import ch.wsl.typings.ol.viewMod.FitOptions
 import io.udash.bootstrap.tooltip.Tooltip
 import org.scalajs.dom
@@ -44,7 +45,7 @@ class MapControlStandaloneExpanded(params:MapControlsParams, title:String, selec
 
     x.combine(y){ case (x,y) => MapUtils.parseCoordinates(params.projections,s"$x, $y")}.listen {
       case Some(point) => {
-        val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(point)).asInstanceOf[ch.wsl.typings.ol.renderFeatureMod.default]
+        val feature = new BoxFeatureType(new geomMod.Point(point))
         sourceMap(_.clear())
         sourceMap(_.addFeature(feature))
       }
@@ -118,7 +119,7 @@ class MapControlStandaloneExpanded(params:MapControlsParams, title:String, selec
         button(ClientConf.style.mapButton)(
           if(geometry.isEmpty) disabled := true else Seq[Modifier](),
           onclick :+= { (e: Event) =>
-            sourceMap(_.getExtent()).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
+            sourceMap(_.getExtent().asInstanceOf[extentMod.Extent]).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
             e.preventDefault()
           }
         )(Icons.search).render,

@@ -44,11 +44,13 @@ import ch.wsl.typings.ol.olStrings.singleclick
 import ch.wsl.box.model.shared.GeoJson.Geometry._
 import ch.wsl.box.model.shared.GeoJson._
 import ch.wsl.typings.ol.extentMod.Extent
+import ch.wsl.typings.ol.featureMod.FeatureLike
 import ch.wsl.typings.ol.formatFeatureMod.ReadOptions
 import io.udash.bindings.modifiers.Binding
 import org.http4s.dom.FetchClientBuilder
 import ch.wsl.typings.ol.mapMod.MapOptions
 import ch.wsl.typings.ol.objectMod.ObjectEvent
+import org.scalablytyped.runtime.StringDictionary
 import org.scalajs.dom.window.setTimeout
 
 import java.util.UUID
@@ -78,6 +80,9 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
   import scalatags.JsDom.all._
+  import ch.wsl.box.client.geo.OlTypes._
+
+
 
   val _data:Property[Option[Geometry]] = Property(None)
 
@@ -121,7 +126,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
   lazy val mapActions = new MapActions(map,options.crs)
 
-  var featuresLayer: layerMod.Vector[_] = null
+  var featuresLayer: layerMod.Vector[BoxVectorSourceType,BoxFeatureType] = null
 
 
   var _loaded = false
@@ -131,7 +136,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     if(map.nonEmpty && featuresLayer != null) {
       _loaded = false
       loadBase(baseLayer.get).flatMap { _ =>
-        map.get.addLayer(featuresLayer)
+        map.get.addLayer(featuresLayer.asInstanceOf[BoxBaseLayer])
         map.get.updateSize()
         map.get.renderSync()
         //data.touch()
@@ -180,7 +185,7 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
     promise.future
   }
 
-  var vectorSource: sourceMod.Vector[geomGeometryMod.default] = null
+  var vectorSource: sourceMod.Vector[BoxFeatureType] = null
   var view: viewMod.default = null
 
 
@@ -195,8 +200,8 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
           setTimeout(() => {
             Try {
               if (!geo.isNull) {
-                val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
-                vectorSource.addFeature(geom.asInstanceOf[renderFeatureMod.default])
+                val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(geo).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default,StringDictionary[Any]]]
+                vectorSource.addFeature(geom)
                 if (geom.getGeometry().get.getType() != geomGeometryMod.Type.Point) {
                   view.fit(geom.getGeometry().get.getExtent(), FitOptions().setPaddingVarargs(50, 50, 50, 50))
                 } else {
@@ -259,9 +264,9 @@ class OlMapWidget(val id: ReadableProperty[Option[String]], val field: JSONField
 
     _mapDiv = Some(mapDiv)
 
-     vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
+     vectorSource = new sourceMod.Vector[BoxFeatureType](sourceVectorMod.Options[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default,org.scalablytyped.runtime.StringDictionary[Any]]]())
 
-    featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+    featuresLayer = new layerMod.Vector[BoxVectorSourceType,BoxFeatureType](layerVectorMod.Options[BoxVectorSourceType,BoxFeatureType]()
       .setSource(vectorSource)
       .setStyle(MapStyle.vectorStyle())
     )

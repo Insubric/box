@@ -1,6 +1,7 @@
 package ch.wsl.box.client.geo
 
 import ch.wsl.box.client.Context.services
+import ch.wsl.box.client.geo.OlTypes.{BoxBaseLayer, BoxFeatureType, BoxProperyType, BoxVectorSourceType}
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.model.shared.{GeoJson, JSONID}
 import ch.wsl.box.model.shared.GeoJson._
@@ -13,17 +14,18 @@ import org.scalajs.dom
 import scalatags.JsDom.all.s
 import scribe.Logging
 import ch.wsl.typings.ol.coordinateMod.Coordinate
+import ch.wsl.typings.ol.geomSimpleGeometryMod.SimpleGeometry
 import ch.wsl.typings.ol.layerLayerMod.Layer
 import ch.wsl.typings.ol.layerTileMod.TileLayer
 import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
 import ch.wsl.typings.ol.renderEventMod.RenderEvent
 import ch.wsl.typings.ol.styleCircleMod.CircleStyle
 import ch.wsl.typings.ol.styleMod.{Circle, Stroke, Style}
-import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, layerBaseMod, layerBaseTileMod, layerMod, mod, observableMod, projMod, sourceMod, sourceWmtsMod, styleCircleMod, styleFillMod, styleMod, styleStrokeMod, styleStyleMod}
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, formatMod, geomGeometryMod, geomMod, layerBaseMod, layerBaseTileMod, layerMod, mod, observableMod, projMod, sourceMod, sourceWmtsMod, styleCircleMod, styleFillMod, styleMod, styleStrokeMod, styleStyleMod}
 import org.scalajs.dom.Event
 
 import java.util.{Date, UUID}
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.|._
 import scala.util.Try
@@ -32,9 +34,9 @@ object MapUtils extends Logging {
 
   val BOX_LAYER_ID = "box_layer_id"
 
-  def loadWmtsLayer(id:UUID, capabilitiesUrl: String, layer: String, time: Option[String],zIndex: Int = 0) = {
+  def loadWmtsLayer(id:UUID, capabilitiesUrl: String, layer: String, time: Option[String],zIndex: Int = 0): Future[BoxBaseLayer] = {
 
-    val result = Promise[layerMod.Tile[_]]()
+    val result = Promise[BoxBaseLayer]()
 
     logger.info(s"Loading WMTS layer $layer")
 
@@ -56,11 +58,11 @@ object MapUtils extends Logging {
           wmtsOptions .setDimensions(js.Dictionary("Time" -> t))
         }
 
-        val wmts = new layerMod.Tile(layerBaseTileMod.Options()
+        val wmts = new layerMod.Tile[sourceMod.WMTS](layerBaseTileMod.Options[sourceMod.WMTS]()
           .setSource(new sourceMod.WMTS(wmtsOptions))
           .setZIndex(zIndex)
           .setProperties(StringDictionary((BOX_LAYER_ID, id.toString)))
-        )
+        ).asInstanceOf[BoxBaseLayer]
         result.success(wmts)
       }
     }
@@ -122,9 +124,9 @@ object MapUtils extends Logging {
     GeoJson.Feature(GeoJson.Point(Coordinates(c(0), c(1)), crs))
   }
 
-  def getFeatures(map: mod.Map,e: MapBrowserEvent[_]): js.Array[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default]] = {
+  def getFeatures(map: mod.Map,e: MapBrowserEvent[_]): js.Array[BoxFeatureType] = {
     map.getFeaturesAtPixel(e.pixel).flatMap {
-      case x: ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default] => Some(x)
+      case x: BoxFeatureType => Some(x)
       case _ => None
     }
   }
@@ -192,8 +194,8 @@ object MapUtils extends Logging {
 
 
 
-  def vectorSourceGeoms(vectorSource:sourceMod.Vector[_],defaultProjection:String): Option[FeatureCollection] = {
-    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures())
+  def vectorSourceGeoms(vectorSource:BoxVectorSourceType,defaultProjection:String): Option[FeatureCollection] = {
+    val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(vectorSource.getFeatures().map(_.asInstanceOf[ch.wsl.typings.ol.renderFeatureMod.default]))
     for{
       json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
       // Maunually attach CRS since the standard in not well defined
@@ -256,9 +258,9 @@ object MapUtils extends Logging {
     result
   }
 
-  def boxFeatureToOlFeature(box:Feature): featureMod.default[geomGeometryMod.default] = {
+  def boxFeatureToOlFeature(box:Feature): BoxFeatureType = {
     import io.circe.generic.auto._
-    val ol = new formatGeoJSONMod.default().readFeature(convertJsonToJs(box.asJson).asInstanceOf[js.Object]).asInstanceOf[featureMod.default[geomGeometryMod.default]]
+    val ol = new formatGeoJSONMod.default().readFeature(convertJsonToJs(box.asJson).asInstanceOf[js.Object]).asInstanceOf[BoxFeatureType]
     box.properties.flatMap(_.apply("jsonid").flatMap(_.as[JSONID].toOption)).map(_.asString).foreach{ id =>
       if(id.nonEmpty) {
         ol.setId(id)
@@ -275,7 +277,7 @@ object MapUtils extends Logging {
     ch.wsl.typings.ol.eventsMod.unlistenByKey(listenerKey)
   }
 
-  def flash(feature: ch.wsl.typings.ol.featureMod.Feature[_], map: ch.wsl.typings.ol.mod.Map,layer:ch.wsl.typings.ol.layerMod.Vector[_]): Unit = {
+  def flash(feature: ch.wsl.typings.ol.featureMod.Feature[_,_], map: ch.wsl.typings.ol.mod.Map,layer:ch.wsl.typings.ol.layerMod.Vector[_,_]): Unit = {
     val period = 1000
     val start = new Date().getTime
 
@@ -335,18 +337,31 @@ object MapUtils extends Logging {
 
   }
 
+  def getCoordinates(f:BoxFeatureType):Option[Coordinate] = {
+    f.getGeometry().toOption.flatMap {
+      case t:geomMod.Point => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case t:geomMod.MultiPoint => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case t:geomMod.Circle => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case t:geomMod.LineString => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case t:geomMod.MultiLineString => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case t:geomMod.Polygon => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case t:geomMod.MultiPolygon => Some(t.getCoordinates().asInstanceOf[Coordinate])
+      case _ => None
+    }
+  }
+
 
   implicit class EnanchedMap(map: mod.Map) {
 
 
 
-    def layerOf(id: UUID): Option[layerBaseMod.default] = map.getLayers().getArray().find(_.getProperties().get(MapUtils.BOX_LAYER_ID).contains(id.toString))
+    def layerOf(id: UUID): Option[layerBaseMod.default[BoxProperyType]] = map.getLayers().getArray().find(_.getProperties().asInstanceOf[Map[String,String]].get(MapUtils.BOX_LAYER_ID).contains(id.toString))
 
-    def layerOf(db: DbVector): Option[layerMod.Vector[_]] = layerOf(db.id).map(_.asInstanceOf[layerMod.Vector[_]])
+    def layerOf(db: DbVector): Option[layerMod.Vector[BoxVectorSourceType,BoxFeatureType]] = layerOf(db.id).map(_.asInstanceOf[layerMod.Vector[BoxVectorSourceType,BoxFeatureType]])
     def layerOf(wmts: WMTS): Option[layerMod.Tile[_]] = layerOf(wmts.id).map(_.asInstanceOf[layerMod.Tile[_]])
 
 
-    def sourceOf(db: DbVector): Option[sourceMod.Vector[_]] = layerOf(db).map(_.getSource().asInstanceOf[sourceMod.Vector[_]])
+    def sourceOf(db: DbVector): Option[BoxVectorSourceType] = layerOf(db).map(_.getSource().asInstanceOf[BoxVectorSourceType])
   }
 
 

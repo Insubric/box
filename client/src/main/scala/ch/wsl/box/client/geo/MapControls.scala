@@ -28,13 +28,15 @@ import scalatags.JsDom.all._
 import scribe.Logging
 import ch.wsl.typings.ol.interactionSelectMod.SelectEvent
 import ch.wsl.typings.ol.mod.{MapBrowserEvent, Overlay}
-import ch.wsl.typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod, sourceVectorEventTypeMod}
+import ch.wsl.typings.ol.{eventsEventMod, featureMod, formatGeoJSONMod, geomGeometryMod, geomMod, interactionDrawMod, interactionModifyMod, interactionSelectMod, interactionSnapMod, interactionTranslateMod, layerMod, mod, objectMod, olStrings, overlayMod, projMod, renderFeatureMod, sourceMod, sourceVectorEventTypeMod, sourceVectorMod}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.{URIUtils, |}
 import scala.util.Try
+import OlTypes._
+import org.scalablytyped.runtime.StringDictionary
 
 
 object Control {
@@ -60,7 +62,7 @@ object Control {
 
 case class BoxLayer(
                       uuid:UUID,
-                     olLayer: layerMod.Vector[_],
+                     olLayer: layerMod.Vector[BoxVectorSourceType,BoxFeatureType],
                      features:MapParamsFeatures
                    )
 
@@ -78,13 +80,13 @@ case class MapControlsParams(
                             ) {
 
 
-  def layerSource: ReadableProperty[Option[layerMod.Vector[_]]] = layer.transform(_.map(_.olLayer))
-  def vectorSource: ReadableProperty[Option[sourceMod.Vector[geomGeometryMod.default]]] = layerSource.transform(_.map(toVectorSource))
-  def sourceMap[T](f:sourceMod.Vector[geomGeometryMod.default] => T):Option[T] = vectorSource.get.map(f)
+  def layerSource: ReadableProperty[Option[layerMod.Vector[BoxVectorSourceType,BoxFeatureType]]] = layer.transform(_.map(_.olLayer))
+  def vectorSource: ReadableProperty[Option[BoxVectorSourceType]] = layerSource.transform(_.map(toVectorSource))
+  def sourceMap[T](f:BoxVectorSourceType => T):Option[T] = vectorSource.get.map(f)
 }
 
 object  MapControlsParams{
-  def toVectorSource(l:layerMod.Vector[_]) = l.getSource().asInstanceOf[sourceMod.Vector[geomGeometryMod.default]]
+  def toVectorSource(l:layerMod.Vector[BoxVectorSourceType,BoxFeatureType]) = l.getSource().asInstanceOf[BoxVectorSourceType]
 }
 
 
@@ -110,7 +112,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
   protected val insertCoordinateField = Property("")
   protected val insertCoordinateHandler = ((e: Event) => {
     MapUtils.parseCoordinates(projections,insertCoordinateField.get).foreach { p =>
-      val feature = new featureMod.default[geomGeometryMod.default](new geomMod.Point(p)).asInstanceOf[ch.wsl.typings.ol.renderFeatureMod.default]
+      val feature = new BoxFeatureType(new geomMod.Point(p))
       sourceMap(_.addFeature(feature))
     }
     e.preventDefault()
@@ -167,7 +169,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
         }
 
         toInsert.foreach { f =>
-          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[ch.wsl.typings.ol.renderFeatureMod.default]
+          val geom = new formatGeoJSONMod.default().readFeature(convertJsonToJs(f.asJson).asInstanceOf[js.Object]).asInstanceOf[BoxFeatureType]
           sourceMap(_.addFeature(geom))
         }
 
@@ -178,9 +180,13 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
   }
 
-  def findFeature(g: Geometry): Option[featureMod.default[geomGeometryMod.default]] = {
+  def findFeature(g: Geometry): Option[BoxFeatureType] = {
     if (vectorSource != null) {
-      val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(sourceMap(_.getFeatures()).getOrElse(js.Array()))
+
+      val fut: js.Array[BoxFeatureType] = sourceMap(_.getFeatures()).getOrElse(js.Array())
+
+
+      val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(fut.map(_.asInstanceOf[renderFeatureMod.default]))
       convertJsToJson(geoJson.asInstanceOf[js.Any]).flatMap(FeatureCollection.decode).toOption.flatMap { collection =>
 
         val geometries = collection.features.map(_.geometry)
@@ -188,16 +194,16 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
         geometries.find(_.toSingle.contains(g)).flatMap { contanierFeature =>
 
           sourceMap(_.getFeatures().toSeq).toList.flatten.find { f =>
-            val coords = Try(f.getFlatCoordinates()).toOption
+            val coords = MapUtils.getCoordinates(f)
             coords.exists(c => contanierFeature.equalsToFlattenCoords(c.toSeq))
           }
-        }.map(f => renderFeatureMod.toFeature(f))
+        }
       }
     } else None
   }
 
 
-  private var selected: Option[featureMod.default[geomGeometryMod.default]] = None
+  private var selected: Option[BoxFeatureType] = None
 
   def highlight(g: Geometry): Unit = {
     selected.foreach(_.setStyle(MapStyle.vectorStyle()))
@@ -364,7 +370,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     drawHole
   )
 
-  private var oldVectorSource:Option[sourceMod.Vector[geomGeometryMod.default]] = None
+  private var oldVectorSource:Option[BoxVectorSourceType] = None
 
   val changedFeatures: js.Function1[eventsEventMod.BaseEvent,Unit] = (e) => {
 
@@ -452,16 +458,17 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     )
     //drawPolygon.on_change(olStrings.change,e => changedFeatures())
 
-    snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vs))
+    snap = new interactionSnapMod.default(interactionSnapMod.Options().setSource(vs.asInstanceOf[sourceVectorMod.default[renderFeatureMod.default]]))
 
-    def lsFixTypes = ls.olLayer.asInstanceOf[
+
+
+    val layers = js.Array(ls.olLayer).asInstanceOf[js.Array[
       ch.wsl.typings.ol.layerLayerMod.default[
         ch.wsl.typings.ol.sourceSourceMod.default,
-        ch.wsl.typings.ol.layerLayerMod.default[Any, /* ol.ol/layer/Layer.default<any> */ Any]
+        ch.wsl.typings.ol.layerLayerMod.default[Any, /* ol.ol/layer/Layer.default<any> */ Any, StringDictionary[Any]],
+        StringDictionary[Any]
       ]
-    ]
-
-    val layers = js.Array(lsFixTypes)
+    ]]
 
     drag = new interactionTranslateMod.default(interactionTranslateMod.Options().setLayers(layers))
 
@@ -469,7 +476,7 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
 
     delete.asInstanceOf[js.Dynamic].on(olStrings.select, (e: objectMod.ObjectEvent | SelectEvent | eventsEventMod.default) => {
       if (window.confirm(Labels.form.removeMap)) {
-        e.asInstanceOf[SelectEvent].selected.foreach(x => sourceMap(_.removeFeature(x)))
+        e.asInstanceOf[SelectEvent].selected.foreach(x => sourceMap(_.removeFeature(x.asInstanceOf[BoxFeatureType])))
         changedFeatures(e.asInstanceOf[eventsEventMod.BaseEvent])
       } else {
         delete.getFeatures().clear()

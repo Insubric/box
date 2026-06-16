@@ -10,7 +10,7 @@ import io.udash.bootstrap.utils.BootstrapStyles
 import io.udash._
 import org.scalajs.dom.{Event, Node}
 import scalatags.JsDom.all._
-import ch.wsl.typings.ol.renderFeatureMod
+import ch.wsl.typings.ol.{extentMod, renderFeatureMod}
 import ch.wsl.typings.ol.viewMod.FitOptions
 import org.scalajs.dom
 import org.scalajs.dom.html.Input
@@ -71,7 +71,7 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
         if (geometry.nonEmpty) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE,nested) else frag(),
         if (geometry.nonEmpty) button(ClientConf.style.mapButton)(
           onclick :+= { (e: Event) =>
-            sourceMap(_.getExtent()).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
+            sourceMap(_.getExtent().asInstanceOf[extentMod.Extent]).foreach(e => map.getView().fit(e, FitOptions().setPaddingVarargs(10, 10, 10, 10).setMinResolution(0.5)))
             e.preventDefault()
           }
         )(Icons.search).render else frag(),

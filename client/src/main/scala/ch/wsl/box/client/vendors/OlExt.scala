@@ -23,13 +23,13 @@ trait DrawHoleOptions extends js.Object {
   var addCondition: js.UndefOr[Condition] = js.native
   var condition: js.UndefOr[Condition] = js.native
   var features: js.UndefOr[
-    ch.wsl.typings.ol.collectionMod.default[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default]]
+    ch.wsl.typings.ol.collectionMod.default[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default,js.Any]]
   ] = js.native
   var filter: js.UndefOr[FilterFunction] = js.native
   var hitTolerance: js.UndefOr[Double] = js.native
   var layers: js.UndefOr[
-    js.Array[ch.wsl.typings.ol.layerLayerMod.default[ch.wsl.typings.ol.sourceSourceMod.default,_]] | (js.Function1[
-      /* p0 */ ch.wsl.typings.ol.layerLayerMod.default[ch.wsl.typings.ol.sourceSourceMod.default,_],
+    js.Array[ch.wsl.typings.ol.layerLayerMod.default[ch.wsl.typings.ol.sourceSourceMod.default,_,_]] | (js.Function1[
+      /* p0 */ ch.wsl.typings.ol.layerLayerMod.default[ch.wsl.typings.ol.sourceSourceMod.default,_,_],
       Boolean
     ])
   ] = js.native
@@ -72,7 +72,7 @@ object DrawHoleOptions{
       def deleteDragVertexDelay: Self = this.set("dragVertexDelay", js.undefined)
       @scala.inline
       def setFeatures(
-                       value: ch.wsl.typings.ol.collectionMod.default[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default]]
+                       value: ch.wsl.typings.ol.collectionMod.default[ch.wsl.typings.ol.featureMod.default[ch.wsl.typings.ol.geomGeometryMod.default,_]]
                      ): Self = this.set("features", value.asInstanceOf[js.Any])
       @scala.inline
       def deleteFeatures: Self = this.set("features", js.undefined)
@@ -111,7 +111,7 @@ object DrawHoleOptions{
       @scala.inline
       def deleteSnapTolerance: Self = this.set("snapTolerance", js.undefined)
       @scala.inline
-      def setSource(value: ch.wsl.typings.ol.sourceVectorMod.default[ch.wsl.typings.ol.geomGeometryMod.default]): Self = this.set("source", value.asInstanceOf[js.Any])
+      def setSource(value: js.Any): Self = this.set("source", value)
       @scala.inline
       def deleteSource: Self = this.set("source", js.undefined)
       @scala.inline

@@ -1,6 +1,7 @@
 package ch.wsl.box.client.geo
 
 
+import ch.wsl.box.client.geo.OlTypes.{BoxBaseLayer, BoxFeatureType, BoxVectorSourceType}
 import ch.wsl.box.client.services.BrowserConsole
 import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{CRS, Coordinates, Polygon}
@@ -12,7 +13,8 @@ import io.circe.syntax.EncoderOps
 import scalatags.JsDom.all.s
 import scribe.Logging
 import ch.wsl.typings.ol.mapBrowserEventMod.MapBrowserEvent
-import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, mapBrowserEventMod, mod, olStrings, sourceMod, sourceVectorMod}
+import ch.wsl.typings.ol.{featureMod, formatGeoJSONMod, geomGeometryMod, layerBaseMod, layerBaseVectorMod, layerMod, layerVectorMod, mapBrowserEventMod, mod, olStrings, sourceMod, sourceVectorMod}
+import org.scalablytyped.runtime.StringDictionary
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Promise}
@@ -25,7 +27,7 @@ class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
 
   import ch.wsl.box.client.Context._
 
-  def setBaseLayer(baseLayer: layerBaseMod.default) = {
+  def setBaseLayer(baseLayer: BoxBaseLayer) = {
     val promise = Promise[Boolean]()
     logger.info(s"Set base layer $baseLayer with $map")
     BrowserConsole.log(baseLayer)
@@ -69,13 +71,13 @@ class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
     })
   }
 
-  private val lookupLayers = mutable.Map[String,(sourceMod.Vector[geomGeometryMod.default],layerMod.Vector[_])]()
+  private val lookupLayers = mutable.Map[String,(BoxVectorSourceType,layerMod.Vector[BoxVectorSourceType,BoxFeatureType])]()
   private def createAndGetSource(layer:MapLookup) = {
     lookupLayers.get(layer.id) match {
       case Some(value) => value
       case None => {
-        val vectorSource = new sourceMod.Vector[geomGeometryMod.default](sourceVectorMod.Options())
-        val featuresLayer = new layerMod.Vector(layerBaseVectorMod.Options()
+        val vectorSource = new sourceMod.Vector[BoxFeatureType](sourceVectorMod.Options())
+        val featuresLayer = new layerMod.Vector[BoxVectorSourceType,BoxFeatureType](layerVectorMod.Options[BoxVectorSourceType,BoxFeatureType]()
           .setSource(vectorSource)
           .setStyle(MapStyle.vectorStyle(layer.color))
         )
@@ -89,7 +91,7 @@ class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
 
     val (vectorSource,featuresLayer)  = createAndGetSource(layer)
 
-    map.get.removeLayer(featuresLayer)
+    map.get.removeLayer(featuresLayer.asInstanceOf[BoxBaseLayer])
     vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
 
     val query = layer.query.getOrElse(JSONQuery.empty).limit(10000).withData(data,services.clientSession.lang()).withExtent(layer.column,calculateExtent(crs))
@@ -97,10 +99,10 @@ class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
     services.rest.geoData(layer.kind, services.clientSession.lang(), layer.entity, layer.column, GeoDataRequest(query,Seq()),false).foreach { geoms =>
       val features = geoms.map(MapUtils.boxFeatureToOlFeature)
 
-      vectorSource.addFeatures(features.toJSArray.asInstanceOf[js.Array[ch.wsl.typings.ol.renderFeatureMod.default]])
+      vectorSource.addFeatures(features.toJSArray)
 
 
-      map.get.getLayers().insertAt(1, featuresLayer)
+      map.get.getLayers().insertAt(1, featuresLayer.asInstanceOf[BoxBaseLayer])
 
       map.get.render()
     }
