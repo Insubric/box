@@ -47,9 +47,14 @@ class ExportTableDialog extends Logging {
   def render(nested:Binding.NestedInterceptor, onOpen:() => ExportParams):Modifier = {
 
     val modal = popup(nested)
+
+    document.getElementsByTagName("body").head.appendChild(div( position.absolute,top := 0, left := 0,
+      modal
+    ).render)
+
     Seq(
       button(`type` := "button", onclick :+= ((e:Event) => open(modal,onOpen())), ClientConf.style.boxButton, "Export"),
-      modal
+
     )
   }
 
