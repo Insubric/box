@@ -36,7 +36,7 @@ import io.udash.utils.Registration
 import org.scalajs.dom
 import org.scalajs.dom.html.{Div, TableCol}
 import scalacss.ScalatagsCss._
-import org.scalajs.dom.{Element, Event, HTMLElement, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
+import org.scalajs.dom.{Element, Event, HTMLDivElement, HTMLElement, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
 import scalacss.internal.Pseudo.Lang
 import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
@@ -243,9 +243,14 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   val tooltipList = ListBuffer[UdashTooltip]()
 
+  val exportDialog = new ExportTableDialog
+  var bodySelectorDivModal:Option[HTMLDivElement] = None
+
   override def onClose(): Unit = {
     super.onClose()
     tooltipList.foreach(_.destroy())
+    exportDialog.clean()
+    bodySelectorDivModal.foreach(_.remove())
   }
 
   def edit(new_window:Boolean)(id: JSONID) = {
@@ -585,7 +590,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       el.files.headOption match {
         case Some(file) => services.rest.importXLS(kind,lang,modelName,file).map{ i =>
           Notification.add(Labels(s"Imported $i rows"))
-          println("reload rows AAAAA")
           reloadRows(model.get.pages)
         }
         case None => Notification.add(Labels("No files found"))
@@ -640,7 +644,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   val empty:Modifier = Seq[Modifier]()
 
-  val exportDialog = new ExportTableDialog
+
 
   def labelTitle(m:JSONMetadata) = {
     val name = m.label
@@ -917,6 +921,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       }
 
       new TableColumnDrag(table, labelExtractor,e => {
+
+
+
         val oldPosition = e.dataTransfer.getData("text")
         val newPosition = labelExtractor(e.target.asInstanceOf[HTMLElement])
 
@@ -929,6 +936,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         })
 
       })
+
+
       table
     })
   }).render
@@ -969,12 +978,18 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           ).render
         }
       ))
+
+      presenter.bodySelectorDivModal = Some(div( position.absolute,top := 0, left := 0,
+        modal.get
+      ).render)
+
+      document.getElementsByTagName("body").head.appendChild(presenter.bodySelectorDivModal.get)
+
       div(
         button(`type` := "button", onclick :+= {(e:Event) =>
           localModel.set(model.subProp(_.selectedColumns).get)
           modal.foreach(_.show())
-        }, ClientConf.style.boxButton, Icons.dots),
-        modal.get
+        }, ClientConf.style.boxButton, Icons.dots)
       )
     }
 
@@ -1034,7 +1049,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           )
         } else empty,
         div( display.flex,
-          exportDialog.render(nested, () => ExportParams(
+          presenter.exportDialog.render(nested, () => ExportParams(
             metadata = metadata,
             selectedFields = model.subProp(_.selectedColumns).get,
             query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
