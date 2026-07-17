@@ -9,7 +9,7 @@ import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageSt
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, TablePreference, UI}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.utils.{ElementId, TestHooks, URLQuery}
+import ch.wsl.box.client.utils.{ElementId, ListenerManager, TestHooks, URLQuery}
 import ch.wsl.box.client.viewmodel.Row
 import ch.wsl.box.client.views.components.table.{BoxTable, ExportParams, ExportTableDialog, FilterBarDyn, FilterEveryField}
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
@@ -36,7 +36,7 @@ import io.udash.utils.Registration
 import org.scalajs.dom
 import org.scalajs.dom.html.{Div, TableCol}
 import scalacss.ScalatagsCss._
-import org.scalajs.dom.{Element, Event, HTMLDivElement, HTMLElement, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
+import org.scalajs.dom.{Element, Event, HTMLDivElement, HTMLElement, IntersectionObserverInit, KeyboardEvent, MutationObserver, MutationObserverInit, document, window}
 import scalacss.internal.Pseudo.Lang
 import scalacss.internal.StyleA
 import scalatags.JsDom.all.a
@@ -65,16 +65,14 @@ case class IDsVM(isLastPage:Boolean,
 
                    )
 
-object IDsVMFactory{
-  def empty = IDsVM(true,1,Seq(),0)
-}
+
 
 
 
 case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
-                            metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: IDsVM, pages:Int, access:TableAccess,
+                            metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: Option[IDs], pages:Int, access:TableAccess,
                             lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],extentFilter:Boolean,public:Boolean,selectedColumns:Seq[JSONField])
 
 
@@ -82,7 +80,7 @@ case class VMAction(code:String,action: JSONID => Future[Boolean],icon:Option[Ic
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),IDsVMFactory.empty,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq())
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),None,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq())
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -215,7 +213,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         },
         metadata = Some(metadata),
         selectedRow = Seq(),
-        ids = IDsVMFactory.empty,
+        ids = None,
         pages = Navigation.pageCount(0),
         access = access,
         lookups = Seq(),
@@ -246,11 +244,23 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   val exportDialog = new ExportTableDialog
   var bodySelectorDivModal:Option[HTMLDivElement] = None
 
+  var infiniteScrollingObserver: Option[dom.IntersectionObserver] = None
+  val listeners:ListBuffer[Registration] = ListBuffer[Registration]()
+  val listenerManager = new ListenerManager()
+
+  var mainBinding:Option[Binding] = None
+
   override def onClose(): Unit = {
+    logger.debug("onClose")
     super.onClose()
     tooltipList.foreach(_.destroy())
     exportDialog.clean()
     bodySelectorDivModal.foreach(_.remove())
+    infiniteScrollingObserver.foreach(_.disconnect())
+    listeners.foreach(_.cancel())
+    listeners.clear()
+    mainBinding.foreach(_.kill())
+    listenerManager.clearAll()
   }
 
   def edit(new_window:Boolean)(id: JSONID) = {
@@ -269,16 +279,20 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       Navigate.to(routes.show(idString))
   }
 
-  model.subProp(_.extent).listen { extent =>
-    if(model.subProp(_.extentFilter).get) {
-      reloadRows(1)
-    } else {
-      loadGeoms(extent)
+  listeners.addOne{
+    model.subProp(_.extent).listen { extent =>
+      if(model.subProp(_.extentFilter).get) {
+        reloadRows(1)
+      } else {
+        loadGeoms(extent)
+      }
     }
   }
 
-  model.subProp(_.extentFilter).listen { extent =>
-    reloadRows(1)
+  listeners.addOne {
+    model.subProp(_.extentFilter).listen { extent =>
+      reloadRows(1)
+    }
   }
 
   def show(new_window:Boolean)(id: JSONID) =  {
@@ -423,7 +437,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
   }
 
-  def reloadRows(page:Int): Future[Unit] = {
+  def reloadRows(page:Int, append:Boolean = false): Future[Unit] = {
 
     reloadCount = reloadCount + 1
     val currentCount = reloadCount
@@ -449,9 +463,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
     //start request in parallel
     val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get,model.subProp(_.metadata).get.get)
-    val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
+
+
+    val currentIds = model.subProp(_.ids).get
+
+    val idsRequest: Future[IDs] = if (append && currentIds.isDefined)
+      Future.successful(currentIds.get.copy(currentPage = page, isLastPage = Navigation.pageCount(currentIds.get.count) == page))
+    else
+      services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q, model.subProp(_.public).get)
     println(rightOpen)
-    if(hasGeometry() && rightOpen.get) {
+    if(hasGeometry() && rightOpen.get && !append) {
       loadGeoms(extent)
     }
 
@@ -467,6 +488,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       case None => Future.successful(Seq())
     }
 
+
+
     val r = for {
       csv <- csvRequest
       ids <- idsRequest
@@ -474,11 +497,19 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     } yield {
       if(currentCount == reloadCount) {
         model.subProp(_.lookups).set(lookups)
-        model.subProp(_.rows).set(csv)
-        model.subProp(_.ids).set(IDsVM.fromIDs(ids))
+        val newTable = if(append)
+          model.subProp(_.rows).get ++ csv
+        else
+          csv
+        model.subProp(_.rows).set(newTable)
+        model.subProp(_.ids).set(Some(ids))
         model.subProp(_.pages).set(Navigation.pageCount(ids.count))
         saveIds(ids, q)
         services.clientSession.loading.set(false)
+        dom.window.performance.mark("operation-end")
+        dom.window.performance.measure("operation-duration", "operation-start", "operation-end")
+        val measure = dom.window.performance.getEntriesByName("operation-duration").last
+        println(s"Duration: ${measure.asInstanceOf[js.Dynamic].duration}ms`")
       }
     }
 
@@ -492,14 +523,26 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
 
-  model.subProp(_.selectedColumns).listen{ c =>
-    reloadRows(model.subProp(_.ids).get.currentPage)
-    val metadata = model.get.metadata.get
-    val tp = services.preferences.table(metadata) match {
-      case Some(value) => value.copy(selectedFields = Some(c.map(_.name)))
-      case None => TablePreference.fromMetadata(metadata,selectedFields = Some(c.map(_.name)))
+  def nextPage() = {
+    dom.window.performance.mark("operation-start")
+    val ids = model.subProp(_.ids).get
+
+    if(ids.isDefined && !ids.get.isLastPage) { // don't load when it's empty
+      println("Loading next page")
+      reloadRows(ids.get.currentPage + 1, append = true)
     }
-    services.preferences.saveTable(tp)
+  }
+
+  listeners.addOne {
+    model.subProp(_.selectedColumns).listen { c =>
+      reloadRows(1)
+      val metadata = model.get.metadata.get
+      val tp = services.preferences.table(metadata) match {
+        case Some(value) => value.copy(selectedFields = Some(c.map(_.name)))
+        case None => TablePreference.fromMetadata(metadata, selectedFields = Some(c.map(_.name)))
+      }
+      services.preferences.saveTable(tp)
+    }
   }
 
   def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {
@@ -565,19 +608,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
-  def nextPage() = (e:Event) => {
-    if(!model.subProp(_.ids.isLastPage).get) {
-      reloadRows(model.subProp(_.ids.currentPage).get + 1)
-    }
-    e.preventDefault()
-  }
-  def prevPage() = (e:Event) => {
-    if(model.subProp(_.ids.currentPage).get > 1) {
-      reloadRows(model.subProp(_.ids.currentPage).get - 1)
-    }
-    e.preventDefault()
-  }
-
   val importXLS = (e:Event) => {
 
     val kind = EntityKind(model.subProp(_.kind).get).entityOrForm
@@ -612,7 +642,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   def selectAll() = {
-    val count = model.subProp(_.ids).get.count
+    val count = model.subProp(_.ids).get.map(_.count).getOrElse(0)
     val q = model.subProp(_.query).get match {
       case Some(value) => value.limit(count)
       case None => JSONQuery.empty.limit(count)
@@ -654,7 +684,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   var map:Option[Div] = None
 
-  def showMap(metadata:JSONMetadata) = () => {
+  def showMap(metadata:JSONMetadata,nested:Binding.NestedInterceptor) = () => {
     if(presenter.hasGeometry()) {
 
       if(model.subProp(_.geoms).get.isEmpty)
@@ -667,7 +697,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         map match {
           case Some(m) => if (document.contains(m) && m.offsetHeight > 0) {
             observer.disconnect()
-            new MapList(m,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent),model.subProp(_.extentFilter))
+            new MapList(m,nested,metadata,presenter.model.subProp(_.geoms),presenter.clickOnMap,model.subProp(_.extent),model.subProp(_.extentFilter))
           }
           case None => observer.disconnect()
         }
@@ -682,12 +712,12 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
 
 
-  override def getTemplate: generic.Modifier[Element] = div(
-    produceWithNested(model.subProp(_.metadata)) { (metadata, nested) =>
+  override def getTemplate: generic.Modifier[Element] = {
+    presenter.mainBinding = Some(produceWithNested(model.subProp(_.metadata)) { (metadata, nested) =>
 
       metadata match {
         case Some(metadata) => {
-          val filterStyle:String = metadata.params.flatMap(_.getOpt("filterStyle")) match {
+          val filterStyle: String = metadata.params.flatMap(_.getOpt("filterStyle")) match {
             case Some(value) => value
             case None => "all"
           }
@@ -696,27 +726,34 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           val filterStyleAll = filterStyle == "both" || filterStyle == "all"
           if (presenter.hasGeometry()) {
             div(
-              topBar(metadata,nested,filterStyleDyn),
-              new TwoPanelResize(presenter.leftOpen,presenter.rightOpen)(
-                tableContent(metadata,nested,filterStyleAll),
-                showMap(metadata),
+              topBar(metadata, nested, filterStyleDyn),
+              new TwoPanelResize(presenter.leftOpen, presenter.rightOpen)(
+                tableContent(metadata, nested, filterStyleAll),
+                showMap(metadata,nested),
               )
             ).render
           } else {
             div(
-              topBar(metadata,nested,filterStyleDyn),
-              mainContent(metadata, nested,filterStyleAll)
+              topBar(metadata, nested, filterStyleDyn),
+              mainContent(metadata, nested, filterStyleAll)
             ).render
           }
         }
         case None => div().render
       }
-    }
-
-  )
+    })
 
 
-  def mainActions(metadata:JSONMetadata) = produceWithNested(model.subProp(_.access)) { (a, releaser) =>
+
+
+    div(presenter.mainBinding.get)
+
+  }
+
+
+  def mainActions(metadata:JSONMetadata,nested:Binding.NestedInterceptor) = nested(produceWithNested(model.subProp(_.access)) { (a, releaser) =>
+
+    import presenter.listenerManager._
 
     val adminActions = if(services.clientSession.isAdmin() && model.subProp(_.kind).get == EntityKind.FORM.kind) {
       Seq(FormAction(NoAction,Primary,Some(s"/box/box-form/form/row/true/form_uuid::${metadata.objId}"),Labels("Edit UI")))
@@ -744,37 +781,37 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 case NoAction => {
                   button(importance,
                     id := TestHooks.actionButton(ta.label),
-                    onclick :+= { (e: Event) =>
-                      val execute = ta.confirmText match {
-                        case Some(msg) => window.confirm(msg)
-                        case None => true
-                      }
-                      if (execute) {
-                        val function = ta.executeFunction match {
-                          case Some(f) => services.rest.execute(f, services.clientSession.lang(), Json.Null).map { result =>
-                            result.errorMessage match {
-                              case Some(value) => {
-                                Notification.add(value)
-                                services.clientSession.loading.set(false)
-                                false
-                              }
-                              case None => true
+                    )(Labels(ta.label)).render.listen("click",{ (e: Event) =>
+                    val execute = ta.confirmText match {
+                      case Some(msg) => window.confirm(msg)
+                      case None => true
+                    }
+                    if (execute) {
+                      val function = ta.executeFunction match {
+                        case Some(f) => services.rest.execute(f, services.clientSession.lang(), Json.Null).map { result =>
+                          result.errorMessage match {
+                            case Some(value) => {
+                              Notification.add(value)
+                              services.clientSession.loading.set(false)
+                              false
                             }
-                          }
-                          case None => Future.successful(())
-                        }
-                        function.foreach { _ =>
-                          Routes.getUrl(ta, Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
-                            case Some(url) => Navigate.toUrl(url)
-                            case None => {
-                              Context.applicationInstance.reload()
-                            }
+                            case None => true
                           }
                         }
+                        case None => Future.successful(())
                       }
+                      function.foreach { _ =>
+                        Routes.getUrl(ta, Json.Null, model.subProp(_.kind).get, model.get.name, None, a.insert) match {
+                          case Some(url) => Navigate.toUrl(url)
+                          case None => {
+                            Context.applicationInstance.reload()
+                          }
+                        }
+                      }
+                    }
 
-                      e.preventDefault()
-                    })(Labels(ta.label))
+                    e.preventDefault()
+                  })
                 }
                 case BackAction => ???
               }
@@ -791,29 +828,29 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         })
       ),
     ).render
-  }
+  })
 
   def actionButton(els: => Seq[JSONID],mod:Modifier*)(action:VMAction) = {
+    import presenter.listenerManager._
     val b = a(
       mod,
       cls := s"action ${action.button_class} " + TestHooks.tableActionButton(action.code),
-      onclick :+= { (e:Event) =>
-        val execute = action.confirm match {
-          case Some(msg) => window.confirm(msg)
-          case None => true
-        }
-        if (execute) {
-          services.clientSession.loading.set(true)
-          Future.sequence(els.map(action.action)).foreach{ _ =>
-            if(action.reloadAfter) {
-              presenter.reloadRows(model.subProp(_.ids.currentPage).get)
-            }
-            services.clientSession.loading.set(false)
-          }
-        }
-        e.preventDefault()
+    )(action.icon.getOrElse(action.label)).render.listen("click",{ (e:Event) =>
+      val execute = action.confirm match {
+        case Some(msg) => window.confirm(msg)
+        case None => true
       }
-    )(action.icon.getOrElse(action.label)).render
+      if (execute) {
+        services.clientSession.loading.set(true)
+        Future.sequence(els.map(action.action)).foreach{ _ =>
+          if(action.reloadAfter) {
+            presenter.reloadRows(1)
+          }
+          services.clientSession.loading.set(false)
+        }
+      }
+      e.preventDefault()
+    })
 
     if(action.icon.isDefined) {
       presenter.tooltipList.addOne(
@@ -838,112 +875,145 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   }
 
-  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = () =>  div(
-    ClientConf.style.fullHeightMax, ClientConf.style.tableHeaderFixed,{
-    nested(produceWithNested(model.subProp(_.selectedColumns)) { (columns,nested) =>
-      val table = new BoxTable(model.subSeq(_.rows),nested,ClientConf.style.tableView)(
+  private var sentinelElement: Option[dom.Element] = None
 
-        headerFactory = Some(_ => {
-          frag(
-            tr(
-              th(ClientConf.style.smallCells, verticalAlign.middle, colspan := 2)(
-                mainActions(metadata)
-              ),
-              columns.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { field =>
-                val fieldQuery: ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field.name))
-                val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field.name))
-                val sort: ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
-                val order: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
 
-                th(ClientConf.style.smallCells, verticalAlign.middle, draggable := true)(
-                  a(
-                    onclick :+= presenter.sort(fieldQuery),
-                    span(bind(title), ClientConf.style.tableHeader), " ",
-                    span(whiteSpace.nowrap, span(produce(sort) {
-                      case Sort.ASC => Icons.asc.render
-                      case Sort.DESC => Icons.desc.render
-                      case _ => frag().render
-                    }), " ", bind(order))
-                  )
-                ).render
+  def tableContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean) = () =>  {
+
+    import presenter.listenerManager._
+
+    val infiniteScrollingOptions = new IntersectionObserverInit{}
+    infiniteScrollingOptions.threshold = js.Array(0.0)
+    infiniteScrollingOptions.rootMargin = "100px"
+
+    presenter.infiniteScrollingObserver = Some(
+      new dom.IntersectionObserver({ (entries: js.Array[dom.IntersectionObserverEntry],_:org.scalajs.dom.IntersectionObserver) =>
+        entries.foreach { entry =>
+          if (entry.isIntersecting) {
+            println("Next page")
+            presenter.nextPage()
+          }
+        }
+      }, infiniteScrollingOptions)
+    )
+
+    val sentinel = div(
+      style := "height: 1px; visibility: hidden;"
+    ).render
+
+    presenter.infiniteScrollingObserver.foreach(_.observe(sentinel))
+
+    div(
+      ClientConf.style.fullHeightMax, ClientConf.style.tableHeaderFixed,
+      {
+        nested(produceWithNested(model.subProp(_.selectedColumns)) { (columns,nested) =>
+          val table = new BoxTable(model.subSeq(_.rows),nested,ClientConf.style.tableView)(
+
+            headerFactory = Some(nested => {
+              frag(
+                tr(
+                  th(ClientConf.style.smallCells, verticalAlign.middle, colspan := 2)(
+                    mainActions(metadata,nested)
+                  ),
+                  columns.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { field =>
+                    val fieldQuery: ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field.name))
+                    val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field.name))
+                    val sort: ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
+                    val order: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
+
+                    th(ClientConf.style.smallCells, verticalAlign.middle, draggable := true)(
+                      a(
+                        span(bind(title), ClientConf.style.tableHeader), " ",
+                        span(whiteSpace.nowrap, span(produce(sort) {
+                          case Sort.ASC => Icons.asc.render
+                          case Sort.DESC => Icons.desc.render
+                          case _ => frag().render
+                        }), " ", bind(order))
+                      ).render.listen("click",presenter.sort(fieldQuery))
+                    ).render
+                  }
+                ),
+                if(filterStyleAll) {
+                  new FilterEveryField(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(columns,metadata)
+                } else frag(),
+              ).render
+            }),
+            rowFactory = (el, nested) => {
+              val selected = model.subProp(_.selectedRow).transform(_.exists(i => el.get.id.contains(i)))
+
+              val row = tr(
+                id := ElementId.tableRow(el.get.id.map(_.asString).getOrElse("")),
+                ClientConf.style.rowStyle,
+                td(ClientConf.style.smallCells)(
+                  Offline(el.transform(_.isLocal)),
+                ),
+                td(ClientConf.style.smallCells)(
+                  rowActions(el)
+                ),
+                for {col <- columns} yield {
+
+                  val value = el.get.field(col.name)
+                  value match {
+                    case Some(_) if col.`type` == JSONFieldTypes.GEOMETRY => None
+                    case Some(v) => Some(td(ClientConf.style.smallCells)(TableFieldsRenderer(
+                      v.string,
+                      col,
+                      model.subProp(_.lookups).get
+                    )).render)
+                    case None => Some(td().render)
+                  }
+                }
+              ).render
+                .listen("mouseover",presenter.hoverRow(el.get))
+                .listen("mouseout",presenter.exitRow(el.get))
+                .listen("click",presenter.toggleSelection(el.get))
+
+              presenter.listeners.addOne {
+                selected.listen({
+                  case true => row.classList.add("selected")
+                  case false => row.classList.remove("selected")
+                }, true)
               }
-            ),
-            if(filterStyleAll) {
-              new FilterEveryField(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(columns,metadata)
-            } else frag(),
-          ).render
-        }),
-        rowFactory = (el, nested) => {
-          val selected = model.subProp(_.selectedRow).transform(_.exists(i => el.get.id.contains(i)))
 
-          val row = tr(
-            id := ElementId.tableRow(el.get.id.map(_.asString).getOrElse("")),
-            ClientConf.style.rowStyle,
-            onmouseover :+= presenter.hoverRow(el.get),
-            onmouseout :+= presenter.exitRow(el.get),
-            onclick :+= presenter.toggleSelection(el.get),
-            td(ClientConf.style.smallCells)(
-              Offline(el.transform(_.isLocal)),
-            ),
-            td(ClientConf.style.smallCells)(
-              rowActions(el)
-            ),
-            for {col <- columns} yield {
-
-              val value = el.get.field(col.name)
-              value match {
-                case Some(_) if col.`type` == JSONFieldTypes.GEOMETRY => None
-                case Some(v) => Some(td(ClientConf.style.smallCells)(TableFieldsRenderer(
-                  v.string,
-                  col,
-                  model.subProp(_.lookups).get
-                )).render)
-                case None => Some(td().render)
-              }
+              row
             }
           ).render
 
-          selected.listen({
-            case true => row.classList.add("selected")
-            case false => row.classList.remove("selected")
-          }, true)
+          def labelExtractor(el:Element):String = {
+            val head = if(el.classList.contains(ClientConf.style.tableHeader.className.value)) {
+              el
+            } else {
+              el.querySelector(ClientConf.style.tableHeader.selector)
+            }
+            head.innerHTML
+          }
 
-          row
-        }
-      ).render
-
-      def labelExtractor(el:Element):String = {
-        val head = if(el.classList.contains(ClientConf.style.tableHeader.className.value)) {
-          el
-        } else {
-          el.querySelector(ClientConf.style.tableHeader.selector)
-        }
-        head.innerHTML
-      }
-
-      new TableColumnDrag(table, labelExtractor,e => {
+          new TableColumnDrag(table, labelExtractor,e => {
 
 
 
-        val oldPosition = e.dataTransfer.getData("text")
-        val newPosition = labelExtractor(e.target.asInstanceOf[HTMLElement])
+            val oldPosition = e.dataTransfer.getData("text")
+            val newPosition = labelExtractor(e.target.asInstanceOf[HTMLElement])
 
-        val sc = model.subProp(_.selectedColumns)
+            val sc = model.subProp(_.selectedColumns)
 
-        sc.set(sc.get.flatMap{ f =>
-          if(f.title == oldPosition) Seq()
-          else if(f.title == newPosition) metadata.table.find(_.title == oldPosition) ++ Seq(f)
-          else Seq(f)
+            sc.set(sc.get.flatMap{ f =>
+              if(f.title == oldPosition) Seq()
+              else if(f.title == newPosition) metadata.table.find(_.title == oldPosition) ++ Seq(f)
+              else Seq(f)
+            })
+
+          })
+
+
+          table
         })
-
-      })
-
-
-      table
-    })
-  }).render
+      },sentinel).render
+  }
 
   def topBar(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleDyn:Boolean) = {
+
+    import presenter.listenerManager._
 
     val disableSelection = metadata.params.exists(_.js("disableSelection") == Json.True)
 
@@ -972,10 +1042,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         },
         footerFactory = Some { _ =>
           div(
-            button(`type` := "button", onclick :+= {(e:Event) =>
+            button(`type` := "button", ClientConf.style.boxButton, Labels.form.save).render.listen("click",{(e:Event) =>
               model.subProp(_.selectedColumns).set(localModel.get)
               modal.foreach(_.hide())
-            }, ClientConf.style.boxButton, Labels.form.save)
+            })
           ).render
         }
       ))
@@ -987,30 +1057,14 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       document.getElementsByTagName("body").head.appendChild(presenter.bodySelectorDivModal.get)
 
       div(
-        button(`type` := "button", onclick :+= {(e:Event) =>
+        button(`type` := "button",ClientConf.style.boxButton, Icons.dots).render.listen("click",{(e:Event) =>
           localModel.set(model.subProp(_.selectedColumns).get)
           modal.foreach(_.show())
-        }, ClientConf.style.boxButton, Icons.dots)
+        })
       )
     }
 
-    val pagination = {
 
-      div(ClientConf.style.navigationBlock,
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(1),i(UdashIcons.FontAwesome.Solid.fastBackward)),
-        Navigation.button(model.subProp(_.ids.currentPage).transform(_ != 1),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get -1),i(UdashIcons.FontAwesome.Solid.caretLeft)),
-        span(
-          " " + Labels.navigation.page + " ",
-          bind(model.subProp(_.ids.currentPage)),
-          " " + Labels.navigation.of + " ",
-          bind(model.subProp(_.pages)),
-          " "
-        ),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.ids.currentPage).get + 1),i(UdashIcons.FontAwesome.Solid.caretRight)),
-        Navigation.button(model.subModel(_.ids).subProp(_.isLastPage).transform(!_),() => presenter.reloadRows(model.subProp(_.pages).get),i(UdashIcons.FontAwesome.Solid.fastForward)),
-
-      )
-    }
 
 
     div(ClientConf.style.topBarContainer,
@@ -1020,19 +1074,19 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
           h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata)),
         ),
         div(display.flex,flexDirection.row,alignItems.center,
-          div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids.count)))),
+          div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids).transform(_.map(_.count).getOrElse(0))))),
           nested(showIf(model.subProp(_.query).transform(presenter.isFiltered)){
-            a(ClientConf.style.chipLink,Labels.navigation.recordsFiltered," \uD83D\uDDD9", onclick :+= ((e:Event) => {
+            a(ClientConf.style.chipLink,Labels.navigation.recordsFiltered," \uD83D\uDDD9"
+            ).render.listen("click",(e:Event) => {
               presenter.resetFilters()
               e.preventDefault()
             })
-            ).render
           }),
           if(!disableSelection) {
-            a(ClientConf.style.chipLink, Labels.navigation.selectAll, onclick :+= ((e: Event) => {
+            a(ClientConf.style.chipLink, Labels.navigation.selectAll).render.listen("click",(e: Event) => {
               presenter.selectAll()
               e.preventDefault()
-            }))
+            })
           } else empty
         ),
         if(!disableSelection) {
@@ -1041,10 +1095,10 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               div(
                 Labels.navigation.recordsSelected, nested(bind(model.subProp(_.selectedRow).transform(_.length))),
                 presenter.actions(true).map(actionButton(model.subProp(_.selectedRow).get, ClientConf.style.chipLink)),
-                a(ClientConf.style.chipLink, Labels.navigation.removeSelection, " \uD83D\uDDD9", onclick :+= ((e: Event) => {
+                a(ClientConf.style.chipLink, Labels.navigation.removeSelection, " \uD83D\uDDD9").render.listen("click",(e: Event) => {
                   presenter.resetSelection()
                   e.preventDefault()
-                })),
+                }),
               ).render
             })
           )
@@ -1056,7 +1110,6 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             query = model.subProp(_.query).get.getOrElse(JSONQuery.limit(10000))
           )),
           columnSelector,
-          pagination.render,
         )
 
       ),
@@ -1068,6 +1121,8 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
   def mainContent(metadata:JSONMetadata,nested:Binding.NestedInterceptor,filterStyleAll:Boolean): scalatags.generic.Modifier[Element] = {
 
+    import presenter.listenerManager._
+
     val enableImport = metadata.params.exists(_.js("enableImport") == Json.True)
 
 
@@ -1076,7 +1131,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         div(id := "box-table", ClientConf.style.tableHeaderFixed,
           tableContent(metadata,nested,filterStyleAll)(),
           if(enableImport) {
-            button(`type` := "button", onclick :+= presenter.importXLS, ClientConf.style.boxButton, Labels.entity.importxls)
+            button(`type` := "button", ClientConf.style.boxButton, Labels.entity.importxls).render.listen("click",presenter.importXLS)
 
           } else empty,
           showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {

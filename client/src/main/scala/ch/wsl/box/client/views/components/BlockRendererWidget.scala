@@ -53,12 +53,12 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
           toObservedData(data.get)
         )
 
-        data.listen{ d =>
+        autoRelease(data.listen{ d =>
           val newJs = toObservedData(d)
           if( newJs != observedData.get) {
             observedData.set(newJs)
           }
-        }
+        })
 
         def evaluate(d:Json):Boolean = {
           val value = d
@@ -69,12 +69,12 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
 
 
         val visibility = Property(false)
-        observedData.listen(d => {
+        autoRelease(observedData.listen(d => {
           val r = evaluate(d)
           if(r == !visibility.get) { //change only when the status changesW
             visibility.set(r)
           }
-        },true)
+        },true))
         visibility
       }
     }

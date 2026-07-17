@@ -33,17 +33,28 @@ import scala.scalajs.js
 import scala.scalajs.js.{JSON, |}
 import scalatags.JsDom.all._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import io.udash.wrappers.jquery.jQ
 import org.scalablytyped.runtime.StringDictionary
 
-class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]],extentFilter:Property[Boolean]) extends BoxOlMap {
+import scala.collection.mutable.ListBuffer
+
+class MapList(_div:Div,nested:Binding.NestedInterceptor,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]],extentFilter:Property[Boolean]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
 
   override def allData: ReadableProperty[Json] = Property(Json.Null)
 
+
+
+  val listeners = ListBuffer[Registration]()
+
+  def kill() = {
+    listeners.foreach(_.cancel())
+    listeners.clear()
+  }
 
 
   override def id: ReadableProperty[Option[String]] = Property(None)
@@ -88,13 +99,13 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
   val dispatchElements:Property[Seq[JSONID]] = Property(Seq())
   val dispatchElementsDiv = div(display.none,ClientConf.style.mapPopup,
     ul(
-      produce(dispatchElements) { _.map{ id =>
+      nested(produce(dispatchElements) { _.map{ id =>
         li(
           a(id.prettyPrint(metadata), onclick :+= { (e: Event) => edit(id.asString)
 
           })
         ).render
-      } }
+      } })
     )
   ).render
 
@@ -214,7 +225,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     var extentListenerInitialized = false
     var extentChangeListenerActive = false
 
-    geoms.listen({ layers =>
+    listeners.addOne{geoms.listen({ layers =>
       extentChangeListenerActive = false
       map.removeLayer(featuresLayer.asInstanceOf[layerBaseMod.default[StringDictionary[Any]]])
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
@@ -248,7 +259,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
       map.render()
       extentChangeListenerActive = true
 
-    }, true)
+    }, true)}
 
 
 
@@ -319,7 +330,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
     map.asInstanceOf[js.Dynamic].on(olStrings.pointermove,x => pointerMove(x))
 
-    services.messages.sub{
+    listeners.addOne(services.messages.sub{
       case RowHover(row) => {
         val f = vectorSource.getFeatureById(row.id.map(_.asString).getOrElse("")).asInstanceOf[Feature[_,_]]
         if(f != null) {
@@ -330,9 +341,10 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
         MapUtils.stopFlashing()
       }
       case _ => ()
-    }
+    })
 
   }
+
 
 
 }

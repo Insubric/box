@@ -27,11 +27,6 @@ object TableFieldsRenderer extends Logging{
 
 
 
-  def toggleEdit(editing:Property[Boolean]) = {
-    logger.info("Toggle edit")
-    editing.set(!editing.get)
-  }
-
   def renderLongText(string: String):Modifier = {
     val length = ClientConf.tableMaxTextLength
     val noHTML = StripHtml(string)
