@@ -408,8 +408,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   var reloadCount = 0 // avoid out of order
 
 
-  def leftOpen = Property(true)
-  def rightOpen = Property(!model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True)))
+  val leftOpen = Property(true)
+  val rightOpen = Property(!model.subProp(_.metadata).get.exists(_.params.exists(_.js("mapClosed") == Json.True)))
 
   def loadGeoms(extent:Option[Polygon] = None) = {
     model.get.metadata.foreach{ m =>
@@ -450,6 +450,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     //start request in parallel
     val csvRequest = services.data.list(model.subProp(_.kind).get, services.clientSession.lang(), model.subProp(_.name).get, q,model.subProp(_.public).get,model.subProp(_.metadata).get.get)
     val idsRequest =  services.rest.ids(model.get.kind, services.clientSession.lang(), model.get.name, q,model.subProp(_.public).get)
+    println(rightOpen)
     if(hasGeometry() && rightOpen.get) {
       loadGeoms(extent)
     }
