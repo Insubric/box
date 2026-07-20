@@ -93,7 +93,20 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     }
 
 
-
+    val whereWithFullText = query.fullText match {
+      case Some(ft) => {
+        val fields = query.fields match {
+          case Some(f) => f.mkString("(\"","\",\"","\")")
+          case None => "\"" + t.tableName + "\""
+        }
+        val fullTextWhere = sql" to_tsvector(substr((#$fields)::text,1,950000)) @@ to_tsquery($ft) "
+        if(where.queryParts.mkString("").isEmpty)
+          concat(sql" where ",fullTextWhere)
+        else
+          concat(where,concat(sql" and ",fullTextWhere))
+      }
+      case None => where
+    }
 
 
     val order = if(query.sort.nonEmpty)
@@ -105,7 +118,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
       case None => sql""
     }
 
-    concat(concat(where,order),limit)
+    concat(concat(whereWithFullText,order),limit)
 
   }
 

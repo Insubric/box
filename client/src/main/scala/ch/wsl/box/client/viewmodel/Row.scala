@@ -31,6 +31,13 @@ case class RowDb(data: Seq[String],metadata: JSONMetadata,query:JSONQuery) exten
   override def isLocal: Boolean = false
 }
 
+case class RowDbJson(rowJs:Json,metadata:JSONMetadata) extends Row {
+  def data:Seq[String] = metadata.fields.map(f => rowJs.get(f.name))
+  lazy val id = JSONID.fromData(rowJs,metadata)
+  def field(name:String):Option[Json] = rowJs.jsOpt(name)
+  override def isLocal: Boolean = false
+}
+
 case class RowLocal(lr:LocalRecord,metadata:JSONMetadata,query:JSONQuery) extends Row {
   override def data: Seq[String] = query.fields.getOrElse(metadata.tabularFields).map(lr.data.get)
 

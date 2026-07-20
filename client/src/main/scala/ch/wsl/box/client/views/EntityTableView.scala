@@ -10,7 +10,7 @@ import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate,
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.{ElementId, ListenerManager, TestHooks, URLQuery}
-import ch.wsl.box.client.viewmodel.Row
+import ch.wsl.box.client.viewmodel.{Row, RowDb, RowDbJson}
 import ch.wsl.box.client.views.components.table.{BoxTable, ExportParams, ExportTableDialog, FilterBarDyn, FilterEveryField}
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
@@ -73,14 +73,14 @@ case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filte
 
 case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
                             metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: Option[IDs], pages:Int, access:TableAccess,
-                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],extentFilter:Boolean,public:Boolean,selectedColumns:Seq[JSONField])
+                            lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],extentFilter:Boolean,public:Boolean,selectedColumns:Seq[JSONField], search:String)
 
 
 case class VMAction(code:String,action: JSONID => Future[Boolean],icon:Option[Icon],label:String,button_class:String = "primary",confirm:Option[String] = None, reloadAfter:Boolean = false)
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),None,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq())
+  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),None,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq(),"")
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
@@ -222,7 +222,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         extent = None,
         extentFilter = false,
         public = state.public,
-        selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable)
+        selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable),
+        search = ""
       )
 
       //saveIds(IDs(true,1,Seq(),0),query)
@@ -409,11 +410,15 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       case _ => qFields
     }
 
-    urlOnlyFilter match {
+    val qBeforeFullText = urlOnlyFilter match {
       case Some(uq) => q.filterWith(q.filter ++ uq.filter:_*).sortWith(q.sort ++ uq.sort:_*)
       case None => q
     }
 
+    model.subProp(_.search).get match {
+      case "" => qBeforeFullText.copy(fullText = None)
+      case ft:String => qBeforeFullText.copy(fullText = Some(ft))
+    }
 
 
 
@@ -662,6 +667,10 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       case Some(m) => q.filter.exists(f => m.tabularFields.contains(f.column))
       case None => q.filter.nonEmpty
     }
+  }
+
+  def search() = {
+    reloadRows(1)
   }
 
 
@@ -1072,6 +1081,16 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       div(ClientConf.style.topTableContainer,
         div(ClientConf.style.tableTitle,
           h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata)),
+        ),
+        div(
+          form(
+            nested(TextInput(model.subProp(_.search))()),
+            a(Icons.search,ClientConf.style.chipLink).render.listen("click", _ => presenter.search())
+          ).render.listen("submit",e => {
+            presenter.search()
+            e.preventDefault()
+            e.stopPropagation()
+          })
         ),
         div(display.flex,flexDirection.row,alignItems.center,
           div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids).transform(_.map(_.count).getOrElse(0))))),

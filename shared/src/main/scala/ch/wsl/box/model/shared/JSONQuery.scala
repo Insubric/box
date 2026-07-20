@@ -20,7 +20,8 @@ case class JSONQuery(
                       sort:List[JSONSort],
                       paging:Option[JSONQueryPaging],
                       sqlWhere:Option[String] = None,
-                      fields:Option[Seq[String]] = None
+                      fields:Option[Seq[String]] = None,
+                      fullText:Option[String] = None,
                     ){
 
   def validatedWhere = sqlWhere.map(_.replaceAll("insert ","not valid")
