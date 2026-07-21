@@ -86,20 +86,26 @@ case class FormAction(
                       needDeleteRight:Boolean = false,
                       needInsertRight:Boolean = false,
                       whenNoUpdateRight:Boolean = false,
-                      target:Target = Self
-                      )
+                      target:Target = Self,
+                      enabledRoles:Option[Seq[String]] = None
+                      ) {
+  def checkRole(roles:Seq[String]):Boolean = enabledRoles.forall(x => x.intersect(roles).nonEmpty)
+}
 
 case class FormActionsMetadata(
-                      actions:Seq[FormAction],
+                      _actions:Seq[FormAction],
                       navigationActions:Seq[FormAction],
                       tableActions: Seq[FormAction],
                       topTableActions: Seq[FormAction],
                       showNavigation:Boolean
                       ) {
-  def table(access: TableAccess) = accessFileter(tableActions,access)
-  def topTable(access:TableAccess) = accessFileter(topTableActions,access)
+  def table(access: TableAccess, roles:Seq[String]) = accessFilter(tableActions,access,roles)
+  def topTable(access:TableAccess, roles:Seq[String]) = accessFilter(topTableActions,access,roles)
+  def navigation(roles:Seq[String]) = navigationActions.filter(_.checkRole(roles))
+  def actions(roles:Seq[String]) = _actions.filter(_.checkRole(roles))
 
-  private def accessFileter(_actions:Seq[FormAction],access: TableAccess) = _actions.filter(fa =>
+  private def accessFilter(_actions:Seq[FormAction],access: TableAccess, roles:Seq[String]) = _actions.filter(fa =>
+    fa.checkRole(roles) &&
     (!fa.needDeleteRight || fa.needDeleteRight && access.delete) &&
       (!fa.needUpdateRight || fa.needUpdateRight && access.update) &&
       (!fa.needUpdateRight || fa.needUpdateRight && access.update) &&
@@ -130,7 +136,7 @@ INSERT INTO box.form_actions (action, importance, after_action_goto, label, upda
   def default = defaultHasLocal(true)
 
   def defaultHasLocal(localDb:Boolean):FormActionsMetadata = FormActionsMetadata(
-    actions = Seq(
+    _actions = Seq(
       FormAction(SaveAction,Primary, None, SharedLabels.form.save,updateOnly = true, reload = true),
       FormAction(SaveLocalAction,Primary, None, SharedLabels.form.save_local,updateOnly = true, reload = true),
       FormAction(SaveAction,Primary, Some("/box/$kind/$name/row/$writable/$id"), SharedLabels.form.save,insertOnly = true),

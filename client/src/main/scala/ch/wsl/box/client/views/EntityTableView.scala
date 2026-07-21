@@ -324,7 +324,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   def actions(new_window:Boolean):Seq[VMAction] = {
 
     val metadata = model.subProp(_.metadata).get
-    metadata.toSeq.flatMap(_.action.table(model.get.access)).map { ta =>
+    metadata.toSeq.flatMap(_.action.table(model.get.access,services.clientSession.getRoles())).map { ta =>
       ta.action match {
         case DeleteAction => VMAction("delete",delete,Some(Icons.x),Labels.entity.delete,"danger",Some(Labels.entity.confirmDelete),reloadAfter = true)
         case EditAction => VMAction("edit",edit(new_window),Some(Icons.pencil_square),Labels.entity.edit)
@@ -774,7 +774,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       div(ClientConf.style.tableMainActions)(
         releaser(produce(model.subProp(_.name)) { m =>
           div({
-            val out: Seq[Modifier] = (metadata.action.topTable(a) ++ adminActions).map { ta =>
+            val out: Seq[Modifier] = (metadata.action.topTable(a,services.clientSession.getRoles()) ++ adminActions).map { ta =>
 
               val importance: StyleA = ta.importance match {
                 case Primary => ClientConf.style.boxButtonImportant

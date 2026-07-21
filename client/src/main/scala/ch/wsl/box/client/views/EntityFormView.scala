@@ -686,6 +686,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
   }
 
+  def roles() = services.clientSession.getRoles()
+
 }
 
 case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:EntityFormPresenter) extends View {
@@ -840,10 +842,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
-        actions(nested,_.actions),
+        actions(nested,_.actions(presenter.roles())),
         div(ClientConf.style.spaceAfter)(
           nested(showIf(presenter.showNavigation) {
-            div(actions(nested,_.navigationActions)).render
+            div(actions(nested,_.navigation(presenter.roles()))).render
           }),
           nested(showIf(model.transform(_.navigation.count > 1)) {
               div(recordNavigation(nested)).render
@@ -858,9 +860,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         div(ClientConf.style.mobileOnly,
           Fade(model.subProp(_.showActionPanelMobile),ClientConf.style.mobileBoxActionPanel){
             div(
-              actions(nested,_.actions),
+              actions(nested,_.actions(presenter.roles())),
               nested(showIf(presenter.showNavigation) {
-                div(actions(nested,_.navigationActions)).render
+                div(actions(nested,_.navigation(presenter.roles()))).render
               }),
               button(ClientConf.style.boxIconButton, width := 100.pct, i(UdashIcons.FontAwesome.Solid.angleDown), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(false)))
             ).render
@@ -883,7 +885,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
     def formFooter(nested:Binding.NestedInterceptor,_maxWidth:Option[Int]):Modifier = Seq(
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(nested,_.actions),
+        actions(nested,_.actions(presenter.roles())),
         ul(
          nested(produce(Notification.list){ notices =>
             notices.map { notice =>
@@ -894,7 +896,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       ),
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(nested,_.actions),
+        actions(nested,_.actions(presenter.roles())),
         ul(
           nested(produce(Notification.list){ notices =>
             notices.map { notice =>
