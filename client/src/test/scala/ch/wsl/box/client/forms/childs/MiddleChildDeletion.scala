@@ -7,10 +7,9 @@ import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.syntax._
-import org.scalajs.dom.document
+import org.scalajs.dom.{HTMLButtonElement, document}
 import org.scalajs.dom.raw.HTMLElement
 import scribe.Level
-import ch.wsl.typings.std.HTMLButtonElement
 
 import java.util.UUID
 import scala.concurrent.Future

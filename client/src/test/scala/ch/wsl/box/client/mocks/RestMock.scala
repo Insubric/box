@@ -1,8 +1,8 @@
 package ch.wsl.box.client.mocks
 
-import ch.wsl.box.client.services.REST
+import ch.wsl.box.client.services.{REST, UserPreferences}
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
-import ch.wsl.box.client.viewmodel.{BoxDefinition, UserPreferences}
+import ch.wsl.box.client.viewmodel.BoxDefinition
 import ch.wsl.box.model.shared.GeoTypes.GeoData
 import ch.wsl.box.model.shared.admin.FormCreationRequest
 import ch.wsl.box.model.shared.geo.GeoDataRequest
@@ -32,8 +32,7 @@ class RestMock(values:Values) extends REST with Logging {
     case None => Future.failed(new Exception("Not logged in"))
   }
 
-
-  override def preferences()(implicit ec: ExecutionContext): Future[UserPreferences] = ???
+  override def preferences()(implicit ec: ExecutionContext): Future[Option[UserPreferences]] = ???
 
   override def savePreferences(preferences: UserPreferences)(implicit ec: ExecutionContext): Future[Boolean] = ???
 

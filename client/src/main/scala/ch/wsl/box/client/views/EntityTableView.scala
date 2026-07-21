@@ -219,8 +219,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         lookups = Seq(),
         query = Some(query),
         geoms = Seq(),
-        extent = None,
-        extentFilter = false,
+        extent = services.clientSession.getExtent(),
+        extentFilter = services.clientSession.getFilterExtent(),
         public = state.public,
         selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable),
         search = ""
@@ -282,6 +282,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   listeners.addOne{
     model.subProp(_.extent).listen { extent =>
+      services.clientSession.setExtent(extent)
       if(model.subProp(_.extentFilter).get) {
         reloadRows(1)
       } else {
@@ -292,6 +293,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   listeners.addOne {
     model.subProp(_.extentFilter).listen { extent =>
+      services.clientSession.setFilterExtent(extent)
       reloadRows(1)
     }
   }

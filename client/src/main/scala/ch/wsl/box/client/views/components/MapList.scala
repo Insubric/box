@@ -72,12 +72,21 @@ class MapList(_div:Div,nested:Binding.NestedInterceptor,metadata:JSONMetadata,ge
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
 
-  val view = new viewMod.default(viewMod.ViewOptions()
-    .setZoom(3)
+  val viewOptions = viewMod.ViewOptions()
+
     .setMinResolution(minResolution)
     .setProjection(proj.defaultProjection)
-    .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
-  )
+
+  extent.get match {
+    case Some(_) => ()
+    case None => viewOptions.setCenter(extentMod.getCenter(proj.defaultProjection.getExtent())).setZoom(3)
+  }
+
+
+  val view = new viewMod.default(viewOptions)
+
+
+
 
   import scalacss.ScalatagsCss._
   import io.udash.css._
@@ -124,6 +133,12 @@ class MapList(_div:Div,nested:Binding.NestedInterceptor,metadata:JSONMetadata,ge
     .setTarget(mapDiv)
     .setView(view)
   )
+
+  extent.get.foreach{ value =>
+    println("set map extent")
+    BrowserConsole.log(MapActions.extentFromPolygon(value))
+    view.fit(MapActions.extentFromPolygon(value),FitOptions().setPadding(js.Array(0.0,0.0,0.0,0.0)))
+  }
 
 
 
@@ -241,19 +256,19 @@ class MapList(_div:Div,nested:Binding.NestedInterceptor,metadata:JSONMetadata,ge
 
         zoomToFeatures()
 
-        if (!extentListenerInitialized) {
-          extentListenerInitialized = true
-          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
-            if(extentChangeListenerActive)
-              extentChange()
-          })
+      }
 
-          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
-            if(extentChangeListenerActive)
-              extentChange()
-          })
-        }
+      if (!extentListenerInitialized) {
+        extentListenerInitialized = true
+        map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
+          if(extentChangeListenerActive)
+            extentChange()
+        })
 
+        map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
+          if(extentChangeListenerActive)
+            extentChange()
+        })
       }
 
       map.render()
