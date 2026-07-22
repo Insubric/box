@@ -126,26 +126,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   private var filterUpdateHandler: Int = 0
 //  final private val SKIP_RELOAD_ROWS:Int = 999
 
-  private var fieldListener:Option[Registration] = None
 
-  def addFieldQueryListener() = {
-    fieldListener.foreach(_.cancel())
-    val listener = model.subProp(_.fieldQueries).listen { fq =>
-
-      logger.info("filterUpdateHandler " + filterUpdateHandler)
-
-      if (filterUpdateHandler != 0) window.clearTimeout(filterUpdateHandler)
-
-      filterUpdateHandler = window.setTimeout(() => {
-        reloadRows(1)
-      }, 500)
-    }
-    fieldListener = Some(listener)
-  }
 
 
   override def handleState(state: EntityTableState): Unit = {
-    fieldListener.foreach(_.cancel())
+    listeners.foreach(_.cancel())
+    listeners.clear()
     services.clientSession.loading.set(true)
     services.data.tabularMetadata(state.kind,services.clientSession.lang(),state.entity,state.public).map{ metadata =>
       metadata.static match {
@@ -199,7 +185,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         kind = specificKind,
         urlQuery = urlQuery,
         rows = Seq(),
-        fieldQueries = metadata.table.map{ field =>
+        fieldQueries = metadata.fields.map{ field =>
 
           val operator = query.filter.find(_.column == field.name).flatMap(_.operator).getOrElse(Filter.default(field))
           val rawValue = query.filter.find(_.column == field.name).flatMap(_.value).getOrElse("")
@@ -232,7 +218,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       model.set(m)
       model.subProp(_.name).set(state.entity)  //it is not set by the above line
       reloadRows(1)
-      addFieldQueryListener()
+      setListeners()
+      logger.debug("Listeners set")
 
     }}.recover{ case e => {
       e.printStackTrace()
@@ -250,6 +237,52 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   val listenerManager = new ListenerManager()
 
   var mainBinding:Option[Binding] = None
+
+  def setListeners() = {
+    listeners.addOne {
+      model.subProp(_.selectedColumns).listen { c =>
+        logger.debug(s"listener Selected column change $c")
+        reloadRows(1)
+        val metadata = model.get.metadata.get
+        val tp = services.preferences.table(metadata) match {
+          case Some(value) => value.copy(selectedFields = Some(c.map(_.name)))
+          case None => TablePreference.fromMetadata(metadata, selectedFields = Some(c.map(_.name)))
+        }
+        services.preferences.saveTable(tp)
+      }
+    }
+
+    listeners.addOne{
+      model.subProp(_.extent).listen { extent =>
+        logger.debug(s"listener Extent change $extent")
+        services.clientSession.setExtent(extent)
+        if(model.subProp(_.extentFilter).get) {
+          reloadRows(1)
+        } else {
+          loadGeoms(extent)
+        }
+      }
+    }
+
+    listeners.addOne {
+      model.subProp(_.extentFilter).listen { extent =>
+        logger.debug(s"listener extentFilter change $extent")
+        services.clientSession.setFilterExtent(extent)
+        reloadRows(1)
+      }
+    }
+
+    listeners.addOne(model.subProp(_.fieldQueries).listen { fq =>
+
+      logger.info("listener filterUpdateHandler " + filterUpdateHandler)
+
+      if (filterUpdateHandler != 0) window.clearTimeout(filterUpdateHandler)
+
+      filterUpdateHandler = window.setTimeout(() => {
+        reloadRows(1)
+      }, 500)
+    })
+  }
 
   override def onClose(): Unit = {
     logger.debug("onClose")
@@ -278,24 +311,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       Navigate.to(routes.edit(idString))
     else
       Navigate.to(routes.show(idString))
-  }
-
-  listeners.addOne{
-    model.subProp(_.extent).listen { extent =>
-      services.clientSession.setExtent(extent)
-      if(model.subProp(_.extentFilter).get) {
-        reloadRows(1)
-      } else {
-        loadGeoms(extent)
-      }
-    }
-  }
-
-  listeners.addOne {
-    model.subProp(_.extentFilter).listen { extent =>
-      services.clientSession.setFilterExtent(extent)
-      reloadRows(1)
-    }
   }
 
   def show(new_window:Boolean)(id: JSONID) =  {
@@ -397,9 +412,6 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   def query(extent:Option[Polygon]):JSONQuery = {
     val fieldQueries = model.subProp(_.fieldQueries).get
 
-
-
-
     val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
 
     val filter = fieldQueries.filter(_.filterValue != "").map{ f =>
@@ -417,12 +429,30 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       case None => q
     }
 
-    model.subProp(_.search).get match {
+    val qWithFullText = model.subProp(_.search).get match {
       case "" => qBeforeFullText.copy(fullText = None)
       case ft:String => qBeforeFullText.copy(fullText = Some(ft))
     }
 
+    val metadata = model.subProp(_.metadata).get.toList
+    val selectedFields = (
+      model.subProp(_.selectedColumns).get.map(_.name) ++
+        metadata.flatMap(_.keys)
+      ).distinct
 
+    qWithFullText.copy(
+      fields = Some(selectedFields),
+      lookups = Some(metadata.flatMap(_.fields)
+        .filter(x => selectedFields.contains(x.name))
+        .flatMap( x=> x.lookup match {
+          case Some(value) => value match {
+            case r:JSONFieldLookupRemote => Some(r)
+            case JSONFieldLookupExtractor(extractor) => None
+            case JSONFieldLookupData(data) => None
+          }
+          case None => None
+        }))
+    )
 
   }
 
@@ -458,25 +488,9 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val qOrig = query(extent)
 
     model.subProp(_.query).set(Some(qOrig))
-    val metadata = model.subProp(_.metadata).get.toList
-    val selectedFields = (
-        model.subProp(_.selectedColumns).get.map(_.name) ++
-        metadata.flatMap(_.keys)
-      ).distinct
 
     val q = qOrig.copy(
       paging = Some(JSONQueryPaging(ClientConf.pageLength, page)),
-      fields = Some(selectedFields),
-      lookups = Some(metadata.flatMap(_.fields)
-        .filter(x => selectedFields.contains(x.name))
-        .flatMap( x=> x.lookup match {
-          case Some(value) => value match {
-            case r:JSONFieldLookupRemote => Some(r)
-            case JSONFieldLookupExtractor(extractor) => None
-            case JSONFieldLookupData(data) => None
-          }
-          case None => None
-        }))
     )
 
     //start request in parallel
@@ -551,17 +565,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     }
   }
 
-  listeners.addOne {
-    model.subProp(_.selectedColumns).listen { c =>
-      reloadRows(1)
-      val metadata = model.get.metadata.get
-      val tp = services.preferences.table(metadata) match {
-        case Some(value) => value.copy(selectedFields = Some(c.map(_.name)))
-        case None => TablePreference.fromMetadata(metadata, selectedFields = Some(c.map(_.name)))
-      }
-      services.preferences.saveTable(tp)
-    }
-  }
+
 
   def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {
     e.preventDefault()

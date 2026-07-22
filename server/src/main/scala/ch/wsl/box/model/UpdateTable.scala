@@ -62,6 +62,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     val notNullQ = query.copy(filter = query.filter ++ Seq(JSONQueryFilter(field,Some(Filter.IS_NOT_NULL),Some(" "),None)))
 
     val complete = concat(sql""" select "#$field", """, concat(jsonbBuilder(properties),concat(sql"""  from #$fullyQualifiedName """, whereBuilder(notNullQ))))
+    //println(complete.queryParts.mkString(" "))
     complete.as[(Geometry,Json)]
   } match {
     case Left(value) => DBIO.failed(value)
@@ -103,15 +104,13 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
         val lookupFields = lookups.map{ case (l,i)  => l.map.foreign.labelColumns.map( lc => s"f$i.\"$lc\"").mkString(",") }
         val joins = lookups.map{ case (l,i) => s" left join \"${l.lookupEntity}\" f$i on ${l.map.localKeysColumn.zip(l.map.foreign.keyColumns).map{ case (local,foreign) => s"m.\"$local\" = f$i.\"$foreign\""}.mkString(" and ")} " }.mkString("\n")
 
-        val fields = query.fields match {
-          case Some(f) => {
-            val stdFields = f.filterNot(name => query.lookups.toList.flatten.flatMap(_.map.localKeysColumn).contains(name)).map(c => s"m.\"$c\"")
-            (stdFields ++ lookupFields).mkString("(",",",")")
-          }
-          case None => (Seq("m.*") ++ lookupFields).mkString("(",",",")")
-        }
-        val fullTextWhere = sql""" ctid in (
-                           select m.ctid
+        val mainTableFields = query.fields.getOrElse(Seq())
+
+        val stdFields = mainTableFields.filterNot(name => query.lookups.toList.flatten.flatMap(_.map.localKeysColumn).contains(name)).map(c => s"m.\"$c\"")
+        val fields = (stdFields ++ lookupFields).mkString("(",",",")")
+
+        val fullTextWhere = sql""" #${mainTableFields.mkString("(\"","\",\"","\")::text")} in (
+                           select #${mainTableFields.mkString("(m.\"","\",m.\"","\")::text")}
                            from #$fullyQualifiedName m
                            #$joins
                            where
