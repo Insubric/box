@@ -223,7 +223,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         extentFilter = services.clientSession.getFilterExtent(),
         public = state.public,
         selectedColumns = services.preferences.table(metadata).flatMap(_.selectedFields.map(metadata.getFields)).getOrElse(metadata.preselectedTable),
-        search = ""
+        search = query.fullText.getOrElse("")
       )
 
       //saveIds(IDs(true,1,Seq(),0),query)
@@ -458,14 +458,25 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     val qOrig = query(extent)
 
     model.subProp(_.query).set(Some(qOrig))
+    val metadata = model.subProp(_.metadata).get.toList
+    val selectedFields = (
+        model.subProp(_.selectedColumns).get.map(_.name) ++
+        metadata.flatMap(_.keys)
+      ).distinct
+
     val q = qOrig.copy(
       paging = Some(JSONQueryPaging(ClientConf.pageLength, page)),
-      fields = Some(
-        (
-          model.subProp(_.selectedColumns).get.map(_.name) ++
-          model.subProp(_.metadata).get.toList.flatMap(_.keys)
-        ).distinct
-      )
+      fields = Some(selectedFields),
+      lookups = Some(metadata.flatMap(_.fields)
+        .filter(x => selectedFields.contains(x.name))
+        .flatMap( x=> x.lookup match {
+          case Some(value) => value match {
+            case r:JSONFieldLookupRemote => Some(r)
+            case JSONFieldLookupExtractor(extractor) => None
+            case JSONFieldLookupData(data) => None
+          }
+          case None => None
+        }))
     )
 
     //start request in parallel
@@ -644,8 +655,16 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   def resetFilters() = {
-    model.subProp(_.extent).set(None)
-    model.subProp(_.fieldQueries).set(model.subProp(_.fieldQueries).get.map(_.copy(filterValue = "")))
+    if(model.subProp(_.extentFilter).get)
+      model.subProp(_.extent).set(None)
+    model.subProp(_.search).set("")
+
+    val oldFq = model.subProp(_.fieldQueries).get
+    if(oldFq.forall(_.filterValue == ""))
+      reloadRows(1)
+    else
+      model.subProp(_.fieldQueries).set(oldFq.map(_.copy(filterValue = "")))
+
   }
 
   def selectAll() = {
@@ -666,8 +685,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
   def isFiltered(query:Option[JSONQuery]):Boolean = query.exists{ q =>
     model.subProp(_.metadata).get match {
-      case Some(m) => q.filter.exists(f => m.tabularFields.contains(f.column))
-      case None => q.filter.nonEmpty
+      case Some(m) => q.fullText.exists(_.nonEmpty) || q.filter.exists(f => m.tabularFields.contains(f.column))
+      case None => q.fullText.exists(_.nonEmpty) || q.filter.nonEmpty
     }
   }
 
@@ -1084,16 +1103,16 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         div(ClientConf.style.tableTitle,
           h3(ClientConf.style.noMargin,ClientConf.style.formTitle, labelTitle(metadata)),
         ),
-        div(
-          form(
-            nested(TextInput(model.subProp(_.search))()),
-            a(Icons.search,ClientConf.style.chipLink).render.listen("click", _ => presenter.search())
-          ).render.listen("submit",e => {
-            presenter.search()
-            e.preventDefault()
-            e.stopPropagation()
-          })
-        ),
+
+        form(
+          ClientConf.style.tableSearchBar,
+          nested(TextInput(model.subProp(_.search))()),
+          a(Icons.search,ClientConf.style.chipLink).render.listen("click", _ => presenter.search())
+        ).render.listen("submit",e => {
+          presenter.search()
+          e.preventDefault()
+          e.stopPropagation()
+        }),
         div(display.flex,flexDirection.row,alignItems.center,
           div( Labels.navigation.recordFound," ",nested(bind(model.subProp(_.ids).transform(_.map(_.count).getOrElse(0))))),
           nested(showIf(model.subProp(_.query).transform(presenter.isFiltered)){

@@ -59,10 +59,11 @@ case class FormActions(metadata:JSONMetadata,
     val base = metadata.query.map{ defaultQuery =>
       JSONQuery(
         fields = query.fields,
-        filter = defaultQuery.filter ++ query.filter,
-        sort = query.sort ++ defaultQuery.sort,
+        filter = (defaultQuery.filter ++ query.filter).distinct,
+        sort = (query.sort ++ defaultQuery.sort).distinct,
         paging = query.paging,
-        fullText = query.fullText
+        fullText = query.fullText,
+        lookups = query.lookups
       )
     }.getOrElse(query)
     fkTransform.preFilter(metadata,base.filter).map{ fil => base.copy(filter = fil.filters.toList)}

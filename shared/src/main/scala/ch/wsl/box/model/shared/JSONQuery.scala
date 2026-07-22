@@ -21,6 +21,7 @@ case class JSONQuery(
                       paging:Option[JSONQueryPaging],
                       sqlWhere:Option[String] = None,
                       fields:Option[Seq[String]] = None,
+                      lookups:Option[Seq[JSONFieldLookupRemote]] = None,
                       fullText:Option[String] = None,
                     ){
 
@@ -166,7 +167,7 @@ case class JSONSort(column:String,order:String) {
 object JSONQuery extends Logging {
 
   def apply(filter:List[JSONQueryFilter], sort:List[JSONSort], pages:Int, currentPage:Int):JSONQuery =
-    JSONQuery(filter, sort, paging = Some(JSONQueryPaging(pageLength = pages, currentPage = currentPage)))
+    JSONQuery(filter, sort, paging = Some(JSONQueryPaging(pageLength = pages, currentPage = currentPage)),None,None,None)
   /**
     * Generic query
     */

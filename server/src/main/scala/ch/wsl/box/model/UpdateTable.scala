@@ -27,6 +27,8 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
   protected def doSelectLight(where:SQLActionBuilder):DBIO[Seq[T]]
   //def doFetch(fields:Seq[String],where:SQLActionBuilder):DBIO[Seq[Json]]
 
+  private def fullyQualifiedName = s""" "${t.schemaName.getOrElse("public")}"."${t.tableName}" """
+
   private def jsonbBuilder(fields: Seq[String]):SQLActionBuilder = {
     val head = sql"""jsonb_build_object( """
     val body = fields.zipWithIndex.foldLeft(head) { case (q, (field, i)) =>
@@ -46,7 +48,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
   private def doFetch(fields: Seq[String], where: SQLActionBuilder) = checkFields(fields) {
     if (fields.isEmpty) throw new Exception(s"Can't fetch data with no columns on table $tableName")
-    val complete = concat(concat(sql"select ",jsonbBuilder(fields)), concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, where))
+    val complete = concat(concat(sql"select ",jsonbBuilder(fields)), concat(sql"""  from #$fullyQualifiedName """, where))
     complete.as[Json]
   } match {
     case Left(value) => DBIO.failed(value)
@@ -59,7 +61,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
     val notNullQ = query.copy(filter = query.filter ++ Seq(JSONQueryFilter(field,Some(Filter.IS_NOT_NULL),Some(" "),None)))
 
-    val complete = concat(sql""" select "#$field", """, concat(jsonbBuilder(properties),concat(sql"""  from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """, whereBuilder(notNullQ))))
+    val complete = concat(sql""" select "#$field", """, concat(jsonbBuilder(properties),concat(sql"""  from #$fullyQualifiedName """, whereBuilder(notNullQ))))
     complete.as[(Geometry,Json)]
   } match {
     case Left(value) => DBIO.failed(value)
@@ -95,11 +97,25 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
     val whereWithFullText = query.fullText match {
       case Some(ft) => {
+
+        val lookups = query.lookups.toList.flatten.zipWithIndex
+
+        val lookupFields = lookups.map{ case (l,i)  => l.map.foreign.labelColumns.map( lc => s"f$i.\"$lc\"").mkString(",") }
+        val joins = lookups.map{ case (l,i) => s" left join \"${l.lookupEntity}\" f$i on ${l.map.localKeysColumn.zip(l.map.foreign.keyColumns).map{ case (local,foreign) => s"m.\"$local\" = f$i.\"$foreign\""}.mkString(" and ")} " }.mkString("\n")
+
         val fields = query.fields match {
-          case Some(f) => f.mkString("(\"","\",\"","\")")
-          case None => "\"" + t.tableName + "\""
+          case Some(f) => {
+            val stdFields = f.filterNot(name => query.lookups.toList.flatten.flatMap(_.map.localKeysColumn).contains(name)).map(c => s"m.\"$c\"")
+            (stdFields ++ lookupFields).mkString("(",",",")")
+          }
+          case None => (Seq("m.*") ++ lookupFields).mkString("(",",",")")
         }
-        val fullTextWhere = sql" to_tsvector(substr((#$fields)::text,1,950000)) @@ to_tsquery($ft) "
+        val fullTextWhere = sql""" ctid in (
+                           select m.ctid
+                           from #$fullyQualifiedName m
+                           #$joins
+                           where
+                            to_tsvector(substr((#$fields)::text,1,950000)) @@ to_tsquery(${"'" + ft + "'"}) )"""
         if(where.queryParts.mkString("").isEmpty)
           concat(sql" where ",fullTextWhere)
         else
@@ -134,7 +150,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     val selector = fields.map(f => "\"" + f + "\"").mkString(",")
 
     val q = concat(concat(
-      concat(concat(sql"select ",jsonbBuilder(fields)), sql""" from (select distinct #$selector from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """),
+      concat(concat(sql"select ",jsonbBuilder(fields)), sql""" from (select distinct #$selector from #$fullyQualifiedName """),
       whereBuilder(query.copy(sort = List())) // PG 13 doesnt support order on other fields when distinct. would works in pg15
     ), sql""" )  as t(#$selector)  """).as[Json]
     q
@@ -166,7 +182,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
     val q = concat(
       sql"""
           select count(*) from (
-            select 1 from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """,
+            select 1 from #$fullyQualifiedName """,
       concat(where,sql" limit 101 ) t")
     ).as[Int].head
     q
@@ -182,7 +198,7 @@ trait UpdateTable[T] extends BoxTable[T] with Logging { t:Table[T] =>
 
 
         val q = concat(
-          sql"""select count(*) from "#${t.schemaName.getOrElse("public")}"."#${t.tableName}" """,
+          sql"""select count(*) from #$fullyQualifiedName """,
           where
         ).as[Int].head
         q
