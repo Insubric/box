@@ -784,10 +784,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
     }
 
     def actions(nested:Binding.NestedInterceptor,selector:FormActionsMetadata => Seq[FormAction]) = div(
-      nested(produceWithNested(model.subProp(_.write)) { (w,realeser) =>
-        if(!w) Seq() else
+
         div(
-          realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
+          nested(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
               realeser2(produceWithNested(model.subProp(_.id)) { case (_id,releaser3) =>
                 div(ClientConf.style.spaceBetween,
@@ -800,8 +799,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               })
             ).render
           })
-        ).render
-      }),
+        ),
       div(BootstrapStyles.Visibility.clearfix)
     )
 
@@ -842,10 +840,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
-        actions(nested,_.actions(presenter.roles())),
+        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         div(ClientConf.style.spaceAfter)(
           nested(showIf(presenter.showNavigation) {
-            div(actions(nested,_.navigation(presenter.roles()))).render
+            div(actions(nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
           }),
           nested(showIf(model.transform(_.navigation.count > 1)) {
               div(recordNavigation(nested)).render
@@ -860,9 +858,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         div(ClientConf.style.mobileOnly,
           Fade(model.subProp(_.showActionPanelMobile),ClientConf.style.mobileBoxActionPanel){
             div(
-              actions(nested,_.actions(presenter.roles())),
+              actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
               nested(showIf(presenter.showNavigation) {
-                div(actions(nested,_.navigation(presenter.roles()))).render
+                div(actions(nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
               }),
               button(ClientConf.style.boxIconButton, width := 100.pct, i(UdashIcons.FontAwesome.Solid.angleDown), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(false)))
             ).render
@@ -885,7 +883,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
     def formFooter(nested:Binding.NestedInterceptor,_maxWidth:Option[Int]):Modifier = Seq(
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(nested,_.actions(presenter.roles())),
+        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         ul(
          nested(produce(Notification.list){ notices =>
             notices.map { notice =>
@@ -896,7 +894,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       ),
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(nested,_.actions(presenter.roles())),
+        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         ul(
           nested(produce(Notification.list){ notices =>
             notices.map { notice =>
@@ -909,41 +907,44 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
     presenter.mainBinding = Some{produceWithNested(model.subProp(_.metadata)){ (_form,nested) =>
 
-      val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
-      val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
-      val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
-      val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
+      div(nested(produceWithNested(model.subProp(_.write)){ (_,nested) => {
 
-      val stepperOptions = _form.flatMap(_.params).flatMap(_.js("stepper").as[StepperOption].toOption)
+        val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
+        val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
+        val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
+        val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
 
-      div(
-        if(showHeader && _form.isDefined) {
-          formHeader(nested,showId,_form.get).render
-        },
-        div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+        val stepperOptions = _form.flatMap(_.params).flatMap(_.js("stepper").as[StepperOption].toOption)
 
-          _form match {
-            case None => div()
-            case Some(f) => {
-
-              val mainForm = form(
-                ClientConf.style.margin0Auto,
-                stepperOptions.map(stepper),
-                _maxWidth.map(mw => maxWidth := mw),
-                onsubmit :+= ((e:Event) => e.preventDefault()),
-                presenter.loadWidgets(f).render(model.get.write,nested)
-              ).render
-              presenter.setForm(mainForm)
-              mainForm
-            }
+        div(
+          if(showHeader && _form.isDefined) {
+            formHeader(nested,showId,_form.get).render
           },
-          if(showFooter) {
-            formFooter(nested,_maxWidth)
-          }
-        ).render,
-        Debug(model.subProp(_.metadata),b => b, "metadata")
+          div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
 
-      ).render
+            _form match {
+              case None => div()
+              case Some(f) => {
+
+                val mainForm = form(
+                  ClientConf.style.margin0Auto,
+                  stepperOptions.map(stepper),
+                  _maxWidth.map(mw => maxWidth := mw),
+                  onsubmit :+= ((e:Event) => e.preventDefault()),
+                  presenter.loadWidgets(f).render(model.get.write,nested)
+                ).render
+                presenter.setForm(mainForm)
+                mainForm
+              }
+            },
+            if(showFooter) {
+              formFooter(nested,_maxWidth)
+            }
+          ).render,
+          Debug(model.subProp(_.metadata),b => b, "metadata")
+
+        ).render
+      }})).render
     }}
 
     div(presenter.mainBinding)

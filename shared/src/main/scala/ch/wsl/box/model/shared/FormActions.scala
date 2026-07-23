@@ -77,6 +77,8 @@ case class FormAction(
                       label:String,
                       updateOnly:Boolean = false,
                       insertOnly:Boolean = false,
+                      view:Boolean = false,
+                      edit:Boolean = true,
                       reload:Boolean = false,
                       confirmText:Option[String] = None,
                       executeFunction:Option[String] = None,
@@ -101,8 +103,22 @@ case class FormActionsMetadata(
                       ) {
   def table(access: TableAccess, roles:Seq[String]) = accessFilter(tableActions,access,roles)
   def topTable(access:TableAccess, roles:Seq[String]) = accessFilter(topTableActions,access,roles)
-  def navigation(roles:Seq[String]) = navigationActions.filter(_.checkRole(roles))
-  def actions(roles:Seq[String]) = _actions.filter(_.checkRole(roles))
+  def navigation(edit:Boolean,roles:Seq[String]) = {
+    {
+      if (edit)
+        navigationActions.filter(_.edit)
+      else
+        navigationActions.filter(_.view)
+    }.filter(_.checkRole(roles))
+  }
+  def actions(edit:Boolean,roles:Seq[String]) = {
+    {
+      if (edit)
+        _actions.filter(_.edit)
+      else
+        _actions.filter(_.view)
+    }.filter(_.checkRole(roles))
+  }
 
   private def accessFilter(_actions:Seq[FormAction],access: TableAccess, roles:Seq[String]) = _actions.filter(fa =>
     fa.checkRole(roles) &&

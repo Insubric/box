@@ -118,12 +118,14 @@ object BoxForm {
                                  execute_function:Option[String],
                                  condition:Option[Json] = None,
                                  html_check:Boolean = true,
+                                 view_enable:Boolean = true,
+                                 edit_enable:Boolean = true,
                                 target:Option[String] = None,
                                   enabled_roles:Option[List[String]] = None
                                 )
 
   class BoxForm_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_actions_row](_tableTag,schema, "form_actions") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check,target,enabled_roles) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check,view_enable,edit_enable,target,enabled_roles) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
@@ -139,6 +141,8 @@ object BoxForm {
     val target: Rep[Option[String]] = column[Option[String]]("target", O.Default(None))
     val action_order: Rep[Double] = column[Double]("action_order")
     val condition: Rep[Option[Json]] = column[Option[Json]]("condition")
+    val view_enable: Rep[Boolean] = column[Boolean]("view_enable")
+    val edit_enable: Rep[Boolean] = column[Boolean]("edit_enable")
     val html_check: Rep[Boolean] = column[Boolean]("html_check")
     val enabled_roles: Rep[Option[List[String]]] = column[Option[List[String]]]("enabled_roles")
 
@@ -159,11 +163,14 @@ object BoxForm {
                                  action_order:Double,
                                  confirm_text:Option[String],
                                  execute_function:Option[String],
-                                            enabled_roles:Option[List[String]] = None
+                                            enabled_roles:Option[List[String]] = None,
+
+                                            view_enable:Boolean = true,
+                                            edit_enable:Boolean = true,
                                 )
 
   class BoxForm_navigation_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_navigation_actions_row](_tableTag,schema, "form_navigation_actions") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,enabled_roles) <> (BoxForm_navigation_actions_row.tupled, BoxForm_navigation_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,enabled_roles,view_enable,edit_enable) <> (BoxForm_navigation_actions_row.tupled, BoxForm_navigation_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
@@ -178,6 +185,8 @@ object BoxForm {
     val execute_function: Rep[Option[String]] = column[Option[String]]("execute_function", O.Default(None))
     val action_order: Rep[Double] = column[Double]("action_order")
     val enabled_roles: Rep[Option[List[String]]] = column[Option[List[String]]]("enabled_roles")
+    val view_enable: Rep[Boolean] = column[Boolean]("view_enable")
+    val edit_enable: Rep[Boolean] = column[Boolean]("edit_enable")
 
     /** Foreign key referencing Field (database name fkey_field) */
     lazy val fieldFk = foreignKey("fkey_form", form_uuid, BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)

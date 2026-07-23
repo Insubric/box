@@ -215,7 +215,9 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               condition = a.condition.map(Condition.fromJson),
               html5check = a.html_check,
               target = a.target.map(Target.fromString).getOrElse(Self),
-              enabledRoles = a.enabled_roles
+              enabledRoles = a.enabled_roles,
+              view = a.view_enable,
+              edit = a.edit_enable,
             )
           }.filter(services.config.localDb || _.action != SaveLocalAction),
           navigationActions = navigationActions.map{a =>
@@ -229,7 +231,9 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               reload = a.reload,
               confirmText = a.confirm_text,
               executeFunction = a.execute_function,
-              enabledRoles = a.enabled_roles
+              enabledRoles = a.enabled_roles,
+              view = a.view_enable,
+              edit = a.edit_enable,
             )
           },
           tableActions = if(tableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.tableActions else {
