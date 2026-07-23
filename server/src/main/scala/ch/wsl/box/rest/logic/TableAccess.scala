@@ -1,22 +1,17 @@
 package ch.wsl.box.rest.logic
 
+import ch.wsl.box.db.SQLComposer
 import ch.wsl.box.jdbc.PostgresProfile.api._
-import ch.wsl.box.jdbc.{Connection, UserDatabase}
+import ch.wsl.box.jdbc.{Connection, FullDatabase, UserDatabase}
+import ch.wsl.box.model.shared.JSONQuery
+import ch.wsl.box.rest.runtime.Registry
+import ch.wsl.box.rest.utils.UserProfile
 import scribe.Logging
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 object TableAccess extends Logging {
 
-//  def queryRoles(table:String,schema:String,user:String) =
-//                      """select a.tablename,b.usename,
-//                      |  HAS_TABLE_PRIVILEGE(usename, concat(schemaname, '.', tablename), 'select') as select,
-//                      |  HAS_TABLE_PRIVILEGE(usename, concat(schemaname, '.', tablename), 'insert') as insert,
-//                      |  HAS_TABLE_PRIVILEGE(usename, concat(schemaname, '.', tablename), 'update') as update,
-//                      |  HAS_TABLE_PRIVILEGE(usename, concat(schemaname, '.', tablename), 'delete') as delete,
-//                      |  HAS_TABLE_PRIVILEGE(usename, concat(schemaname, '.', tablename), 'references') as references  from pg_tables a , pg_user b
-//                      |where a.schemaname=$schema and a.tablename=$table and usename=$user;"""
-//
 
 
 
@@ -34,13 +29,24 @@ object TableAccess extends Logging {
     }
   }
 
-//  def write(table:String,schema:String,user:String)(implicit ec:ExecutionContext) = Auth.adminDB.run {
-//    sql"""SELECT 1
-//          FROM information_schema.role_table_grants
-//          WHERE table_name=$table and table_schema=$schema and grantee=$user and privilege_type='UPDATE'""".as[Int].headOption.map(_.isDefined)
-//  }
+
+  def rowAccess(table:String, schema:String, user:String, query:JSONQuery, db:FullDatabase)(implicit ec:ExecutionContext):Future[Boolean] = {
+
+      val composer = new SQLComposer(Some(schema),table,Registry())
+      import composer._
+
+      for{
+        with_check <- db.adminDb.run(sql"""
+         SELECT with_check FROM pg_policies where schemaname=$schema and tablename=$table and roles && (select array[rolname] || memberof from box.v_roles where rolname=$user)
+         """.as[String])
+        result <- if(with_check.isEmpty)
+          Future.successful(Some(true))
+        else
+          db.db.run(concat(sql" select count(*) > 0 from #${fullyQualifiedName} ",concat(whereBuilder(query.copy(sort = List(),paging = None)),sql""" and #${with_check.head} limit 1""")).as[Boolean].headOption)
+      } yield result.getOrElse(false)
 
 
+  }
 
 
 

@@ -42,7 +42,7 @@ object BoxUIsrcTable {
     def gr = GR(r => BoxUIsrc_row(r.nextUUIDOption,r.<<,r.<<,r.<<,r.<<))
 
     override def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ex:ExecutionContext):DBIO[Option[BoxUIsrc_row]] = {
-      val kv = keyValueComposer(this)
+      val kv = keyValueComposer()
       val chunks = fields.flatMap(kv)
       if(chunks.nonEmpty) {
         val head = concat(sql"""update box.ui_src set """, chunks.head)

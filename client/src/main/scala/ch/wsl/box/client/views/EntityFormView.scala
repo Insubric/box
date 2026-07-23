@@ -94,6 +94,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public)
+      rowAccess <- state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
+        case Some(id) => services.rest.rowAccess(metadata.entity,state.kind,id.query)
+        case None => Future.successful(true)
+      }
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind)) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       record <- state.id match {
         case Some(id) => {
@@ -138,7 +142,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         children,
         Navigation.empty1,
         false,
-        state.writeable,
+        state.writeable && rowAccess,
         state.public,
         insert,
         false,

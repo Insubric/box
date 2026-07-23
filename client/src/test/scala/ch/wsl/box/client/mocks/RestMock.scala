@@ -205,6 +205,8 @@ class RestMock(values:Values) extends REST with Logging {
   }
 
 
+  override def rowAccess(table: String, kind: String, query: JSONQuery)(implicit ec: ExecutionContext): Future[Boolean] = Future.successful(true)
+
   override def renderTable(table: PDFTable)(implicit ec:ExecutionContext): Future[String] = ???
   override def exportCSV(table: CSVTable)(implicit ec:ExecutionContext): Future[File] = ???
   override def exportXLS(table: XLSTable)(implicit ec:ExecutionContext): Future[File] = ???

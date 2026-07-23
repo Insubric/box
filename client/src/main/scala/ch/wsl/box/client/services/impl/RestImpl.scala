@@ -143,6 +143,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   def tableAccess(table:String, kind:String)(implicit ec:ExecutionContext) = httpClient.get[TableAccess](Routes.apiV1(s"/access/$kind/$table/table-access"))
 
+  override def rowAccess(table: String, kind: String, query: JSONQuery)(implicit ec: ExecutionContext): Future[Boolean] = httpClient.post[JSONQuery,Boolean](Routes.apiV1(s"/access/$kind/$table/row-access"),query)
 
   override def renderTable(table: PDFTable)(implicit ec:ExecutionContext): Future[String] = httpClient.post[PDFTable,String](Routes.apiV1(s"/renderTable"),table)
   override def exportCSV(table: CSVTable)(implicit ec:ExecutionContext): Future[File] = httpClient.postFileResponse[CSVTable](Routes.apiV1(s"/exportCSV"),table)

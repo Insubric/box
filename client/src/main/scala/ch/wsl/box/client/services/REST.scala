@@ -75,6 +75,7 @@ trait REST{
   def data(kind:String,name:String,params:Json,lang:String)(implicit ec:ExecutionContext):Future[Seq[Seq[String]]]
 
   def tableAccess(table:String, kind:String)(implicit ec:ExecutionContext):Future[TableAccess]
+  def rowAccess(table:String, kind:String,query:JSONQuery)(implicit ec:ExecutionContext):Future[Boolean]
 
   //renderers
   def renderTable(table:PDFTable)(implicit ec:ExecutionContext):Future[String]
