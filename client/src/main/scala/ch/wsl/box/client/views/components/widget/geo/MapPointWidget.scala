@@ -46,6 +46,11 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
   val options: MapParams = MapWidgetUtils.options(field)
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
+
+  private val mapOptions = options.copy(features = MapParamsFeatures(point = true, false, false, false, false, false, false))
+  private val mapParams = params.copy(field = field.copy(params = Some(mapOptions.asJson)))
+  private val widget = WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams)
+
   override def field: JSONField = params.field
 
   override def data: Property[Json] = params.prop
@@ -138,7 +143,7 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     val Open = "open"
   }
 
-  private def mapModal(nested: NestedInterceptor): (UdashModal, CastableProperty[String]) = {
+  private def mapModal(nested: NestedInterceptor) = {
 
 
     val modalStatus = Property(Status.Closed)
@@ -154,25 +159,22 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     ).render
 
     val body = (x: NestedInterceptor) => {
-      val mapOptions = options.copy(features = MapParamsFeatures(point = true, false, false, false, false, false, false))
-      val mapParams = params.copy(field = field.copy(params = Some(mapOptions.asJson)))
+
 
       div(
         nested(showIf(modalStatus.transform(_ == Status.Open)){
 
-          val widget = WidgetRegistry.forName(WidgetsNames.map).create(params = mapParams)
-          val result = div(
+          div(
             widget.render(true, nested)
           ).render
-          widget.afterRender()
-          result
+
         })
       ).render
     }
 
     val footer = (x: NestedInterceptor) => div(
       button(ClientConf.style.boxButton, onclick :+= ((e: Event) => {
-        modal.hide()
+        modalStatus.set(Status.Closed)
         e.preventDefault()
       }), Labels.form.save)
     ).render
@@ -195,6 +197,25 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
       state match {
         case Status.Open => modal.show()
         case Status.Closed => modal.hide()
+      }
+    }
+
+
+    modalStatus.listen{ state =>
+      logger.info(s"State changed to:$state")
+      state match {
+        case Status.Open => {
+          modal.show()
+          widget.afterRender()
+        }
+        case Status.Closed => {
+          widget.beforeSave(params._allData.get,params.metadata).map{ d =>
+            BrowserConsole.log(d)
+            params.prop.set(d.js(params.field.name))
+            widget.killWidget()
+          }
+          modal.hide()
+        }
       }
     }
 
