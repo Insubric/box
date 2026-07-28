@@ -3,7 +3,7 @@ package ch.wsl.box.client.geo
 import ch.wsl.box.client.geo.handlers.{GeoJsonImporter, Kml, Shp}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.Icons
-import ch.wsl.box.model.shared.GeoJson.Geometry
+import ch.wsl.box.model.shared.GeoJson.{Geometry, MultiPoint, MultiPolygon, Point, Polygon}
 import ch.wsl.box.model.shared.SharedLabels
 import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.BootstrapStyles
@@ -62,11 +62,11 @@ class MapControlsIcons(params:MapControlsParams)(implicit ec:ExecutionContext) e
         ClientConf.style.controlButtons
       )( //controls
         controlButton(Icons.hand, SharedLabels.map.panZoom, Control.VIEW,nested),
-        if (geometry.nonEmpty && (enable.line || enable.polygon)) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT,nested) else frag(),
-        if (enable.point) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT,nested) else frag(),
+        if (geometry.nonEmpty) controlButton(Icons.pencil, SharedLabels.map.edit, Control.EDIT,nested) else frag(),
+        if ((enable.point && geometry.isEmpty) || (enable.multipoint && geometry.forall(g => Seq(Point.name,MultiPoint.name).contains(g.geomName)))) controlButton(Icons.point, SharedLabels.map.addPoint, Control.POINT,nested) else frag(),
         if (enable.line) controlButton(Icons.line, SharedLabels.map.addLine, Control.LINESTRING,nested) else frag(),
-        if (enable.polygon) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON,nested) else frag(),
-        if (enable.polygonHole) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE,nested) else frag(),
+        if (enable.polygon && geometry.forall(g => Seq(Polygon.name,MultiPolygon.name).contains(g.geomName))) controlButton(Icons.polygon, SharedLabels.map.addPolygon, Control.POLYGON,nested) else frag(),
+        if (enable.polygonHole && geometry.nonEmpty && geometry.forall(g => Seq(Polygon.name,MultiPolygon.name).contains(g.geomName))) controlButton(Icons.hole, SharedLabels.map.addPolygonHole, Control.POLYGON_HOLE,nested) else frag(),
         if (geometry.nonEmpty) controlButton(Icons.move, SharedLabels.map.move, Control.MOVE,nested) else frag(),
         if (geometry.nonEmpty) controlButton(Icons.trash, SharedLabels.map.delete, Control.DELETE,nested) else frag(),
         if (geometry.nonEmpty) button(ClientConf.style.mapButton)(
