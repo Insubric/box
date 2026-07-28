@@ -98,7 +98,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
       val footer = (x:NestedInterceptor) => div(
         button(onclick :+= ((e:Event) => {
-          modal.hide()
+          modalStatus.set(Status.Closed)
           e.preventDefault()
         }), Labels.popup.close,ClientConf.style.boxButton)
       ).render
