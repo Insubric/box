@@ -96,7 +96,7 @@ class LocalRecordDAO(db:PGliteWorker) extends DbEntity[LocalRecord,LocalRecordKe
     logger.debug(s"List query SQL: $q")
     db.query[LocalRecordResult](q).toFuture.map{r =>
       r.rows.map{ row =>
-        BrowserConsole.log(row)
+        //BrowserConsole.log(row)
         LocalRecord.fromDb(row)
       }.toSeq
     }

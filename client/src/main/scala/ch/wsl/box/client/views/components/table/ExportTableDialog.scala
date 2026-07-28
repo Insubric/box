@@ -14,7 +14,7 @@ import io.udash.bootstrap.button.UdashButton
 import io.udash.bootstrap.modal.UdashModal
 import io.udash.bootstrap.utils.BootstrapStyles.Size
 import org.scalajs.dom
-import org.scalajs.dom.{Element, Event, HTMLInputElement, document}
+import org.scalajs.dom.{Element, Event, HTMLDivElement, HTMLInputElement, document}
 import scribe.Logging
 import ch.wsl.box.shared.utils.Formatters._
 
@@ -44,13 +44,23 @@ class ExportTableDialog extends Logging {
 
   val modalBodyDiv = div().render
 
+  var bodyElement:Option[HTMLDivElement] = None
+
+
+
+  def clean() = {
+    bodyElement.foreach(_.remove())
+  }
+
   def render(nested:Binding.NestedInterceptor, onOpen:() => ExportParams):Modifier = {
 
     val modal = popup(nested)
 
-    document.getElementsByTagName("body").head.appendChild(div( position.absolute,top := 0, left := 0,
+    bodyElement = Some(div( position.absolute,top := 0, left := 0,
       modal
     ).render)
+
+    document.getElementsByTagName("body").head.appendChild(bodyElement.get)
 
     Seq(
       button(`type` := "button", onclick :+= ((e:Event) => open(modal,onOpen())), ClientConf.style.boxButton, "Export"),

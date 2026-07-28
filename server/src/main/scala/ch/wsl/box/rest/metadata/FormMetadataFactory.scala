@@ -201,7 +201,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
         }
       } else {
         FormActionsMetadata(
-          actions = actions.map{a =>
+          _actions = actions.map{a =>
             FormAction(
               action = Action.fromString(a.action),
               importance = Importance.fromString(a.importance),
@@ -214,7 +214,10 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               executeFunction = a.execute_function,
               condition = a.condition.map(Condition.fromJson),
               html5check = a.html_check,
-              target = a.target.map(Target.fromString).getOrElse(Self)
+              target = a.target.map(Target.fromString).getOrElse(Self),
+              enabledRoles = a.enabled_roles,
+              view = a.view_enable,
+              edit = a.edit_enable,
             )
           }.filter(services.config.localDb || _.action != SaveLocalAction),
           navigationActions = navigationActions.map{a =>
@@ -227,7 +230,10 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               insertOnly = a.insert_only,
               reload = a.reload,
               confirmText = a.confirm_text,
-              executeFunction = a.execute_function
+              executeFunction = a.execute_function,
+              enabledRoles = a.enabled_roles,
+              view = a.view_enable,
+              edit = a.edit_enable,
             )
           },
           tableActions = if(tableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.tableActions else {
@@ -245,7 +251,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
                 needDeleteRight = a.need_delete_right,
                 needUpdateRight = a.need_update_right,
                 whenNoUpdateRight = a.when_no_update_right,
-                target = a.target.map(Target.fromString).getOrElse(Self)
+                target = a.target.map(Target.fromString).getOrElse(Self),
+                enabledRoles = a.enabled_roles
               )
           }},
           topTableActions = if(topTableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.topTableActions else {
@@ -261,7 +268,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
                 needUpdateRight = a.need_update_right,
                 needInsertRight = a.need_insert_right,
                 whenNoUpdateRight = a.when_no_update_right,
-                target = a.target.map(Target.fromString).getOrElse(Self)
+                target = a.target.map(Target.fromString).getOrElse(Self),
+                enabledRoles = a.enabled_roles
               )
             }
           },

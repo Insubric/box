@@ -54,7 +54,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     currentData.set(data.get)
   }
 
-  data.listen { d =>
+  autoRelease(data.listen { d =>
     logger.debug(s"changed ${d.js(ChildRenderer.CHANGED_KEY)} on ${metadata.name}")
     if(d.js(ChildRenderer.CHANGED_KEY) == Json.True) {
       changed.set(true,true)
@@ -75,7 +75,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
     } else {
       changed.set(false,true)
     }
-  }
+  })
 
   override def field: JSONField = JSONField("metadataRenderer","metadataRenderer",false)
 

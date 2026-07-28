@@ -35,9 +35,11 @@ import scalatags.JsDom
 import scalacss.ScalatagsCss._
 import scalacss.internal.StyleA
 import ch.wsl.typings.hotkeysJs.mod.{HotkeysEvent, KeyHandler}
+import io.udash.utils.Registration
 import org.scalajs.dom
 
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.URIUtils
 import scala.language.reflectiveCalls
@@ -92,6 +94,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public)
+      rowAccess <- state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
+        case Some(id) => services.rest.rowAccess(metadata.entity,state.kind,id.query)
+        case None => Future.successful(true)
+      }
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind)) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       record <- state.id match {
         case Some(id) => {
@@ -136,7 +142,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         children,
         Navigation.empty1,
         false,
-        state.writeable,
+        state.writeable && rowAccess,
         state.public,
         insert,
         false,
@@ -181,7 +187,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def focusField = document.activeElement.closest("*[data-box-class='widget']").asInstanceOf[dom.HTMLElement].dataset("boxField")
 
-  document.addEventListener("keydown", (event:KeyboardEvent) => {
+  val keyListeners = (event:KeyboardEvent) => {
     // Check for Ctrl+S
     if (event.ctrlKey && event.key == "s") {
       event.preventDefault()
@@ -191,7 +197,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     if (event.ctrlKey && event.key == "c") {
       if(
         window.getSelection().isCollapsed && //any part of the page is selected
-        Try(document.activeElement.asInstanceOf[js.Dynamic].selectionStart == document.activeElement.asInstanceOf[js.Dynamic].selectionEnd).getOrElse(true)
+          Try(document.activeElement.asInstanceOf[js.Dynamic].selectionStart == document.activeElement.asInstanceOf[js.Dynamic].selectionEnd).getOrElse(true)
       ) {
         event.preventDefault()
         model.subProp(_.data).get.jsOpt(focusField).foreach { js =>
@@ -230,11 +236,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
 
 
-  })
+  }
+  document.addEventListener("keydown",keyListeners)
 //  ch.wsl.typings.hotkeysJs.mod.default("ctrl+s",hotkeysOptions,saveKey)
+
+  var mainBinding:Option[Binding] = None
 
   override def onClose(): Unit = {
     if(Navigate.canGoAway) {
+      super.onClose()
       logger.debug("onClose")
       changesListener.cancel()
       Try {
@@ -245,6 +255,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       model.set(EntityFormModel.empty, true)
       enableGoAway("onClose")
       ch.wsl.typings.hotkeysJs.mod.default.unbind()
+      document.removeEventListener("keydown",keyListeners)
+      mainBinding.foreach(_.kill())
     }
 
   }
@@ -678,6 +690,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
   }
 
+  def roles() = services.clientSession.getRoles()
+
 }
 
 case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:EntityFormPresenter) extends View {
@@ -737,7 +751,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
   override def getTemplate: scalatags.generic.Modifier[Element] = {
 
-    def recordNavigation = showIf(presenter.showNavigation){
+    def recordNavigation(nested:Binding.NestedInterceptor) = showIf(presenter.showNavigation){
 
           def navigation = model.subModel(_.navigation)
 
@@ -773,11 +787,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
             ).render
     }
 
-    def actions(selector:FormActionsMetadata => Seq[FormAction]) = div(
-      produceWithNested(model.subProp(_.write)) { (w,realeser) =>
-        if(!w) Seq() else
+    def actions(nested:Binding.NestedInterceptor,selector:FormActionsMetadata => Seq[FormAction]) = div(
+
         div(
-          realeser(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
+          nested(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
               realeser2(produceWithNested(model.subProp(_.id)) { case (_id,releaser3) =>
                 div(ClientConf.style.spaceBetween,
@@ -790,12 +803,11 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               })
             ).render
           })
-        ).render
-      },
+        ),
       div(BootstrapStyles.Visibility.clearfix)
     )
 
-    def formHeader(showId:Boolean,metadata:JSONMetadata) = div(ClientConf.style.formHeader,
+    def formHeader(nested:Binding.NestedInterceptor,showId:Boolean,metadata:JSONMetadata) = div(ClientConf.style.formHeader,
       div( ClientConf.style.spaceBetween, marginBottom := 10.px,
         h3(
           ClientConf.style.noMargin,
@@ -803,18 +815,18 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           labelTitle
         ),
         div(
-          showIf(model.subProp(_.changed)) {
+          nested(showIf(model.subProp(_.changed)) {
             small(id := TestHooks.dataChanged,style := "color: red",Labels.form.changed).render
-          }
+          })
         ),
         div(
           ClientConf.style.noMargin,
           ClientConf.style.formTitle,
           if(showId) {
-            showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
+            nested(showIf(model.subProp(_.metadata).transform(!_.exists(_.static))) {
               div(
                 Offline(model.subProp(_.localData)),
-                produce(model.subProp(_.id)) { id =>
+                nested(produce(model.subProp(_.id)) { id =>
                   id.flatMap(JSONID.fromString(_,metadata)).toSeq.flatMap{ jsonId =>
                     jsonId.id.flatMap{ k =>
                       metadata.fields.find(_.name == k.key).flatMap(_.label).map { label =>
@@ -822,9 +834,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                       }
                     }
                   }
-                }
+                })
               ).render
-            }
+            })
           } else frag(),
         )
       ),
@@ -832,35 +844,35 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
-        actions(_.actions),
+        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         div(ClientConf.style.spaceAfter)(
-          showIf(presenter.showNavigation) {
-            div(actions(_.navigationActions)).render
-          },
-          showIf(model.transform(_.navigation.count > 1)) {
-              div(recordNavigation).render
-          }
+          nested(showIf(presenter.showNavigation) {
+            div(actions(nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
+          }),
+          nested(showIf(model.transform(_.navigation.count > 1)) {
+              div(recordNavigation(nested)).render
+          })
         ).render,
       ),
       div(ClientConf.style.mobileOnly,
-        showIf(model.transform(_.navigation.count > 1)) {
-          div(ClientConf.style.spaceBetween,recordNavigation).render
-        },
+        nested(showIf(model.transform(_.navigation.count > 1)) {
+          div(ClientConf.style.spaceBetween,recordNavigation(nested)).render
+        }),
         button(ClientConf.style.mobileBoxAction)(i(UdashIcons.FontAwesome.Solid.pen), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(true))).render,
         div(ClientConf.style.mobileOnly,
           Fade(model.subProp(_.showActionPanelMobile),ClientConf.style.mobileBoxActionPanel){
             div(
-              actions(_.actions),
-              showIf(presenter.showNavigation) {
-                div(actions(_.navigationActions)).render
-              },
+              actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
+              nested(showIf(presenter.showNavigation) {
+                div(actions(nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
+              }),
               button(ClientConf.style.boxIconButton, width := 100.pct, i(UdashIcons.FontAwesome.Solid.angleDown), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(false)))
             ).render
           }
       )
 
       ),
-      produce(model.subProp(_.error)){ error =>
+      nested(produce(model.subProp(_.error)){ error =>
         div(
           if(error.length > 0) {
             UdashBadge(badgeStyle = Color.Danger.toProperty)(_ => error).render
@@ -868,39 +880,38 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
           }
         ).render
-      },
+      }),
       hr(ClientConf.style.hrThin)
     )
 
-    def formFooter(_maxWidth:Option[Int]):Modifier = Seq(
+    def formFooter(nested:Binding.NestedInterceptor,_maxWidth:Option[Int]):Modifier = Seq(
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(_.actions),
+        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         ul(
-          produce(Notification.list){ notices =>
+         nested(produce(Notification.list){ notices =>
             notices.map { notice =>
               li(notice).render
             }
           }
-        )
+        ))
       ),
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(_.actions),
+        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         ul(
-          produce(Notification.list){ notices =>
+          nested(produce(Notification.list){ notices =>
             notices.map { notice =>
               li(notice).render
             }
-          }
+          })
         )
       )
     ).render
 
+    presenter.mainBinding = Some{produceWithNested(model.subProp(_.metadata)){ (_form,nested) =>
 
-
-    div(
-      produceWithNested(model.subProp(_.metadata)){ (_form,nested) =>
+      div(nested(produceWithNested(model.subProp(_.write)){ (_,nested) => {
 
         val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
         val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
@@ -911,7 +922,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
         div(
           if(showHeader && _form.isDefined) {
-            formHeader(showId,_form.get).render
+            formHeader(nested,showId,_form.get).render
           },
           div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
 
@@ -931,13 +942,16 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
               }
             },
             if(showFooter) {
-              formFooter(_maxWidth)
+              formFooter(nested,_maxWidth)
             }
           ).render,
           Debug(model.subProp(_.metadata),b => b, "metadata")
 
         ).render
-      }
-    )
+      }})).render
+    }}
+
+    div(presenter.mainBinding)
+
   }
 }

@@ -164,7 +164,7 @@ class $name(_tableTag: Tag) extends Table[$elementType](_tableTag, ${args.mkStri
   def boxGetResult = GR(r => $elementType($getResult))
 
   def doUpdateReturning(fields:Map[String,Json],where:SQLActionBuilder)(implicit ec:ExecutionContext):DBIO[Option[$elementType]] = {
-      val kv = keyValueComposer(this)
+      val kv = keyValueComposer()
       val chunks = fields.flatMap(kv)
       if(chunks.nonEmpty) {
         val head = concat(sql\"\"\"update $tableNameFull set \"\"\",chunks.head)

@@ -158,6 +158,7 @@ trait BoxStyle {
   val filterBlockTitle:StyleA
   val tableTitle:StyleA
   val tableMainActions:StyleA
+  val tableSearchBar:StyleA
 
 
   def render[Out](implicit r: Renderer[Out], env: Env):Out

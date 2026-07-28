@@ -22,7 +22,8 @@ class ChoicesStyles(conf:StyleConf) extends StyleSheet.Inline {
       zIndex(1050).important
     ),
     unsafeRoot(".choices__list--dropdown")(
-      minWidth(200 px)
+      minWidth(200 px),
+      zIndex(5).important
     ),
     unsafeRoot(".choices[data-type*=\"select-one\"]::after")(
       right(4 px)

@@ -1793,6 +1793,10 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   override val tableMainActions = style(
     noMobile
   )
+  override val tableSearchBar = style(
+    display.flex,
+    alignContent.center
+  )
   //
 //    val mapPopup = style(
 //      border.solid,

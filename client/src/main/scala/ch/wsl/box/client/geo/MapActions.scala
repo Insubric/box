@@ -7,6 +7,7 @@ import ch.wsl.box.client.utils.Debounce
 import ch.wsl.box.model.shared.GeoJson.{CRS, Coordinates, Polygon}
 import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared.{JSONMetadata, JSONQuery}
+import ch.wsl.typings.ol.extentMod.Extent
 import io.circe.Json
 import io.circe.scalajs.convertJsonToJs
 import io.circe.syntax.EncoderOps
@@ -49,14 +50,10 @@ class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
     //  201208.38015245216
     //]
     val ext = map.get.getView().calculateExtent()
-    Polygon(Seq(Seq(
-      Coordinates(ext(0), ext(1)),
-      Coordinates(ext(0), ext(3)),
-      Coordinates(ext(2), ext(3)),
-      Coordinates(ext(2), ext(1)),
-      Coordinates(ext(0), ext(1))
-    )),crs)
+    MapActions.polygonFromExtent(ext,crs)
   }
+
+
 
   def registerExtentChange(onExtentChange: Unit => Unit) = {
 
@@ -106,5 +103,28 @@ class MapActions(map: => Option[mod.Map],crs:CRS) extends Logging {
 
       map.get.render()
     }
+  }
+}
+
+object MapActions {
+
+  def polygonFromExtent(ext:Extent,crs:CRS):Polygon = Polygon(Seq(Seq(
+    Coordinates(ext(0), ext(1)),
+    Coordinates(ext(0), ext(3)),
+    Coordinates(ext(2), ext(3)),
+    Coordinates(ext(2), ext(1)),
+    Coordinates(ext(0), ext(1))
+  )),crs)
+
+  def extentFromPolygon(p:Polygon):Extent = {
+    println(p)
+    if(p.coordinates.headOption.exists(_.length >= 3)) {
+      js.Array(
+        p.coordinates.flatMap(_.map(_.x)).min,
+        p.coordinates.flatMap(_.map(_.y)).min,
+        p.coordinates.flatMap(_.map(_.x)).max,
+        p.coordinates.flatMap(_.map(_.y)).max,
+      )
+    } else throw new Exception("Polygon need to have 5 points")
   }
 }

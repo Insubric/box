@@ -513,32 +513,6 @@ abstract class MapControls(params:MapControlsParams)(implicit ec:ExecutionContex
     .setElement(div().render)
   )
 
-  map.asInstanceOf[js.Dynamic].on(olStrings.singleclick, (e: Any) => {
-
-    val features = MapUtils.getFeatures(map,e.asInstanceOf[MapBrowserEvent[_]])
-
-    features.nonEmpty && activeControl.get == Control.VIEW match {
-      case true => {
-        infoOverlay.element.innerHTML = ""
-        val geoJson = new formatGeoJSONMod.default().writeFeaturesObject(features.asInstanceOf[js.Array[renderFeatureMod.default]])
-        for {
-          json <- convertJsToJson(geoJson.asInstanceOf[js.Any]).toOption
-          collection <- FeatureCollection.decode(json).toOption
-          feature <- collection.features.headOption
-        } yield {
-          feature.geometry match {
-            case GeoJson.Point(coordinates, crs) => {
-              infoOverlay.element.appendChild(div(ClientConf.style.mapPopup, coordinates.y, br, coordinates.x).render)
-              infoOverlay.setPosition(js.Array(coordinates.x, coordinates.y))
-            }
-            case _ => {}
-          }
-
-        }
-      }
-      case false => infoOverlay.setPosition()
-    }
-  })
 
 
 

@@ -33,17 +33,28 @@ import scala.scalajs.js
 import scala.scalajs.js.{JSON, |}
 import scalatags.JsDom.all._
 import io.udash._
+import io.udash.bindings.modifiers.Binding
 import io.udash.bindings.modifiers.Binding.NestedInterceptor
 import io.udash.wrappers.jquery.jQ
 import org.scalablytyped.runtime.StringDictionary
 
-class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]],extentFilter:Property[Boolean]) extends BoxOlMap {
+import scala.collection.mutable.ListBuffer
+
+class MapList(_div:Div,nested:Binding.NestedInterceptor,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.GeoData],edit: String => Unit,extent:Property[Option[Polygon]],extentFilter:Property[Boolean]) extends BoxOlMap {
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
 
   override def allData: ReadableProperty[Json] = Property(Json.Null)
 
+
+
+  val listeners = ListBuffer[Registration]()
+
+  def kill() = {
+    listeners.foreach(_.cancel())
+    listeners.clear()
+  }
 
 
   override def id: ReadableProperty[Option[String]] = Property(None)
@@ -61,12 +72,21 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
   val proj = new BoxMapProjections(options.projections,options.defaultProjection,options.bbox)
 
 
-  val view = new viewMod.default(viewMod.ViewOptions()
-    .setZoom(3)
+  val viewOptions = viewMod.ViewOptions()
+
     .setMinResolution(minResolution)
     .setProjection(proj.defaultProjection)
-    .setCenter(extentMod.getCenter(proj.defaultProjection.getExtent()))
-  )
+
+  extent.get match {
+    case Some(_) => ()
+    case None => viewOptions.setCenter(extentMod.getCenter(proj.defaultProjection.getExtent())).setZoom(3)
+  }
+
+
+  val view = new viewMod.default(viewOptions)
+
+
+
 
   import scalacss.ScalatagsCss._
   import io.udash.css._
@@ -88,13 +108,13 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
   val dispatchElements:Property[Seq[JSONID]] = Property(Seq())
   val dispatchElementsDiv = div(display.none,ClientConf.style.mapPopup,
     ul(
-      produce(dispatchElements) { _.map{ id =>
+      nested(produce(dispatchElements) { _.map{ id =>
         li(
           a(id.prettyPrint(metadata), onclick :+= { (e: Event) => edit(id.asString)
 
           })
         ).render
-      } }
+      } })
     )
   ).render
 
@@ -113,6 +133,12 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     .setTarget(mapDiv)
     .setView(view)
   )
+
+  extent.get.foreach{ value =>
+    println("set map extent")
+    BrowserConsole.log(MapActions.extentFromPolygon(value))
+    view.fit(MapActions.extentFromPolygon(value),FitOptions().setPadding(js.Array(0.0,0.0,0.0,0.0)))
+  }
 
 
 
@@ -214,7 +240,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
     var extentListenerInitialized = false
     var extentChangeListenerActive = false
 
-    geoms.listen({ layers =>
+    listeners.addOne{geoms.listen({ layers =>
       extentChangeListenerActive = false
       map.removeLayer(featuresLayer.asInstanceOf[layerBaseMod.default[StringDictionary[Any]]])
       vectorSource.getFeatures().foreach(f => vectorSource.removeFeature(f))
@@ -230,25 +256,25 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
         zoomToFeatures()
 
-        if (!extentListenerInitialized) {
-          extentListenerInitialized = true
-          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
-            if(extentChangeListenerActive)
-              extentChange()
-          })
+      }
 
-          map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
-            if(extentChangeListenerActive)
-              extentChange()
-          })
-        }
+      if (!extentListenerInitialized) {
+        extentListenerInitialized = true
+        map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColonresolution, { () =>
+          if(extentChangeListenerActive)
+            extentChange()
+        })
 
+        map.getView().asInstanceOf[js.Dynamic].on(olStrings.changeColoncenter, { () =>
+          if(extentChangeListenerActive)
+            extentChange()
+        })
       }
 
       map.render()
       extentChangeListenerActive = true
 
-    }, true)
+    }, true)}
 
 
 
@@ -319,7 +345,7 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
 
     map.asInstanceOf[js.Dynamic].on(olStrings.pointermove,x => pointerMove(x))
 
-    services.messages.sub{
+    listeners.addOne(services.messages.sub{
       case RowHover(row) => {
         val f = vectorSource.getFeatureById(row.id.map(_.asString).getOrElse("")).asInstanceOf[Feature[_,_]]
         if(f != null) {
@@ -330,9 +356,10 @@ class MapList(_div:Div,metadata:JSONMetadata,geoms:ReadableProperty[GeoTypes.Geo
         MapUtils.stopFlashing()
       }
       case _ => ()
-    }
+    })
 
   }
+
 
 
 }

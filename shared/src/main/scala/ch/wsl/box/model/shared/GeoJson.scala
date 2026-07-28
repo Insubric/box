@@ -6,6 +6,8 @@ import io.circe.generic.semiauto._
 import io.circe.parser._
 import io.circe.syntax._
 
+import scala.util.{Failure, Success, Try}
+
 object GeoJson {
 
   case class Feature(geometry: Geometry, properties: Option[JsonObject] = None, bbox:Option[Seq[Double]] = None, `type`:String = "Feature")
@@ -30,6 +32,19 @@ object GeoJson {
 
     def toString(precision:Double): String = s"${approx(precision,x)} ${approx(precision,y)}"
     def flatten = Seq(x,y)
+  }
+
+  object Coordinates {
+    def fromString(str:String):Option[Coordinates] = Try {
+      val xy = str.trim.split(" ")
+      Coordinates(xy(0).trim.toDouble, xy(1).trim.toDouble)
+    } match {
+      case Failure(exception) => {
+        exception.printStackTrace()
+        None
+      }
+      case Success(value) => Some(value)
+    }
   }
 
   case class CRS(_name:String) {
@@ -76,6 +91,13 @@ object GeoJson {
 
   sealed trait GeometryObject {
     def name:String
+    def fromString(str:String,crs:CRS):Option[Geometry]
+    def fromEWKT(str:String):Option[Geometry] = Try{
+      val tokens = str.split(";")
+      val crs = CRS("EPSG:" + tokens(0).stripPrefix("SRID="))
+      fromString(tokens(1),crs)
+    }.toOption.flatten
+    protected def stripGeomName(str:String):String = str.trim.stripPrefix(name).trim.stripPrefix("(").stripSuffix(")")
   }
 
   // geojson geometry from postgis
@@ -130,11 +152,18 @@ object GeoJson {
 
     override def toString(precision: Double): String = "Empty"
 
+    override def fromString(str: String, crs: CRS): Option[Geometry] = Some(Empty)
+
     override def convert(f: Coordinates => Coordinates, crs: CRS): Geometry = this
   }
 
   object Point extends GeometryObject {
     override val name: String = "POINT"
+    override def fromString(str: String, crs: CRS): Option[Geometry] = {
+      Coordinates.fromString(stripGeomName(str)).map { c =>
+        Point(c, crs)
+      }
+    }
   }
   case class Point(coordinates: Coordinates, crs:CRS) extends SingleGeometry {
 
@@ -144,11 +173,19 @@ object GeoJson {
 
     override def toString(precision:Double): String = s"$geomName(${coordinates.toString(precision)})"
 
-    override def convert(f: Coordinates => Coordinates,crs:CRS): Point = Point(f(coordinates),crs)
+    override def convert(f: Coordinates => Coordinates, crs:CRS): Point = Point(f(coordinates),crs)
   }
 
   object LineString extends GeometryObject {
     override val name: String = "LINESTRING"
+
+    override def fromString(str: String, crs: CRS): Option[Geometry] = {
+      val coordinates = stripGeomName(str).split(",").flatMap(Coordinates.fromString)
+      if(coordinates.isEmpty)
+        None
+      else
+        Some(LineString(coordinates,crs))
+    }
   }
   case class LineString(coordinates: Seq[Coordinates], crs:CRS) extends SingleGeometry {
 
@@ -190,6 +227,8 @@ object GeoJson {
       if (crs.length != 1) throw new Exception("Can't handle different CRS in the same geometry")
       MultiPoint(points.map(_.coordinates), crs(0))
     }
+
+    override def fromString(str: String, crs: CRS): Option[Geometry] = ???
   }
 
   case class MultiLineString(coordinates: Seq[Seq[Coordinates]], crs:CRS) extends Geometry {
@@ -219,10 +258,19 @@ object GeoJson {
       if(crs.length != 1) throw new Exception("Can't handle different CRS in the same geometry")
       MultiLineString(lines.map(_.coordinates),crs(0))
     }
+
+    override def fromString(str: String, crs: CRS): Option[Geometry] = ???
   }
 
   object Polygon extends GeometryObject {
     override val name: String = "POLYGON"
+
+    override def fromString(str: String, crs: CRS): Option[Geometry] = {
+      val coords = stripGeomName(str).stripPrefix("(").stripSuffix(")").split("\\),\\(").map(_.trim.split(",").flatMap(Coordinates.fromString))
+      if(coords.headOption.exists(_.nonEmpty)) {
+        Some(Polygon(coords.toSeq.map(_.toSeq),crs))
+      } else None
+    }
   }
 
   case class Polygon(coordinates: Seq[Seq[Coordinates]], crs:CRS) extends SingleGeometry {
@@ -265,6 +313,8 @@ object GeoJson {
       if (crs.length != 1) throw new Exception("Can't handle different CRS in the same geometry")
       MultiPolygon(polygons.map(_.coordinates), crs(0))
     }
+
+    override def fromString(str: String, crs: CRS): Option[Geometry] = ???
   }
 
   case class GeometryCollection(geometries: Seq[Geometry], crs:CRS) extends Geometry {

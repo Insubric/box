@@ -4,6 +4,7 @@ import ch.wsl.box.client.routes.Routes
 
 import java.util.UUID
 import ch.wsl.box.client.{Context, IndexState, LoginState, LogoutState}
+import ch.wsl.box.model.shared.GeoJson.{CRS, Polygon}
 import ch.wsl.box.model.shared.oidc.UserInfo
 import ch.wsl.box.model.shared.{CurrentUser, EntityKind, IDs, JSONID, JSONQuery, LoginRequest}
 import io.udash.Registration
@@ -32,6 +33,8 @@ object ClientSession {
   final val TABLECHILD_OPEN = "tablechild_open"
   final val SELECTED_TAB = "selected_tab"
   final val URL_QUERY = "urlQuery"
+  final val TABLE_EXTENT = "tableExtent"
+  final val TABLE_FILTER_EXTENT = "tableFilterExtent"
 
   case class TableChildElement(field:String, childFormId:UUID, id:Option[JSONID])
   case class SelectedTabKey(form:UUID, tabGroup:Option[String])
@@ -110,6 +113,8 @@ class ClientSession(rest:REST,httpClient: HttpClient, preferences:Preferences) e
       query <- json.as[T].right.toOption
     } yield query
   }
+
+  def remove(key:String) = dom.window.sessionStorage.removeItem(key)
 
   def isValidSession():Future[Boolean] = {
     isSet(USER) match {
@@ -238,6 +243,18 @@ class ClientSession(rest:REST,httpClient: HttpClient, preferences:Preferences) e
 
   def getBaseLayer():Option[String] = get[String](BASE_LAYER)
   def setBaseLayer(bl: String) = set(BASE_LAYER,bl)
+
+  def getExtent():Option[Polygon] = get[String](TABLE_EXTENT).flatMap(Polygon.fromEWKT).map(_.asInstanceOf[Polygon])
+  def setExtent(e: Option[Polygon]) = e match {
+    case Some(value) => {
+      println(value)
+      set(TABLE_EXTENT,value.toEWKT())
+    }
+    case None => remove(TABLE_EXTENT)
+  }
+
+  def setFilterExtent(fe:Boolean) = set(TABLE_FILTER_EXTENT,fe)
+  def getFilterExtent():Boolean = get[Boolean](TABLE_FILTER_EXTENT).getOrElse(false)
 
 
   def getIDs():Option[IDs] = get[IDs](IDS)

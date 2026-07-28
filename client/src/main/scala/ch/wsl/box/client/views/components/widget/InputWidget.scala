@@ -248,17 +248,17 @@ object InputWidget extends Logging {
     override def edit(nested:Binding.NestedInterceptor):JsDom.all.Modifier = (editMe(field, !noLabel, WidgetUtils.LabelRight,false){ case y =>
       val stringModel = Property("")
 
-      data.sync[String](stringModel)(jsonToString _,fromString _)
+      autoRelease(data.sync[String](stringModel)(jsonToString _,fromString _))
 
       if(TestHooks.testing) {
         TestHooks.properties += TestHooks.formField(field.name) -> data
       }
 
       field.`type` match {
-        case JSONFieldTypes.NUMBER => NumberInput(stringModel)((y ++ Seq(step := "any")):_*).render
-        case JSONFieldTypes.INTEGER => NumberInput(stringModel)(y:_*).render
-        case JSONFieldTypes.ARRAY_NUMBER => TextInput(stringModel)(y++modifiers:_*).render
-        case _ => TextInput(stringModel)(y++modifiers:_*).render
+        case JSONFieldTypes.NUMBER => nested(NumberInput(stringModel)((y ++ Seq(step := "any")):_*)).render
+        case JSONFieldTypes.INTEGER => nested(NumberInput(stringModel)(y:_*)).render
+        case JSONFieldTypes.ARRAY_NUMBER => nested(TextInput(stringModel)(y++modifiers:_*)).render
+        case _ => nested(TextInput(stringModel)(y++modifiers:_*)).render
       }
     })
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showMe(data, field, !noLabel,nested,WidgetUtils.LabelRight))
