@@ -355,7 +355,7 @@ object MapUtils extends Logging {
 
 
 
-    def layerOf(id: UUID): Option[layerBaseMod.default[BoxProperyType]] = map.getLayers().getArray().find(_.getProperties().asInstanceOf[Map[String,String]].get(MapUtils.BOX_LAYER_ID).contains(id.toString))
+    def layerOf(id: UUID): Option[layerBaseMod.default[BoxProperyType]] = map.getLayers().getArray().find(_.getProperties().asInstanceOf[BoxProperyType].get(MapUtils.BOX_LAYER_ID).contains(id.toString))
 
     def layerOf(db: DbVector): Option[layerMod.Vector[BoxVectorSourceType,BoxFeatureType]] = layerOf(db.id).map(_.asInstanceOf[layerMod.Vector[BoxVectorSourceType,BoxFeatureType]])
     def layerOf(wmts: WMTS): Option[layerMod.Tile[_]] = layerOf(wmts.id).map(_.asInstanceOf[layerMod.Tile[_]])
