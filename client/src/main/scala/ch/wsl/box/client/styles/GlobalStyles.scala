@@ -831,7 +831,16 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
 
   override val fullHeightMax = style(
-    height :=! "calc(100vh - 150px)",
+    height :=! "calc(100vh - 201px)",
+    media.maxWidth(600 px)(
+      height :=! "calc(100vh - 110px)",
+      //paddingBottom(70 px)
+    ),
+    overflow.auto
+  )
+
+  override val fullHeightMaxForm = style(
+    height :=! "calc(100vh - 229px)",
     media.maxWidth(600 px)(
       height :=! "calc(100vh - 110px)",
       //paddingBottom(70 px)
@@ -1447,7 +1456,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
 
   override val mapTable = style(
-    height :=! "calc(100vh - 105px)",
+    height :=! "calc(100vh - 201px)",
     media.maxWidth(600 px)(
       height :=! "calc(100vh - 50px)",
     ),
