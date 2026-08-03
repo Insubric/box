@@ -48,10 +48,21 @@ case class Access(session:BoxSession)(implicit ec:ExecutionContext,services:Serv
     }
   }
 
+  val boxTableRowAccess = pathPrefix(EntityKind.BOX_FORM.kind | EntityKind.BOX_TABLE.kind) {
+    pathPrefix(Segment) { table =>
+      path("row-access") {
+        post {
+          complete(true) // no RLS on Box schema
+        }
+      }
+    }
+  }
+
   val route = pathPrefix("access") {
       boxTableAccess ~
       tableAccess ~
-      rowAccess
+      rowAccess ~
+      boxTableRowAccess
   }
 
 }
