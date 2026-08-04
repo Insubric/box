@@ -6,6 +6,7 @@ import scribe.Logging
 import io.circe._
 import io.circe.parser._
 import io.circe.generic.auto._
+import io.circe.syntax.EncoderOps
 
 //import ch.wsl.box.model.shared.JSONQuery.empty
 
@@ -19,20 +20,11 @@ case class JSONQuery(
                       filter:List[JSONQueryFilter],
                       sort:List[JSONSort],
                       paging:Option[JSONQueryPaging],
-                      sqlWhere:Option[String] = None,
                       fields:Option[Seq[String]] = None,
                       lookups:Option[Seq[JSONFieldLookupRemote]] = None,
                       fullText:Option[String] = None,
                     ){
 
-  def validatedWhere = sqlWhere.map(_.replaceAll("insert ","not valid")
-    .replaceAll("update ","not valid")
-    .replaceAll("truncate ","not valid")
-    .replaceAll("drop ","not valid")
-    .replaceAll("delete ","not valid")
-    .replaceAll("alter ","not valid")
-    .replaceAll("grant ","not valid")
-  )
 
   def filterWith(filter:JSONQueryFilter*) = this.copy(filter = filter.toList)
   def sortWith(sort:JSONSort*) = this.copy(sort = sort.toList)
@@ -127,6 +119,7 @@ object JSONQueryFilter{
     def eq(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.EQUALS), value)
 
     def in(column: String, value: Seq[String]) = JSONQueryFilter.withValue(column, Some(Filter.IN), value.mkString(","))
+    def inSet(columns: Seq[String], value: Seq[Seq[Json]]) = JSONQueryFilter.withValue(columns.asJson.toString(), Some(Filter.IN_SET), value.asJson.toString())
     def notIn(column: String, value: Seq[String]) = JSONQueryFilter.withValue(column, Some(Filter.NOTIN), value.mkString(","))
 
     def not(column: String, value: String) = JSONQueryFilter.withValue(column, Some(Filter.NOT), value)
@@ -176,8 +169,6 @@ object JSONQuery extends Logging {
     sort = List(),
     paging = Some(JSONQueryPaging(1000)),
   )
-
-  def where(sql:String) = empty.copy(sqlWhere = Some(sql))
 
   def filterWith(filter:JSONQueryFilter*) = empty.copy(filter = filter.toList)
   def sortWith(sort:JSONSort*) = empty.copy(sort = sort.toList)
@@ -240,6 +231,7 @@ object Filter extends Logging {
   final val FK_LIKE = "FKlike"
   final val FK_DISLIKE = "FKdislike"
   final val IN = "in"
+  final val IN_SET = "in_set"
   final val NOTIN = "notin"
   final val BETWEEN = "between"
   final val IS_NULL = "isNull"

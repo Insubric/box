@@ -96,8 +96,36 @@ trait SQLCompose extends Logging {
         .filter(_.nonEmpty)
     }
 
+    if(jsonQuery.operator.contains(Filter.IN_SET)) {
 
-    if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
+      val t = for{
+        colsJS <- io.circe.parser.parse(jsonQuery.column)
+        cols <- colsJS.as[Seq[String]]
+        valsJs <- io.circe.parser.parse(jsonQuery.value.getOrElse(""))
+        vals <- valsJs.as[Seq[Seq[Json]]]
+      } yield (cols,vals)
+
+      t match {
+        case Right((cols,vals)) => {
+
+          val allColumnId = vals.map(_.map { v =>
+            v.fold(
+              "null",
+              bool => bool.toString,
+              num => num.toString,
+              str => s"'$str'",
+              arr => arr.toString,
+              obj => obj.toString
+            )
+          }).mkString("(",",",")")
+
+
+          Some(sql""" #${cols.mkString("(\"","\",\"","\")")} in #${allColumnId.mkString("(",",",")")} """)
+        }
+        case Left(value) => throw new Exception(s"Fields ${jsonQuery.column} cannot be parsed for inset. $value")
+      }
+
+    } else if(jsonQuery.operator.exists(o => Filter.multiEl.contains(o))) {
       col.name match {
         case "String"  => filterMany(Some(splitAndTrim(v)))
         case "Int" => filterMany[Int](Some(splitAndTrim(v).flatMap(_.toIntOption)))
@@ -218,14 +246,11 @@ trait SQLCompose extends Logging {
     val kv = jsonQueryComposer()
     //    val nonEmptyFilters = query.filter.filter(isNonEmptyFilter)
 
-    val where = query.validatedWhere match {
-      case Some(whereClause) => sql""" where #${whereClause}"""
-      case None => {
+    val where =  {
         val filters = query.filter.flatMap(kv)
         if (filters.nonEmpty) {
           filters.tail.foldLeft(concat(sql" where ", filters.head)) { case (builder, pair) => concat(builder, concat(sql" and ", pair)) }
         } else sql""
-      }
     }
 
 
