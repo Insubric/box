@@ -124,6 +124,7 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
 
 object EditableTable extends ChildRendererFactory {
 
+  val tableId = s"table-${UUID.randomUUID()}"
 
   override def name: String = WidgetsNames.editableTable
 
@@ -412,16 +413,34 @@ object EditableTable extends ChildRendererFactory {
         case _ => None
       }
 
+      def setFocus(row:Int,col:Int):Boolean = Seq("select", "input").map { tagname =>
+        document
+          .querySelector(s" #$tableId tr[data-row='$row'] > td[data-column='$col']")
+          .getElementsByTagName(tagname).headOption match {
+          case Some(e: dom.HTMLElement) => {
+            e.focus()
+            true
+          }
+          case _ => false
+        }
+      }.exists(x => x)
+
       def select(offsetRow:Int,offsetCol:Int) = {
         for{
           c <- column
           r <- row
         } yield {
-          Seq("select","input").foreach { tagname =>
-            document
-              .querySelector(s"tr[data-row='${r + offsetRow}'] > td[data-column='${c + offsetCol}']")
-              .getElementsByTagName(tagname).headOption.foreach { case e: dom.HTMLElement => e.focus() }
+          if(r + offsetRow >= entity.length) {
+            addItem(child,metadata.get)
+            val observer = Some(new MutationObserver({ (mutations, observer) => {
+              if(setFocus(r + offsetRow,c + offsetCol))
+                observer.disconnect()
+            } }))
+            observer.foreach(_.observe(document,MutationObserverInit(childList = true, subtree = true)))
+          } else {
+            setFocus(r + offsetRow,c + offsetCol)
           }
+
 
         }
         e.stopImmediatePropagation()
@@ -432,6 +451,14 @@ object EditableTable extends ChildRendererFactory {
       e match {
         case ke:KeyboardEvent if ke.key == "Enter" || ke.key == "ArrowDown" => select(1,0)
         case ke:KeyboardEvent if ke.key == "ArrowUp" => select(-1,0)
+        case ke:KeyboardEvent if ke.key == "Tab" => {
+          val lastRow = row.exists(r => r+1 == entity.length)
+          val lastCol = column.exists(c => c+1 == fields(metadata.get).length)
+          if(lastRow && lastCol) {
+            select(1,-column.getOrElse(0))
+          } else true
+
+        }
         case _ => true
       }
     }
@@ -451,7 +478,7 @@ object EditableTable extends ChildRendererFactory {
               val additionalColumns = if (write && !disableRemove) 1 else 0
               val colWidth = (width := _colWidth(additionalColumns))
 
-              val tab = table(tableStyle.table,
+              val tab = table(id := tableId, tableStyle.table,
                 thead(
                   for (field <- f) yield {
                     val name = colHeader(field)
