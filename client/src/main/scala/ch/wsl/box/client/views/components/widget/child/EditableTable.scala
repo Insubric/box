@@ -124,7 +124,7 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
 
 object EditableTable extends ChildRendererFactory {
 
-  val tableId = s"table-${UUID.randomUUID()}"
+
 
   override def name: String = WidgetsNames.editableTable
 
@@ -133,6 +133,9 @@ object EditableTable extends ChildRendererFactory {
 
 
   case class EditableTableRenderer(widgetParam:WidgetParams) extends ChildRenderer {
+
+
+    val tableId = s"table-${UUID.randomUUID()}"
 
     val parentMetadata = widgetParam.metadata
 
@@ -449,7 +452,7 @@ object EditableTable extends ChildRendererFactory {
       }
 
       e match {
-        case ke:KeyboardEvent if ke.key == "Enter" || ke.key == "ArrowDown" => select(1,0)
+        case ke:KeyboardEvent if (ke.key == "Enter" && !column.exists(c => fields(metadata.get).lift(c).exists(_.lookup.isDefined))) || ke.key == "ArrowDown"  => select(1,0)
         case ke:KeyboardEvent if ke.key == "ArrowUp" => select(-1,0)
         case ke:KeyboardEvent if ke.key == "Tab" => {
           val lastRow = row.exists(r => r+1 == entity.length)
