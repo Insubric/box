@@ -1522,6 +1522,9 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     unsafeChild("svg")(
       marginTop(-4 px),
       svgStroke(c"#fff")
+    ),
+    &.focus(
+      borderColor(conf.colors.main).important
     )
   )
 
