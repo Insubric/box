@@ -379,6 +379,7 @@ object FormUIDef {
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
+          WidgetsNames.export,
         ))),
         lookup =  Some(JSONFieldLookup.withExtractor(
           "entity",
@@ -394,6 +395,7 @@ object FormUIDef {
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
+          WidgetsNames.export,
         ))),
         lookup = Some(JSONFieldLookup.withExtractor(
           "child_form_uuid",
@@ -416,6 +418,7 @@ object FormUIDef {
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
+          WidgetsNames.export,
         )))
       ),
       CommonField.condition,

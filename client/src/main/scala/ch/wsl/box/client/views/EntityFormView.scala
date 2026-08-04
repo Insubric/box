@@ -924,7 +924,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
           if(showHeader && _form.isDefined) {
             formHeader(nested,showId,_form.get).render
           },
-          div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMax },
+          div(BootstrapCol.md(12),if(showHeader) { ClientConf.style.fullHeightMaxForm },
 
             _form match {
               case None => div()

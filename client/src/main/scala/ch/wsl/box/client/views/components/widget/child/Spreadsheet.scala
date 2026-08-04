@@ -86,32 +86,17 @@ object Spreadsheet extends ComponentWidgetFactory {
                     case Some(value:JSONFieldLookupRemote) => value
                     case None => throw new Exception("Not a remote lookup")
                   }
-                  val allColumnId: Seq[String] = rawData.map{ row =>
-                    val keys = fieldLookup.map.localKeysColumn.map { local =>
-                      val value = row.js(local).fold(
-                        "null",
-                        bool => bool.toString,
-                        num => num.toString,
-                        str => s"'$str'",
-                        arr => arr.toString,
-                        obj => obj.toString
-                      )
-                      value
+                  val allColumnId: Seq[Seq[Json]] = rawData.map{ row =>
+                    fieldLookup.map.localKeysColumn.map { local =>
+                      row.js(local)
                     }
-                    keys.mkString("(",",",")")
                   }
                   logger.debug(s"Loading dropdown for $allColumnId")
 
 
-                  val query =
-                    s"""
-                       | ${fieldLookup.map.foreign.keyColumns.mkString("(",",",")")} in ${allColumnId.mkString("(",",",")")}
-                       |""".stripMargin
+                  val query = JSONQuery.filterWith(JSONQueryFilter.WHERE.inSet(fieldLookup.map.foreign.keyColumns,allColumnId))
 
-                  logger.debug(s"Generated where: $query")
-                  val values = JSONQuery.where(query)
-
-                  services.rest.lookup(EntityKind.FORM.kind,services.clientSession.lang(),childMetadata.get.name,field.name,values).map{ rows =>
+                  services.rest.lookup(EntityKind.FORM.kind,services.clientSession.lang(),childMetadata.get.name,field.name,query).map{ rows =>
                     rows.map { row =>
                       row.id -> row.value.asJson
                     }.toMap

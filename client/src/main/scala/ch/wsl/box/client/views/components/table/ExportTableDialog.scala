@@ -64,7 +64,6 @@ class ExportTableDialog extends Logging {
 
     Seq(
       button(`type` := "button", onclick :+= ((e:Event) => open(modal,onOpen())), ClientConf.style.boxButton, "Export"),
-
     )
   }
 

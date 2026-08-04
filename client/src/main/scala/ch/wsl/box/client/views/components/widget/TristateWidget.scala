@@ -1,5 +1,6 @@
 package ch.wsl.box.client.views.components.widget
 import ch.wsl.box.client.services.ClientConf
+import ch.wsl.box.client.utils.ListenerManager
 import io.circe._
 import io.circe.syntax._
 import io.udash._
@@ -12,11 +13,18 @@ import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.tooltip.UdashTooltip
 import scalacss.ScalatagsCss._
 import io.udash.css._
-import org.scalajs.dom.Event
+import org.scalajs.dom.{Event, KeyboardEvent}
 
 case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget with IsCheckBoxWithData {
 
   val noLabel = field.params.exists(_.js("nolabel") == true.asJson)
+
+  val lm = new ListenerManager()
+  import lm._
+
+  override def killWidget(): Unit = {
+    lm.clearAll()
+  }
 
   def jsToBool(json:Json):Option[Boolean] = field.`type` match {
     case JSONFieldTypes.BOOLEAN => json.asBoolean
@@ -34,12 +42,25 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
     case _ => Json.Null
   }
 
+
+
   def tristateCheckbox(booleanModel:Property[Option[Boolean]]) = {
+
+    def rotate() = {
+      booleanModel.set{
+        booleanModel.get match {
+          case Some(true) => Some(false)
+          case Some(false) => None
+          case None =>Some(true)
+        }}
+    }
+
     // https://carsonf92.medium.com/introducing-the-three-state-checkbox-1b6f00b6ec89
     val positive = raw("<svg id=\"i-checkmark\" viewBox=\"0 0 32 32\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentcolor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"20%\"><path d=\"M2 20 L12 28 30 4\" /></svg>")
     val negative = raw("<svg id=\"i-close\" viewBox=\"0 0 32 32\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentcolor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"20%\"><path d=\"M2 30 L30 2 M30 30 L2 2\" /></svg>")
 
     val checkbox = span(
+      tabindex := 0,
       `class`.bind(booleanModel.transform {
         case Some(true) => Seq(ClientConf.style.tristateCheckBox.htmlClass,ClientConf.style.tristatePositive.htmlClass).mkString(" ")
         case Some(false) => Seq(ClientConf.style.tristateCheckBox.htmlClass,ClientConf.style.tristateNegative.htmlClass).mkString(" ")
@@ -51,15 +72,21 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
         case None => span().render
       },
       onclick :+= {(e:Event) =>
-        booleanModel.set{
-          booleanModel.get match {
-            case Some(true) => Some(false)
-            case Some(false) => None
-            case None =>Some(true)
-          }}
+
         e.preventDefault()
       }
-    )
+    ).render
+
+    checkbox.listen("click", _ => rotate())
+    checkbox.listen("keydown",{
+      case ke: KeyboardEvent if ke.key == " " => {
+        rotate()
+        ke.stopPropagation()
+        ke.preventDefault()
+      }
+      case _ => true
+    })
+
     checkbox
   }
 
@@ -75,7 +102,7 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
 
     div(
       div(ClientConf.style.label50,if(!noLabel) { WidgetUtils.toLabel(field,WidgetUtils.LabelRight) } else frag()),
-      tooltip(tristateCheckbox(booleanModel).render)._1
+      tooltip(tristateCheckbox(booleanModel))._1
     )
   }
 
@@ -83,7 +110,7 @@ case class TristateWidget(field:JSONField, data: Property[Json]) extends Widget 
     val booleanModel:Property[Option[Boolean]] = Property(None)
     autoRelease(data.sync[Option[Boolean]](booleanModel)(js => jsToBool(js),bool => boolToJson(bool)))
 
-    tristateCheckbox(booleanModel).render
+    tristateCheckbox(booleanModel)
   }
 
   override def json(): _root_.io.udash.ReadableProperty[Json] = data

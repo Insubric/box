@@ -1033,7 +1033,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
             sc.set(sc.get.flatMap{ f =>
               if(f.title == oldPosition) Seq()
-              else if(f.title == newPosition) metadata.table.find(_.title == oldPosition) ++ Seq(f)
+              else if(f.title == newPosition) metadata.fields.find(_.title == oldPosition) ++ Seq(f)
               else Seq(f)
             })
 
