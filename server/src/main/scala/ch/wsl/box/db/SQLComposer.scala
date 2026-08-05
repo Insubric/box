@@ -260,7 +260,7 @@ trait SQLCompose extends Logging {
         val lookups = query.lookups.toList.flatten.zipWithIndex
 
         val lookupFields = lookups.map{ case (l,i)  => l.map.foreign.labelColumns.map( lc => s"f$i.\"$lc\"").mkString(",") }
-        val joins = lookups.map{ case (l,i) => s" left join \"${l.lookupEntity}\" f$i on ${l.map.localKeysColumn.zip(l.map.foreign.keyColumns).map{ case (local,foreign) => s"m.\"$local\" = f$i.\"$foreign\""}.mkString(" and ")} " }.mkString("\n")
+        val joins = lookups.map{ case (l,i) => s" left join \"${schemaName.getOrElse("public")}\".\"${l.lookupEntity}\" f$i on ${l.map.localKeysColumn.zip(l.map.foreign.keyColumns).map{ case (local,foreign) => s"m.\"$local\" = f$i.\"$foreign\""}.mkString(" and ")} " }.mkString("\n")
 
         val mainTableFields = query.fields.getOrElse(Seq())
 
