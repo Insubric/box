@@ -8,6 +8,7 @@ import io.circe.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 import ch.wsl.box.jdbc.PostgresProfile.api._
+import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.model.shared.{DataResult, DataResultTable}
 import ch.wsl.box.services.Services
 
@@ -25,6 +26,7 @@ trait RuntimePSQL{
 
 trait RuntimeUtils{
   def qrCode(url:String):String
+  def swissTopoMap(geometry:Option[Json], width:Int, height:Int, padding:Int = 500):String
 }
 
 case class Context(data:Json,ws:RuntimeWS,psql:RuntimePSQL,utils:RuntimeUtils)

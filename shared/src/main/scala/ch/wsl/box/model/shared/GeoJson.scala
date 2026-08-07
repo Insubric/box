@@ -60,6 +60,7 @@ object GeoJson {
   object CRS {
     def default = wgs84
     def wgs84 = CRS("EPSG:4326")
+    def epsg(epsg:Int) = CRS(s"EPSG:$epsg")
   }
 
 
