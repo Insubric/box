@@ -120,12 +120,14 @@ object BoxForm {
                                  html_check:Boolean = true,
                                  view_enable:Boolean = true,
                                  edit_enable:Boolean = true,
+                                 need_update_right:Boolean = false,
+                                 need_delete_right:Boolean = false,
                                 target:Option[String] = None,
                                   enabled_roles:Option[List[String]] = None
                                 )
 
   class BoxForm_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_actions_row](_tableTag,schema, "form_actions") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check,view_enable,edit_enable,target,enabled_roles) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,condition,html_check,view_enable,edit_enable,need_update_right,need_delete_right,target,enabled_roles) <> (BoxForm_actions_row.tupled, BoxForm_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
@@ -143,6 +145,8 @@ object BoxForm {
     val condition: Rep[Option[Json]] = column[Option[Json]]("condition")
     val view_enable: Rep[Boolean] = column[Boolean]("view_enable")
     val edit_enable: Rep[Boolean] = column[Boolean]("edit_enable")
+    val need_update_right: Rep[Boolean] = column[Boolean]("need_update_right")
+    val need_delete_right: Rep[Boolean] = column[Boolean]("need_delete_right")
     val html_check: Rep[Boolean] = column[Boolean]("html_check")
     val enabled_roles: Rep[Option[List[String]]] = column[Option[List[String]]]("enabled_roles")
 
@@ -167,10 +171,13 @@ object BoxForm {
 
                                             view_enable:Boolean = true,
                                             edit_enable:Boolean = true,
+
+                                            need_update_right:Boolean = false,
+                                            need_delete_right:Boolean = false,
                                 )
 
   class BoxForm_navigation_actions(_tableTag: Tag) extends profile.api.Table[BoxForm_navigation_actions_row](_tableTag,schema, "form_navigation_actions") {
-    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,enabled_roles,view_enable,edit_enable) <> (BoxForm_navigation_actions_row.tupled, BoxForm_navigation_actions_row.unapply)
+    def * = (Rep.Some(uuid), form_uuid, action, importance, after_action_goto, label, update_only, insert_only, reload, action_order,confirm_text,execute_function,enabled_roles,view_enable,edit_enable,need_update_right,need_delete_right) <> (BoxForm_navigation_actions_row.tupled, BoxForm_navigation_actions_row.unapply)
 
     val uuid: Rep[java.util.UUID] = column[java.util.UUID]("uuid", O.AutoInc, O.PrimaryKey)
     val form_uuid: Rep[java.util.UUID] = column[java.util.UUID]("form_uuid")
@@ -187,6 +194,8 @@ object BoxForm {
     val enabled_roles: Rep[Option[List[String]]] = column[Option[List[String]]]("enabled_roles")
     val view_enable: Rep[Boolean] = column[Boolean]("view_enable")
     val edit_enable: Rep[Boolean] = column[Boolean]("edit_enable")
+    val need_update_right: Rep[Boolean] = column[Boolean]("need_update_right")
+    val need_delete_right: Rep[Boolean] = column[Boolean]("need_delete_right")
 
     /** Foreign key referencing Field (database name fkey_field) */
     lazy val fieldFk = foreignKey("fkey_form", form_uuid, BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)

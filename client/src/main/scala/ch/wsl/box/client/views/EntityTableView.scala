@@ -16,7 +16,7 @@ import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.client.views.elements.Offline
-import ch.wsl.box.client.views.helpers.TableColumnDrag
+import ch.wsl.box.client.views.helpers.{TableColumnDrag}
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.GeoJson.Polygon
 import ch.wsl.box.model.shared.geo.GeoDataRequest
@@ -372,7 +372,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
               (ta.target, new_window, url) match {
                 case (_,_, None) => ()
                 case (Self, false, Some(url)) => Navigate.toUrl(url)
-                case (_,_, Some(url)) =>  window.open(url)
+                case (NewWindow,_, Some(url)) =>  window.open(url)
               }
               true
             }

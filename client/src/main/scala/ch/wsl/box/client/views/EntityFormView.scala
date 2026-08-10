@@ -52,11 +52,11 @@ import scala.util.{Failure, Success, Try}
   */
 
 case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], originalData:Json,data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean, localData:Boolean)
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean, localData:Boolean, updateRight:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
 
-  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false,false)
+  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false,false,false)
 
   implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
@@ -146,7 +146,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         state.public,
         insert,
         false,
-        localData = record.local_version
+        localData = record.local_version,
+        updateRight = rowAccess
       )
 
       model.set(stateModel)
@@ -724,7 +725,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       }
 
 
-    if((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && model.subProp(_.insert).get) || (!action.insertOnly && !action.updateOnly)) {
+    if(
+      (!action.needUpdateRight || model.subProp(_.updateRight).get) &&
+      ((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && model.subProp(_.insert).get) || (!action.insertOnly && !action.updateOnly))
+    ) {
       val actionButton = button(
         id := TestHooks.actionButton(action.label),
         importance,

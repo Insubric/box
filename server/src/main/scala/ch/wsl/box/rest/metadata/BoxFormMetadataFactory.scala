@@ -43,8 +43,8 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
     FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),
     FormUIDef.fieldI18n(services.config.langs,fields),
     FormUIDef.formI18n(viewsOnly,services.config.langs),
-    FormUIDef.form_actions(functions.map(_.name)),
-    FormUIDef.form_navigation_actions(functions.map(_.name)),
+    FormUIDef.form_actions(functions.map(_.name),roles),
+    FormUIDef.form_navigation_actions(functions.map(_.name),roles),
     FunctionUIDef.main,
     FunctionUIDef.field(tablesAndViews),
     FunctionUIDef.fieldI18n(services.config.langs),
@@ -92,8 +92,8 @@ object BoxFormMetadataFactory extends Logging with MetadataFactory {
         FormUIDef.field_childs(forms,fields,roles),
         FormUIDef.fieldI18n(services.config.langs,fields),
         FormUIDef.formI18n(viewsOnly,services.config.langs),
-        FormUIDef.form_actions(functions.map(_.name)),
-        FormUIDef.form_navigation_actions(functions.map(_.name))
+        FormUIDef.form_actions(functions.map(_.name),roles),
+        FormUIDef.form_navigation_actions(functions.map(_.name),roles)
       )
       case f if f.objId == PAGE => Seq(FormUIDef.field_static(tablesAndViews,functions.map(_.name),fields,roles),FormUIDef.field_childs(forms,fields,roles),FormUIDef.fieldI18n(services.config.langs,fields),FormUIDef.formI18n(viewsOnly,services.config.langs))
       case f if f.objId == FORM_FIELD => Seq(FormUIDef.fieldI18n(services.config.langs,fields))

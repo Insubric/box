@@ -53,15 +53,17 @@ object Importance {
 sealed trait Target
 case object Self extends Target
 case object NewWindow extends Target
+case object Popup extends Target
 
 
 object Target {
   def fromString(s:String):Target = s match {
     case "Self" => Self
     case "NewWindow" => NewWindow
+    case "Popup" => Popup
   }
 
-  def all = Seq(Self,NewWindow)
+  def all = Seq(Self,NewWindow,Popup)
 }
 
 case class FormAction(

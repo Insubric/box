@@ -218,6 +218,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               enabledRoles = a.enabled_roles,
               view = a.view_enable,
               edit = a.edit_enable,
+              needUpdateRight = a.need_update_right,
+              needDeleteRight = a.need_delete_right,
             )
           }.filter(services.config.localDb || _.action != SaveLocalAction),
           navigationActions = navigationActions.map{a =>
@@ -234,6 +236,8 @@ object FormMetadataFactory extends Logging with MetadataFactory{
               enabledRoles = a.enabled_roles,
               view = a.view_enable,
               edit = a.edit_enable,
+              needUpdateRight = a.need_update_right,
+              needDeleteRight = a.need_delete_right,
             )
           },
           tableActions = if(tableActions.isEmpty && keys.nonEmpty) FormActionsMetadata.default.tableActions else {
