@@ -131,6 +131,7 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
     }
   }
   def redrawControl():Unit = {
+    logger.debug("drawControl")
     window.setTimeout(() => {
       controlsDiv.children.toSeq.foreach(controlsDiv.removeChild)
       controlsBottomDiv.children.toSeq.foreach(controlsBottomDiv.removeChild)
@@ -215,9 +216,7 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
       }
       case _ => None
     }
-    layersExtent.tail.foreach{ e =>
-      extentMod.extend(layersExtent.head,e)
-    }
+
     if (layersExtent.isEmpty) {
       None
     } else {
@@ -324,18 +323,19 @@ abstract class StandaloneMap(_div:Div, metadata:MapMetadata,properties:ReadableP
 
     ready.set(false)
 
-    for {
+    {for {
       baseLayers <- Future.sequence(metadata.db.filter(_.autofocus).map(v => dbVectorLayer(v, d, None)))
       _ = addLayers(baseLayers.map(x => geomsToLayer(x._1, x._2)),true)
       extent = fit()
       extraLayers <- Future.sequence(metadata.db.filterNot(_.autofocus).map(v => dbVectorLayer(v, d, Some(extent))))
     } yield {
-
+      logger.debug("loaded layers")
       selectedLayerForEdit.set(selectedLayerForEdit.get, true) // retrigger layer listener
       addLayers(extraLayers.map(x => geomsToLayer(x._1, x._2)),false)
       redrawControl()
       ready.set(true)
-    }
+      logger.debug("ready")
+    }}.recover{ case t => t.printStackTrace()}
   }
 
   properties.listen({d =>
