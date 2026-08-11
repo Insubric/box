@@ -11,6 +11,7 @@ import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
 import ch.wsl.box.client.views.elements.Offline
+import ch.wsl.box.client.views.helpers.PopupFrame
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils
@@ -606,6 +607,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         case NewWindow => {
           window.open(url)
         }
+        case Popup => PopupFrame.open(url)
       }
     }
 
