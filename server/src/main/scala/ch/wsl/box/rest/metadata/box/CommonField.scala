@@ -94,7 +94,7 @@ object CommonField {
     ))
   ).asPopup
 
-  def roles(available_roles:Seq[String]) = JSONField(JSONFieldTypes.ARRAY_STRING,"roles",true,
+  def roles(available_roles:Seq[String], field:String = "roles") = JSONField(JSONFieldTypes.ARRAY_STRING,field,true,
     widget = Some(WidgetsNames.multipleLookup),
     lookup =  Some(JSONFieldLookup.prefilled(available_roles.map(x => JSONLookup(Json.fromString(x),Seq(x)))))
   )

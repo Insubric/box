@@ -18,24 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object GeoPackageWriter {
 
 
-  def geomSchema(builder:SimpleFeatureTypeBuilder,name:String,geo:Seq[Option[GeoJson.Geometry]],srid:Int) = {
-    geo.toList.flatten.filterNot(_ == GeoJson.Empty).headOption match {
-      case Some(value) => {
-        value match {
-          case geometry: GeoJson.SingleGeometry => geometry match {
-            case GeoJson.Point(_, crs) => builder.add(name, classOf[Point], crs.srid)
-            case GeoJson.LineString(_, crs) => builder.add(name, classOf[LineString], crs.srid)
-            case GeoJson.Polygon(_, crs) => builder.add(name, classOf[Polygon], crs.srid)
-          }
-          case GeoJson.MultiPoint(_, crs) => builder.add(name, classOf[MultiPoint], crs.srid)
-          case GeoJson.MultiLineString(_, crs) => builder.add(name, classOf[MultiLineString], crs.srid)
-          case GeoJson.MultiPolygon(_, crs) => builder.add(name, classOf[MultiPolygon], crs.srid)
-          case GeoJson.GeometryCollection(_, crs) => builder.add(name, classOf[Geometry], crs.srid)
-        }
-      }
-      case None => builder.add(name, classOf[Geometry],srid)
-    }
-  }
+
 
   private def fieldWriter(data:Json, typ: String, featureBuilder: SimpleFeatureBuilder) = {
       typ match {
@@ -115,7 +98,7 @@ object GeoPackageWriter {
           t.typ match {
             case JSONFieldTypes.INTEGER => builder.add(n, classOf[Integer])
             case JSONFieldTypes.NUMBER => builder.add(n, classOf[Double])
-            case JSONFieldTypes.GEOMETRY if geomNameTrim(geomFieldName) == geomNameTrim(n) => geomSchema(builder, geomName, values.map(x => Some(x._1)), srid)
+            case JSONFieldTypes.GEOMETRY if geomNameTrim(geomFieldName) == geomNameTrim(n) => GeotoolUtils.geomSchema(builder, geomName, values.map(x => Some(x._1)), srid)
             case JSONFieldTypes.GEOMETRY => ()
             case _ => builder.add(n, classOf[String])
           }

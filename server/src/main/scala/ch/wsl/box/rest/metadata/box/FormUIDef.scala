@@ -614,7 +614,7 @@ object FormUIDef {
     action = FormActionsMetadata.default
   )
 
-  def form_actions(functions:Seq[String]) = JSONMetadata(
+  def form_actions(functions:Seq[String],roles:Seq[String]) = JSONMetadata(
     objId = FORM_ACTION,
     kind = EntityKind.BOX_FORM.kind,
     name = "Form action",
@@ -659,6 +659,11 @@ object FormUIDef {
       ),
       JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
       JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"view_enable",false,widget = Some(WidgetsNames.checkbox), default = Some("true")),
+      JSONField(JSONFieldTypes.BOOLEAN,"edit_enable",false,widget = Some(WidgetsNames.checkbox), default = Some("true")),
+      JSONField(JSONFieldTypes.BOOLEAN,"need_update_right",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"need_delete_right",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      CommonField.roles(roles,"enabled_roles"),
       JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
       JSONField(JSONFieldTypes.BOOLEAN,"html_check",false,widget = Some(WidgetsNames.checkbox), default = Some("true")),
       JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
@@ -692,6 +697,11 @@ object FormUIDef {
           "label",
           "update_only",
           "insert_only",
+          "view_enable",
+          "edit_enable",
+          "need_update_right",
+          "need_delete_right",
+          "enabled_roles",
           "reload",
           "confirm_text",
           "condition",
@@ -712,7 +722,7 @@ object FormUIDef {
   )
 
 
-  def form_navigation_actions(functions:Seq[String]) = JSONMetadata(
+  def form_navigation_actions(functions:Seq[String],roles:Seq[String]) = JSONMetadata(
     objId = FORM_NAVIGATION_ACTION,
     kind = EntityKind.BOX_FORM.kind,
     name = "Form navigation action",
@@ -752,6 +762,11 @@ object FormUIDef {
       JSONField(JSONFieldTypes.BOOLEAN,"update_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
       JSONField(JSONFieldTypes.BOOLEAN,"insert_only",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
       JSONField(JSONFieldTypes.BOOLEAN,"reload",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"view_enable",false,widget = Some(WidgetsNames.checkbox), default = Some("true")),
+      JSONField(JSONFieldTypes.BOOLEAN,"edit_enable",false,widget = Some(WidgetsNames.checkbox), default = Some("true")),
+      JSONField(JSONFieldTypes.BOOLEAN,"need_update_right",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      JSONField(JSONFieldTypes.BOOLEAN,"need_delete_right",false,widget = Some(WidgetsNames.checkbox), default = Some("false")),
+      CommonField.roles(roles,"enabled_roles"),
       JSONField(JSONFieldTypes.STRING,"confirm_text",true,label=Some("Confirm text"),
         tooltip = Some("Before running action show a popup that ask for confirmation with the following text (translated with gobal transaltion table)"),
         widget = Some(WidgetsNames.input)
@@ -777,6 +792,11 @@ object FormUIDef {
           "label",
           "update_only",
           "insert_only",
+          "view_enable",
+          "edit_enable",
+          "need_update_right",
+          "need_delete_right",
+          "enabled_roles",
           "reload",
           "confirm_text"
         )),

@@ -2,7 +2,7 @@ package ch.wsl.box.rest
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
-import ch.wsl.box.model.shared.{DataResultTable, JSONQuery}
+import ch.wsl.box.model.shared.{DataResultTable, GeoJson, JSONQuery}
 import ch.wsl.box.rest.logic._
 import ch.wsl.box.rest.logic.functions.{Context, RuntimeFunction, RuntimePSQL, RuntimeUtils, RuntimeWS}
 import ch.wsl.box.rest.utils.{Lang, UserProfile}
@@ -39,6 +39,8 @@ class RuntimeFunctionSpec extends BaseSpec {
       },
       new RuntimeUtils {
         override def qrCode(url: String): String = ???
+
+        override def swissTopoMap(geometry:Option[Json], width:Int, height:Int, buffer:Int = 500): String = ???
       }
     )
 
