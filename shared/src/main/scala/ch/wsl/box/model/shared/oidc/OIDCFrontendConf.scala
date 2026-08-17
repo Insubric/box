@@ -6,7 +6,8 @@ case class OIDCFrontendConf(
                              logo: String,
                              authorize_url: String,
                              scope: String,
-                             client_id: String
+                             client_id: String,
+                             code_challange:Boolean
                    )
 
 object OIDCFrontendConf {
