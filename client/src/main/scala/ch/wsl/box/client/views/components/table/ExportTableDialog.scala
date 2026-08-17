@@ -17,6 +17,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{Element, Event, HTMLDivElement, HTMLInputElement, document}
 import scribe.Logging
 import ch.wsl.box.shared.utils.Formatters._
+import org.scalajs.dom.html.Input
 
 import scala.scalajs.js.URIUtils
 
@@ -85,21 +86,54 @@ class ExportTableDialog extends Logging {
       case false => Seq()
     }
 
-    val params = Seq(
-      ExportTableFormat.fieldsParamName -> fields.mkString(","),
-      ExportTableFormat.queryParamName -> URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)
-    ) ++ resolveFK ++ exportGeomFormatParam
 
-    val paramsString = params.map{ case (k,v) => s"$k=$v"}.mkString("&").replaceAll("\n", "")
+
 
     if(format == ExportTableFormat.PDF) {
       PDF.table(kind,modelName,fields,queryNoLimits)
     } else {
-      val url = Routes.apiV1(
-        s"/$kind/${services.clientSession.lang()}/$modelName/${format.code}?$paramsString"
-      )
-      logger.info(s"downloading: $url")
-      dom.window.open(url)
+
+      if(kind != EntityKind.FORM.kind) {
+        val params = Seq(
+          ExportTableFormat.fieldsParamName -> fields.mkString(","),
+          ExportTableFormat.queryParamName -> URIUtils.encodeURI(queryNoLimits.asJson.noSpaces)
+        ) ++ resolveFK ++ exportGeomFormatParam
+        val paramsString = params.map{ case (k,v) => s"$k=$v"}.mkString("&").replaceAll("\n", "")
+        val url = Routes.apiV1(
+          s"/$kind/${services.clientSession.lang()}/$modelName/${format.code}?$paramsString"
+        )
+        logger.info(s"downloading: $url")
+        dom.window.open(url)
+      } else {
+        val params = Seq(
+          ExportTableFormat.fieldsParamName -> fields.mkString(","),
+          ExportTableFormat.queryParamName -> queryNoLimits.asJson.noSpaces
+        ) ++ resolveFK ++ exportGeomFormatParam
+        val url = Routes.apiV1(
+          s"/$kind/${services.clientSession.lang()}/$modelName/${format.code}/export"
+        )
+        logger.info(s"downloading: $url")
+
+        def param2Input(p: (String, String)): Input = {
+          val i = input().render
+          i.`type` = "hidden"
+          i.name = ExportTableFormat.queryParamName
+          i.value = queryNoLimits.asJson.noSpaces
+          i
+        }
+
+        val f = form().render
+        f.method = "POST";
+        f.action = url;
+        f.target = "_blank";
+
+
+        params.map(param2Input).foreach(f.appendChild)
+
+        document.body.appendChild(f);
+        f.submit();
+        document.body.removeChild(f);
+      }
     }
   }
 
