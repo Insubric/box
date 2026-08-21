@@ -36,7 +36,7 @@ object Settings {
     val ficus = "1.5.2"
 
     val macWire = "2.3.7"
-    val airframe = "22.9.3"
+    val airframe = "2026.2.2"
 
     //HTTP actors
     val akka = "2.6.4"
@@ -48,14 +48,14 @@ object Settings {
     val junit = "4.12"
     val scalatest = "3.2.13"
     val selenium = "3.14.0"
-    val testcontainersScalaVersion = "0.40.10"
+    val testcontainersScalaVersion = "0.44.1"
 
 
     //json parsers
     val circe = "0.14.15"
 
     //database
-    val postgres = "42.2.20"
+    val postgres = "42.7.13"
     val slick = "3.4.1"
     val slickPg = "0.21.0"
     val flyway = "10.7.1"
@@ -69,12 +69,13 @@ object Settings {
     val udash = "0.22.0"
     val udashJQuery = "3.0.4"
 
-    val scribe = "3.0.2"
+    val scribe = "3.19.0"
 
 
     val scalaJsonSchema = "0.2.6"
 
     val kantan = "0.6.1"
+    val batik = "1.19"
 
 
   }
@@ -109,7 +110,6 @@ object Settings {
     "org.flywaydb" % "flyway-core" % versions.flyway,
     "org.flywaydb" % "flyway-database-postgresql" % versions.flyway,
     "com.outr"                 %% "scribe"           % versions.scribe,
-    "com.outr"                 %% "scribe-slf4j18"           % versions.scribe,
     "org.tpolecat" %% "skunk-core" % "0.6.5",
     "org.tpolecat" %% "skunk-circe" % "0.6.5",
   ))
@@ -127,13 +127,14 @@ object Settings {
   /** Dependencies only used by the JVM project */
   val jvmDependencies = Def.setting(sharedJVMCodegenDependencies.value ++ Seq(
     "org.scala-lang"           % "scala-reflect"     % versions.scala213,
-    "org.scala-lang"           % "scala-compiler"    % versions.scala213,
+    "org.scala-lang"           % "scala-compiler"    % versions.scala213 exclude("org.jline","jline"),
     "com.typesafe.akka"        %% "akka-http-core"   % versions.akkaHttp,
     "com.typesafe.akka"        %% "akka-http-caching" % versions.akkaHttp,
     "de.heikoseeberger"        %% "akka-http-circe"  % versions.akkaHttpJson,
     "com.typesafe.akka"        %% "akka-actor"       % versions.akka,
     "com.typesafe.akka"        %% "akka-stream"      % versions.akka,
     "com.enragedginger" %% "akka-quartz-scheduler" % "1.8.5-akka-2.6.x",
+    "org.quartz-scheduler" % "quartz" % "2.5.2",
     "com.softwaremill.akka-http-session" %% "core"   % "0.5.11",
     "io.circe"                 %% "circe-core"       % versions.circe,
     "io.circe"                 %% "circe-generic"    % versions.circe,
@@ -146,11 +147,9 @@ object Settings {
     "com.typesafe.akka"        %% "akka-testkit"     % versions.akka      % "test",
     "com.typesafe.akka"        %% "akka-http-testkit"% versions.akkaHttp  % "test",
     "com.dimafeng"             %% "testcontainers-scala-scalatest" % versions.testcontainersScalaVersion % "test",
-    "ch.wavein"                %% "scala-thumbnailer" % "0.7.2",
-    "javax.servlet"            % "javax.servlet-api" % "3.1.0" % "provided",
-    "org.mitre.dsmiley.httpproxy" % "smiley-http-proxy-servlet" % "1.10",
+    "ch.wavein"                %% "scala-thumbnailer" % "0.8.0",
     "com.openhtmltopdf"        % "openhtmltopdf-pdfbox" % "1.0.9",
-    "org.jsoup"                % "jsoup"             % "1.12.1",
+    "org.jsoup"                % "jsoup"             % "1.23.1",
     "com.github.spullara.mustache.java" % "compiler" % "0.9.6",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.3",
     "com.norbitltd" %% "spoiwo" % "2.2.1",
@@ -159,10 +158,8 @@ object Settings {
     "io.github.cquiroz" %% "scala-java-time" % "2.0.0",
     "com.nrinaudo" %% "kantan.csv" % versions.kantan,
     "org.wvlet.airframe" %%% "airframe" % versions.airframe,
-    "org.apache.tika" % "tika-core" % "1.25",
-    "com.sksamuel.scrimage" % "scrimage-core" % "4.0.12"  exclude("ch.qos.logback","logback-classic"),
-    "org.graalvm.js" % "js" % "20.2.0",
-    "org.javadelight" % "delight-graaljs-sandbox" % "0.1.2",
+    "org.apache.tika" % "tika-core" % "3.3.2",
+    "com.sksamuel.scrimage" % "scrimage-core" % "4.6.7"  exclude("ch.qos.logback","logback-classic"),
     "org.scalatest" %% "scalatest" % versions.scalatest % "test",
     "org.scalatest" %% "scalatest-flatspec" % versions.scalatest % "test",
     "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % Test,
@@ -173,16 +170,24 @@ object Settings {
     "org.geotools" % "gt-geopkg" % "34.0",
     "org.geotools" % "gt-wms" % "34.0",
     "org.geotools" % "gt-wmts" % "34.0",
+
+    "io.airlift" % "aircompressor" % "2.0.3", //gt-coverage eviction to solve CVE-2025-67721
     "org.geotools.xsd" % "gt-xsd-sld" % "34.0",
     "com.google.zxing" % "core" % "3.5.0",
     "com.google.zxing" % "javase" % "3.5.0",
     "com.typesafe" %% "ssl-config-core" % "0.6.1",
-    "org.apache.xmlgraphics" % "batik-transcoder" % "1.16",
-    "org.apache.xmlgraphics" % "batik-codec" % "1.16",
+    "org.apache.xmlgraphics" % "batik-transcoder" % versions.batik,
+    "org.apache.xmlgraphics" % "batik-codec" % versions.batik,
+    "org.apache.xmlgraphics" % "batik-codec" % versions.batik,
     "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
     "com.softwaremill.sttp.client4" %% "circe" % "4.0.9",
-    "org.bouncycastle" % "bcpkix-jdk18on" % "1.83",
-    "com.github.jwt-scala" %% "jwt-circe" % "11.0.4"
+    "org.bouncycastle" % "bcpkix-jdk18on" % "1.85",
+    "com.github.jwt-scala" %% "jwt-circe" % "11.0.4",
+    "com.fasterxml.jackson.core" % "jackson-core" % "2.22.2",
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.22.2",
+    "com.google.protobuf" % "protobuf-java" % "3.25.9",
+
+
     //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
     //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"

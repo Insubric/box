@@ -15,6 +15,8 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
 addSbtPlugin("org.scalablytyped.converter" % "sbt-converter" % "1.0.0-beta44")
 
+addSbtPlugin("net.nmoncho" % "sbt-dependency-check" % "2.0.0")
+
 
 addDependencyTreePlugin
 
