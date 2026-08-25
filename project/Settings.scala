@@ -181,7 +181,8 @@ object Settings {
     "org.apache.xmlgraphics" % "batik-codec" % "1.16",
     "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
     "com.softwaremill.sttp.client4" %% "circe" % "4.0.9",
-    "org.bouncycastle" % "bcpkix-jdk18on" % "1.83"
+    "org.bouncycastle" % "bcpkix-jdk18on" % "1.83",
+    "com.github.jwt-scala" %% "jwt-circe" % "11.0.4"
     //"mil.nga.geopackage" % "geopackage" % "6.6.3"
 
     //    "com.github.pureconfig" %% "pureconfig" % "0.17.3"

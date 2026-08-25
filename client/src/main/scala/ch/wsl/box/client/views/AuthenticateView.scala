@@ -23,9 +23,12 @@ class AdminPresenter() extends Presenter[AuthenticateState] {
   override def handleState(state: AuthenticateState): Unit = {
     val params = new URLSearchParams(window.location.search)
     val code = params.get("code")
+    val _state = params.get("state")
+
+    //services.odicClient.handleCallback()
 
       val fut = for {
-        result <- services.rest.authenticate(code,state.provider_id)
+        result <- services.rest.authenticate(code,state.provider_id,_state)
         _ <-  services.clientSession.createSession(result)
       } yield {
         Context.applicationInstance.goTo(IndexState,true)

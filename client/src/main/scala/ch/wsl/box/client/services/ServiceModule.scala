@@ -15,4 +15,5 @@ trait ServiceModule {
   val layout = bind[MainLayout]
   val preferences = bind[Preferences]
   val messages = bind[Messages]
+  val odicClient = bind[OIDCClient]
 }

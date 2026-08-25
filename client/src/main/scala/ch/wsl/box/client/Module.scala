@@ -1,6 +1,6 @@
 package ch.wsl.box.client
-import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Messages, MessagesPropertyImpl, Navigator, Notification, NotificationChannel, NotificationWebSocket, Preferences, REST}
-import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, HttpClientImpl, PreferencesImpl, RestImpl}
+import ch.wsl.box.client.services.{ClientSession, DataAccessObject, HttpClient, Messages, MessagesPropertyImpl, Navigator, Notification, NotificationChannel, NotificationWebSocket, OIDCClient, Preferences, REST}
+import ch.wsl.box.client.services.impl.{DaoLocalDbImpl, DaoPassthroughImpl, HttpClientImpl, OIDCClientImpl, PreferencesImpl, RestImpl}
 import ch.wsl.box.client.styles.{BoxStyle, BoxStyleFactory, GlobalStyleFactory}
 import ch.wsl.box.client.views.components.{BoxMainLayout, MainLayout}
 import ch.wsl.box.model.shared.AvailableUIModule
@@ -24,6 +24,7 @@ object Module {
     .bind[BoxStyleFactory].to[GlobalStyleFactory]
     .bind[MainLayout].to[BoxMainLayout]
     .bind[Messages].to[MessagesPropertyImpl]
+    .bind[OIDCClient].to[OIDCClientImpl]
 
   val prod = newDesign
     .bind[HttpClient].to[HttpClientImpl]
@@ -36,4 +37,5 @@ object Module {
     .bind[BoxStyleFactory].to[GlobalStyleFactory]
     .bind[MainLayout].to[BoxMainLayout]
     .bind[Messages].to[MessagesPropertyImpl]
+    .bind[OIDCClient].to[OIDCClientImpl]
 }

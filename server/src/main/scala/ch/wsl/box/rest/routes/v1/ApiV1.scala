@@ -24,11 +24,14 @@ import scala.util.{Failure, Success}
 import boxInfo.BoxBuildInfo
 import ch.wsl.box.model.boxentities.BoxUser
 import ch.wsl.box.model.shared.oidc.UserInfo
-import ch.wsl.box.rest.auth.oidc.AuthFlow
+import ch.wsl.box.rest.auth.oidc.{AuthFlow, CodeHandler}
 import ch.wsl.box.services.Services
 import io.circe.Json
 import sttp.client4._
 import sttp.client4.circe.asJson
+
+import java.security.MessageDigest
+import java.util.Base64
 
 
 case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager: SessionManager[BoxSession], mat:Materializer, system:ActorSystem, services: Services) {
@@ -86,18 +89,27 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
 
 
   def sso = pathPrefix("sso") {
-    path(Segment) { provider_id =>
-      parameters("code") { code =>
-        onComplete(AuthFlow.code(provider_id,code)) {
-          case Success(value) => value match {
-            case Left(value) => complete(InternalServerError, s"An error occurred: ${value.getMessage}")
-            case Right(user) => boxSetSessionCookie(BoxSession(user)) {
-              complete(user.profile)
-            }
+    pathPrefix(Segment) { provider_id =>
+      path("challenge") {
+        get {
+          complete{
+            CodeHandler.issueNewCode(services.connection.adminDB)
           }
-          case Failure(ex) => complete(Unauthorized, s"An error occurred: ${ex.getMessage}")
         }
+      } ~
+      pathEnd {
+        parameters("code","state") { case (code,state) =>
+          onComplete(AuthFlow.code(provider_id, code, state)) {
+            case Success(value) => value match {
+              case Left(value) => complete(InternalServerError, s"An error occurred: ${value.getMessage}")
+              case Right(user) => boxSetSessionCookie(BoxSession(user)) {
+                complete(user.profile)
+              }
+            }
+            case Failure(ex) => complete(Unauthorized, s"An error occurred: ${ex.getMessage}")
+          }
 
+        }
       }
     }
   }
