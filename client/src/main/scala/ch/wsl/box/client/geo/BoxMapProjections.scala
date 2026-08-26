@@ -50,6 +50,7 @@ class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:Strin
     bbox.contains(Coordinates(x,y))
   }
 
+  def extent = BoxMapProjections.toExtent(bbox)
 
   def toOlProj(projection: MapProjection) = {
 
@@ -57,7 +58,7 @@ class BoxMapProjections(_projections:Seq[MapProjection],_defaultProjection:Strin
     //      .setUnits(projection.unit)
 
 
-    projDef.setExtent(projMod.transformExtent(toExtent(bbox),_defaultProjection,projection.name))
+    projDef.setExtent(projMod.transformExtent(extent,_defaultProjection,projection.name))
 
     new projProjectionMod.default(projDef)
   }

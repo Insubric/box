@@ -26,21 +26,21 @@ class PWAInstallButton {
     showInstall.set(true)
   })
 
-  def render = {
-    showIf(showInstall) {
+  def render:Modifier = {
+    if (ClientConf.enablePWA) {
+      showIf(showInstall) {
+        div(BootstrapStyles.Card.card, BootstrapStyles.Flex.autoMargin(BootstrapStyles.Side.All), minWidth := 300.px)(
 
+          div(BootstrapStyles.Card.body)(
+            button("Install", ClientConf.style.boxButton, onclick :+= { (e: Event) =>
+              showInstall.set(false)
+              deferredPrompt.asInstanceOf[js.Dynamic].prompt()
+            })
+          )
 
-      div(BootstrapStyles.Card.card,BootstrapStyles.Flex.autoMargin(BootstrapStyles.Side.All), minWidth := 300.px)(
-
-        div(BootstrapStyles.Card.body)(
-          button("Install",ClientConf.style.boxButton, onclick :+= { (e: Event) =>
-            showInstall.set(false)
-            deferredPrompt.asInstanceOf[js.Dynamic].prompt()
-          })
-        )
-
-      ).render
-    }
+        ).render
+      }
+    } else Seq[Modifier]()
   }
 
 }
