@@ -21,16 +21,7 @@ object BuildBox {
 
 
   def main(args: Array[String]): Unit = {
-    println("Installing BOX")
-
-    DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { services =>
-
-      Registry.boxSchemaOnly(services.config.boxSchemaName)
-
-      install(services.connection,services.config.boxSchemaName)
-
-      println("Box schema ready")
-    }
+    install()
   }
 
 
@@ -525,8 +516,29 @@ ALTER TABLE ONLY #${boxSchema}.function_field
     } yield "ok"
   }
 
-  def install(connection: Connection, boxSchema: String) = {
-    val installShowError = connection.dbConnection.run(setUpBoxSchema(connection.adminUser, boxSchema).transactionally).recover { case t: Throwable => t.printStackTrace() }
+
+  def install() = {
+    println("Installing BOX")
+
+    DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { services =>
+
+      Registry.boxSchemaOnly(services.config.boxSchemaName)
+
+      _install(services.connection,services.config.boxSchemaName)
+
+      println("Box schema ready")
+    }
+  }
+
+  def _install(connection: Connection, boxSchema: String) = {
+    val q = for {
+      exists <-
+        sql"""
+               select count(*) > 40 from information_schema.tables where table_schema=${boxSchema};
+      """.as[Boolean]
+      _ <- if(exists.forall(x => x)) DBIO.successful(0) else setUpBoxSchema(connection.adminUser, boxSchema)
+    } yield true
+    val installShowError = connection.dbConnection.run(q.transactionally).recover { case t: Throwable => t.printStackTrace() }
     Await.result(installShowError, 30 seconds)
     Await.result(MigrateDB.box(connection, boxSchema), 120 seconds)
   }

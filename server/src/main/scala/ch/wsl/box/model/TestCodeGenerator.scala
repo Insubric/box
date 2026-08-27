@@ -50,7 +50,7 @@ set search_path=#${publicSchema};
 """.transactionally), 120.seconds)
 
 
-    BuildBox.install(connection,boxSchema)
+    BuildBox._install(connection,boxSchema)
 
     Await.result(new SchemaGenerator(connection,langs,boxSchema).run(),100.seconds)
   }

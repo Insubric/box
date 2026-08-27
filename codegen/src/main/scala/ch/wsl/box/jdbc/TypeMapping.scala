@@ -19,6 +19,7 @@ object TypeMapping extends Logging {
           case "_int8" | "int8[]" => Some("List[Long]")
           case "_int4" | "int4[]" => Some("List[Int]")
           case "_int2" | "int2[]" => Some("List[Short]")
+          case "interval" => Some("java.time.Duration")
           case s:String if s.contains("geometry") => Some("org.locationtech.jts.geom.Geometry")
           case "timestamp with timezone" | "timestampz" | "timestamptz" => Some("java.time.OffsetDateTime")
           case s:String if s.contains("email") => {

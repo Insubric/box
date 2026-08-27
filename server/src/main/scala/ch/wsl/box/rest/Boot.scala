@@ -14,9 +14,9 @@ import com.typesafe.config.Config
 import scribe._
 import scribe.writer.ConsoleWriter
 import wvlet.airframe.Design
-import ch.wsl.box.model.Migrate
+import ch.wsl.box.model.{BuildBox, Migrate}
 import ch.wsl.box.rest.logic.cron.{BoxCronLoader, CronScheduler}
-import ch.wsl.box.rest.logic.notification.{MailHandler}
+import ch.wsl.box.rest.logic.notification.MailHandler
 import ch.wsl.box.rest.utils.CertificateUtils
 
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -123,6 +123,8 @@ object Boot extends App  {
       println("[BOX framework] - shutdown completed")
     }
 
+    // if not exists create box schema
+    BuildBox.install()
 
     Registry.load()
     Registry.loadBox()
