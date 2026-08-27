@@ -123,7 +123,7 @@ object Boot extends App  {
       println("[BOX framework] - shutdown completed")
     }
 
-    // if not exists create box schema
+    // if not exists create box schema and do migrations
     BuildBox.install()
 
     Registry.load()
@@ -135,7 +135,6 @@ object Boot extends App  {
 
       val binding = {
         for {
-          _ <- Migrate.all(services)
           res <- server.start()
         } yield res
       }.recover{ case t => t.printStackTrace(); throw t}

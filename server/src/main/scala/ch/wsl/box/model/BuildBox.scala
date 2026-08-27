@@ -517,18 +517,22 @@ ALTER TABLE ONLY #${boxSchema}.function_field
   }
 
 
+
   def install() = {
     println("Installing BOX")
 
     DefaultModule.injectorWithoutGeneration.build[ServicesWithoutGeneration] { services =>
 
+
       Registry.boxSchemaOnly(services.config.boxSchemaName)
 
-      _install(services.connection,services.config.boxSchemaName)
-
+      _install(services.connection, services.config.boxSchemaName)
+      Migrate.all(services)
       println("Box schema ready")
     }
+
   }
+
 
   def _install(connection: Connection, boxSchema: String) = {
     val q = for {
@@ -540,7 +544,6 @@ ALTER TABLE ONLY #${boxSchema}.function_field
     } yield true
     val installShowError = connection.dbConnection.run(q.transactionally).recover { case t: Throwable => t.printStackTrace() }
     Await.result(installShowError, 30 seconds)
-    Await.result(MigrateDB.box(connection, boxSchema), 120 seconds)
   }
 
 }
