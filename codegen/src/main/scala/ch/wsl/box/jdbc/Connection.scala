@@ -94,6 +94,7 @@ class ConnectionConfImpl extends Connection {
   val leakDetectionThreshold =  dbConf.as[Option[Int]]("leakDetectionThreshold").getOrElse(100000)
   val maxLifetime =  dbConf.as[Option[Int]]("maxLifetime").getOrElse(600000)
   val idleTimeout =  dbConf.as[Option[Int]]("idleTimeout").getOrElse(300000)
+  val enableSSL =  dbConf.as[Option[Boolean]]("ssl").getOrElse(false)
 
   val connectionPool = if (enableConnectionPool) {
     ConfigValueFactory.fromAnyRef("HikariCP")
@@ -105,12 +106,15 @@ class ConnectionConfImpl extends Connection {
 
   private val pgConf = JdbcParser.parse(dbPath).get
 
+  private val ssl = if(enableSSL) SSL.System else SSL.None
+
   override def notificationSession(): Resource[IO, Session[IO]] = Session.single[IO](
     host=pgConf.host,
     port= pgConf.port,
     user=adminUser,
     database = pgConf.database,
-    password = Some(dbPassword)
+    password = Some(dbPassword),
+    ssl = ssl
   )
 
   override def pooledAdminSession(): Resource[IO, Resource[IO, Session[IO]]] = Session.pooled[IO](
@@ -119,7 +123,8 @@ class ConnectionConfImpl extends Connection {
     user=adminUser,
     database = pgConf.database,
     password = Some(dbPassword),
-    max = 2
+    max = 2,
+    ssl = ssl
   )
 
   println(s"DB: $dbPath")

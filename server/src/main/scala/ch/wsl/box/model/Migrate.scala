@@ -14,13 +14,10 @@ object Migrate {
 
 
   def all(services: ServicesWithoutGeneration) = {
-    val q = for {
-     _ <- MigrateDB.box(services.connection,services.config.boxSchemaName)
-     _ <- Future{ MigrateDB.app(services.connection) }
-     _ <- new SchemaGenerator(services.connection,services.config.langs,services.config.boxSchemaName).run()
-     _ <- LabelsUpdate.run(services)
-    } yield true
-    Await.result(q.recover{case t => t.printStackTrace()},600.seconds)
+    Await.result(MigrateDB.box(services.connection,services.config.boxSchemaName).recover{case t => t.printStackTrace()},600.seconds)
+    MigrateDB.app(services.connection)
+    Await.result(new SchemaGenerator(services.connection,services.config.langs,services.config.boxSchemaName).run().recover{case t => t.printStackTrace()},600.seconds)
+    Await.result(LabelsUpdate.run(services).recover{case t => t.printStackTrace()},600.seconds)
   }
 
   def main(args: Array[String]): Unit = {
