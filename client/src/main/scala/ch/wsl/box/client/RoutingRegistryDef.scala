@@ -8,7 +8,7 @@ import scribe.Logging
 
 import scala.scalajs.js
 
-class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
+class RoutingRegistryDef(popup:Boolean) extends RoutingRegistry[RoutingState] with Logging {
   import Context._
   def matchUrl(url: Url): RoutingState = {
     val _localUrl = {if(dom.window.location.hash.startsWith("#/")) dom.window.location.hash.stripPrefix("#") else url.value}
@@ -19,7 +19,7 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
 
 
     logger.info(s"match URL $localUrl logged: ${services.clientSession.isSet(ClientSession.USER)}")
-    services.clientSession.isSet(ClientSession.USER) match {
+    val state = services.clientSession.isSet(ClientSession.USER) match {
       case true => loggedInUrl2State.applyOrElse ( localUrl.stripPrefix("/public"), (x: String) => {
         logger.warn(s"Not found $localUrl")
         Notification.add(Labels.error.notfound + " " + localUrl)
@@ -30,6 +30,18 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
         ErrorState
       })
     }
+
+    state match {
+      case e:QueryDataParams => {
+        val params: Option[Map[String, Option[String]]] = url.value.split("\\?").lastOption.map(_.split("&").map{ x =>
+          val kv = x.split("=")
+          kv(0) -> kv.lift(1)
+        }).map(_.toMap)
+        e.withParams(params)
+      }
+      case _ => state
+    }
+
   }
 
   def matchState(state: RoutingState): Url = {
@@ -51,11 +63,11 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/exports"  => DataListState(DataKind.EXPORT,"")
     case "/box" / "export" / exportFunction  => DataState(DataKind.EXPORT,exportFunction)
     case "/box" / "function" / exportFunction  => DataState(DataKind.FUNCTION,exportFunction)
-    case "/box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
-    case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std)
-    case "/box" / kind / entity / "insert" / layout => EntityFormState(kind,entity,"true",None,false,layout)
-    case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std)
-    case "/box" / kind / entity / "row" / write / id / layout => EntityFormState(kind,entity,write,Some(id),false,layout)
+    case "/box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std,None,popup = popup)
+    case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std,None,popup = popup)
+    case "/box" / kind / entity / "insert" / layout => EntityFormState(kind,entity,"true",None,false,layout,None,popup = popup)
+    case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std,None,popup = popup)
+    case "/box" / kind / entity / "row" / write / id / layout => EntityFormState(kind,entity,write,Some(id),false,layout,None,popup = popup)
     case "/box" / kind / entity / "child" / childEntity => MasterChildState(kind,entity,childEntity)
     case "/box" / kind / entity => EntityTableState(kind,entity,None,false)
     case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query),false)
@@ -76,11 +88,11 @@ class RoutingRegistryDef extends RoutingRegistry[RoutingState] with Logging {
     case "/authenticate" / provider_id  => AuthenticateState(provider_id)
     case "/logout" => LogoutState
     case "/public" / "box" / kind / entity  => EntityTableState(kind,entity,None,true)
-    case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std)
-    case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank)
-    case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std)
-    case "/public" / "box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),true,Layouts.std)
-    case "/public" / "box" / kind / entity / "row" / write / id / "blank" => EntityFormState(kind,entity,write,Some(id),true,Layouts.blank)
+    case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std,None,popup = popup)
+    case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank,None,popup = popup)
+    case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std,None,popup = popup)
+    case "/public" / "box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),true,Layouts.std,None,popup = popup)
+    case "/public" / "box" / kind / entity / "row" / write / id / "blank" => EntityFormState(kind,entity,write,Some(id),true,Layouts.blank,None,popup = popup)
     case "/entities" => LoginState("/entities")
     case "/tables" => LoginState("/tables")
     case "/views" => LoginState("/views" )

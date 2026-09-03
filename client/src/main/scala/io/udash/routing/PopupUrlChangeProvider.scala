@@ -12,7 +12,7 @@ class PopupUrlChangeProvider(base:String) extends UrlChangeProvider {
 
     override def initialize(): Unit = ()
 
-    override def changeFragment(url: Url, replaceCurrent: Boolean): Unit = _current
+    override def changeFragment(url: Url, replaceCurrent: Boolean): Unit = _current = url
 
     override def currentFragment: Url = _current
 

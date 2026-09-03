@@ -22,7 +22,7 @@ case class ModalDef(
 class ModalStack(
                   fade: ReadableProperty[Boolean] = UdashBootstrap.True,
                   labelId: ReadableProperty[Option[String]] = UdashBootstrap.None,
-                  backdrop: ReadableProperty[UdashModal.BackdropType] = BackdropType.Active.toProperty,
+                  backdrop: ReadableProperty[UdashModal.BackdropType] = BackdropType.None.toProperty,
                   keyboard: ReadableProperty[Boolean] = UdashBootstrap.True,
                   componentId: ComponentId = ComponentId.generate()
                 )  {
@@ -38,7 +38,6 @@ class ModalStack(
     body.set(m.bodyFactory)
     footer.set(m.footerFactory)
     size.set(m.size)
-
   }
 
   private def renderEl(p:Property[Option[Binding.NestedInterceptor => Element]]) = {
@@ -63,11 +62,12 @@ class ModalStack(
   }
 
   def pop(): Unit = {
-    stack.pop()
+    val last = stack.pop()
     stack.lastOption match {
       case Some(md) => setModelDef(md)
       case None => modal.hide()
     }
+    last.onClose.foreach(_())
   }
 
 

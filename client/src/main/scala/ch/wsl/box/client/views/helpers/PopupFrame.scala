@@ -20,10 +20,13 @@ import io.udash.routing.{BoxUrlChangeProvider, PopupUrlChangeProvider, UrlChange
 import io.udash.utils.Registration
 import scalacss.ScalatagsCss._
 import scalatags.JsDom.all._
+import scribe.Logging
 
-object PopupFrame {
+import scala.concurrent.{Future, Promise}
 
-  private def render(body:Element) = {
+object PopupFrame extends Logging {
+
+  private def render(body:Element):Future[Boolean] = {
     val listenerManager = new ListenerManager()
     import listenerManager._
 
@@ -31,35 +34,43 @@ object PopupFrame {
       button(Labels.popup.close, ClientConf.style.boxButton).render.listen("click", _ => ModalStack.mainStack.pop())
     ).render
 
+    val promise = Promise[Boolean]()
+
     val modalDef = ModalDef(
       headerFactory = None,
       bodyFactory = Some(_ => body),
       footerFactory = Some(footer),
       size = Some(Size.Large),
-      onClose = Some(_ => listenerManager.clearAll())
+      onClose = Some(_ => {
+        logger.info("Closing modal")
+        listenerManager.clearAll()
+        promise.success(true)
+      })
     )
 
     ModalStack.mainStack.push(modalDef)
 
+    promise.future
   }
 
 
 
-  def open(url:String) = {
+  def open(url:String):Future[Boolean] = {
 
     if(url.startsWith(Routes.baseUri) || url.startsWith("/")) { // relative path
 
-      val routingRegistry = new RoutingRegistryDef
+      val routingRegistry = new RoutingRegistryDef(true)
       val viewPresenterRegistry = new StatesToViewPresenterDef
+
+      println(s"url $url")
 
       val applicationInstance = new Application[RoutingState](routingRegistry, viewPresenterRegistry,urlChangeProvider = new PopupUrlChangeProvider(url))   //udash application
 
       val popupApp = div().render
 
-      render(popupApp)
-
+      val fut = render(popupApp)
       applicationInstance.run(popupApp)
-
+      fut
 
     } else {
       render(iframe(src := url).render)

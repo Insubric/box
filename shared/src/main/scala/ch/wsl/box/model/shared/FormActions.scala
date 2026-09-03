@@ -6,6 +6,7 @@ import yamusca.imports._
 
 sealed trait Action
 case object SaveAction extends Action
+case object SaveAndClosePopup extends Action
 case object SaveLocalAction extends Action
 case object EditAction extends Action
 case object ShowAction extends Action
@@ -21,6 +22,7 @@ object Action{
   def fromString(s:String):Action = s match {
     case "SaveAction" => SaveAction
     case "SaveLocalAction" => SaveLocalAction
+    case "SaveAndClosePopup" => SaveAndClosePopup
     case "CopyAction" => CopyAction
     case "RevertAction" => RevertAction
     case "DeleteAction" => DeleteAction
@@ -32,7 +34,7 @@ object Action{
     case "HideActions" => ShowAction
   }
 
-  def all = Seq(SaveAction,SaveLocalAction,EditAction,CopyAction,RevertAction,DeleteAction,DeleteLocalAction,NoAction,BackAction,ShowAction,HideActions)
+  def all = Seq(SaveAction,SaveAndClosePopup,SaveLocalAction,EditAction,CopyAction,RevertAction,DeleteAction,DeleteLocalAction,NoAction,BackAction,ShowAction,HideActions)
 }
 
 sealed trait Importance

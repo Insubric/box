@@ -15,7 +15,7 @@ object Context {
 
   val pwa = new PWAInstallButton()
 
-  val routingRegistry = new RoutingRegistryDef
+  val routingRegistry = new RoutingRegistryDef(false)
   private val viewPresenterRegistry = new StatesToViewPresenterDef
   val applicationInstance = new Application[RoutingState](routingRegistry, viewPresenterRegistry,urlChangeProvider = new BoxUrlChangeProvider())   //udash application
   def services:ServiceModule = if(_services == null) {

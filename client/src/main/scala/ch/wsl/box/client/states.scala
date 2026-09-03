@@ -50,11 +50,32 @@ case object AdminDBReplState extends FinalRoutingState(Some(RootState()))
 
 case object IndexState extends FormState(EntityKind.FORM.kind, "index", "true", Some("static::page"), false, Layouts.std) {
   override def entity: String = UI.indexPage.getOrElse("")
+  override def popup: Boolean = false
+  override def queryParamsData: Option[Map[String, Option[String]]] = None
+  override def withParams(data: Option[Map[String, Option[String]]]): RoutingState = this
 }
 
 case class EntitiesState(kind:String, currentEntity:String, public:Boolean, layout:String = Layouts.std) extends ContainerRoutingState(Some(RootState(layout)))
 
 case class EntityTableState(kind:String, entity:String,query:Option[String], public:Boolean) extends FinalRoutingState(Some(EntitiesState(kind,entity,public)))
+
+sealed trait PopupEnable {
+  def popup:Boolean
+}
+
+sealed trait PublicEnable {
+  def public:Boolean
+}
+
+sealed trait LayoutEnable {
+  def layout:String
+}
+
+sealed trait QueryDataParams { this:RoutingState =>
+  def queryParamsData:Option[Map[String,Option[String]]]
+  def withParams(data:Option[Map[String,Option[String]]]):RoutingState
+}
+
 
 abstract class FormState(
                           val kind:String,
@@ -62,8 +83,8 @@ abstract class FormState(
                           val write:String,
                           _id:Option[String],
                           val public:Boolean,
-                          val layout: String
-                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,public,layout))) {
+                          val layout: String,
+                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,public,layout))) with PopupEnable with PublicEnable with LayoutEnable with QueryDataParams {
   def id:Option[String] = _id
   def writeable:Boolean = write == "true"
   def entity = _entity
@@ -75,14 +96,16 @@ case class EntityFormState(
                             override val write:String,
                             _id:Option[String],
                             override val public:Boolean,
-                            override val layout: String = Layouts.std
+                            override val layout: String = Layouts.std,
+                            override val queryParamsData:Option[Map[String,Option[String]]],
+                            override val popup:Boolean
                           ) extends FormState(kind, entity, write, _id, public,layout) {
   override def id = {
     val t = _id.map(URIUtils.decodeURI)
     t
   }
 
-
+  override def withParams(data: Option[Map[String, Option[String]]]): RoutingState = this.copy(queryParamsData =  data)
 }
 
 case class FormPageState(
@@ -90,8 +113,14 @@ case class FormPageState(
                           override val entity:String,
                           override val write:String,
                           override val public:Boolean,
-                          override val layout: String = Layouts.std
-                          ) extends FormState(kind,entity,write,Some("static::page"),public,layout)
+                          override val layout: String = Layouts.std,
+                          override val queryParamsData:Option[Map[String,Option[String]]] = None,
+                          override val popup:Boolean = false
+                          ) extends FormState(kind,entity,write,Some("static::page"),public,layout) {
+
+  override def withParams(data: Option[Map[String, Option[String]]]): RoutingState = this.copy(queryParamsData =  data)
+
+}
 
 case class MasterChildState(kind:String,
                             masterEntity:String,

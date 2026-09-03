@@ -24,6 +24,14 @@ object JSONUtils extends Logging {
   val LANG = "::lang"
   val FIRST = "::first"
 
+  def toJs(fields:Map[String,Option[String]],metadata: JSONMetadata):Json = Json.fromFields {
+    fields.toSeq.flatMap{ case (k,v) =>
+      metadata.fields.find(_.name == k).map{f =>
+        k -> v.flatMap(toJs(_,f)).getOrElse(Json.Null)
+      }
+    }
+  }
+
   def toJs(value:String,field:JSONField):Option[Json] = toJs(value,field.`type`)
 
   def toJs(value:String,typ:String):Option[Json] = {
