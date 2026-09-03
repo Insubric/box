@@ -36,7 +36,7 @@ class RestMock(values:Values) extends REST with Logging {
 
   override def savePreferences(preferences: UserPreferences)(implicit ec: ExecutionContext): Future[Boolean] = ???
 
-  override def authenticate(code: String, provider_id: String)(implicit ec: ExecutionContext): Future[UserInfo] = ???
+  override def authenticate(code: String, provider_id: String,state:String)(implicit ec: ExecutionContext): Future[UserInfo] = ???
 
   override def cacheReset()(implicit ec:ExecutionContext): Future[String] = {
     println("cacheReset not implemented")

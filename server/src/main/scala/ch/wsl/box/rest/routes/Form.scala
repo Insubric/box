@@ -87,30 +87,7 @@ case class Form(
     }
 
 
-  def csvTable(query:JSONQuery):Future[CSVTable] = {
-    for {
-//      metadata <- boxDb.adminDb.run(tabularMetadata())
-//      formActions = FormActions(metadata, registry, metadataFactory)
-      csv <- db.run(actions.csv(query))
-    } yield csv
-  }
 
-
-  def csv:Route = path(ExportTableFormat.CSV.code) {
-    post {
-      privateOnly {
-        entity(as[JSONQuery]) { query =>
-          onSuccess(csvTable(query))(csv => CSV.body(csv))
-        }
-      }
-    } ~ get {
-      privateOnly {
-        parameters(ExportTableFormat.queryParamName,ExportTableFormat.fkParamName.?,ExportTableFormat.fieldsParamName.?,GeometryTableFormat.paramName.?) { (q, fk, fields,geomFormat) =>
-          exportCsv(q,fk,fields,geomFormat)
-        }
-      }
-    }
-  }
 
   def resetCacheOnBox() = if(registry.schema == Registry.box().schema) {
     Cache.reset()

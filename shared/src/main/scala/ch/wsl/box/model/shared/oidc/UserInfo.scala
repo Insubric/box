@@ -7,7 +7,7 @@ import io.circe.{Decoder, HCursor, Json, JsonObject}
 
 case class UserInfo(
                      sub:String,
-                     name:String,
+                     name:Option[String],
                      preferred_username:String,
                      email:Option[String],
                      roles: Seq[String],
@@ -16,11 +16,11 @@ case class UserInfo(
 
 object UserInfo {
 
-  def simple(username:String) = UserInfo(username,username,username,None,Seq(),Json.Null)
+  def simple(username:String) = UserInfo(username,Some(username),username,None,Seq(),Json.Null)
 
   implicit val decoderRaw: Decoder[UserInfo] = new Decoder[UserInfo] {
     override def apply(c: HCursor): Result[UserInfo] = for {
-      name <- c.downField("name").as[String]
+      name <- c.downField("name").as[Option[String]]
       email <- c.downField("email").as[Option[String]]
       preferred_username <- c.downField("preferred_username").as[Option[String]]
       sub <- c.downField("sub").as[String]

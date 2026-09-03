@@ -16,7 +16,7 @@ import ch.wsl.box.rest.io.csv.CSV
 import ch.wsl.box.rest.io.geotools.{GeoJsonConverter, GeoPackageWriter}
 import ch.wsl.box.rest.metadata.MetadataFactory
 import ch.wsl.box.rest.runtime.RegistryInstance
-import ch.wsl.box.rest.utils.BoxSession
+import ch.wsl.box.rest.utils.{BoxSession, JSONSupport}
 import ch.wsl.box.services.Services
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
@@ -32,6 +32,8 @@ trait Exporters {
 
   import io.circe.syntax._
   import ch.wsl.box.shared.utils.Formatters._ //need to be after circe generic auto or it will be overridden
+
+  import JSONSupport._
 
   val boxDb:FullDatabase
   val db:UserDatabase
@@ -132,54 +134,46 @@ trait Exporters {
     }
   }
 
-  def xls(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = pathPrefix(ExportTableFormat.XLS.code) {
-    path("import") {
-      XLS.importXls(actions.metadata,actions.jsonAction,db.db)
-    } ~
-    get {
-        parameters(ExportTableFormat.queryParamName,ExportTableFormat.fkParamName.?,ExportTableFormat.fieldsParamName.?,GeometryTableFormat.paramName.?) { case (q,fk,fields,_geomFormat) =>
-          val extractFk = fk.contains(ExportMode.RESOLVE_FK)
-          val geomFormat = _geomFormat.map(GeometryTableFormat.fromString)
-          val query = parse(q).right.get.as[JSONQuery].right.get
-          val m = metadata
-          val fut: Future[Route]  = {
-            for {
-              route <- {
+  def completeXLS(q:String,fk:Option[String],fields:Option[String],_geomFormat:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = {
+    val extractFk = fk.contains(ExportMode.RESOLVE_FK)
+    val geomFormat = _geomFormat.map(GeometryTableFormat.fromString)
+    val query = parse(q).right.get.as[JSONQuery].right.get
+    val m = metadata
+    val fut: Future[Route]  = {
+      for {
+        route <- {
 
-                val formActions = FormActions(m, registry, metadataFactory)
-                val rFields = fields.map(_.split(",").toSeq)
-                val requestedFields = rFields.orElse(query.fields).getOrElse(m.tabularFields)
-                val f = metadata.getFields(requestedFields)
+          val formActions = FormActions(m, registry, metadataFactory)
+          val rFields = fields.map(_.split(",").toSeq)
+          val requestedFields = rFields.orElse(query.fields).getOrElse(m.tabularFields)
+          val f = metadata.getFields(requestedFields)
 
-                val fkFields = m.fields.filter(f => f.lookup.isDefined && requestedFields.contains(f.name))
+          val fkFields = m.fields.filter(f => f.lookup.isDefined && requestedFields.contains(f.name))
 
-                val head = headers(f,geomFormat)
+          val head = headers(f,geomFormat)
 
 
-                val io = for {
-                  fkValues <- actions.lookups(JSONLookupsRequest(fkFields.map(_.name),query))
-                  data <- formActions.list(query, true,requestedFields)
-                  fkData = mergeWithForeignKeys(extractFk, data, fkValues, m,requestedFields)
-                  finalData = formatGeom(fkData,f,geomFormat)
-                  xlsTable = XLSTable(
-                    title = name,
-                    header = head.map(_.label),
-                    rows = finalData.map(row => head.map(cell => row.get(cell.key)))
-                  )
-                } yield {
-                  XLS.route(xlsTable)
-                }
-                db.db.run(io)
-              }
-            } yield route
+          val io = for {
+            fkValues <- actions.lookups(JSONLookupsRequest(fkFields.map(_.name),query))
+            data <- formActions.list(query, true,requestedFields)
+            fkData = mergeWithForeignKeys(extractFk, data, fkValues, m,requestedFields)
+            finalData = formatGeom(fkData,f,geomFormat)
+            xlsTable = XLSTable(
+              title = name,
+              header = head.map(_.label),
+              rows = finalData.map(row => head.map(cell => row.get(cell.key)))
+            )
+          } yield {
+            XLS.route(xlsTable)
           }
-
-          rc:RequestContext => fut.flatMap(x => x(rc))
-
-
-      }
-  }
+          db.db.run(io)
+        }
+      } yield route
     }
+
+    rc:RequestContext => fut.flatMap(x => x(rc))
+  }
+
 
   def exportCsv(q:String,fk:Option[String],_fields:Option[String],_geomFormat:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = {
 
@@ -253,49 +247,77 @@ trait Exporters {
 //    }
 //  }
 
-  def geoPkg(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = path(ExportTableFormat.GeoPackage.code) {
-    get {
-      parameters(ExportTableFormat.queryParamName,ExportTableFormat.fkParamName.?,ExportTableFormat.fieldsParamName.?,GeometryTableFormat.paramName.?) { (q,fk,fields,_geomFormat) =>
-        val extractFk = fk.exists(_ == ExportMode.RESOLVE_FK)
-        val geomFormat = _geomFormat.map(GeometryTableFormat.fromString)
-        val query = parse(q).right.get.as[JSONQuery].right.get
+  def completeGPKG(q:String,fk:Option[String],fields:Option[String],_geomFormat:Option[String])(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = {
+    val extractFk = fk.exists(_ == ExportMode.RESOLVE_FK)
+    val geomFormat = _geomFormat.map(GeometryTableFormat.fromString)
+    val query = parse(q).right.get.as[JSONQuery].right.get
 
-        val formActions = FormActions(metadata, registry, metadataFactory)
+    val formActions = FormActions(metadata, registry, metadataFactory)
 
-        val rFields = fields.map(_.split(",").toSeq)
-        val requestedFields = rFields.orElse(query.fields).getOrElse(metadata.tabularFields)
-        val f = metadata.getFields(requestedFields)
+    val rFields = fields.map(_.split(",").toSeq)
+    val requestedFields = rFields.orElse(query.fields).getOrElse(metadata.tabularFields)
+    val f = metadata.getFields(requestedFields)
 
-        val fkFields = metadata.fields.filter(f => f.lookup.isDefined && requestedFields.contains(f.name))
+    val fkFields = metadata.fields.filter(f => f.lookup.isDefined && requestedFields.contains(f.name))
 
 
-        val io = for {
-          fkValues <- actions.lookups(JSONLookupsRequest(fkFields.map(_.name),query))
-          data <- formActions.list(query, true, f.map(_.name))
-          fkData = mergeWithForeignKeys(extractFk, data, fkValues, metadata,f.map(_.name))
-          finalData = formatGeom(fkData,f,geomFormat)
-          dataTable = DataResultTable(
-            rows = finalData.map(row => f.map(cell => row.js(cell.name))),
-            headers = f.map(_.title),
-            headerType = f.map{f => if(f.lookup.isDefined) JSONFieldTypes.STRING else f.`type` },
-            idString = finalData.map(r => JSONID.fromData(r,metadata).map(_.asString)),
-            geometry = metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).map(f => f.name -> finalData.map(row => row.jsOpt(f.name).flatMap(_.as[Geometry].toOption))).toMap
-          )
+    val io = for {
+      fkValues <- actions.lookups(JSONLookupsRequest(fkFields.map(_.name),query))
+      data <- formActions.list(query, true, f.map(_.name))
+      fkData = mergeWithForeignKeys(extractFk, data, fkValues, metadata,f.map(_.name))
+      finalData = formatGeom(fkData,f,geomFormat)
+      dataTable = DataResultTable(
+        rows = finalData.map(row => f.map(cell => row.js(cell.name))),
+        headers = f.map(_.title),
+        headerType = f.map{f => if(f.lookup.isDefined) JSONFieldTypes.STRING else f.`type` },
+        idString = finalData.map(r => JSONID.fromData(r,metadata).map(_.asString)),
+        geometry = metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).map(f => f.name -> finalData.map(row => row.jsOpt(f.name).flatMap(_.as[Geometry].toOption))).toMap
+      )
 
-        } yield dataTable
+    } yield dataTable
 
-        respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.gpkg"))) {
-          complete {
-            for {
-              data <- db.db.run(io)
-              geopkg <- GeoPackageWriter.write(name, data)
-            } yield {
-              HttpResponse(entity = HttpEntity(MediaTypes.`application/octet-stream`, geopkg))
-            }
-          }
+    respondWithHeader(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$name.gpkg"))) {
+      complete {
+        for {
+          data <- db.db.run(io)
+          geopkg <- GeoPackageWriter.write(name, data)
+        } yield {
+          HttpResponse(entity = HttpEntity(MediaTypes.`application/octet-stream`, geopkg))
         }
       }
     }
   }
+
+  private def exporter(exp:ExportTableFormat,f:(String,Option[String],Option[String],Option[String]) => Route)(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services):Route =  pathPrefix(exp.code) {
+    get {
+      parameters(ExportTableFormat.queryParamName,ExportTableFormat.fkParamName.?,ExportTableFormat.fieldsParamName.?,GeometryTableFormat.paramName.?) {
+        f
+      }
+    } ~
+    pathPrefix("export") {
+      post {
+        formField(ExportTableFormat.queryParamName, ExportTableFormat.fkParamName.?, ExportTableFormat.fieldsParamName.?, GeometryTableFormat.paramName.?) {
+          f
+        }
+      }
+    } ~
+    pathEnd{
+      post {
+        entity(as[JSONQuery]) { query =>
+          onSuccess(session.userProfile.db.run(actions.csv(query)))(csv => CSV.body(csv))
+        }
+      }
+    }
+  }
+
+
+
+
+
+
+
+  def geoPkg(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services): Route = exporter(ExportTableFormat.GeoPackage,completeGPKG)
+  def xls(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = exporter(ExportTableFormat.XLS,completeXLS)
+  def csv(implicit session:BoxSession, db:FullDatabase, mat:Materializer, ec:ExecutionContext, services:Services) = exporter(ExportTableFormat.CSV,exportCsv)
 
 }

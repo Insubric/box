@@ -22,7 +22,7 @@ object AuthFlow {
                           refresh_token: Option[String],
                           token_type: String,
                           session_state: Option[String],
-                          scope: String
+                          scope: Option[String]
                         )
 
 
@@ -64,18 +64,22 @@ object AuthFlow {
   //    "session_state": "57b36158-2ad7-4614-80bf-3aa037ab38fe",
   //    "scope": "email profile"
   //  }
-  def code(provider:OIDCConf,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
+  def code(provider:OIDCConf,c:String,code_verifier:Option[String])(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
     def authToken = {
+
+      val b: Map[String, String] = Map(
+        "grant_type" -> "authorization_code",
+        "client_id" -> provider.client_id,
+        "code" -> c,
+        "redirect_uri" -> s"${services.config.frontendUrl}authenticate/${provider.provider_id}"
+      ) ++
+        provider.client_secret.map(s => Map("client_secret" -> s)).getOrElse(Map()) ++
+        code_verifier.map(c => Map("code_verifier" -> c)).getOrElse(Map())
+
       val r = basicRequest
         .post(uri"${provider.token_url}")
-        .body(Map(
-          "grant_type" -> "authorization_code",
-          "client_id" -> provider.client_id,
-          "client_secret" -> provider.client_secret,
-          "code" -> c,
-          "redirect_uri" -> s"${services.config.frontendUrl}authenticate/${provider.provider_id}"
-        ))
+        .body(b)
         .response(asJson[OpenIDToken])
 
 //        println(r.toCurl)
@@ -83,6 +87,13 @@ object AuthFlow {
         r.send(backend).map{ x =>
           x
         }
+    }
+
+    def validate(token: Response[Either[_, OpenIDToken]]): Future[Boolean] = {
+      (token.body,provider.jwks,provider.issuer) match {
+        case (Right(value),Some(jwks),Some(issuer)) => new JwtValidator(jwks,issuer).validateToken(value.access_token)
+        case _ => Future.successful(true)
+      }
     }
 
     def userInfo(token:OpenIDToken) = {
@@ -96,6 +107,7 @@ object AuthFlow {
 
     for{
       token <- authToken
+      _ <- validate(token)
       info <- token.body match {
         case Left(value) => Future.successful(Left(value))
         case Right(value) => userInfo(value).map(_.body)
@@ -109,10 +121,13 @@ object AuthFlow {
   }
 
 
-  def code(provider_id:String,c:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
+  def code(provider_id:String,c:String,state:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
     services.config.openid.find(_.provider_id == provider_id) match {
-      case Some(provider) => code(provider, c)
+      case Some(provider) if provider.jwks.isEmpty => code(provider, c,None)
+      case Some(provider) => CodeHandler.verifierFromState(state,services.connection.adminDB).flatMap{ verifier =>
+        code(provider,c,Some(verifier))
+      }
       case None => Future.failed(new Exception(s"OIDC Provider $provider_id not found"))
     }
 

@@ -22,6 +22,7 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
   val model = ModelProperty.blank[LoginData]
 
   import ch.wsl.box.client.Context._
+  import Implicits._
 
   def render = form(
     onsubmit :+= ((e:Event) => {
@@ -48,8 +49,7 @@ case class LoginForm(login: ModelProperty[LoginData] => Unit) {
           img(src := openid.logo, maxWidth := 80.px),
           onclick :+= ((e:Event) => {
             e.preventDefault()
-            val redirectUri = URLEncoder.encode(s"${ClientConf.frontendUrl}authenticate/${openid.provider_id}","UTF-8")
-            window.location.href = s"${openid.authorize_url}?client_id=${openid.client_id}&scope=${openid.scope}&response_type=code&state=${UUID.randomUUID()}&redirect_uri=$redirectUri"
+            services.odicClient.login(openid)
           })
         )
       }

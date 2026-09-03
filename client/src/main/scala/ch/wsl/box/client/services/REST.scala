@@ -60,7 +60,7 @@ trait REST{
 
   //other utilsString
   def login(request:LoginRequest)(implicit ec:ExecutionContext):Future[UserInfo]
-  def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext):Future[UserInfo]
+  def authenticate(code:String,provider_id:String,state:String)(implicit ec:ExecutionContext):Future[UserInfo]
   def logout()(implicit ec:ExecutionContext):Future[String]
   def labels(lang:String)(implicit ec:ExecutionContext):Future[Map[String,String]]
   def conf()(implicit ec:ExecutionContext):Future[Map[String,String]]

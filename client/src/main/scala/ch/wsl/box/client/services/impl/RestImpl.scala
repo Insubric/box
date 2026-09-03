@@ -124,7 +124,7 @@ class RestImpl(httpClient:HttpClient) extends REST with Logging {
 
   //other utilsString
   def login(request:LoginRequest)(implicit ec:ExecutionContext) = httpClient.post[LoginRequest,UserInfo](Routes.apiV1("/login"),request)
-  def authenticate(code:String,provider_id:String)(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1(s"/sso/$provider_id?code=$code"))
+  def authenticate(code:String,provider_id:String,state:String)(implicit ec:ExecutionContext) = httpClient.get[UserInfo](Routes.apiV1(s"/sso/$provider_id?code=$code&state=$state"))
   def logout()(implicit ec:ExecutionContext) = httpClient.get[String](Routes.apiV1("/logout"))
   def labels(lang:String)(implicit ec:ExecutionContext):Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/labels/$lang"))
   def conf()(implicit ec:ExecutionContext):Future[Map[String,String]] = httpClient.get[Map[String,String]](Routes.apiV1(s"/conf"))

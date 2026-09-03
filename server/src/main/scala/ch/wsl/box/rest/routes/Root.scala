@@ -32,7 +32,7 @@ import scala.util.{Failure, Success}
 /**
   * Created by andreaminetti on 15/03/16.
   */
-case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit materializer:Materializer,executionContext:ExecutionContext,system: ActorSystem,services: Services) extends Logging {
+case class Root(appVersion:String,uiVersion:String,akkaConf:Config, origins:Seq[String])(implicit materializer:Materializer,executionContext:ExecutionContext,system: ActorSystem,services: Services) extends Logging {
 
   import ch.wsl.box.jdbc.Connection
 
@@ -69,7 +69,7 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
         ApiV1(appVersion).route
       }
     } ~
-    UI.clientFiles
+    UI.clientFiles(uiVersion)
 
 
 }

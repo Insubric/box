@@ -7,15 +7,16 @@ import ch.wsl.box.jdbc.UserDatabase
 import ch.wsl.box.model.boxentities.BoxLog
 import ch.wsl.box.model.boxentities.BoxLog.BoxLog_row
 import scribe.output.LogOutput
+import scribe.output.format.OutputFormat
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class DbWriter(db:UserDatabase)(implicit ec:ExecutionContext) extends Writer {
 
-  override def write[M](record: LogRecord[M], output: LogOutput): Unit = {
+  override def write(record: LogRecord, output: LogOutput, outputFormat: OutputFormat): Unit = {
     Logger.system.out.print(output)
     db.run{
-      BoxLog.BoxLogsTable += BoxLog_row(None,record.fileName,record.className,record.line.getOrElse(-1),record.message.toString, record.timeStamp)
+      BoxLog.BoxLogsTable += BoxLog_row(None,record.fileName,record.className,record.line.getOrElse(-1),record.logOutput.plainText, record.timeStamp)
     }
 
   }

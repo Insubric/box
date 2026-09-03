@@ -14,9 +14,9 @@ import com.typesafe.config.Config
 import scribe._
 import scribe.writer.ConsoleWriter
 import wvlet.airframe.Design
-import ch.wsl.box.model.Migrate
+import ch.wsl.box.model.{BuildBox, Migrate}
 import ch.wsl.box.rest.logic.cron.{BoxCronLoader, CronScheduler}
-import ch.wsl.box.rest.logic.notification.{MailHandler}
+import ch.wsl.box.rest.logic.notification.MailHandler
 import ch.wsl.box.rest.utils.CertificateUtils
 
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 import scala.io.StdIn
 
 
-class Box(name:String,version:String,https:Boolean)(implicit services: Services) {
+class Box(name:String,version:String,ui_version:String,https:Boolean)(implicit services: Services) {
 
   implicit val executionContext = services.executionContext
   implicit val system: ActorSystem = services.actorSystem
@@ -64,7 +64,7 @@ class Box(name:String,version:String,https:Boolean)(implicit services: Services)
     new BoxCronLoader(scheduler).load()
 
     val routes = handleExceptions(BoxExceptionHandler(origins).handler()) {
-      Root(s"$name $version",akkaConf, origins).route
+      Root(s"$name $version",ui_version,akkaConf, origins).route
     }
 
     def server = if(https) {
@@ -111,13 +111,7 @@ class Box(name:String,version:String,https:Boolean)(implicit services: Services)
 
 object Boot extends App  {
 
-  val (name,app_version,https) = args.length match {
-    case 3 => (args(0),args(1),args(2).toBoolean)
-    case 2 => (args(0),args(1),false)
-    case _ => ("Standalone","DEV",false)
-  }
-
-  def run(name:String,app_version:String,module:Design) {
+  def run(name:String,app_version:String,ui_version:String,https:Boolean,module:Design) {
 
     var running = true
 
@@ -129,17 +123,18 @@ object Boot extends App  {
       println("[BOX framework] - shutdown completed")
     }
 
+    // if not exists create box schema and do migrations
+    BuildBox.install()
 
     Registry.load()
     Registry.loadBox()
 
     module.build[Services] { services =>
-      val server = new Box(name, app_version,https)(services)
+      val server = new Box(name, app_version, ui_version,https)(services)
       implicit val executionContext = services.executionContext
 
       val binding = {
         for {
-          _ <- Migrate.all(services)
           res <- server.start()
         } yield res
       }.recover{ case t => t.printStackTrace(); throw t}
@@ -147,7 +142,6 @@ object Boot extends App  {
       Await.result(binding.flatMap(_.unbind()), 20.seconds)
     }
   }
-
-  run(name,app_version,DefaultModule.injector)
+  run("Standalone","DEV","DEV",https = false,DefaultModule.injector)
 }
 

@@ -35,7 +35,7 @@ object UI {
     }
   }
 
-  def clientFiles(implicit system:ActorSystem,services:Services):Route = {
+  def clientFiles(uiVersion:String)(implicit system:ActorSystem,services:Services):Route = {
 
     pathPrefix("icon") {
       pathPrefix("icon.png") {
@@ -101,7 +101,7 @@ object UI {
     get {
       complete {
         val module = if(services.config.localDb) AvailableUIModule.prod else AvailableUIModule.prodNoLocalDb
-        ch.wsl.box.templates.html.index.render(BoxBuildInfo.version,module,services.config.frontendUrl,services.config.mainColor,services.config.matomo)
+        ch.wsl.box.templates.html.index.render(uiVersion,module,services.config.frontendUrl,services.config.mainColor,services.config.matomo)
       }
     }
   }

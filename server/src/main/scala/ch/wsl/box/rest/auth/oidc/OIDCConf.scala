@@ -8,10 +8,12 @@ case class OIDCConf(
                      logo: String,
                      authorize_url: String,
                      token_url: String,
+                     jwks: Option[String],
+                     issuer: Option[String],
                      user_info_url: String,
                      scope: String,
                      client_id: String,
-                     client_secret: String,
+                     client_secret: Option[String],
                      db_role_claim: Option[String],
                      app_user_claim: Option[String]
                    ) {
@@ -21,7 +23,8 @@ case class OIDCConf(
     logo,
     authorize_url,
     scope,
-    client_id
+    client_id,
+    client_secret.isEmpty
   )
 }
 
