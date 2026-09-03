@@ -10,8 +10,10 @@ import io.udash.bootstrap.utils.BootstrapStyles.Size
 import org.scalajs.dom.Element
 import scalatags.JsDom.all._
 
-case class ModalDef(
+import java.util.UUID
 
+case class ModalDef(
+                     modalId:UUID,
                      headerFactory: Option[Binding.NestedInterceptor => Element],
                      bodyFactory: Option[Binding.NestedInterceptor => Element],
                      footerFactory: Option[Binding.NestedInterceptor => Element],
@@ -53,7 +55,7 @@ class ModalStack(
     footerFactory = renderEl(footer)
   )
 
-  val stack = scala.collection.mutable.Stack[ModalDef]()
+  val stack = scala.collection.mutable.ArrayDeque[ModalDef]()
 
   def push(modalDef:ModalDef): Unit = {
     stack.addOne(modalDef)
@@ -61,13 +63,17 @@ class ModalStack(
     modal.show()
   }
 
-  def pop(): Unit = {
-    val last = stack.pop()
+  def pop(id:UUID): Unit = { //use id to avoid popping two time the same element
+    val last = stack.removeFirst(_.modalId == id)
     stack.lastOption match {
       case Some(md) => setModelDef(md)
       case None => modal.hide()
     }
-    last.onClose.foreach(_())
+    last.foreach(_.onClose.foreach(_()))
+  }
+
+  def removeLast():Unit = {
+    stack.lastOption.foreach(l => pop(l.modalId))
   }
 
 

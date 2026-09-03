@@ -22,6 +22,7 @@ import scalacss.ScalatagsCss._
 import scalatags.JsDom.all._
 import scribe.Logging
 
+import java.util.UUID
 import scala.concurrent.{Future, Promise}
 
 object PopupFrame extends Logging {
@@ -30,13 +31,16 @@ object PopupFrame extends Logging {
     val listenerManager = new ListenerManager()
     import listenerManager._
 
+    val modalId = UUID.randomUUID()
+
     val footer = (x: NestedInterceptor) => div(
-      button(Labels.popup.close, ClientConf.style.boxButton).render.listen("click", _ => ModalStack.mainStack.pop())
+      button(Labels.popup.close, ClientConf.style.boxButton).render.listen("click", _ => ModalStack.mainStack.pop(modalId))
     ).render
 
     val promise = Promise[Boolean]()
 
     val modalDef = ModalDef(
+      modalId = modalId,
       headerFactory = None,
       bodyFactory = Some(_ => body),
       footerFactory = Some(footer),

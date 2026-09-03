@@ -666,7 +666,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     def callBack() = action.action match {
       case SaveAction =>  save(action.html5check,saveToDb).map(afterSaveAction)
       case SaveLocalAction =>  save(action.html5check,saveLocally).map(afterSaveAction)
-      case SaveAndClosePopup =>  save(action.html5check,saveToDb).map{ _ => ModalStack.mainStack.pop() }
+      case SaveAndClosePopup =>  save(action.html5check,saveToDb).map{ _ => ModalStack.mainStack.removeLast() }
       case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
         executeFunction().map {
           case Some(true) => {

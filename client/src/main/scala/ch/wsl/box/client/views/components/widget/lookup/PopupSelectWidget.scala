@@ -4,7 +4,7 @@ import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
 import ch.wsl.box.client.utils.TestHooks
-import ch.wsl.box.client.views.components.JSONMetadataRenderer
+import ch.wsl.box.client.views.components.{JSONMetadataRenderer, ModalDef, ModalStack}
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetCallbackActions, WidgetParams, WidgetUtils}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -23,6 +23,7 @@ import org.scalajs.dom.{Event, HTMLInputElement, document}
 import scalatags.JsDom
 import scribe.Logging
 
+import java.util.UUID
 import scala.concurrent.duration._
 
 
@@ -69,9 +70,11 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
     val editForm:Option[String] = field.params.flatMap(_.getOpt("editForm"))
 
-    def popupEdit(nested:Binding.NestedInterceptor)(mainRenderer:(UdashModal,Property[String]) => Modifier) = {
+    def popupEdit(nested:Binding.NestedInterceptor)(mainRenderer:(Property[String]) => Modifier) = {
 
       val searchId = TestHooks.popupSearch(field.name,metadata.objId)
+
+      val modalId = UUID.randomUUID()
 
       val searchProp = Property("")
 
@@ -124,11 +127,9 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
         }
       ))
 
+      def hide() = ModalStack.mainStack.pop(modalId)
+
       def editEntity(entity:String,nested:NestedInterceptor):Modifier = {
-
-
-
-
 
         logger.debug("Loading child metadata")
         editForm match {
@@ -151,8 +152,6 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
           case _ => ???
         }
       }
-
-      var modal:UdashModal = null
 
       val header = (n:NestedInterceptor) => div(
         b(field.title),
@@ -194,7 +193,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
                         val id = lookupData.get.js(map.foreign.keyColumns.head)
                         val values = map.foreign.labelColumns.flatMap(x => lookupData.get.getOpt(x))
                         model.set(Some(JSONLookup(id,values)))
-                        modal.hide()
+                        hide()
                         mode.set(Search)
                         fetchLookups(true)
                       }
@@ -211,12 +210,12 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
                 nested(showIf(model.transform(_.isDefined)) {
                   button(onclick :+= ((e: Event) => {
                     model.set(None)
-                    modal.hide()
+                    hide()
                     e.preventDefault()
                   }), Labels.popup.remove, ClientConf.style.boxButtonDanger).render
                 }),
                 button(onclick :+= ((e:Event) => {
-                  modal.hide()
+                  hide()
                   e.preventDefault()
                 }), Labels.popup.close,ClientConf.style.boxButton)
               ).render
@@ -227,38 +226,38 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
       ).render
 
-      modal = nested(UdashModal(modalSize = Some(Size.Small).toProperty)(
+
+      val modalDef = ModalDef(
+        modalId,
         headerFactory = Some(header),
         bodyFactory = Some(body),
-        footerFactory = Some(footer)
-      ))
+        footerFactory = Some(footer),
+        size = Some(Size.Small),
+        onClose = Some(_ => modalStatus.set(Status.Closed)),
+        //onOpen = {
+        //            mode.set(Search)
+        //            document.getElementById(searchId).asInstanceOf[HTMLInputElement].focus()
+        //          }
+      )
 
 
 
-      modal.listen { case ev:ModalEvent =>
-        ev.tpe match {
-          case ModalEvent.EventType.Hide | ModalEvent.EventType.Hidden => modalStatus.set(Status.Closed)
-          case ModalEvent.EventType.Shown => {
-            mode.set(Search)
-            document.getElementById(searchId).asInstanceOf[HTMLInputElement].focus()
-          }
-          case _ => {}
-        }
-      }
+
 
       modalStatus.listen{ state =>
         logger.info(s"State changed to:$state")
         state match {
-          case Status.Open => modal.show()
-          case Status.Closed => modal.hide()
+          case Status.Open => ModalStack.mainStack.push(modalDef)
+          case Status.Closed => ModalStack.mainStack.pop(modalId)
         }
       }
 
-      mainRenderer(modal,modalStatus)
+
+      mainRenderer(modalStatus)
 
     }
 
-    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modal,modalStatus) => {
+    override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modalStatus) => {
       div(
         TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
@@ -266,12 +265,11 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
           e.preventDefault()
         }),
           bind(model.transform(_.map(_.value).getOrElse("")))
-        ),
-        modal.render
+        )
       )
     })
 
-    override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modal,modalStatus) => {
+    override def edit(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modalStatus) => {
       val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,BootstrapStyles.Float.right())(
@@ -281,7 +279,6 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
           modalStatus.set(Status.Open)
           e.preventDefault()
         }),nested(bind(model.transform(_.map(_.value).getOrElse(""))))).render)._1,
-        modal.render
 
       )
     })

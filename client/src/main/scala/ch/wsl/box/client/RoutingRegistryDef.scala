@@ -33,7 +33,7 @@ class RoutingRegistryDef(popup:Boolean) extends RoutingRegistry[RoutingState] wi
 
     state match {
       case e:QueryDataParams => {
-        val params: Option[Map[String, Option[String]]] = url.value.split("\\?").lastOption.map(_.split("&").map{ x =>
+        val params: Option[Map[String, Option[String]]] = url.value.split("\\?").lift(1).map(_.split("&").map{ x =>
           val kv = x.split("=")
           kv(0) -> kv.lift(1)
         }).map(_.toMap)
