@@ -1,16 +1,18 @@
 package ch.wsl.box.client.views.components
 
+import ch.wsl.box.client.services.BrowserConsole
 import io.udash.bindings.modifiers.Binding
 import io.udash._
 import io.udash.bootstrap.UdashBootstrap
 import io.udash.bootstrap.modal.UdashModal
-import io.udash.bootstrap.modal.UdashModal.BackdropType
+import io.udash.bootstrap.modal.UdashModal.{BackdropType, ModalEvent}
 import io.udash.bootstrap.utils.BootstrapStyles
 import io.udash.bootstrap.utils.BootstrapStyles.Size
-import org.scalajs.dom.Element
+import org.scalajs.dom.{Element, window}
 import scalatags.JsDom.all._
 
 import java.util.UUID
+import scala.util.Try
 
 case class ModalDef(
                      modalId:UUID,
@@ -18,7 +20,8 @@ case class ModalDef(
                      bodyFactory: Option[Binding.NestedInterceptor => Element],
                      footerFactory: Option[Binding.NestedInterceptor => Element],
                      size: Option[BootstrapStyles.Size] = None,
-                     onClose: Option[Unit => Unit]
+                     onClose: Option[Unit => Unit],
+                     onOpen: Option[Unit => Unit]
                    )
 
 class ModalStack(
@@ -56,20 +59,44 @@ class ModalStack(
   )
 
   val stack = scala.collection.mutable.ArrayDeque[ModalDef]()
+  val showAction = scala.collection.mutable.Stack[Unit => Unit]()
+  val hideAction = scala.collection.mutable.Stack[Unit => Unit]()
+
+  modal.listen { e =>
+    e.tpe match {
+      case ModalEvent.EventType.Hidden => Try(hideAction.pop()).toOption.foreach(_())
+      case ModalEvent.EventType.Shown => Try(showAction.pop()).toOption.foreach(_())
+      case _ => ()
+    }
+  }
 
   def push(modalDef:ModalDef): Unit = {
     stack.addOne(modalDef)
     setModelDef(modalDef)
+    if(stack.length == 1) {
+      modalDef.onOpen.foreach(showAction.push)
+    } else {
+      window.setTimeout(() => {
+        modalDef.onOpen.foreach(_())
+      },0)
+    }
     modal.show()
   }
 
   def pop(id:UUID): Unit = { //use id to avoid popping two time the same element
     val last = stack.removeFirst(_.modalId == id)
+    last.foreach(_.onClose.foreach(hideAction.push))
     stack.lastOption match {
-      case Some(md) => setModelDef(md)
-      case None => modal.hide()
+      case Some(md) => {
+        setModelDef(md)
+        last.foreach(_.onClose.foreach(_()))
+      }
+      case None => {
+        last.foreach(_.onClose.foreach(hideAction.push))
+        modal.hide()
+      }
     }
-    last.foreach(_.onClose.foreach(_()))
+
   }
 
   def removeLast():Unit = {

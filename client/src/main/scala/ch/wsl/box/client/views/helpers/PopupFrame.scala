@@ -49,7 +49,8 @@ object PopupFrame extends Logging {
         logger.info("Closing modal")
         listenerManager.clearAll()
         promise.success(true)
-      })
+      }),
+      onOpen = None
     )
 
     ModalStack.mainStack.push(modalDef)

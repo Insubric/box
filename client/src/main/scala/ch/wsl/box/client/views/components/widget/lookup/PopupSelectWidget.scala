@@ -234,10 +234,10 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
         footerFactory = Some(footer),
         size = Some(Size.Small),
         onClose = Some(_ => modalStatus.set(Status.Closed)),
-        //onOpen = {
-        //            mode.set(Search)
-        //            document.getElementById(searchId).asInstanceOf[HTMLInputElement].focus()
-        //          }
+        onOpen = Some{ _ =>
+            mode.set(Search)
+            document.getElementById(searchId).asInstanceOf[HTMLInputElement].focus()
+        }
       )
 
 
