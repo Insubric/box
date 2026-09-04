@@ -9,8 +9,9 @@ import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
-import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer}
+import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, ModalStack}
 import ch.wsl.box.client.views.elements.Offline
+import ch.wsl.box.client.views.helpers.PopupFrame
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils
@@ -77,7 +78,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   TestHooks.setData(model.subProp(_.data))
 
+  var currentState:FormState = null
   override def handleState(state: FormState): Unit = {
+
+    currentState = state
 
     logger.warn(state.toString)
 
@@ -127,7 +131,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         record.data
       }
 
-      val dataWithQueryParams = dataWithId.deepMerge(Json.fromFields(Routes.urlParams.toSeq.map(x => x._1 -> io.circe.parser.parse(x._2).getOrElse(Json.fromString(x._2)))))
+      val dataWithQueryParams = state.queryParamsData match {
+        case Some(value) => dataWithId.deepMerge(JSONUtils.toJs(value,metadata))
+        case None => dataWithId
+      }
+
 
       BrowserConsole.log(dataWithQueryParams)
 
@@ -388,7 +396,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def afterSave(id:JSONID,data:Record) = {
     val currentState = model.get
     if(!model.get.id.contains(id.asString)) {
-        val state = applicationInstance.currentState.asInstanceOf[EntityFormState]
+        val state = currentState.asInstanceOf[EntityFormState]
         Navigate.to(state.copy(_id = Some(id.asString)))
     } else {
       model.set(currentState.copy(
@@ -412,7 +420,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       resultSaved <- services.data.get(model.get.kind, services.clientSession.lang(), model.get.name, id,model.get.public)
       result <- if(!model.get.id.contains(id.asString)) {
         Future.successful{
-          val state = applicationInstance.currentState.asInstanceOf[EntityFormState]
+          val state = currentState.asInstanceOf[EntityFormState]
           Navigate.to(state.copy(_id = Some(id.asString)))
           Json.Null
         }
@@ -443,7 +451,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     } yield result
   }
 
-  def revert() = {
+  def reload():Unit = {
     model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)) match {
       case Some(id) => reload(id)
       case None => logger.warn("Cannot revert with no ID")
@@ -575,10 +583,12 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       window.confirm(Labels.navigation.goAway)
     }
     model.subProp(_.changed).set(true)
-    window.onbeforeunload = { (e:BeforeUnloadEvent) =>
-      if(Context.applicationInstance.currentState.isInstanceOf[EntityFormState] || Context.applicationInstance.currentState.isInstanceOf[EntityTableState]) {
-        e.preventDefault()
-        Labels.navigation.goAway
+    if(!currentState.popup) {
+      window.onbeforeunload = { (e: BeforeUnloadEvent) =>
+        if (Context.applicationInstance.currentState.isInstanceOf[EntityFormState] || Context.applicationInstance.currentState.isInstanceOf[EntityTableState]) {
+          e.preventDefault()
+          Labels.navigation.goAway
+        }
       }
     }
   }
@@ -605,6 +615,10 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         case Self => Navigate.toUrl(url)
         case NewWindow => {
           window.open(url)
+        }
+        case Popup => PopupFrame.open(url).foreach{ _ =>
+          logger.info("Popup closed, reloading data")
+          reload()
         }
       }
     }
@@ -652,6 +666,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     def callBack() = action.action match {
       case SaveAction =>  save(action.html5check,saveToDb).map(afterSaveAction)
       case SaveLocalAction =>  save(action.html5check,saveLocally).map(afterSaveAction)
+      case SaveAndClosePopup =>  save(action.html5check,saveToDb).map{ _ => ModalStack.mainStack.removeLast() }
       case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
         executeFunction().map {
           case Some(true) => {
@@ -666,7 +681,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       }
       case CopyAction => duplicate()
       case DeleteAction => delete()
-      case RevertAction => revert()
+      case RevertAction => reload()
       case BackAction => Navigate.back()
 
     }

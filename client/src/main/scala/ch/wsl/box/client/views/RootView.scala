@@ -130,7 +130,8 @@ class RootView(viewModel:ModelProperty[RootViewModel]) extends ContainerView {
   override def getTemplate: Modifier = div(
     loading,
     notifications,
-    content
+    content,
+    ModalStack.mainStack.render
   )
 
   override def renderChild(view: Option[View]): Unit = {
