@@ -46,6 +46,8 @@ trait Connection extends Logging {
 
   def adminDB = dbForUser(adminUser,"box_admin",adminDbConnection)
 
+  def checkConnection()(implicit ex:ExecutionContext) = adminDB.run(sql"select 1".as[Int].head).map(_ == 1)
+
 
   def dbForUser(name: String,app_user:String,db:box.jdbc.PostgresProfile.backend.Database = dbConnection): UserDatabase = new UserDatabase {
 

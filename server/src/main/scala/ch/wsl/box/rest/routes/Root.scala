@@ -27,7 +27,8 @@ import ch.wsl.box.rest.{Box, Module}
 import ch.wsl.box.rest.routes.v1.ApiV1
 import ch.wsl.box.services.Services
 
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.DurationInt
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andreaminetti on 15/03/16.
@@ -55,9 +56,10 @@ case class Root(appVersion:String,uiVersion:String,akkaConf:Config, origins:Seq[
 
   def status = path("status") {
     get {
-      complete(
-        HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,"RUNNING"))
-      )
+      Try(Await.result(services.connection.checkConnection(),2.seconds)) match {
+          case Success(true) => complete(HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,"RUNNING")))
+          case _ => complete(StatusCodes.ServiceUnavailable, "DB Connection error")
+      }
     }
   }
 
