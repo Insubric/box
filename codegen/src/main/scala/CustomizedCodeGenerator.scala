@@ -9,8 +9,7 @@ import scribe.{Level, Logger, Priority}
 import scribe.filter.{level, packageName, select}
 import slick.codegen.SourceCodeGenerator
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
 
@@ -28,7 +27,8 @@ case class GeneratedFiles(
                        fieldRegistry: FieldAccessGenerator
                          )
 
-case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:GeneratorParams) extends BaseCodeGenerator {
+case class CodeGenerator(dbSchema:String,connection:Connection, generatorParams:GeneratorParams)(implicit val _ex:ExecutionContext) extends BaseCodeGenerator {
+
 
   def generatedFiles(): GeneratedFiles = {
 
@@ -72,7 +72,9 @@ object CustomizedCodeGenerator  {
 
     val connection = new ConnectionConfImpl()
 
-    CodeGeneratorWriter.write(connection,params,args(0),"ch.wsl.box.generated")
+    val ex = ExecutionContext.fromExecutorService(null)
+
+    CodeGeneratorWriter.write(connection,params,args(0),"ch.wsl.box.generated")(ex)
 
   }
 

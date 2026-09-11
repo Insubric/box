@@ -6,13 +6,14 @@ import slick.jdbc.meta.MTable
 import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 
 case class GeneratorParams(tables:Seq[String],views:Seq[String],excludes:Seq[String],excludeFields:Seq[String],schema:String,boxSchema:String, postgisSchema:String,langs:Seq[String])
 
 trait BaseCodeGenerator {
+
+  implicit def _ex:ExecutionContext
 
   def dbSchema:String
   def connection:Connection
