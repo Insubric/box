@@ -17,6 +17,7 @@ import com.softwaremill.session.{InMemoryRefreshTokenStorage, RefreshTokenStorag
 import scribe.Logging
 import wvlet.airframe._
 
+import java.util.concurrent.Executors
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
@@ -40,7 +41,8 @@ object DefaultModule extends Module {
 
   val injector = newDesign
     .bind[ExecutionContext].toInstance{
-      scala.concurrent.ExecutionContext.global
+      //val executor = Executors.newFixedThreadPool(16)
+      ExecutionContext.fromExecutorService(null)
     }
     .bind[ActorSystem].toInstance{
       ActorSystem()

@@ -26,7 +26,7 @@ trait RuntimePSQL{
 
 trait RuntimeUtils{
   def qrCode(url:String):String
-  def swissTopoMap(geometry:Option[Json], width:Int, height:Int, padding:Int = 500):String
+  def swissTopoMap(geometry:Option[Json], width:Int, height:Int, padding:Int = 500)(implicit ec:ExecutionContext):String
 }
 
 case class Context(data:Json,ws:RuntimeWS,psql:RuntimePSQL,utils:RuntimeUtils)
