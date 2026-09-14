@@ -27,8 +27,7 @@ object ExportWidget extends ComponentWidgetFactory {
       c <- field.child
       m <- params.children.find(_.objId == c.objId)
     } yield {
-      val childFilters = c.mapping.map(m => JSONQueryFilter.WHERE.eq(m.child,params.allData.get.get(m.parent)))
-      ExportParams(m,m.table,c.childQuery.getOrElse(JSONQuery.empty).filterWith(childFilters:_*))
+      ExportParams(m,m.table,c.query(params.allData.get))
     }
 
     override def killWidget(): Unit = {

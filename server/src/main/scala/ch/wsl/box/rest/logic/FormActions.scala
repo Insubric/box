@@ -390,22 +390,10 @@ case class FormActions(metadata:JSONMetadata,
 
   override def updateDiff(diff: JSONDiff):DBIO[Option[Json]] = ???
 
-  private def createQuery(entity:Json, child: Child):JSONQuery = {
-    val parentFilter = for{
-      m <- child.mapping
-    } yield {
-      JSONQueryFilter.withValue(m.child,Some(Filter.EQUALS),entity.get(m.parent))
-    }
 
-    val filters = parentFilter ++ child.childQuery.toSeq.flatMap(_.filter)
-
-
-
-    child.childQuery.getOrElse(JSONQuery.empty).copy(filter=filters.toList.distinct)
-  }
 
   private def getChild(dataJson:Json, metadata:JSONMetadata, field:JSONField, child:Child):DBIO[Seq[Json]] = {
-    val query = createQuery(dataJson,child)
+    val query = child.query(dataJson)
     FormActions(metadata,registry,metadataFactory,Some(field)).findSimple(query)
   }
 
