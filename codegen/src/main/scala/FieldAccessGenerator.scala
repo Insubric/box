@@ -5,13 +5,12 @@ import ch.wsl.box.jdbc.{Connection, Managed, TypeMapping}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import slick.model.Model
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
 
 
-case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Seq[String], model:Model,box_schema:String) extends slick.codegen.SourceCodeGenerator(model)
+case class FieldAccessGenerator(connection:Connection,tabs:Seq[String], views:Seq[String], model:Model,box_schema:String)(implicit ex:ExecutionContext) extends slick.codegen.SourceCodeGenerator(model)
   with BoxSourceCodeGenerator
   with slick.codegen.OutputHelpers {
 

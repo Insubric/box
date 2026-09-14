@@ -137,7 +137,9 @@ object Boot extends App  {
         for {
           res <- server.start()
         } yield res
-      }.recover{ case t => t.printStackTrace(); throw t}
+      }.recover{ case t => t.printStackTrace();
+        running = false
+        throw t}
       while(running) { Thread.sleep(1000) }
       Await.result(binding.flatMap(_.unbind()), 20.seconds)
     }

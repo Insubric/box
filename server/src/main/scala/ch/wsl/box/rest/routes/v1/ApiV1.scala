@@ -88,6 +88,8 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
   }
 
 
+  val authFlow = new AuthFlow()
+
   def sso = pathPrefix("sso") {
     pathPrefix(Segment) { provider_id =>
       path("challenge") {
@@ -99,7 +101,7 @@ case class ApiV1(appVersion:String)(implicit ec:ExecutionContext, sessionManager
       } ~
       pathEnd {
         parameters("code","state") { case (code,state) =>
-          onComplete(AuthFlow.code(provider_id, code, state)) {
+          onComplete(authFlow.code(provider_id, code, state)) {
             case Success(value) => value match {
               case Left(value) => complete(InternalServerError, s"An error occurred: ${value.getMessage}")
               case Right(user) => boxSetSessionCookie(BoxSession(user)) {

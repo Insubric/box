@@ -167,7 +167,19 @@ case class JSONFieldMapForeign(valueColumn:String,keyColumns:Seq[String],labelCo
 
 case class ChildMapping(parent:String,child:String)
 
-case class Child(objId:UUID, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String], hasData:Boolean)
+case class Child(objId:UUID, key:String, mapping:Seq[ChildMapping], childQuery:Option[JSONQuery], props:Seq[String], hasData:Boolean) {
+  def query(parent_data: Json): JSONQuery = {
+    val parentFilter = for {
+      m <- mapping
+    } yield {
+      JSONQueryFilter.withValue(m.child, Some(Filter.EQUALS), parent_data.get(m.parent))
+    }
+    val filters = parentFilter ++ childQuery.toSeq.flatMap(_.filter)
+
+    childQuery.getOrElse(JSONQuery.empty).copy(filter = filters.toList.distinct)
+
+  }
+}
 
 object Child{
   def apply(objId: UUID, key: String, parent: Seq[String], child: Seq[String], childQuery: Option[JSONQuery], props:String, hasData:Boolean): Child = {

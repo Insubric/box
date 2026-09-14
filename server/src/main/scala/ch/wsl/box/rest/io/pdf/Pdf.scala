@@ -5,7 +5,7 @@ import akka.util.ByteString
 
 object Pdf {
 
-  private val pdf:Pdf = new OpenHtmlToPDF();
+  private val pdf:Pdf = new OpenPDF();
 
   def render(html:String): Array[Byte] = pdf.render(html)
 }

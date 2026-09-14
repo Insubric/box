@@ -1,6 +1,5 @@
 package ch.wsl.box.services.translation
 
-import ch.wsl.box.rest.auth.oidc.AuthFlow.OpenIDToken
 import ch.wsl.box.services.config.{DeepLConfig, FullConfig}
 import sttp.client4._
 import sttp.client4.circe.asJson
