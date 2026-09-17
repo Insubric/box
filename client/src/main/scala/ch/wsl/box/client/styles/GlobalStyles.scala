@@ -1290,6 +1290,14 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     Font.bold
   )
 
+  val rangeEditor = style(
+    inputDefaultWidth,
+    media.maxWidth(600 px)(
+      width(100 %%)
+    ),
+    float.right,
+  )
+
   val editor = style(
     inputDefaultWidth,
     media.maxWidth(600 px)(

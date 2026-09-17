@@ -203,6 +203,7 @@ object JSONFieldTypes{
   val DATETIMETZ = "datetimetz"
   val TIME = "time"
   val INTERVAL = "interval" //Not used
+  val RANGE = "range"
   val BOOLEAN = "boolean"
   val ARRAY_NUMBER = "array_number"
   val ARRAY_STRING = "array_string"

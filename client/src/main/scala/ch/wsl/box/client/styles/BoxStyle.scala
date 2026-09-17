@@ -146,6 +146,7 @@ trait BoxStyle {
   val smallLabelRequired:StyleA
   val labelRequired:StyleA
   val labelNonRequred:StyleA
+  val rangeEditor:StyleA
   val margin0Auto:StyleA
   val mobileFooter:StyleA
   val hrThin:StyleA

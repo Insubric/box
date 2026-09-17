@@ -31,6 +31,7 @@ object WidgetsNames {
   val mapChild = "mapChild"
   val mapList = "mapList"
   val mapPoint = "mapPoint"
+  val rangeInt = "rangeInt"
   val code = "code"
   val richTextEditor = "richTextEditor"
   val richTextEditorFull = "richTextEditorFull"
@@ -211,6 +212,13 @@ object WidgetsNames {
       html,
       dynamicWidget,
       executeFunction,
+      popupWidget
+    ),
+    RANGE -> Seq(
+      rangeInt,
+      input,
+      hidden,
+      dynamicWidget,
       popupWidget
     )
   )

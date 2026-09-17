@@ -20,6 +20,8 @@ object TypeMapping extends Logging {
           case "_int4" | "int4[]" => Some("List[Int]")
           case "_int2" | "int2[]" => Some("List[Short]")
           case "interval" => Some("java.time.Duration")
+          case "int4range"  => Some("slickpg.Range[Int]")
+          case "int8range" => Some("slickpg.Range[Long]")
           case s:String if s.contains("geometry") => Some("org.locationtech.jts.geom.Geometry")
           case "timestamp with timezone" | "timestampz" | "timestamptz" => Some("java.time.OffsetDateTime")
           case s:String if s.contains("email") => {
@@ -59,6 +61,7 @@ object TypeMapping extends Logging {
     case "time without time zone" | "time" | "timez" => JSONFieldTypes.TIME
     case "date" => JSONFieldTypes.DATE
     case "interval" => JSONFieldTypes.INTERVAL
+    case "int4range" | "int8range" => JSONFieldTypes.RANGE
     case "ARRAY" => JSONFieldTypes.STRING
     case "USER-DEFINED" => JSONFieldTypes.STRING
     case s"${prefix}geometry$suffix" => JSONFieldTypes.GEOMETRY
