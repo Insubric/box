@@ -214,7 +214,7 @@ object WidgetsNames {
       executeFunction,
       popupWidget
     ),
-    RANGE -> Seq(
+    RANGE_INT -> Seq(
       rangeInt,
       input,
       hidden,

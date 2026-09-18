@@ -252,7 +252,7 @@ object Filter extends Logging {
     case JSONFieldTypes.DATE | JSONFieldTypes.DATETIME | JSONFieldTypes.TIME => Seq(Filter.EQUALS, Filter.>, Filter.<, Filter.>=, Filter.<=, Filter.NOT)
     case JSONFieldTypes.STRING => Seq(Filter.LIKE, Filter.DISLIKE, Filter.EQUALS, Filter.NOT, Filter.IN, Filter.NOTIN, Filter.CUSTOM_LIKE)
     case JSONFieldTypes.GEOMETRY => Seq(Filter.EQUALS, Filter.NOT,Filter.INTERSECT)
-    case JSONFieldTypes.RANGE => Seq(Filter.INCLUDE, Filter.NOT_INCLUDE)
+    case JSONFieldTypes.RANGE_INT => Seq(Filter.INCLUDE, Filter.NOT_INCLUDE)
 //    case JSONFieldTypes.BOOLEAN => Seq(Filter.TRUE, Filter.FALSE)
     case _ => Seq(Filter.EQUALS, Filter.NOT)
   }

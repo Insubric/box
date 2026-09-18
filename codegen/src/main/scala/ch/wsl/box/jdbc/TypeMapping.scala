@@ -61,7 +61,7 @@ object TypeMapping extends Logging {
     case "time without time zone" | "time" | "timez" => JSONFieldTypes.TIME
     case "date" => JSONFieldTypes.DATE
     case "interval" => JSONFieldTypes.INTERVAL
-    case "int4range" | "int8range" => JSONFieldTypes.RANGE
+    case "int4range" | "int8range" => JSONFieldTypes.RANGE_INT
     case "ARRAY" => JSONFieldTypes.STRING
     case "USER-DEFINED" => JSONFieldTypes.STRING
     case s"${prefix}geometry$suffix" => JSONFieldTypes.GEOMETRY

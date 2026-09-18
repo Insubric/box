@@ -4,7 +4,7 @@ import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.styles.BootstrapCol
 import ch.wsl.box.client.utils.TestHooks
 import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, HasData, Widget, WidgetParams, WidgetUtils}
-import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, PgRange, WidgetsNames, `[_,_)`, `empty`}
+import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, PgRange, PgRangeInt, WidgetsNames, `[_,_)`, `[_,_]`, `empty`}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.syntax._
@@ -31,7 +31,7 @@ object IntRangeWidget extends ComponentWidgetFactory {
     override def field: JSONField = params.field
     override def data: Property[Json] = params.prop
     import PgRange._
-    val rangeModel = data.bitransform(_.as[PgRange[Int]].getOrElse(PgRange.emptyRange[Int]))(_.asJson)
+    val rangeModel = data.bitransform(_.as[PgRangeInt].map(_.toEdgeType(`[_,_]`)).getOrElse(PgRange.emptyIntRange))(_.asJson)
 
 
 
@@ -51,7 +51,7 @@ object IntRangeWidget extends ComponentWidgetFactory {
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
         label(WidgetUtils.labelAlignment(WidgetUtils.LabelRight),field.title),
-        div(`class` := TestHooks.readOnlyField(field.name), bind(data.transform(_.string))),
+        div(`class` := TestHooks.readOnlyField(field.name), bind(rangeModel.transform(_.humanReadable))),
         div(BootstrapStyles.Visibility.clearfix)
       ).render
     }
@@ -71,12 +71,12 @@ object IntRangeWidget extends ComponentWidgetFactory {
         case (Some(f),Some(t)) if (f <= t) => {
           fromField.setCustomValidity("")
           toField.setCustomValidity("")
-          PgRange(f,t,`[_,_)`)
+          PgRange.int(f,t,`[_,_]`)
         }
         case (None,None) => {
           fromField.setCustomValidity("")
           toField.setCustomValidity("")
-          PgRange.emptyRange[Int]
+          PgRange.emptyIntRange
         }
         case _ => {
           fromField.setCustomValidity("Interval not valid")
@@ -92,7 +92,7 @@ object IntRangeWidget extends ComponentWidgetFactory {
 
 
 
-      div(display.flex,width := 100.pct,
+      div(display.flex,width := 100.pct,alignItems.center,
         fromField, div(marginLeft := 15.px, marginRight := 15.px, " - "), toField
       ).render
     }

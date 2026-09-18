@@ -45,11 +45,8 @@ object TableFieldsRenderer extends Logging{
   }
 
   def renderRange(str:String):Modifier = {
-    val r = PgRange.fromString(str,_.toInt)
-    r.edge match {
-      case `empty` => p()
-      case _ => p(r.start.getOrElse("") + " - " + r.end.getOrElse())
-    }
+    val r = PgRange.fromStringInt(str)
+    p(r.humanReadable)
   }
 
   def apply(value:String, field:JSONField, lookups:Seq[JSONLookups]):TypedTag[Element] = {
