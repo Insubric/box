@@ -84,12 +84,14 @@ trait Data extends Logging with HasLookup[Json] {
         complete(Html.render(dc.presenter.getOrElse(""), dc.asObj).map(html => HttpEntity(ContentTypes.`text/html(UTF-8)`, html)))
       }
       case Some(dc) if dc.mode == FunctionKind.Modes.PDF => {
-        val pdf = for {
-          html <- Html.render(dc.presenter.getOrElse(""), dc.asObj)
-        } yield Pdf.render(html)
+        parameter("filename".optional) { filename =>
+          val pdf = for {
+            html <- Html.render(dc.presenter.getOrElse(""), dc.asObj)
+          } yield Pdf.render(html)
 
-        respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"$function.pdf"))) {
-          complete(pdf.map(p => HttpEntity(MediaTypes.`application/pdf`, p)))
+          respondWithHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> s"${filename.getOrElse(function)}.pdf"))) {
+            complete(pdf.map(p => HttpEntity(MediaTypes.`application/pdf`, p)))
+          }
         }
       }
       case Some(dc) if dc.mode == FunctionKind.Modes.GEOPACKAGE => {

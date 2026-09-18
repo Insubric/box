@@ -53,6 +53,8 @@ trait BoxStyle {
   val table: StyleA
   val tableView: StyleA
   val field: StyleA
+  val fieldContainerRead: StyleA
+  def fieldContainerWrite: StyleA
   val fieldHighlight: StyleA
   val removeFieldMargin: StyleA
   val removeFieldAndBlockMargin: StyleA
@@ -125,7 +127,6 @@ trait BoxStyle {
   val tristateCheckBox:StyleA
   val tristatePositive:StyleA
   val tristateNegative:StyleA
-  val label50:StyleA
   val inputRightLabel:StyleA
   val notNullable:StyleA
   val thOver:StyleA

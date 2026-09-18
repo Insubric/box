@@ -292,8 +292,8 @@ case class MapPointWidget(params: WidgetParams) extends Widget with HasData with
     val xIn = xInput(width := 70.px)
     val yIn = yInput(width := 70.px)
 
-    div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
-      div(ClientConf.style.label50,if(noLabel) frag() else WidgetUtils.toLabel(field,WidgetUtils.LabelRight)),
+    div(ClientConf.style.fieldContainerWrite,
+      if(noLabel) frag() else WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
       div(
         display.`inline-block`,
         useXY match {

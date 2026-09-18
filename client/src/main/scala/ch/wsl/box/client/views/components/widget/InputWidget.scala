@@ -69,28 +69,25 @@ object InputWidget extends Logging {
   //used in read-only mode
   private def showMe(prop:ReadableProperty[Json], field:JSONField, withLabel:Boolean,nested:Binding.NestedInterceptor, labelAlign: LabelAlign, modifiers:Seq[Modifier] = Seq()):Binding = nested(WidgetUtils.showNotNull(prop,nested){ p =>
 
-    val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
+
 
     def reallyWithLabel = withLabel & (field.title.length > 0)
 
-    val mods = if(reallyWithLabel)
-      inputRendererDefaultModifiers++modifiers
-    else
-      inputRendererDefaultModifiers++modifiers++Seq(width := 100.pct)
 
 
 
-    div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
+
+    div(ClientConf.style.fieldContainerRead,
       if(reallyWithLabel) label(WidgetUtils.labelAlignment(labelAlign),field.title) else {},
-      div(`class` := TestHooks.readOnlyField(field.name) ,mods, bind(prop.transform(_.string))),
-      div(BootstrapStyles.Visibility.clearfix)
+      div(`class` := TestHooks.readOnlyField(field.name) ,modifiers, bind(prop.transform(_.string))),
+
     ).render
 
   })
 
   private def editMe(field:JSONField, withLabel:Boolean, labelAlign: LabelAlign, skipRequiredInfo:Boolean=false, modifiers:Seq[Modifier] = Seq())(inputRenderer:(Seq[Modifier]) => Node):Modifier = {
 
-    val inputRendererDefaultModifiers:Seq[Modifier] = Seq(BootstrapStyles.Float.right())
+
 
     def reallyWithLabel = withLabel & (field.title.length > 0)
 
@@ -102,19 +99,14 @@ object InputWidget extends Logging {
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
 
-    val allModifiers:Seq[Modifier] =  inputRendererDefaultModifiers++
-                        ph ++
+    val allModifiers:Seq[Modifier] = ph ++
                         WidgetUtils.toNullable(field.nullable) ++
                         Seq(`class` := TestHooks.formField(field.name)) ++
                         modifiers
 
-    div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
+    div(ClientConf.style.fieldContainerWrite,
       if(reallyWithLabel) WidgetUtils.toLabel(field,labelAlign,skipRequiredInfo) else {},
-      if(reallyWithLabel)
-        tooltip(inputRenderer(allModifiers))._1
-      else
-        tooltip(inputRenderer(allModifiers++Seq(width := 100.pct)))._1,
-      div(BootstrapStyles.Visibility.clearfix)
+      tooltip(inputRenderer(allModifiers))._1
     )
 
   }

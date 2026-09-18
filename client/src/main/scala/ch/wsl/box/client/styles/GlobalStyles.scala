@@ -21,7 +21,7 @@ import scalatags.generic.Attr
 import scala.concurrent.duration.DurationInt
 
 
-case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int, inputPercentage:Double)
+case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildProperties, requiredFontSize:Int, paddingBlocks: Int)
 
 class GlobalStyleFactory extends BoxStyleFactory {
 
@@ -39,7 +39,10 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
   import dsl._
 
-  protected val inputDefaultWidth = width(conf.inputPercentage %%)
+  protected val inputDefaultWidth = style(
+    maxWidth(400.px),
+    width(100.%%)
+  )
 
   override val inputHighlight = style(
     borderWidth(0 px,0 px,1 px,0 px),
@@ -187,6 +190,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
     unsafeRoot("textarea")(
       width(100 %%),
+      maxWidth(800 px),
       borderStyle.solid,
       borderWidth(1 px),
       borderRadius.`0`,
@@ -736,6 +740,22 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
       paddingTop(10 px)
     )
   )
+
+  override val fieldContainerRead = style(
+    noPadding,
+    smallBottomMargin,
+    display.flex,
+    unsafeChild("label")(
+      width(250.px),
+      flexShrink(0)
+    ),
+    flexDirection.row,
+    media.maxWidth(600 px)(
+      flexDirection.column
+    ),
+  )
+
+  override def fieldContainerWrite = fieldContainerRead
 
   override val fieldHighlight = style(
     unsafeExt(_ + ":focus-within")(
@@ -1294,8 +1314,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     inputDefaultWidth,
     media.maxWidth(600 px)(
       width(100 %%)
-    ),
-    float.right,
+    )
   )
 
   val editor = style(
@@ -1546,13 +1565,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     borderColor(c"#c74545")
   )
 
-  val label50 = style(
-    width((100-conf.inputPercentage) %%),
-    display.inlineBlock
-  )
-
   val inputRightLabel = style(
-    width((100-conf.inputPercentage) %%),
     padding.horizontal(10 px),
     textAlign.right
   )

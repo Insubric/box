@@ -41,18 +41,16 @@ object IntRangeWidget extends ComponentWidgetFactory {
 
       val tooltip = WidgetUtils.addTooltip(field.tooltip)(div(ClientConf.style.rangeEditor,_edit(nested)).render)
 
-      div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
+      div(ClientConf.style.fieldContainerWrite,
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
         tooltip._1,
-        div(BootstrapStyles.Visibility.clearfix)
       )
 
     }
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
-      div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
+      div(ClientConf.style.fieldContainerRead,
         label(WidgetUtils.labelAlignment(WidgetUtils.LabelRight),field.title),
         div(`class` := TestHooks.readOnlyField(field.name), bind(rangeModel.transform(_.humanReadable))),
-        div(BootstrapStyles.Visibility.clearfix)
       ).render
     }
 
