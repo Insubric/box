@@ -112,13 +112,13 @@ class ExportTableDialog extends Logging {
         val url = Routes.apiV1(
           s"/$kind/${services.clientSession.lang()}/$modelName/${format.code}/export"
         )
-        logger.info(s"downloading: $url")
+        logger.info(s"downloading with POST: $url")
 
         def param2Input(p: (String, String)): Input = {
           val i = input().render
           i.`type` = "hidden"
-          i.name = ExportTableFormat.queryParamName
-          i.value = queryNoLimits.asJson.noSpaces
+          i.name = p._1
+          i.value = p._2
           i
         }
 
@@ -129,7 +129,7 @@ class ExportTableDialog extends Logging {
 
 
         params.map(param2Input).foreach(f.appendChild)
-
+        logger.info(s"downloading with and params: $params")
         document.body.appendChild(f);
         f.submit();
         document.body.removeChild(f);
