@@ -31,7 +31,7 @@ trait UUIDPlainImplicits {
 trait PostgresProfile extends ExPostgresProfile
   with PgArraySupport
   with PgDate2Support
-  //  with PgRangeSupport
+  with PgRangeSupport
   //  with PgHStoreSupport
   //  with PgPlayJsonSupport
   with PgCirceJsonSupport
@@ -53,7 +53,7 @@ trait PostgresProfile extends ExPostgresProfile
     with CirceImplicits
     //    with NetImplicits
     //    with LTreeImplicits
-    //    with RangeImplicits
+    with RangeImplicits
     //    with HStoreImplicits
     with SearchImplicits
     with SearchAssistants
@@ -67,7 +67,7 @@ trait PostgresProfile extends ExPostgresProfile
     //    with SimpleJsonPlainImplicits
     //    with SimpleNetPlainImplicits
     //    with SimpleLTreePlainImplicits
-    //    with SimpleRangePlainImplicits
+    with SimpleRangePlainImplicits
     //    with SimpleHStorePlainImplicits
     with SimpleSearchPlainImplicits
     with UUIDPlainImplicits

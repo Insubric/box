@@ -173,9 +173,9 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
   protected def showMe(modelLabel:String,nested:Binding.NestedInterceptor):Modifier = autoRelease(WidgetUtils.showNotNull(data,nested){ p =>
-    div(ClientConf.style.smallBottomMargin, if (modelLabel.length > 0) label(modelLabel) else {},
-      div(BootstrapStyles.Float.right(), nested(bind(formatted))),
-      div(BootstrapStyles.Visibility.clearfix)
+    div(ClientConf.style.fieldContainerRead,
+      if (modelLabel.length > 0) label(modelLabel) else {},
+      nested(bind(formatted))
     ).render
   })
 
@@ -183,10 +183,9 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
-    div(BootstrapCol.md(12),ClientConf.style.noPadding,ClientConf.style.smallBottomMargin,
+    div(ClientConf.style.fieldContainerWrite,
       if (field.title.length > 0) WidgetUtils.toLabel(field,WidgetUtils.LabelRight, false) else {},
       tooltip(picker(fullWidth))._1,
-      div(BootstrapStyles.Visibility.clearfix)
     ).render
   }
 

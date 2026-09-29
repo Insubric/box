@@ -39,10 +39,9 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
   import io.circe.syntax._
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showIf(model.transform(_.isDefined)){
-    div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
+    div(ClientConf.style.fieldContainerRead)(
       lab(field.title),
-      div(BootstrapStyles.Float.right(), bind(model.transform(_.map(_.value).getOrElse("")))),
-      div(BootstrapStyles.Visibility.clearfix)
+      div(bind(model.transform(_.map(_.value).getOrElse("")))),
     ).render
   })
 
@@ -50,17 +49,14 @@ class SelectWidget(val field:JSONField, val data: Property[Json], val allData:Re
 
   override def edit(nested:Binding.NestedInterceptor) = {
 
-    val m:Seq[Modifier] = Seq[Modifier](BootstrapStyles.Float.right()) ++
-      modifiers ++
-      WidgetUtils.toNullable(field.nullable) ++
-      {if(nolabel) Seq(width := 100.pct) else Seq()}
+    val m:Seq[Modifier] = modifiers ++
+      WidgetUtils.toNullable(field.nullable)
 
     val tooltip = WidgetUtils.addTooltip(field.tooltip) _
 
-    div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin)(
+    div(ClientConf.style.fieldContainerWrite)(
       if(!nolabel) WidgetUtils.toLabel(field,WidgetUtils.LabelRight) else Seq[Node](),
       tooltip(nested(Select.optional[JSONLookup](model, lookup,StringFrag("---"))((s: JSONLookup) => StringFrag(s.value), m: _*)).render)._1,
-      div(BootstrapStyles.Visibility.clearfix)
     )
   }
 

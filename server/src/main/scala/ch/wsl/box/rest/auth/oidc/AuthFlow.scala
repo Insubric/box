@@ -11,26 +11,28 @@ import io.circe.generic.auto._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object AuthFlow {
+case class OpenIDToken(
+                        access_token:String,
+                        expires_in: Int,
+                        refresh_expires_in: Option[Int],
+                        refresh_token: Option[String],
+                        token_type: String,
+                        session_state: Option[String],
+                        scope: Option[String]
+                      )
+
+class AuthFlow(implicit ec:ExecutionContext) {
 
 
 
-  case class OpenIDToken(
-                          access_token:String,
-                          expires_in: Int,
-                          refresh_expires_in: Option[Int],
-                          refresh_token: Option[String],
-                          token_type: String,
-                          session_state: Option[String],
-                          scope: Option[String]
-                        )
+
 
 
 
   val backend = DefaultFutureBackend()
 
 
-  private def currentUserFromUserInfo(provider:OIDCConf,userInfo: UserInfo)(implicit ec:ExecutionContext, services:Services):Future[CurrentUser] = {
+  private def currentUserFromUserInfo(provider:OIDCConf,userInfo: UserInfo)(implicit services:Services):Future[CurrentUser] = {
 
     val dbUser = services.config.singleUser match {
       case true => services.connection.user
@@ -64,7 +66,7 @@ object AuthFlow {
   //    "session_state": "57b36158-2ad7-4614-80bf-3aa037ab38fe",
   //    "scope": "email profile"
   //  }
-  def code(provider:OIDCConf,c:String,code_verifier:Option[String])(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
+  def code(provider:OIDCConf,c:String,code_verifier:Option[String])(implicit services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
     def authToken = {
 
@@ -121,7 +123,7 @@ object AuthFlow {
   }
 
 
-  def code(provider_id:String,c:String,state:String)(implicit ex:ExecutionContext, services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
+  def code(provider_id:String,c:String,state:String)(implicit  services: Services):Future[Either[ResponseException[String],CurrentUser]] = {
 
     services.config.openid.find(_.provider_id == provider_id) match {
       case Some(provider) if provider.jwks.isEmpty => code(provider, c,None)
@@ -131,6 +133,9 @@ object AuthFlow {
       case None => Future.failed(new Exception(s"OIDC Provider $provider_id not found"))
     }
 
+  }.recover{ case t:Throwable =>
+    t.printStackTrace()
+    throw t
   }
 
 

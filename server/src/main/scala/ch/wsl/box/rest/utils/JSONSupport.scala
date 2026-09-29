@@ -11,6 +11,8 @@ import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import ch.wsl.box.model.shared.{Condition, FileUtils}
 import ch.wsl.box.shared.utils.DateTimeFormatters
+import com.github.tminglei.slickpg
+import com.github.tminglei.slickpg.PgRangeSupportUtils
 import io.circe.Decoder.Result
 import org.apache.tika.Tika
 
@@ -99,6 +101,16 @@ object JSONSupport {
 
     override def apply(c: HCursor): Result[LocalTime] = Decoder.decodeString.map{s =>
       DateTimeFormatters.time.parse(s).get
+    }.apply(c)
+  }
+
+  implicit val RangeFormat : Encoder[slickpg.Range[Int]] with Decoder[slickpg.Range[Int]] = new Encoder[slickpg.Range[Int]] with Decoder[slickpg.Range[Int]] {
+
+    override def apply(a: slickpg.Range[Int]): Json = Json.fromString(a.toString())
+
+
+    override def apply(c: HCursor): Result[slickpg.Range[Int]] = Decoder.decodeString.map{s =>
+      PgRangeSupportUtils.mkRangeFn(_.toInt).apply(s)
     }.apply(c)
   }
 

@@ -26,7 +26,7 @@ class OIDCClientImpl(client:HttpClient) extends OIDCClient {
 
     if(provider.code_challange) {
       client.get[OIDCCodeChallenge](Routes.apiV1("/sso/cognito/challenge")).foreach { c =>
-        window.location.href = s"$baseRedirect&code_challenge=${c.challenge.substring(0, c.challenge.length - 1)}&code_challenge_method=S256&state=${c.state}"
+        window.location.href = s"$baseRedirect&code_challenge=${c.challenge}&code_challenge_method=S256&state=${c.state}"
       }
     } else window.location.href = baseRedirect+"&state="+UUID.randomUUID().toString
   }

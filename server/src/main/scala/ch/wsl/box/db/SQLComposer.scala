@@ -11,11 +11,11 @@ import ch.wsl.box.model.{DbOps, Select, Update}
 import ch.wsl.box.rest.metadata.EntityMetadataFactory
 import ch.wsl.box.rest.runtime.{ColType, RegistryInstance}
 import scribe.Logging
-
 import io.circe._
 import ch.wsl.box.rest.utils.JSONSupport._
 import ch.wsl.box.rest.utils.GeoJsonSupport._
 import Light._
+import com.github.tminglei.slickpg
 
 import java.util.{Base64, UUID}
 import scala.util.Try
@@ -144,6 +144,8 @@ trait SQLCompose extends Logging {
         case ("String",_)  => filter(col.nullable,Some(v))
         case ("Int",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l) => filter[Int](col.nullable,v.toIntOption,Some("::text"))
         case ("Int",_) => filter[Int](col.nullable,v.toIntOption)
+        case ("slickpg.Range[Int]",Some(Filter.INCLUDE)) => v.toIntOption.map(i => sql""" "#$key" @> $i """)
+        case ("slickpg.Range[Int]",Some(Filter.NOT_INCLUDE)) => v.toIntOption.map(i => sql""" not "#$key" @> $i """ )
         case ("Long",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Long](col.nullable,v.toLongOption,Some("::text"))
         case ("Long",_) => filter[Long](col.nullable,v.toLongOption)
         case ("Short",Some(l)) if Seq(Filter.LIKE,Filter.CUSTOM_LIKE).contains(l)  => filter[Short](col.nullable,v.toShortOption,Some("::text"))
@@ -217,6 +219,7 @@ trait SQLCompose extends Logging {
       case "Short" => update[Short](col)
       case "Double" => update[Double](col)
       case "Float" => update[Float](col)
+      case "slickpg.Range[Int]" => update[slickpg.Range[Int]](col)
       case "BigDecimal" | "scala.math.BigDecimal" => update[BigDecimal](col)
       case "java.time.LocalDate" => update[java.time.LocalDate](col)
       case "java.time.LocalTime" => update[java.time.LocalTime](col)

@@ -16,9 +16,10 @@ import ch.wsl.box.client.views.components.ui.TwoPanelResize
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.views.components.{Debug, MapList, TableFieldsRenderer}
 import ch.wsl.box.client.views.elements.Offline
-import ch.wsl.box.client.views.helpers.{TableColumnDrag}
+import ch.wsl.box.client.views.helpers.{PopupFrame, TableColumnDrag}
 import ch.wsl.box.model.shared.EntityKind.VIEW
 import ch.wsl.box.model.shared.GeoJson.Polygon
+import ch.wsl.box.model.shared.JSONFieldTypes.{ARRAY_NUMBER, ARRAY_STRING}
 import ch.wsl.box.model.shared.geo.GeoDataRequest
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -373,6 +374,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
                 case (_,_, None) => ()
                 case (Self, false, Some(url)) => Navigate.toUrl(url)
                 case (NewWindow,_, Some(url)) =>  window.open(url)
+                case (Popup,_, Some(url)) =>  PopupFrame.open(url)
               }
               true
             }
@@ -443,7 +445,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     qWithFullText.copy(
       fields = Some(selectedFields),
       lookups = Some(metadata.flatMap(_.fields)
-        .filter(x => selectedFields.contains(x.name))
+        .filter(x => selectedFields.contains(x.name) && !Seq(ARRAY_NUMBER,ARRAY_STRING).contains(x.`type`))
         .flatMap( x=> x.lookup match {
           case Some(value) => value match {
             case r:JSONFieldLookupRemote => Some(r)

@@ -33,6 +33,8 @@ trait MyOutputHelper extends slick.codegen.OutputHelpers {
        |  import org.locationtech.jts.geom.Geometry
        |
        |  import ch.wsl.box.model.UpdateTable
+       |  import com.github.tminglei.slickpg
+       |
        |  import scala.concurrent.ExecutionContext
        |
        |object $container {

@@ -1,6 +1,6 @@
 package ch.wsl.box.model
 
-import ch.wsl.box.codegen.{CodeGeneratorWriter, GeneratorParams}
+import ch.wsl.box.codegen.{CodeGeneratorWriter, GeneratorParams, MigrateDB}
 import ch.wsl.box.jdbc.PostgresProfile.api._
 import ch.wsl.box.jdbc.{Connection, ConnectionTestContainerImpl}
 import ch.wsl.box.rest.runtime.{ActionRegistry, FieldRegistry, GeneratedFileRoutes, GeneratedRoutes, Registry, RegistryInstance}
@@ -50,7 +50,8 @@ set search_path=#${publicSchema};
 """.transactionally), 120.seconds)
 
 
-    BuildBox.install(connection,boxSchema)
+    BuildBox._install(connection,boxSchema)
+    Await.result(MigrateDB.box(connection, boxSchema), 120 seconds)
 
     Await.result(new SchemaGenerator(connection,langs,boxSchema).run(),100.seconds)
   }

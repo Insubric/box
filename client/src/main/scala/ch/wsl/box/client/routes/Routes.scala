@@ -55,10 +55,10 @@ object Routes extends Logging {
     originUrl.replace("http","ws") + "/api/v1/notifications/"+topic
   }
 
-  def apply(kind:String, entityName:String,public:Boolean) = new Routes{
-    def add() = EntityFormState(kind,entityName,"true",None,public)
-    def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),public)
-    def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),public)
+  def apply(kind:String, entityName:String,public:Boolean, popup: Boolean = false) = new Routes{
+    def add() = EntityFormState(kind,entityName,"true",None,public,queryParamsData = None, popup = popup)
+    def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),public,queryParamsData = None, popup = popup)
+    def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),public,queryParamsData = None, popup = popup)
     def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => window.btoa(js.asJson.noSpaces)),public)
     def entity(name:String) = EntityTableState(kind,name,None,public)
   }

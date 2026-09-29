@@ -78,8 +78,6 @@ object ClientConf {
   def tableMaxTextLength: Int = Try(conf("table.maxTextLength").toInt).getOrElse(140)
   def requiredFontSize: Int = Try(conf("form.requiredFontSize").toInt).getOrElse(8)
 
-  def inputWidth: Double = Try(conf("form.inputWidth").toDouble).getOrElse(61.8)
-
   def childBorderSize: Int = Try(conf("child.border.size").toInt).getOrElse(1)
   def childBorderColor: String = Try(conf("child.border.color")).getOrElse(StyleConstants.Colors.GreySemi.value)
   def childPaddingSize: Int = Try(conf("child.padding.size").toInt).getOrElse(10)
@@ -93,8 +91,7 @@ object ClientConf {
     tableFontSize,
     ChildProperties(childBorderSize, childBorderColor, childPaddingSize, childMarginTopSize, childBackgroundColor),
     requiredFontSize,
-    paddingBlocks,
-    inputWidth
+    paddingBlocks
   )
 
   //lazy val style = new GlobalStyleFactory.GlobalStyles(styleConf)

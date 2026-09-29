@@ -27,12 +27,13 @@ import ch.wsl.box.rest.{Box, Module}
 import ch.wsl.box.rest.routes.v1.ApiV1
 import ch.wsl.box.services.Services
 
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.DurationInt
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andreaminetti on 15/03/16.
   */
-case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit materializer:Materializer,executionContext:ExecutionContext,system: ActorSystem,services: Services) extends Logging {
+case class Root(appVersion:String,uiVersion:String,akkaConf:Config, origins:Seq[String])(implicit materializer:Materializer,executionContext:ExecutionContext,system: ActorSystem,services: Services) extends Logging {
 
   import ch.wsl.box.jdbc.Connection
 
@@ -55,9 +56,10 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
 
   def status = path("status") {
     get {
-      complete(
-        HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,"RUNNING"))
-      )
+      Try(Await.result(services.connection.checkConnection(),2.seconds)) match {
+          case Success(true) => complete(HttpResponse(entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`,"RUNNING")))
+          case _ => complete(StatusCodes.ServiceUnavailable, "DB Connection error")
+      }
     }
   }
 
@@ -69,7 +71,7 @@ case class Root(appVersion:String,akkaConf:Config, origins:Seq[String])(implicit
         ApiV1(appVersion).route
       }
     } ~
-    UI.clientFiles
+    UI.clientFiles(uiVersion)
 
 
 }

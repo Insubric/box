@@ -15,8 +15,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import io.circe.Json
 
 import java.util
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
 
 object UtilsImpl extends RuntimeUtils {
@@ -36,7 +35,7 @@ object UtilsImpl extends RuntimeUtils {
     result
   }
 
-  override def swissTopoMap(geomJS: Option[Json], width:Int, height:Int, padding:Int = 500): String = {
+  override def swissTopoMap(geomJS: Option[Json], width:Int, height:Int, padding:Int = 500)(implicit ec:ExecutionContext): String = {
     import Geometry._
     val geometry = geomJS.get.as[Geometry].toOption.get
     val minX = geometry.allCoordinates.map(_.x).min
