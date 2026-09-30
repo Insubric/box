@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import scalaJSPlugin from "@scala-js/vite-plugin-scalajs";
 import { loadEnv } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import fs from 'fs'
 
 const env = loadEnv(process.env.NODE_ENV, process.cwd());
 
@@ -19,6 +20,10 @@ export default defineConfig({
                     return path.replace(/^\/ui\/workers/, '')
                 },
             }
+        },
+        https: {
+            key: fs.readFileSync('./10.27.7.229-key.pem'),
+            cert: fs.readFileSync('./10.27.7.229.pem'),
         },
         cors: true,
         host: '0.0.0.0'

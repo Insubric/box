@@ -105,8 +105,8 @@ case class JSONQueryFilter(
     }
   )
 
-  def asString:String = s"${column} ${operator.getOrElse("=")} ${fieldValue.map("ref:" + _).orElse(value).getOrElse("")}"
-
+  def asString(column_name:String):String = s"${column_name} ${operator.getOrElse("=")} ${fieldValue.map("ref:" + _).orElse(value).getOrElse("")}"
+  def asString:String = asString(column)
 }
 
 object JSONQueryFilter{
@@ -145,13 +145,18 @@ object JSONQueryFilter{
   * @param order valid values are asc/desc
   */
 case class JSONSort(column:String,order:String) {
-  def asString:String = {
+
+  def asString(column_name:String):String = {
     val i = order match {
       case Sort.ASC => "↓"
       case Sort.DESC => "↑"
     }
-    s"$i $column"
+    s"$i $column_name"
   }
+
+  def asString:String = asString(column)
+
+  def asString(f:JSONField):String = if(f.name == column) asString(f.title) else asString(column)
 }
 
 /**

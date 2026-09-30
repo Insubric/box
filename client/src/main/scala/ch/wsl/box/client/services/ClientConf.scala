@@ -6,6 +6,7 @@ import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
+import ch.wsl.box.client.styles.fonts.DefaultFont
 import ch.wsl.box.client.styles.{BoxStyle, GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import ch.wsl.box.model.shared.oidc.OIDCFrontendConf

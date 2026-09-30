@@ -67,12 +67,7 @@ case class IDsVM(isLastPage:Boolean,
                    )
 
 
-
-
-
-case class FieldQuery(field:JSONField, sort:String, sortOrder:Option[Int], filterValue:String, filterOperator:String)
-
-case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldQueries:Seq[FieldQuery],
+case class EntityTableModel(name:String, kind:String, urlQuery:Option[JSONQuery], rows:Seq[Row], fieldSort:Seq[JSONSort], fieldFilter:Seq[JSONQueryFilter],
                             metadata:Option[JSONMetadata], selectedRow:Seq[JSONID], ids: Option[IDs], pages:Int, access:TableAccess,
                             lookups:Seq[JSONLookups],query:Option[JSONQuery],geoms: GeoTypes.GeoData,extent:Option[Polygon],extentFilter:Boolean,public:Boolean,selectedColumns:Seq[JSONField], search:String)
 
@@ -81,12 +76,11 @@ case class VMAction(code:String,action: JSONID => Future[Boolean],icon:Option[Ic
 
 
 object EntityTableModel extends HasModelPropertyCreator[EntityTableModel]{
-  def empty = EntityTableModel("","",None,Seq(),Seq(),None,Seq(),None,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq(),"")
+  def empty = EntityTableModel("","",None,Seq(),Seq(),Seq(),None,Seq(),None,1, TableAccess(false,false,false),Seq(),None,Seq(),None,false,false,Seq(),"")
   implicit val blank: Blank[EntityTableModel] =
     Blank.Simple(empty)
 }
 
-object FieldQuery extends HasModelPropertyCreator[FieldQuery]
 object IDsVM extends HasModelPropertyCreator[IDsVM] {
   def fromIDs(ids:IDs) = IDsVM(
     ids.isLastPage,
@@ -186,18 +180,8 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         kind = specificKind,
         urlQuery = urlQuery,
         rows = Seq(),
-        fieldQueries = metadata.fields.map{ field =>
-
-          val operator = query.filter.find(_.column == field.name).flatMap(_.operator).getOrElse(Filter.default(field))
-          val rawValue = query.filter.find(_.column == field.name).flatMap(_.value).getOrElse("")
-          FieldQuery(
-            field = field,
-            sort = query.sort.find(_.column == field.name).map(_.order).getOrElse(Sort.IGNORE),
-            sortOrder = query.sort.zipWithIndex.find(_._1.column == field.name).map(_._2 + 1),
-            filterValue = rawValue,
-            filterOperator = operator
-          )
-        },
+        fieldFilter = query.filter,
+        fieldSort = query.sort,
         metadata = Some(metadata),
         selectedRow = Seq(),
         ids = None,
@@ -273,8 +257,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       }
     }
 
-    listeners.addOne(model.subProp(_.fieldQueries).listen { fq =>
-
+    def updateFilter() = {
       logger.info("listener filterUpdateHandler " + filterUpdateHandler)
 
       if (filterUpdateHandler != 0) window.clearTimeout(filterUpdateHandler)
@@ -282,7 +265,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       filterUpdateHandler = window.setTimeout(() => {
         reloadRows(1)
       }, 500)
-    })
+    }
+
+    listeners.addOne(model.subProp(_.fieldFilter).listen(_ => updateFilter()))
+    listeners.addOne(model.subProp(_.fieldSort).listen(_ => updateFilter()))
+
+
   }
 
   override def onClose(): Unit = {
@@ -412,15 +400,12 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
   }
 
   def query(extent:Option[Polygon]):JSONQuery = {
-    val fieldQueries = model.subProp(_.fieldQueries).get
 
-    val sort = fieldQueries.filter(_.sort != Sort.IGNORE).sortBy(_.sortOrder.getOrElse(-1)).map(s => JSONSort(s.field.name, s.sort)).toList
+    val sort = model.subProp(_.fieldSort).get.filterNot(_.order == Sort.IGNORE)
 
-    val filter = fieldQueries.filter(_.filterValue != "").map{ f =>
-      JSONQueryFilter.withValue(f.field.name,Some(f.filterOperator),f.filterValue)
-    }.toList
+    val filter = model.subProp(_.fieldFilter).get
 
-    val qFields = JSONQuery(filter, sort, None)
+    val qFields = JSONQuery(filter.toList, sort.toList, None)
     val q = (model.get.metadata,extent) match {
       case (Some(metadata),Some(ext)) => qFields.withExtent(metadata,ext)
       case _ => qFields
@@ -569,43 +554,22 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
 
 
 
-  def sort(_fieldQuery: ReadableProperty[Option[FieldQuery]]) = (e:Event) => {
+  def sort(field: JSONField) = (e:Event) => {
     e.preventDefault()
 
-    if(_fieldQuery.get.isDefined) {
+    val sorting = model.subProp(_.fieldSort).get
 
-      val fieldQuery = _fieldQuery.get.get
-
-      val next = Sort.next(fieldQuery.sort)
-
-      val fieldQueries = model.subProp(_.fieldQueries).get
-
-      val newFieldQueries = fieldQueries.map { m =>
-
-        next match {
-          case Sort.IGNORE => // drop order
-          case Sort.ASC => // add order
-          case _ => // keep order
-        }
-
-
-        m.field.name == fieldQuery.field.name match {
-          case false => next match {
-            case Sort.IGNORE if m.sortOrder.isDefined && fieldQuery.sortOrder.isDefined && m.sortOrder.get > fieldQuery.sortOrder.get => m.copy(sortOrder = m.sortOrder.map(_ - 1))
-            case _ => m
-          }
-          case true => {
-            next match {
-              case Sort.IGNORE => m.copy(sort = next, sortOrder = None) // drop order
-              case Sort.ASC => m.copy(sort = next, sortOrder = Some(fieldQueries.map(_.sortOrder.getOrElse(0)).max + 1)) // add order
-              case _ => m.copy(sort = next) // keep order
-            }
-          }
-        }
+    val newSort = sorting.find(_.column == field.name) match {
+      case Some(f) if Sort.next(f.order) != Sort.IGNORE  => sorting.map{ s =>
+        if(s.column == field.name) s.copy(order = Sort.next(s.order))
+        else s
       }
-
-      model.subProp(_.fieldQueries).set(newFieldQueries)
+      case Some(_) => sorting.filterNot(_.column == field.name)
+      case None => sorting ++ Seq(JSONSort(field.name,Sort.ASC))
     }
+
+    model.subProp(_.fieldSort).set(newSort)
+
   }
 
   def hoverRow(row: => Row) =  (e:Event) => {
@@ -625,7 +589,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         model.subProp(_.selectedRow).set(currentSel.filterNot(_ == id))
       } else {
         //not used yet, was for parent child relationships
-        onSelect(model.get.fieldQueries.map(_.field).zip(row.data))
+        // onSelect(???.zip(row.data))
         model.subProp(_.selectedRow).set(currentSel ++ Seq(id))
       }
     }
@@ -665,11 +629,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
       model.subProp(_.extent).set(None)
     model.subProp(_.search).set("")
 
-    val oldFq = model.subProp(_.fieldQueries).get
-    if(oldFq.forall(_.filterValue == ""))
-      reloadRows(1)
-    else
-      model.subProp(_.fieldQueries).set(oldFq.map(_.copy(filterValue = "")))
+    model.subProp(_.fieldFilter).set(Seq())
 
   }
 
@@ -952,25 +912,24 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                     mainActions(metadata,nested)
                   ),
                   columns.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { field =>
-                    val fieldQuery: ReadableProperty[Option[FieldQuery]] = model.subProp(_.fieldQueries).transform(_.find(_.field.name == field.name))
-                    val title: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.field.label).getOrElse(field.name))
-                    val sort: ReadableProperty[String] = fieldQuery.transform(_.map(x => x.sort).getOrElse(""))
-                    val order: ReadableProperty[String] = fieldQuery.transform(_.flatMap(_.sortOrder).map(_.toString).getOrElse(""))
+
+                    val sort: ReadableProperty[String] = model.subProp(_.fieldSort).transform(_.find(_.column == field.name).map(_.order).getOrElse(""))
+                    val order: ReadableProperty[String] = model.subProp(_.fieldSort).transform(_.zipWithIndex.find(_._1.column == field.name).map(x => (x._2 + 1).toString).getOrElse(""))
 
                     th(ClientConf.style.smallCells, verticalAlign.middle, draggable := true)(
                       a(
-                        span(bind(title), ClientConf.style.tableHeader), " ",
+                        span(field.title, ClientConf.style.tableHeader), " ",
                         span(whiteSpace.nowrap, span(produce(sort) {
                           case Sort.ASC => Icons.asc.render
                           case Sort.DESC => Icons.desc.render
                           case _ => frag().render
                         }), " ", bind(order))
-                      ).render.listen("click",presenter.sort(fieldQuery))
+                      ).render.listen("click",presenter.sort(field))
                     ).render
                   }
                 ),
                 if(filterStyleAll) {
-                  new FilterEveryField(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(columns,metadata)
+                  new FilterEveryField(model.subProp(_.fieldFilter),model.subProp(_.lookups)).render(columns,metadata,nested)
                 } else frag(),
               ).render
             }),
@@ -1160,7 +1119,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
 
       ),
       if(filterStyleDyn) {
-        new FilterBarDyn(model.subProp(_.fieldQueries),model.subProp(_.lookups)).render(metadata.fields,metadata)
+        new FilterBarDyn(model.subProp(_.fieldFilter),model.subProp(_.fieldSort),model.subProp(_.lookups)).render(metadata.fields,metadata,nested)
       } else frag(),
     )
   }
@@ -1180,9 +1139,6 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             button(`type` := "button", ClientConf.style.boxButton, Labels.entity.importxls).render.listen("click",presenter.importXLS)
 
           } else empty,
-          showIf(model.subProp(_.fieldQueries).transform(_.size == 0)) {
-            p("loading...").render
-          },
           br, br
         ),
         Debug(model)

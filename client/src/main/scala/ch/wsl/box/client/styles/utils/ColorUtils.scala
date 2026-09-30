@@ -10,6 +10,8 @@ object ColorUtils {
     def color: ValueT[ValueT.Color]
     def lighten(amount:Double):Color
     def darken(amount:Double):Color
+
+    def toHex:String
   }
   case class HSL(hue:Double,saturation:Double,lightness:Double) extends Color {
     def color = Color.hsl((hue*360).toInt,(saturation*100).%%,(lightness*100).%%)
@@ -24,6 +26,7 @@ object ColorUtils {
       this.copy(lightness = this.lightness - this.lightness*amount)
     }
 
+    override def toHex: String = hsv2rgb(this).toHex
   }
   case class RGB(r:Double,g:Double,b:Double) extends Color {
 
@@ -39,6 +42,11 @@ object ColorUtils {
 
     def lighten(amount:Double) = hsl.lighten(amount)
     def darken(amount:Double) = hsl.darken(amount)
+
+    override def toHex: String =  {
+      val toHex = (v: Double) => f"${v.max(0).min(255).toInt}%02X"
+      s"#${toHex(r)}${toHex(g)}${toHex(b)}"
+    }
   }
 
   object RGB{

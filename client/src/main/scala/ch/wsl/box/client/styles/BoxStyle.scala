@@ -1,17 +1,21 @@
 package ch.wsl.box.client.styles
 
+import ch.wsl.box.client.styles.fonts.BoxFont
 import scalacss.internal.{Env, Renderer}
 import scalacss.internal.mutable.{Register, Settings}
 import scalacss.{StyleA, StyleSheet}
 
 trait BoxStyleFactory {
   def build(settings: Settings):BoxStyle
+  def font():BoxFont
 }
 
 trait BoxStyle {
 
+  val inputDefaultWidth: StyleA
   val inputHighlight: StyleA
   val inputInvalid: StyleA
+  val flexDyn: StyleA
   val spaceBetween: StyleA
   val topTableContainer: StyleA
   val topBarContainer: StyleA
@@ -60,7 +64,6 @@ trait BoxStyle {
   val removeFieldAndBlockMargin: StyleA
   val distributionContrainer: StyleA
   val distributionChild: StyleA
-  val boxedLink: StyleA
   val notificationArea: StyleA
   val notification: StyleA
   val headerLogo: StyleA
