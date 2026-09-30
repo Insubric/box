@@ -99,7 +99,7 @@ case class Table[T <: ch.wsl.box.jdbc.PostgresProfile.api.Table[M] with UpdateTa
           val table = XLSTable(
             title = name,
             header = jsonMetadata.fields.map(_.name),
-            rows = data.map(row => jsonMetadata.exportFields.map(cell => row.get(cell)))
+            rows = data.map(row => jsonMetadata.exportFields.map(cell => row.js(cell)))
           )
           XLS.route(table)
         }

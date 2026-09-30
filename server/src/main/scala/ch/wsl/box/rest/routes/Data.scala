@@ -59,7 +59,7 @@ trait Data extends Logging with HasLookup[Json] {
   def data(function: String, params: Json, lang: String): Future[Option[DataContainer]]
 
   private def xls(function:String,dc:DataContainer) = {
-      val table = XLSTable(function,dc.asTable.headers,dc.asTable.rows.map(_.map(_.string)))
+      val table = XLSTable(function,dc.asTable.headers,dc.asTable.rows)
       XLS.route(table)
   }
 

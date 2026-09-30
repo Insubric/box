@@ -161,7 +161,7 @@ trait Exporters {
             xlsTable = XLSTable(
               title = name,
               header = head.map(_.label),
-              rows = finalData.map(row => head.map(cell => row.get(cell.key)))
+              rows = finalData.map(row => head.map(cell => row.js(cell.key)))
             )
           } yield {
             XLS.route(xlsTable)
