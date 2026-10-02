@@ -1798,28 +1798,6 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
 
   )
 
-  val filterBlock = style(
-    display.flex,
-    alignItems.center,
-    backgroundColor.rgb(250,250,250),
-    borderWidth(1 px),
-    borderRadius(2 px),
-    borderStyle.solid,
-    borderColor.rgb(200,200,200),
-    margin(10 px),
-    unsafeChild("select")(
-      width(100 px).important,
-      margin(10 px),
-      fontSize(12 px)
-    ),
-    unsafeChild("input")(
-      width(100 px).important,
-      margin(10 px),
-      fontSize(12 px)
-    )
-
-  )
-
   override val filterBlockTitle = style(
     fontWeight.bold,
     marginLeft(15 px)

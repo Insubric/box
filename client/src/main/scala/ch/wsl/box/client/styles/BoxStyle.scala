@@ -160,7 +160,6 @@ trait BoxStyle {
   val error:StyleA
   val iconBig:StyleA
   val filterDynBar:StyleA
-  val filterBlock:StyleA
   val filterBlockTitle:StyleA
   val tableTitle:StyleA
   val tableMainActions:StyleA
