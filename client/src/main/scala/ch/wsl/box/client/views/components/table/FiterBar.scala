@@ -151,17 +151,28 @@ trait FilterBar extends Logging {
 
   def filterPropsField(_field:JSONField) = {
 
-    val fieldQuery: Property[Option[JSONQueryFilter]] = filters.bitransform(_.find(_.column == _field.name)) {
-      case None => filters.get.filterNot(_.column == _field.name)
-      case Some(q) => filters.get.map(old => if(old.column == _field.name) q else old)
-    }
-    val filterValue: Property[String] = fieldQuery.bitransform[String](_.flatMap(_.value).getOrElse(""))(x => {fieldQuery.get match {
-      case _ if x.isEmpty => None
-      case Some(value) => Some(value.copy(value = Some(x)))
-      case None => Some(JSONQueryFilter(_field.name,Some(Filter.default(_field)),Some(x),None))
+
+    val filterValue: Property[String] = filters.bitransform[String](_.find(_.column == _field.name).flatMap(_.value).getOrElse(""))(x => {filters.get.find(_.column == _field.name) match {
+      case Some(_) if x.isEmpty => filters.get.filterNot(_.column == _field.name)
+      case Some(value) =>  filters.get.map(f => if(f.column == _field.name) value.copy(value = Some(x)) else f )
+      case None => filters.get ++ Seq(JSONQueryFilter(_field.name,Some(Filter.default(_field)),Some(x),None))
     }})
 
-    val operator: Property[String] = fieldQuery.bitransform(_.flatMap(_.operator).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(operator = Some(value))))
+//    val operator: Property[String] = filters.bitransform(_.find(_.column == _field.name).flatMap(_.operator).getOrElse(""))(x => {filters.get.find(_.column == _field.name) match {
+//      case Some(value) =>  filters.get.map(f => if(f.column == _field.name) value.copy(operator = Some(x)) else f )
+//      case None => filters.get ++ Seq(JSONQueryFilter(_field.name,Some(x),None,None))
+//    }})
+
+    val operator:Property[String] = Property(filters.get.find(_.column == _field.name).flatMap(_.operator).getOrElse(Filter.default(_field)))
+
+    operator.listen { x =>
+      filters.set(filters.get.find(_.column == _field.name) match {
+        case Some(value) =>  filters.get.map(f => if(f.column == _field.name) value.copy(operator = Some(x)) else f )
+        case None => filters.get ++ Seq(JSONQueryFilter(_field.name,Some(x),None,None))
+      })
+    }
+
+
     (filterValue,operator)
   }
 
