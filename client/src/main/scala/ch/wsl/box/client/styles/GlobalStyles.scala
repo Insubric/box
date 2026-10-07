@@ -1196,20 +1196,30 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     )
   )
 
-  val mobileBoxAction = style(
-    mobileOnly,
+  val floatingButton = style(
     boxShadow := "0px 0px 2px #555",
     backgroundColor(conf.colors.main),
     color(conf.colors.mainText),
     borderRadius(50 px),
     position.fixed,
-    right(20 px),
-    bottom(20 px),
     height(50 px),
     width(50 px),
     border.`0`,
     fontSize(20 px),
     zIndex(5)
+  )
+
+  val bottomLeftButton = style(
+    floatingButton,
+    left(30 px),
+    bottom(30 px)
+  )
+
+  val mobileBoxAction = style(
+    mobileOnly,
+    floatingButton,
+    right(20 px),
+    bottom(20 px)
   )
 
   val adminFormEditAction = style(

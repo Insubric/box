@@ -101,6 +101,7 @@ trait BoxStyle {
   val imageThumb: StyleA
   val noBullet: StyleA
   val noMobile:StyleA
+  val bottomLeftButton:StyleA
   val mobileBoxAction:StyleA
   val mobileMenu:StyleA
   val mobileOnly:StyleA

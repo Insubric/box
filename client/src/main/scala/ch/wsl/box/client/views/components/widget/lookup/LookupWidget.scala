@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget.lookup
 
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels}
 import ch.wsl.box.client.views.components.widget.{HasData, Widget}
+import ch.wsl.box.client.views.helpers.Lookup
 import ch.wsl.box.model.shared.JSONQueryFilter.WHERE
 import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldLookupData, JSONFieldLookupExtractor, JSONFieldLookupRemote, JSONFieldTypes, JSONLookup, JSONMetadata, JSONQuery}
 import ch.wsl.box.shared.utils.JSONUtils
@@ -17,9 +18,6 @@ import scalatags.JsDom.all.{label => lab, _}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object LookupWidget {
-  var remoteLookup:scala.collection.mutable.Map[String,Future[Seq[JSONLookup]]] = scala.collection.mutable.Map()
-}
 
 trait LookupWidget extends Widget with HasData {
 
@@ -87,7 +85,7 @@ trait LookupWidget extends Widget with HasData {
   var dataSyncRegistration:Option[Registration] = None
 
   override def killWidget(): Unit = {
-    LookupWidget.remoteLookup.filter(_._1.startsWith(metadata.name)).foreach(k => LookupWidget.remoteLookup.remove(k._1))
+    Lookup.remoteLookup.filter(_._1.startsWith(metadata.name)).foreach(k => Lookup.remoteLookup.remove(k._1))
     dataSyncRegistration.foreach(_.cancel())
     super.killWidget()
   }
@@ -99,7 +97,7 @@ trait LookupWidget extends Widget with HasData {
 
     val cacheKey = metadata.name + ch.wsl.typings.jsMd5.mod.hex(fieldLookup.lookupEntity + fieldLookup.map + q.toString)
 
-    LookupWidget.remoteLookup.get(cacheKey) match {
+    Lookup.remoteLookup.get(cacheKey) match {
       case Some(value) if !force => value.map(setNewLookup)
       case _ => {
         _lookup.set(Seq(), true) //reset lookup state
@@ -111,7 +109,7 @@ trait LookupWidget extends Widget with HasData {
         } yield {
           logger.debug(s"Lookup $lookups fetched from ${fieldLookup.lookupEntity} for field ${field.name}")
           if (lookups.isEmpty) {
-            LookupWidget.remoteLookup.remove(cacheKey)
+            Lookup.remoteLookup.remove(cacheKey)
           }
 
           val allLookups = singleLookup ++ lookups
@@ -122,7 +120,7 @@ trait LookupWidget extends Widget with HasData {
 
 
         logger.debug(s"Calling lookup with $q")
-        LookupWidget.remoteLookup.put(cacheKey, request)
+        Lookup.remoteLookup.put(cacheKey, request)
         request
 
       }

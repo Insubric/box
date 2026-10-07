@@ -114,5 +114,6 @@ object ClientConf {
   def openid:Seq[OIDCFrontendConf] = parse(conf.getOrElse(OIDCFrontendConf.name,"[]")).flatMap(_.as[Seq[OIDCFrontendConf]]).getOrElse(Seq())
 
   def enablePWA:Boolean = conf.get("enable.pwa").flatMap(_.toBooleanOption).getOrElse(false)
+  def enableVoice:Boolean = conf.get("enable.voice").flatMap(_.toBooleanOption).getOrElse(false)
 
 }

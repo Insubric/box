@@ -11,6 +11,12 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': 'http://localhost:8080',
+            '/manifest.webmanifest': 'http://localhost:8080',
+            '/apple-touch-icon.png': 'http://localhost:8080',
+            '/screenshoot': 'http://localhost:8080',
+            '/favicon-32x32.png': 'http://localhost:8080',
+            '/favicon-16x16.png': 'http://localhost:8080',
+            '/icon': 'http://localhost:8080',
             '/pdf': 'http://localhost:8080',
             '/ui/workers': {
                 target: 'http://127.0.0.1:5174',
@@ -22,8 +28,8 @@ export default defineConfig({
             }
         },
         https: {
-            key: fs.readFileSync('./10.27.7.229-key.pem'),
-            cert: fs.readFileSync('./10.27.7.229.pem'),
+            key: fs.readFileSync('./10.40.1.216-key.pem'),
+            cert: fs.readFileSync('./10.40.1.216.pem'),
         },
         cors: true,
         host: '0.0.0.0'

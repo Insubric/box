@@ -4,7 +4,7 @@ import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification, Record}
-import ch.wsl.box.client.styles.{BootstrapCol, Fade}
+import ch.wsl.box.client.styles.{BootstrapCol, Fade, Icons}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.ui.Stepper
@@ -870,9 +870,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //      div(ClientConf.style.mobileOnly,
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
-      button("TEST AUDIO", onclick :+= ((e:Event) => presenter.voiceHelper.selectField().map{x =>
+      if(ClientConf.enableVoice) button(Icons.mic, ClientConf.style.bottomLeftButton, onclick :+= ((e:Event) => presenter.voiceHelper.selectField().map{x =>
         model.subProp(_.data).set(model.subProp(_.data).get.deepMerge(Json.obj(x.field.name -> x.value)))
-      })),
+      })) else Seq[Modifier](),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
         actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         div(ClientConf.style.spaceAfter)(
