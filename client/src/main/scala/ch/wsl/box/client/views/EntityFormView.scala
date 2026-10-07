@@ -11,7 +11,7 @@ import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, ModalStack}
 import ch.wsl.box.client.views.elements.Offline
-import ch.wsl.box.client.views.helpers.PopupFrame
+import ch.wsl.box.client.views.helpers.{PopupFrame, VoiceHelper}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils
@@ -713,12 +713,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def roles() = services.clientSession.getRoles()
 
+
+  def voiceHelper = new VoiceHelper(model.subProp(_.metadata).get.get)
 }
 
 case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:EntityFormPresenter) extends View {
   import scalatags.JsDom.all._
   import io.circe.generic.auto._
   import io.udash.css.CssView._
+  import Context.Implicits._
 
 
   def labelTitle = produceWithNested(model.subProp(_.metadata)) { (m,nested) =>
@@ -867,6 +870,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //      div(ClientConf.style.mobileOnly,
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
+      button("TEST AUDIO", onclick :+= ((e:Event) => presenter.voiceHelper.selectField().map{x =>
+        model.subProp(_.data).set(model.subProp(_.data).get.deepMerge(Json.obj(x.field.name -> x.value)))
+      })),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
         actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         div(ClientConf.style.spaceAfter)(
