@@ -241,7 +241,8 @@ case class WidgetParams(
                          _allData:Property[Json],
                          children:Seq[JSONMetadata],
                          actions:WidgetCallbackActions,
-                         public:Boolean
+                         public:Boolean,
+                         popup:Boolean,
                        ) extends Logging {
   def allData:ReadableProperty[Json] = _allData
 
@@ -277,7 +278,7 @@ case class WidgetParams(
 
 object WidgetParams{
 
-  def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
+  def simple(prop:Property[Json],allData:Property[Json],field:JSONField,metadata:JSONMetadata,public:Boolean,popup:Boolean, actions: WidgetCallbackActions):WidgetParams = WidgetParams(
     Property(None),
     prop = prop,
     field = field,
@@ -285,7 +286,8 @@ object WidgetParams{
     _allData = allData,
     children = Seq(),
     actions = actions,
-    public
+    public,
+    popup
   )
 }
 

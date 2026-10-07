@@ -41,6 +41,7 @@ object WidgetsNames {
   val simpleChild = "simpleChild"
   val trasparentChild = "trasparentChild"
   val tableChild = "tableChild"
+  val viewTable = "viewTable"
   val editableTable = "editableTable"
   val spreadsheet = "spreadsheet"
   val export = "export"
@@ -116,11 +117,12 @@ object WidgetsNames {
       editableTable,
       linkedForm,
       lookupForm,
+      viewTable,
       trasparentChild,
       dynamicWidget,
       popupWidget,
       spreadsheet,
-      `export`
+      `export`,
     ),
     FILE -> Seq(
       simpleFile,
@@ -233,7 +235,8 @@ object WidgetsNames {
     trasparentChild,
     dynamicWidget,
     popupWidget,
-    spreadsheet
+    spreadsheet,
+    viewTable
   )
 
 }

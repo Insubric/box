@@ -187,7 +187,8 @@ object Spreadsheet extends ComponentWidgetFactory {
         _allData = row,
         children = Seq(),
         actions = widgetParam.actions,
-        public = widgetParam.public
+        public = widgetParam.public,
+        popup = widgetParam.popup,
       )
       val w = widgetFactory.create(params)
       w.load()

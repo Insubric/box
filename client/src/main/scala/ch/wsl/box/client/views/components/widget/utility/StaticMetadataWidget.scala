@@ -22,5 +22,5 @@ case class StaticMetadataWidget(params:WidgetParams)(fields:JSONField*) extends 
 
   val metadata = JSONMetadata.simple(UUID.randomUUID(),"internal","none",services.clientSession.lang(),fields,Seq())
 
-  override protected def edit(nested: Binding.NestedInterceptor): JsDom.all.Modifier = JSONMetadataRenderer(metadata,params.prop,Seq(),params.id,params.actions,Property(false),false).edit(nested)
+  override protected def edit(nested: Binding.NestedInterceptor): JsDom.all.Modifier = JSONMetadataRenderer(metadata,params.prop,Seq(),params.id,params.actions,Property(false),false,params.popup).edit(nested)
 }

@@ -3,7 +3,7 @@ package ch.wsl.box.client.views.components.widget.child
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, ClientSession, Labels}
 import ch.wsl.box.client.styles.constants.StyleConstants.Colors
-import ch.wsl.box.client.styles.fonts.Font
+import ch.wsl.box.client.styles.fonts.BoxFont
 import ch.wsl.box.client.styles.utils.ColorUtils
 import ch.wsl.box.client.styles.{BootstrapCol, Icons, StyleConf}
 import ch.wsl.box.client.utils.{MustacheUtils, TestHooks}
@@ -35,7 +35,7 @@ import scala.scalajs.js
 import scala.scalajs.js.WrappedArray
 import scala.scalajs.js.typedarray.Uint8Array
 
-case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
+case class TableStyle(conf:StyleConf,font:BoxFont,columns:Int) extends StyleSheet.Inline {
   import dsl._
 
   val selectedBorder = 2
@@ -116,7 +116,7 @@ case class TableStyle(conf:StyleConf,columns:Int) extends StyleSheet.Inline {
     whiteSpace.nowrap,
     backgroundColor(Colors.GreySemi),
     fontSize(12 px),
-    Font.bold,
+    font.bold,
     whiteSpace.normal
   )
 
@@ -141,7 +141,7 @@ object EditableTable extends ChildRendererFactory {
 
     import ch.wsl.box.client.Context._
 
-    val tableStyle = TableStyle(ClientConf.styleConf, metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
+    val tableStyle = TableStyle(ClientConf.styleConf, services.style.font(), metadata.map(_.rawTabularFields.length + 1).getOrElse(1))
     val tableStyleElement = document.createElement("style")
     tableStyleElement.innerText = tableStyle.render(cssStringRenderer, cssEnv)
 
@@ -170,16 +170,6 @@ object EditableTable extends ChildRendererFactory {
     import scalatags.JsDom.all._
 
 
-
-    def fields(f:JSONMetadata) = {
-      val tableFields = for{
-        params <- widgetParam.fieldParams
-        fieldsJs <- params.get.jsOpt("fields")
-        fields <- fieldsJs.as[Seq[String]].toOption
-      } yield fields
-
-      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field)).filterNot(_.widget.contains(WidgetsNames.hidden))
-    }
 
     override protected def layoutForChild(metadata: JSONMetadata): Layout = {
       Layout.fromFields(fields(metadata))
@@ -218,7 +208,8 @@ object EditableTable extends ChildRendererFactory {
         _allData = childWidget.widget.data,
         children = Seq(),
         actions = widgetParam.actions,
-        public = widgetParam.public
+        public = widgetParam.public,
+        popup = widgetParam.popup,
       )
 
       val w = widgetFactory.create(params)

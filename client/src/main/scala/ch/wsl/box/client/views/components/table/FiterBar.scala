@@ -1,7 +1,6 @@
 package ch.wsl.box.client.views.components.table
 
 import ch.wsl.box.client.services.{ClientConf, Labels, UI}
-import ch.wsl.box.client.views.FieldQuery
 import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.model.shared._
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
@@ -27,10 +26,10 @@ trait FilterBar extends Logging {
   import Implicits._
 
 
-  def fieldQueries:Property[Seq[FieldQuery]]
+  def filters:Property[Seq[JSONQueryFilter]]
   def lookups:ReadableProperty[Seq[JSONLookups]]
 
-  def filterOptions(metadata:JSONMetadata, field:String, operator: Property[String])(mod:Modifier*) = {
+  def filterOptions(field:JSONField, operator: Property[String])(mod:Modifier*) = {
 
 
     def label = (id:String) => id match {
@@ -54,7 +53,7 @@ trait FilterBar extends Logging {
     }
 
     val options = SeqProperty{
-      metadata.fields.find(_.name == field).toSeq.flatMap(f => UI.enabledFilters(Filter.options(f)))
+      UI.enabledFilters(Filter.options(field))
     }
 
     Select(operator, options)(label,mod)
@@ -151,16 +150,32 @@ trait FilterBar extends Logging {
 
 
   def filterPropsField(_field:JSONField) = {
-    val fieldQuery: Property[Option[FieldQuery]] = fieldQueries.bitransform(_.find(_.field.name == _field.name)) { el =>
-      fieldQueries.get.map { old =>
-        if (old.field.name == _field.name && el.isDefined) el.get else old
-      }
+
+
+    val filterValue: Property[String] = filters.bitransform[String](_.find(_.column == _field.name).flatMap(_.value).getOrElse(""))(x => {filters.get.find(_.column == _field.name) match {
+      case Some(_) if x.isEmpty => filters.get.filterNot(_.column == _field.name)
+      case Some(value) =>  filters.get.map(f => if(f.column == _field.name) value.copy(value = Some(x)) else f )
+      case None => filters.get ++ Seq(JSONQueryFilter(_field.name,Some(Filter.default(_field)),Some(x),None))
+    }})
+
+//    val operator: Property[String] = filters.bitransform(_.find(_.column == _field.name).flatMap(_.operator).getOrElse(""))(x => {filters.get.find(_.column == _field.name) match {
+//      case Some(value) =>  filters.get.map(f => if(f.column == _field.name) value.copy(operator = Some(x)) else f )
+//      case None => filters.get ++ Seq(JSONQueryFilter(_field.name,Some(x),None,None))
+//    }})
+
+    val operator:Property[String] = Property(filters.get.find(_.column == _field.name).flatMap(_.operator).getOrElse(Filter.default(_field)))
+
+    operator.listen { x =>
+      filters.set(filters.get.find(_.column == _field.name) match {
+        case Some(value) =>  filters.get.map(f => if(f.column == _field.name) value.copy(operator = Some(x)) else f )
+        case None => filters.get ++ Seq(JSONQueryFilter(_field.name,Some(x),None,None))
+      })
     }
-    val filterValue: Property[String] = fieldQuery.bitransform(_.map(_.filterValue).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterValue = value)))
-    val operator: Property[String] = fieldQuery.bitransform(_.map(_.filterOperator).getOrElse(""))(value => fieldQuery.get.map(x => x.copy(filterOperator = value)))
+
+
     (filterValue,operator)
   }
 
-  def render(columns:Seq[JSONField],metadata:JSONMetadata):HTMLElement
+  def render(columns:Seq[JSONField],metadata:JSONMetadata,nested:Binding.NestedInterceptor):HTMLElement
 
 }

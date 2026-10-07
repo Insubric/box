@@ -46,17 +46,29 @@ object UI {
     } ~
     pathPrefix("apple-touch-icon.png") {
         get{
-          File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,180,50)),Some("image/png"),"apple-touch-icon.png"))
+          File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,180,180,50)),Some("image/png"),"apple-touch-icon.png"))
         }
     } ~
     pathPrefix("favicon-32x32.png") {
       get{
-        File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,32,16)),Some("image/png"),"favicon-32x32.png"))
+        File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,32,32,16)),Some("image/png"),"favicon-32x32.png"))
       }
     } ~
     pathPrefix("favicon-16x16.png") {
       get{
-        File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,16,8)),Some("image/png"),"favicon-16x16.png"))
+        File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials,services.config.mainColor,16,16,8)),Some("image/png"),"favicon-16x16.png"))
+      }
+    } ~
+    pathPrefix("screenshoot") {
+      pathPrefix("wide.png") {
+        get {
+          File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials, services.config.mainColor, 1920,1080, 50)), Some("image/png"), "wide.png"))
+        }
+      } ~
+      pathPrefix("narrow.png") {
+        get {
+          File.completeFile(BoxFile(Some(IconGenerator.withName(services.config.initials, services.config.mainColor, 750, 1334, 50)), Some("image/png"), "narrow.png"))
+        }
       }
     } ~
     pathPrefix("pdf") {
@@ -91,7 +103,23 @@ object UI {
             |            "sizes": "512x512",
             |            "type": "image/png"
             |        }
-            |]
+            |],
+            |"screenshots": [
+            |   {
+            |     "src": "screenshoot/wide.png",
+            |      "sizes": "1920x1080",
+            |      "type": "image/png",
+            |      "form_factor": "wide",
+            |      "label": "Application"
+            |    },
+            |    {
+            |     "src": "screenshoot/narrow.png",
+            |      "sizes": "750x1334",
+            |      "type": "image/png",
+            |      "form_factor": "narrow",
+            |      "label": "Application"
+            |    }
+            | ]
             |}""".stripMargin
         complete(HttpEntity(ContentType(MediaType.applicationWithOpenCharset("manifest+json","webmanifest"),HttpCharsets.`UTF-8`) ,manifest))
       }

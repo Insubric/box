@@ -9,6 +9,10 @@ import scala.collection.mutable.ListBuffer
 class ListenerManager {
   private val listeners = ListBuffer[(dom.EventTarget, String, Event => Unit)]()
 
+  object Event {
+    def click = "click"
+  }
+
   def add[T <: dom.EventTarget](
            target: T,
            eventType: String,

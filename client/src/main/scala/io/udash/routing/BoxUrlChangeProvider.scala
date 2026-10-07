@@ -75,7 +75,7 @@ final class BoxUrlChangeProvider extends UrlChangeProvider with Logging {
       else {
         val confirm = window.confirm(Labels.navigation.goAway)
         if(!confirm) {
-          val url = addBase(Context.applicationInstance.currentState.url(Context.applicationInstance).stripPrefix("#/"))
+          val url = addBase(Context.applicationInstance.currentState.url(Context.applicationInstance).stripPrefix("/"))
           window.history.pushState(null: js.Any, "", url)
         } else {
           Navigate.enable()

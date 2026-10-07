@@ -4,14 +4,14 @@ import ch.wsl.box.client.db.{DB, LocalRecord}
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormState}
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Navigator, Notification, Record}
-import ch.wsl.box.client.styles.{BootstrapCol, Fade}
+import ch.wsl.box.client.styles.{BootstrapCol, Fade, Icons}
 import ch.wsl.box.client.utils.HTMLFormElementExtension.HTMLFormElementExt
 import ch.wsl.box.client.utils._
 import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, ModalStack}
 import ch.wsl.box.client.views.elements.Offline
-import ch.wsl.box.client.views.helpers.PopupFrame
+import ch.wsl.box.client.views.helpers.{PopupFrame, VoiceHelper}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils
@@ -53,11 +53,11 @@ import scala.util.{Failure, Success, Try}
   */
 
 case class EntityFormModel(name:String, kind:String, id:Option[String], metadata:Option[JSONMetadata], originalData:Json,data:Json,
-                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean, localData:Boolean, updateRight:Boolean)
+                           error:String, children:Seq[JSONMetadata], navigation: Navigation, changed:Boolean, write:Boolean, public:Boolean, insert:Boolean, showActionPanelMobile: Boolean, localData:Boolean, updateRight:Boolean, popup:Boolean)
 
 object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
 
-  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false,false,false)
+  val empty = EntityFormModel("","",None,None,Json.Null,Json.Null,"",Seq(), Navigation.empty0,false, true, false, true, false,false,false, popup = false)
 
   implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
@@ -131,7 +131,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         record.data
       }
 
-      val dataWithQueryParams = state.queryParamsData match {
+      val dataWithQueryParams = state.data match {
         case Some(value) => dataWithId.deepMerge(JSONUtils.toJs(value,metadata))
         case None => dataWithId
       }
@@ -154,6 +154,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         state.public,
         insert,
         false,
+        popup = state.popup,
         localData = record.local_version,
         updateRight = rowAccess
       )
@@ -458,7 +459,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }
   }
 
-  def delete() = {
+  def delete(action:FormAction) = {
 
       for{
         name <- model.get.metadata.map(_.name)
@@ -466,7 +467,11 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       } yield {
         services.data.delete(model.get.kind, services.clientSession.lang(),name,key).map{ count =>
           Notification.add("Deleted " + count.count + " rows")
-          Navigate.to(Routes(model.get.kind, name,model.subProp(_.public).get).entity(name))
+          Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,Some(key.asString),model.get.write) match {
+            case Some(value) => Navigate.toUrl(value)
+            case None => Navigate.to(Routes(model.get.kind, name,model.subProp(_.public).get).entity(name))
+          }
+
         }
       }
 
@@ -540,7 +545,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       logger.debug(s"SetChanged callback")
       childChanged.set(true,true)
     })
-    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,childChanged,model.subProp(_.public).get)
+    widget = JSONMetadataRenderer(f, model.subProp(_.data), model.subProp(_.children).get, model.subProp(_.id),actions,childChanged,model.subProp(_.public).get,model.subProp(_.popup).get)
     widget
   }
 
@@ -667,7 +672,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       case SaveAction =>  save(action.html5check,saveToDb).map(afterSaveAction)
       case SaveLocalAction =>  save(action.html5check,saveLocally).map(afterSaveAction)
       case SaveAndClosePopup =>  save(action.html5check,saveToDb).map{ _ => ModalStack.mainStack.removeLast() }
-      case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
+      case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,None,model.get.write).foreach{ url =>
         executeFunction().map {
           case Some(true) => {
             if (Navigate.canGoAway)
@@ -680,7 +685,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         }
       }
       case CopyAction => duplicate()
-      case DeleteAction => delete()
+      case DeleteAction => delete(action)
       case RevertAction => reload()
       case BackAction => Navigate.back()
 
@@ -708,12 +713,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def roles() = services.clientSession.getRoles()
 
+
+  def voiceHelper = new VoiceHelper(model.subProp(_.metadata).get.get)
 }
 
 case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:EntityFormPresenter) extends View {
   import scalatags.JsDom.all._
   import io.circe.generic.auto._
   import io.udash.css.CssView._
+  import Context.Implicits._
 
 
   def labelTitle = produceWithNested(model.subProp(_.metadata)) { (m,nested) =>
@@ -862,6 +870,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 //      div(ClientConf.style.mobileOnly,
 //        button(ClientConf.style.boxButton,i(UdashIcons.FontAwesome.Solid.ellipsisV))
 //      ),
+      if(ClientConf.enableVoice) button(Icons.mic, ClientConf.style.bottomLeftButton, onclick :+= ((e:Event) => presenter.voiceHelper.selectField().map{x =>
+        model.subProp(_.data).set(model.subProp(_.data).get.deepMerge(Json.obj(x.field.name -> x.value)))
+      })) else Seq[Modifier](),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
         actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         div(ClientConf.style.spaceAfter)(

@@ -51,6 +51,9 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
 
     override def field: JSONField = params.field
 
+
+    def enableAddChoices:Boolean = params.field.params.exists(_.js("enableAddChoices") == Json.True)
+
     override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
       nested(produce(params.prop.combine(lookup)((x, y) => (x, y))) { case (d, lookups) =>
         d.asArray match {
@@ -85,6 +88,7 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           options
             .setRemoveItemButton(true)
             .setDuplicateItemsAllowed(false)
+            .setAddChoices(enableAddChoices)
           val choicesJs = new mod.default(el,options)
 
           dom.window.asInstanceOf[js.Dynamic].choices = choicesJs
@@ -99,8 +103,10 @@ object MultipleLookupWidget extends ComponentWidgetFactory  {
           lookup.listen(values => {
             val currentSelected = params.prop.get.as[Seq[Json]].getOrElse(Seq())
             val choices: Seq[InputChoice] = currentSelected.flatMap{ cs =>
-              values.find(_.id == cs).map{ x =>
-                InputChoice(x.value,convertJsonToJs(x.id)).setSelected(true)
+              values.find(_.id == cs) match {
+                case Some(x) => Some(InputChoice(x.value,convertJsonToJs(x.id)).setSelected(true))
+                case None if enableAddChoices => Some(InputChoice(cs.string,convertJsonToJs(cs)).setSelected(true))
+                case None => None
               }
             } ++
             values.filterNot(x => currentSelected.contains(x.id)).map{x =>

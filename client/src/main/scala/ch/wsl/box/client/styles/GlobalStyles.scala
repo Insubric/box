@@ -5,7 +5,7 @@ package ch.wsl.box.client.styles
 import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
-import ch.wsl.box.client.styles.fonts.Font
+import ch.wsl.box.client.styles.fonts.{BoxFont, DefaultFont}
 import ch.wsl.box.client.styles.utils.{ColorUtils, MediaQueries, StyleUtils}
 import scalacss.StyleSheet
 
@@ -26,20 +26,21 @@ case class StyleConf(colors:Colors, smallCellsSize:Int, childProps: ChildPropert
 class GlobalStyleFactory extends BoxStyleFactory {
 
   override def build(settings:Settings): BoxStyle = {
-    val styles = new GlobalStyles(settings,ClientConf.styleConf)
+    val styles = new GlobalStyles(settings,ClientConf.styleConf,DefaultFont)
     styles.loadGlobalStyle()
     styles
   }
 
+  override def font(): BoxFont = DefaultFont
 }
 
-class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()(settings.cssRegister) with BoxStyle {
+class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends StyleSheet.Inline()(settings.cssRegister) with BoxStyle {
 
   import settings._
 
   import dsl._
 
-  protected val inputDefaultWidth = style(
+  val inputDefaultWidth = style(
     maxWidth(400.px),
     width(100.%%)
   )
@@ -69,7 +70,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     ),
 
     unsafeRoot("b") (
-      Font.bold
+      font.bold
     ),
 
     unsafeRoot("h4")(
@@ -81,7 +82,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     ),
 
     unsafeRoot("h5")(
-      Font.bold,
+      font.bold,
       fontSize(14 px),
       media.maxWidth(600 px)( //disable autozoom
         fontSize(16 px)
@@ -91,7 +92,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     unsafeRoot("body") (
       StyleConstants.defaultFontSize,
       backgroundColor.white,
-      Font.regular
+      font.regular
     ),
 
     unsafeRoot("html, body") (
@@ -117,7 +118,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
       borderColor(Colors.GreySemi),
       height(23 px),
       backgroundColor.transparent,
-      Font.regular,
+      font.regular,
       &.focus(
         inputHighlight
       ),
@@ -144,7 +145,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
       backgroundColor.white,
       borderColor(Colors.GreySemi),
       height(23 px),
-      Font.regular,
+      font.regular,
       paddingLeft(5 px),
       paddingRight(5 px),
       backgroundColor.transparent,
@@ -165,7 +166,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
 
     unsafeRoot("label")(
-      Font.bold
+      font.bold
     ),
 
     unsafeRoot("input[type='checkbox']")(
@@ -367,15 +368,19 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
   )
 
-  override val spaceBetween = style(
+  override val flexDyn = style(
     display.flex,
     flexDirection.column,
     media.minWidth(600 px)(
       flexDirection.row,
     ),
-    justifyContent.spaceBetween,
     alignItems.center,
     alignContent.center
+  )
+
+  override val spaceBetween = style(
+    flexDyn,
+    justifyContent.spaceBetween
   )
 
   override val topTableContainer = style(
@@ -638,7 +643,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     media.maxWidth(600 px)(
       fontSize(12 px),
     ),
-    Font.bold
+    font.bold
   )
 
 
@@ -707,7 +712,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     borderColor(Colors.GreySemi),
     borderCollapse.collapse,
     unsafeChild("th") (
-      Font.bold,
+      font.bold,
       //borderColor(conf.colors.main),
     ),
     unsafeChild("td") (
@@ -781,7 +786,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     display.flex,
     flexDirection.row,
     flexWrap.wrap,
-    justifyContent.start,
+    justifyContent.center,
     alignItems.center,
     alignContent.spaceAround
   )
@@ -791,13 +796,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     margin(5.px)
   )
 
-  override val boxedLink = style(
-    Font.bold,
-    width(120 px),
-    height(120 px),
-    padding(20 px),
-    margin(20 px)
-  )
+
 
 
   override val notificationArea = style(
@@ -843,7 +842,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     ),
     color(conf.colors.link),
     textTransform.uppercase,
-    Font.bold,
+    font.bold,
     cursor.pointer,
     padding.horizontal(2.px)
   )
@@ -915,6 +914,14 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     overflow.hidden
   )
 
+  override val viewTable = style(
+    width(100.%%),
+    overflow.hidden,
+    unsafeChild("thead") {
+      backgroundColor(conf.childProps.backgroundColor)
+    }
+  )
+
   override val childTableTr = style(
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
     borderBottom.`0`
@@ -926,7 +933,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   override val childTableHeader = style(
-    Font.bold
+    font.bold
   )
 
   override val childTableAction = style(
@@ -942,7 +949,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   override val boxIconButton = style(
-    Font.regular,
+    font.regular,
     whiteSpace.nowrap,
     padding(3 px, 10 px),
     fontSize(16 px),
@@ -965,7 +972,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   override val boxIconButtonDanger = style(
-    Font.regular,
+    font.regular,
     whiteSpace.nowrap,
     padding(7 px, 15 px),
     fontSize(16 px),
@@ -989,7 +996,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
 
   override val boxButton = style(
-    Font.regular,
+    font.regular,
     whiteSpace.nowrap,
     height.auto,
     padding(7 px, 15 px),
@@ -1053,7 +1060,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
 
   override val boxButtonImportant = style(
-    Font.regular,
+    font.regular,
     whiteSpace.nowrap,
     height.auto,
     padding(7 px, 15 px),
@@ -1073,7 +1080,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   override val boxButtonDanger = style(
-    Font.regular,
+    font.regular,
     whiteSpace.nowrap,
     height.auto,
     padding(7 px, 15 px),
@@ -1189,20 +1196,30 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     )
   )
 
-  val mobileBoxAction = style(
-    mobileOnly,
+  val floatingButton = style(
     boxShadow := "0px 0px 2px #555",
     backgroundColor(conf.colors.main),
     color(conf.colors.mainText),
     borderRadius(50 px),
     position.fixed,
-    right(20 px),
-    bottom(20 px),
     height(50 px),
     width(50 px),
     border.`0`,
     fontSize(20 px),
     zIndex(5)
+  )
+
+  val bottomLeftButton = style(
+    floatingButton,
+    left(30 px),
+    bottom(30 px)
+  )
+
+  val mobileBoxAction = style(
+    mobileOnly,
+    floatingButton,
+    right(20 px),
+    bottom(20 px)
   )
 
   val adminFormEditAction = style(
@@ -1292,7 +1309,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   val labelRequired = style(
-    Font.bold
+    font.bold
   )
 
   val notNullable = style(
@@ -1307,7 +1324,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   val labelNonRequred = style(
-    Font.bold
+    font.bold
   )
 
   val rangeEditor = style(
@@ -1319,6 +1336,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
 
   val editor = style(
     inputDefaultWidth,
+    maxWidth(100 vw),
     media.maxWidth(600 px)(
       width(100 %%)
     ),
@@ -1685,7 +1703,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     unsafeChild("p")(
       color(Colors.Grey),
       fontSize(11 px),
-      Font.bold
+      font.bold
     )
   )
 
@@ -1776,7 +1794,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
   )
 
   val error = style(
-    Font.bold,
+    font.bold,
     backgroundColor.rgba(255,0,0,0.3),
     color.red
   )
@@ -1789,30 +1807,13 @@ class GlobalStyles(settings:Settings,conf:StyleConf) extends StyleSheet.Inline()
     )
   )
 
-  override val filterDynBar =style(
-    display.flex,
-    alignItems.center
-  )
-
-  val filterBlock = style(
+  override val filterDynBar = style(
     display.flex,
     alignItems.center,
-    backgroundColor.rgb(250,250,250),
-    borderWidth(1 px),
-    borderRadius(2 px),
-    borderStyle.solid,
-    borderColor.rgb(200,200,200),
-    margin(10 px),
-    unsafeChild("select")(
-      width(100 px).important,
-      margin(10 px),
-      fontSize(12 px)
+    media.maxWidth(600 px)(
+      justifyContent.spaceAround
     ),
-    unsafeChild("input")(
-      width(100 px).important,
-      margin(10 px),
-      fontSize(12 px)
-    )
+    alignItems.flexStart
 
   )
 

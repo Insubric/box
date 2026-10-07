@@ -35,7 +35,7 @@ object JSONMetadataRenderer {
   def tabSelectorId(value:String):String = s"box-tab-select-${value.replaceAll(" ","-")}"
 }
 
-case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], _id: ReadableProperty[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean) extends ChildWidget  {
+case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], children: Seq[JSONMetadata], _id: ReadableProperty[Option[String]],actions: WidgetCallbackActions,changed:Property[Boolean], public:Boolean, popup:Boolean) extends ChildWidget  {
 
 
   import ch.wsl.box.client.Context._
@@ -123,7 +123,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
   val blocks: Seq[FormBlock] = metadata.layout.blocks.map { block =>
 
     FormBlock(
-      new BlockRendererWidget(WidgetParams(_id,data,field,metadata,data,children,actions,public),block.fields,block.layoutType),
+      new BlockRendererWidget(WidgetParams(_id,data,field,metadata,data,children,actions,public,popup),block.fields,block.layoutType),
       block.extractFields(metadata),
       Some(block),
     )

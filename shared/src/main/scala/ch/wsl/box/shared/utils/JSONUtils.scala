@@ -74,6 +74,7 @@ object JSONUtils extends Logging {
     }
 
 
+
     def string:String = {
       val result = el.fold(
         "",
@@ -84,6 +85,11 @@ object JSONUtils extends Logging {
         obj => el.printWith(Printer.spaces2) //obj.toMap.map{ case (k:String,v:Json) => s"""  "$k": ${v.string}  """}.mkString("{\n", ",\n", "\n}")
       )
       result
+    }
+
+    def stringOpt:Option[String] = el.isNull match {
+      case true => None
+      case false => Some(string)
     }
 
     def toMustacheValue:Value = {

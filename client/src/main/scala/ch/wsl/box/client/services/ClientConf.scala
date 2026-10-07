@@ -6,6 +6,7 @@ import java.sql.Timestamp
 import java.time.temporal.ChronoUnit
 import ch.wsl.box.client.styles.constants.StyleConstants
 import ch.wsl.box.client.styles.constants.StyleConstants.{ChildProperties, Colors}
+import ch.wsl.box.client.styles.fonts.DefaultFont
 import ch.wsl.box.client.styles.{BoxStyle, GlobalStyleFactory, StyleConf}
 import ch.wsl.box.model.shared.JSONFieldTypes
 import ch.wsl.box.model.shared.oidc.OIDCFrontendConf
@@ -113,5 +114,6 @@ object ClientConf {
   def openid:Seq[OIDCFrontendConf] = parse(conf.getOrElse(OIDCFrontendConf.name,"[]")).flatMap(_.as[Seq[OIDCFrontendConf]]).getOrElse(Seq())
 
   def enablePWA:Boolean = conf.get("enable.pwa").flatMap(_.toBooleanOption).getOrElse(false)
+  def enableVoice:Boolean = conf.get("enable.voice").flatMap(_.toBooleanOption).getOrElse(false)
 
 }

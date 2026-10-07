@@ -1,6 +1,6 @@
 package ch.wsl.box.client.services
 
-import ch.wsl.box.client.{Context, RoutingState}
+import ch.wsl.box.client.{ContainerRoutingState, Context, EntityFormState, FinalRoutingState, RoutingState}
 import io.udash.{State, Url}
 import org.scalajs.dom.{BeforeUnloadEvent, window}
 import scribe.Logging
@@ -33,6 +33,7 @@ object Navigate extends Logging {
       case "back" => Navigate.back()
       case url:String if !blank => {
         val state = Context.routingRegistry.matchUrl(Url(url))
+        logger.debug(s"Matched state from url: $state")
         if(Context.applicationInstance.currentState == state) {
           Context.applicationInstance.reload()
         } else {

@@ -122,7 +122,7 @@ case class MonacoWidget(_id: ReadableProperty[Option[String]], field: JSONField,
       observer.observe(document,MutationObserverInit(childList = true, subtree = true))
 
       //Monaco.load(container,language,prop.get.string,{s:String => prop.set(s.asJson)})
-      div(
+      div(ClientConf.style.fieldContainerWrite,
         label(title),
         container,
         div(BootstrapStyles.Visibility.clearfix)
