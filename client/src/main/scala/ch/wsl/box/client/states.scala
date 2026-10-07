@@ -2,8 +2,13 @@ package ch.wsl.box.client
 
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.UI
+import ch.wsl.box.client.utils.Base64
 import ch.wsl.box.model.shared.{EntityKind, ExportDef, JSONQuery}
+import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
+import io.circe.Json
+import io.circe.syntax.EncoderOps
 import io.udash._
+import scribe.Logging
 
 import scala.scalajs.js.URIUtils
 import scala.util.Try
@@ -18,7 +23,7 @@ sealed abstract class RoutingState(val parentState: Option[ContainerRoutingState
   type HierarchyRoot = RoutingState
 
   def url(implicit application: Application[RoutingState]): String =
-    s"#${application.matchState(this).value}"
+    application.matchState(this).value
 }
 
 sealed abstract class ContainerRoutingState(parentState: Option[ContainerRoutingState]) extends RoutingState(parentState)
@@ -51,8 +56,9 @@ case object AdminDBReplState extends FinalRoutingState(Some(RootState()))
 case object IndexState extends FormState(EntityKind.FORM.kind, "index", "true", Some("static::page"), false, Layouts.std) {
   override def entity: String = UI.indexPage.getOrElse("")
   override def popup: Boolean = false
-  override def queryParamsData: Option[Map[String, Option[String]]] = None
-  override def withParams(data: Option[Map[String, Option[String]]]): RoutingState = this
+
+  override def prefilledData: Option[String] = None
+  override def withQueryParams(data:Map[String,String]): RoutingState = this
 }
 
 case class EntitiesState(kind:String, currentEntity:String, public:Boolean, layout:String = Layouts.std) extends ContainerRoutingState(Some(RootState(layout)))
@@ -71,11 +77,31 @@ sealed trait LayoutEnable {
   def layout:String
 }
 
-sealed trait QueryDataParams { this:RoutingState =>
-  def queryParamsData:Option[Map[String,Option[String]]]
-  def withParams(data:Option[Map[String,Option[String]]]):RoutingState
+sealed trait PrefilledData { this:RoutingState =>
+  def prefilledData:Option[String]
+  def withQueryParams(data:Map[String,String]):RoutingState
+
+  def data:Option[Map[String,Option[String]]] = prefilledData.flatMap(PrefilledData.fromState).flatMap(_.asObject).map{obj =>
+    obj.toList.map{ case (k,v) => k -> v.stringOpt}.toMap
+  }
 }
 
+object PrefilledData extends Logging {
+  def fromState(s:String):Option[Json] = {
+    val json = new String(Base64.Decoder(s).toByteArray)
+    io.circe.parser.parse(json) match {
+      case Left(value) => {
+        logger.warn(s"Failed to parse state ${value.message} JSON:$json")
+        None
+      }
+      case Right(value) => Some(value)
+    }
+  }
+  def toFormState(d:Json):String = Base64.Encoder(d.noSpaces.getBytes).toBase64
+  def toFormState(d:Map[String,String]):String = {
+    toFormState(d.asJson)
+  }
+}
 
 abstract class FormState(
                           val kind:String,
@@ -84,7 +110,7 @@ abstract class FormState(
                           _id:Option[String],
                           val public:Boolean,
                           val layout: String,
-                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,public,layout))) with PopupEnable with PublicEnable with LayoutEnable with QueryDataParams {
+                        ) extends FinalRoutingState(Some(EntitiesState(kind,_entity,public,layout))) with PopupEnable with PublicEnable with LayoutEnable with PrefilledData {
   def id:Option[String] = _id
   def writeable:Boolean = write == "true"
   def entity = _entity
@@ -97,16 +123,18 @@ case class EntityFormState(
                             _id:Option[String],
                             override val public:Boolean,
                             override val layout: String = Layouts.std,
-                            override val queryParamsData:Option[Map[String,Option[String]]],
-                            override val popup:Boolean
+                            override val popup:Boolean,
+                            override val prefilledData:Option[String]
                           ) extends FormState(kind, entity, write, _id, public,layout) {
   override def id = {
     val t = _id.map(URIUtils.decodeURI)
     t
   }
 
-  override def withParams(data: Option[Map[String, Option[String]]]): RoutingState = this.copy(queryParamsData =  data)
+  override def withQueryParams(data:Map[String,String]): RoutingState = this.copy(prefilledData = Some(PrefilledData.toFormState(data)))
 }
+
+
 
 case class FormPageState(
                           override val kind:String,
@@ -114,12 +142,11 @@ case class FormPageState(
                           override val write:String,
                           override val public:Boolean,
                           override val layout: String = Layouts.std,
-                          override val queryParamsData:Option[Map[String,Option[String]]] = None,
+                          override val prefilledData:Option[String] = None,
                           override val popup:Boolean = false
                           ) extends FormState(kind,entity,write,Some("static::page"),public,layout) {
 
-  override def withParams(data: Option[Map[String, Option[String]]]): RoutingState = this.copy(queryParamsData =  data)
-
+  override def withQueryParams(data:Map[String,String]): RoutingState = this.copy(prefilledData = Some(PrefilledData.toFormState(data)))
 }
 
 case class MasterChildState(kind:String,

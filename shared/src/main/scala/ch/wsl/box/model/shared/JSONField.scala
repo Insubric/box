@@ -104,7 +104,19 @@ object JSONField{
 
 case class MinMax(min:Option[Double],max:Option[Double])
 
-case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String], kind: EntityKind = EntityKind.FORM)
+
+sealed trait ParentField
+case class LinkedParentField(name:String) extends ParentField
+case class LinkedParentStatic(value:Json) extends ParentField
+
+case class LinkedForm(name:String,parentValueFields:Seq[String], childValueFields:Seq[String], lookup:Option[LookupLabel],label:Option[String], kind: EntityKind = EntityKind.FORM) {
+  def fields(m:JSONMetadata):Seq[ParentField] = parentValueFields.flatMap{f =>
+    m.fields.find(field => field.name == f) match {
+      case Some(value) => Some(LinkedParentField(f))
+      case None => io.circe.parser.parse(f).toOption.map(x => LinkedParentStatic(x))
+    }
+  }
+}
 
 case class LookupLabel(localIds:Seq[String],remoteIds:Seq[String],remoteField:String,remoteEntity:String,widget:String)
 

@@ -88,7 +88,7 @@ object TableChildFactory extends ChildRendererFactory {
                         ),
                         nested(produce(widget.data) { data => fields.map{x =>
                           val tableWidget = x.widget.map(WidgetRegistry.forName).getOrElse(WidgetRegistry.forType(x.`type`))
-                            .create(WidgetParams.simple(Property(data.js(x.name)),widget.data,x,f,widgetParam.public,widgetParam.actions))
+                            .create(WidgetParams.simple(Property(data.js(x.name)),widget.data,x,f,widgetParam.public,widgetParam.popup,widgetParam.actions))
                           tableWidget.load()
                           td(ClientConf.style.childTableTd, tableWidget.showOnTable(nested))
 

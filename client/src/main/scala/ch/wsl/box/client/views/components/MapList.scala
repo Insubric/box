@@ -95,7 +95,7 @@ class MapList(_div:Div,nested:Binding.NestedInterceptor,metadata:JSONMetadata,ge
   //https://openlayers.org/en/latest/examples/tooltip-on-hover.html
   // Add info popup
   val infoDiv = div(display.none,ClientConf.style.mapPopup,width := 350.px,
-    JSONMetadataRenderer(metadata.copy(layout = Layout.fromFields(metadata.table.filterNot(_.`type` == JSONFieldTypes.GEOMETRY))),infoData,Seq(),Property(None),WidgetCallbackActions.noAction,Property(false),false).show(NestedInterceptor.Identity)
+    JSONMetadataRenderer(metadata.copy(layout = Layout.fromFields(metadata.table.filterNot(_.`type` == JSONFieldTypes.GEOMETRY))),infoData,Seq(),Property(None),WidgetCallbackActions.noAction,Property(false),false,false).show(NestedInterceptor.Identity)
   ).render
 
   val mapDiv = div(width := 100.pct, height := 100.pct, onmouseout :+= ((e:Event) => jQ(infoDiv).hide())).render

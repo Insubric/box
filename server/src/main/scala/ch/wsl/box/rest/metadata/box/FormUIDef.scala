@@ -168,6 +168,10 @@ object FormUIDef {
         widget = Some(WidgetsNames.inputDisabled),
         default = Some(FormMetadataFactory.STATIC_PAGE)
       ),
+      JSONField(JSONFieldTypes.BOOLEAN,"public_list",false,
+        widget = Some(WidgetsNames.hidden),
+        default = Some("false")
+      ),
       JSONField(JSONFieldTypes.STRING,"guest_user",true,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
@@ -372,6 +376,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,
         label = Some("Parent key fields"),
         widget = Some(WidgetsNames.multipleLookup),
+        params = Some(Json.obj("enableAddChoices" -> Json.True)),
         condition = Some(Condition.inStr("widget",Seq(
           WidgetsNames.simpleChild,
           WidgetsNames.tableChild,
@@ -380,6 +385,7 @@ object FormUIDef {
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
           WidgetsNames.export,
+          WidgetsNames.viewTable,
         ))),
         lookup =  Some(JSONFieldLookup.withExtractor(
           "entity",
@@ -392,10 +398,12 @@ object FormUIDef {
         condition = Some(Condition.inStr("widget",Seq(
           WidgetsNames.simpleChild,
           WidgetsNames.tableChild,
+          WidgetsNames.lookupForm,
           WidgetsNames.editableTable,
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
           WidgetsNames.export,
+          WidgetsNames.viewTable,
         ))),
         lookup = Some(JSONFieldLookup.withExtractor(
           "child_form_uuid",
@@ -419,6 +427,7 @@ object FormUIDef {
           WidgetsNames.trasparentChild,
           WidgetsNames.spreadsheet,
           WidgetsNames.export,
+          WidgetsNames.viewTable,
         )))
       ),
       CommonField.condition,

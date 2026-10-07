@@ -332,7 +332,7 @@ object FormMetadataFactory extends Logging with MetadataFactory{
           LinkedForm(
             value.name,
             field.local_key_columns.toSeq.flatten,
-            keys,
+            field.foreign_key_columns.toSeq.flatten,
             lookup = field.foreign_value_field.map{ remoteField =>
               LookupLabel(
                 localIds = field.local_key_columns.toSeq.flatten,

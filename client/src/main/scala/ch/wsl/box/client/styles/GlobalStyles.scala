@@ -914,6 +914,14 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     overflow.hidden
   )
 
+  override val viewTable = style(
+    width(100.%%),
+    overflow.hidden,
+    unsafeChild("thead") {
+      backgroundColor(conf.childProps.backgroundColor)
+    }
+  )
+
   override val childTableTr = style(
     border(conf.childProps.borderSize px,solid, conf.childProps.borderColor),
     borderBottom.`0`
@@ -1318,6 +1326,7 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
 
   val editor = style(
     inputDefaultWidth,
+    maxWidth(100 vw),
     media.maxWidth(600 px)(
       width(100 %%)
     ),

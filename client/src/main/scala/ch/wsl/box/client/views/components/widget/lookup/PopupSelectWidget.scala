@@ -138,7 +138,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
           div(metadata.map { metadata =>
             val id = JSONID.fromData(lookupData.get, metadata)
             val action = WidgetCallbackActions.noAction
-            JSONMetadataRenderer(metadata, lookupData, Seq(), Property(id.map(_.asString)), action, Property(false), public).edit(nested)
+            JSONMetadataRenderer(metadata, lookupData, Seq(), Property(id.map(_.asString)), action, Property(false), public,popup = true).edit(nested)
           }).render
         })
       }

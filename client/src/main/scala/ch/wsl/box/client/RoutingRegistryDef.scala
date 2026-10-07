@@ -6,6 +6,7 @@ import io.udash._
 import org.scalajs.dom
 import scribe.Logging
 
+import scala.collection.immutable.{AbstractMap, SeqMap, SortedMap}
 import scala.scalajs.js
 
 class RoutingRegistryDef(popup:Boolean) extends RoutingRegistry[RoutingState] with Logging {
@@ -31,14 +32,19 @@ class RoutingRegistryDef(popup:Boolean) extends RoutingRegistry[RoutingState] wi
       })
     }
 
-    state match {
-      case e:QueryDataParams => {
-        val params: Option[Map[String, Option[String]]] = url.value.split("\\?").lift(1).map(_.split("&").map{ x =>
+    val urlParams:Map[String,String] = Routes.urlParams match {
+      case params if params.nonEmpty => params
+      case _ => {
+        val params: Option[Map[String, String]] = url.value.split("\\?").lift(1).map(_.split("&").map{ x =>
           val kv = x.split("=")
-          kv(0) -> kv.lift(1)
+          kv(0) -> kv.lift(1).getOrElse("")
         }).map(_.toMap)
-        e.withParams(params)
+        params.getOrElse(Map())
       }
+    }
+    logger.debug(s"Extracted params are $urlParams")
+    state match {
+      case e:PrefilledData if urlParams.nonEmpty  => e.withQueryParams(urlParams)
       case _ => state
     }
 
@@ -64,10 +70,14 @@ class RoutingRegistryDef(popup:Boolean) extends RoutingRegistry[RoutingState] wi
     case "/box" / "export" / exportFunction  => DataState(DataKind.EXPORT,exportFunction)
     case "/box" / "function" / exportFunction  => DataState(DataKind.FUNCTION,exportFunction)
     case "/box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std,None,popup = popup)
-    case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std,None,popup = popup)
-    case "/box" / kind / entity / "insert" / layout => EntityFormState(kind,entity,"true",None,false,layout,None,popup = popup)
-    case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std,None,popup = popup)
-    case "/box" / kind / entity / "row" / write / id / layout => EntityFormState(kind,entity,write,Some(id),false,layout,None,popup = popup)
+    case "/box" / kind / entity / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std,popup = popup,prefilledData = None)
+    case "/box" / kind / entity / "data" / state / "insert" => EntityFormState(kind,entity,"true",None,false,Layouts.std,popup = popup,prefilledData = Some(state))
+    case "/box" / kind / entity / "insert" / layout => EntityFormState(kind,entity,"true",None,false,layout,popup = popup,prefilledData = None)
+    case "/box" / kind / entity / "data" / state / "insert" / layout => EntityFormState(kind,entity,"true",None,false,layout,popup = popup,prefilledData = Some(state))
+    case "/box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std,popup = popup,prefilledData = None)
+    case "/box" / kind / entity / "data" / state / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),false,Layouts.std,popup = popup,prefilledData = Some(state))
+    case "/box" / kind / entity / "row" / write / id / layout => EntityFormState(kind,entity,write,Some(id),false,layout,popup = popup,prefilledData = None)
+    case "/box" / kind / entity / "data" / state / "row" / write / id / layout => EntityFormState(kind,entity,write,Some(id),false,layout,popup = popup,prefilledData = Some(state))
     case "/box" / kind / entity / "child" / childEntity => MasterChildState(kind,entity,childEntity)
     case "/box" / kind / entity => EntityTableState(kind,entity,None,false)
     case "/box" / kind / entity / "query" / query => EntityTableState(kind,entity,Some(query),false)
@@ -89,10 +99,10 @@ class RoutingRegistryDef(popup:Boolean) extends RoutingRegistry[RoutingState] wi
     case "/logout" => LogoutState
     case "/public" / "box" / kind / entity  => EntityTableState(kind,entity,None,true)
     case "/public" / "box" / kind / entity / "page" => FormPageState(kind,entity,"true",false,Layouts.std,None,popup = popup)
-    case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank,None,popup = popup)
-    case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std,None,popup = popup)
-    case "/public" / "box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),true,Layouts.std,None,popup = popup)
-    case "/public" / "box" / kind / entity / "row" / write / id / "blank" => EntityFormState(kind,entity,write,Some(id),true,Layouts.blank,None,popup = popup)
+    case "/public" / "box" / kind / entity / "insert" / "blank" => EntityFormState(kind,entity,"true",None,true,Layouts.blank,popup = popup,prefilledData = None)
+    case "/public" / "box" / kind / entity / "insert"  => EntityFormState(kind,entity,"true",None,true,Layouts.std,popup = popup,prefilledData = None)
+    case "/public" / "box" / kind / entity / "row" / write / id  => EntityFormState(kind,entity,write,Some(id),true,Layouts.std,popup = popup,prefilledData = None)
+    case "/public" / "box" / kind / entity / "row" / write / id / "blank" => EntityFormState(kind,entity,write,Some(id),true,Layouts.blank,popup = popup,prefilledData = None)
     case "/entities" => LoginState("/entities")
     case "/tables" => LoginState("/tables")
     case "/views" => LoginState("/views" )

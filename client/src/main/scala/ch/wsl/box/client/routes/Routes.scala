@@ -2,8 +2,8 @@ package ch.wsl.box.client.routes
 
 import ch.wsl.box.client.services.ClientConf
 import ch.wsl.box.client.utils.{Base64, MustacheUtils}
-import ch.wsl.box.client.{EntityFormState, EntityTableState, RoutingState}
-import ch.wsl.box.model.shared.{FormAction, JSONFieldLookupRemote, JSONQuery}
+import ch.wsl.box.client.{EntityFormState, EntityTableState, PrefilledData, RoutingState}
+import ch.wsl.box.model.shared.{FormAction, JSONFieldLookupRemote, JSONMetadata, JSONQuery}
 import org.scalajs.dom
 import org.scalajs.dom.{URLSearchParams, window}
 import scribe.Logging
@@ -55,13 +55,18 @@ object Routes extends Logging {
     originUrl.replace("http","ws") + "/api/v1/notifications/"+topic
   }
 
-  def apply(kind:String, entityName:String,public:Boolean, popup: Boolean = false) = new Routes{
-    def add() = EntityFormState(kind,entityName,"true",None,public,queryParamsData = None, popup = popup)
-    def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),public,queryParamsData = None, popup = popup)
-    def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),public,queryParamsData = None, popup = popup)
+  def apply(kind:String, entityName:String,public:Boolean, popup: Boolean = false, data:Option[Json] = None) = new Routes{
+
+    def dataEncoded = data.map(PrefilledData.toFormState)
+
+    def add() = EntityFormState(kind,entityName,"true",None,public, popup = popup,prefilledData = dataEncoded)
+    def edit(id:String) = EntityFormState(kind,entityName,"true",Some(id),public, popup = popup,prefilledData = dataEncoded)
+    def show(id:String) = EntityFormState(kind,entityName,"false",Some(id),public, popup = popup,prefilledData = dataEncoded)
     def entity(query:Option[JSONQuery]) = EntityTableState(kind,entityName,query.map(js => window.btoa(js.asJson.noSpaces)),public)
     def entity(name:String) = EntityTableState(kind,name,None,public)
   }
+
+  def fromMetadata(m:JSONMetadata,public:Boolean, popup: Boolean = false, data:Option[Json] = None):Routes = apply(m.kind,m.name,public,popup,data)
 
   def getUrl(fa:FormAction, data: Json, kind: String, name: String, id: Option[String], writable: Boolean): Option[String] = fa.afterActionGoTo.map { x =>
     val urlInternalSubstitutions = x.replace("$kind", kind)

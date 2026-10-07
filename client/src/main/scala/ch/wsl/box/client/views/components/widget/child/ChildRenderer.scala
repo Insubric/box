@@ -82,6 +82,17 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
     private val enableDeleteCondition:Option[Condition] = field.params.flatMap(_.js("enableDeleteCondition").as[Condition].toOption).filterNot(_ == EmptyCondition)
     private val enableDeleteOnlyNew = field.params.exists(_.js("enableDeleteOnlyNew") == true.asJson)
 
+
+    def fields(f:JSONMetadata):Seq[JSONField] = {
+      val tableFields = for{
+        params <- widgetParam.fieldParams
+        fieldsJs <- params.get.jsOpt("fields")
+        fields <- fieldsJs.as[Seq[String]].toOption
+      } yield fields
+
+      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field)).filterNot(_.widget.contains(WidgetsNames.hidden))
+    }
+
     def enableDelete(childRow:ChildRow):Boolean = {
       val checkCondition = enableDeleteCondition.exists(_.check(childRow.data.get))
       logger.debug(s"Check enable delete on ${childRow.data.get} with condition ${enableDeleteCondition} result: $checkCondition")
@@ -172,7 +183,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
 
       val childMetadata = metadata.get.copy(layout = layoutForChild(metadata.get))
 
-      val widget = JSONMetadataRenderer(childMetadata, propData, children, childId,actions,changed,widgetParam.public)
+      val widget = JSONMetadataRenderer(childMetadata, propData, children, childId,actions,changed,widgetParam.public,widgetParam.popup)
 
       val changeListener = changed.listen(_ => checkChanges())
 

@@ -77,6 +77,7 @@ trait BoxStyle {
   val noMargin: StyleA
   val subform: StyleA
   val childTable: StyleA
+  val viewTable: StyleA
   val childTableTr: StyleA
   val childTableTd: StyleA
   val childTableHeader: StyleA

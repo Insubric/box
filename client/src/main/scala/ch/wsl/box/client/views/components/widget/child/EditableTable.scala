@@ -171,16 +171,6 @@ object EditableTable extends ChildRendererFactory {
 
 
 
-    def fields(f:JSONMetadata) = {
-      val tableFields = for{
-        params <- widgetParam.fieldParams
-        fieldsJs <- params.get.jsOpt("fields")
-        fields <- fieldsJs.as[Seq[String]].toOption
-      } yield fields
-
-      tableFields.getOrElse(f.rawTabularFields).flatMap(field => f.fields.find(_.name == field)).filterNot(_.widget.contains(WidgetsNames.hidden))
-    }
-
     override protected def layoutForChild(metadata: JSONMetadata): Layout = {
       Layout.fromFields(fields(metadata))
     }
@@ -218,7 +208,8 @@ object EditableTable extends ChildRendererFactory {
         _allData = childWidget.widget.data,
         children = Seq(),
         actions = widgetParam.actions,
-        public = widgetParam.public
+        public = widgetParam.public,
+        popup = widgetParam.popup,
       )
 
       val w = widgetFactory.create(params)
