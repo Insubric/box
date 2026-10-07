@@ -27,10 +27,10 @@ export default defineConfig({
                 },
             }
         },
-        https: {
-            key: fs.readFileSync('./10.40.1.216-key.pem'),
-            cert: fs.readFileSync('./10.40.1.216.pem'),
-        },
+        // https: {
+        //     key: fs.readFileSync('./10.40.1.216-key.pem'),
+        //     cert: fs.readFileSync('./10.40.1.216.pem'),
+        // },
         cors: true,
         host: '0.0.0.0'
     },
