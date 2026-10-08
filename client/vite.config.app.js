@@ -1,10 +1,25 @@
 import { defineConfig } from "vite";
 import scalaJSPlugin from "@scala-js/vite-plugin-scalajs";
-import { loadEnv } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import fs from 'fs'
+import { execSync } from 'child_process'
 
-const env = loadEnv(process.env.NODE_ENV, process.cwd());
+
+function getAppVersion() {
+    let version
+    try {
+        version = execSync('git describe --tags --exact-match HEAD', { encoding: 'utf8' }).trim()
+    } catch {
+        version = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim()
+    }
+    const modified = execSync('git status -s --untracked-files=no', { encoding: 'utf8' }).trim()
+    if (modified) {
+        version += '-SNAPSHOT'
+    }
+    return version.replace(/^v/, '')
+}
+
+const APP_VERSION = getAppVersion()
 
 export default defineConfig({
     base: './',
@@ -70,9 +85,9 @@ export default defineConfig({
         emptyOutDir: false,
         rollupOptions: {
             output: {
-                entryFileNames: `ui/[name].${env.VITE_BOX_VERSION}.js`,
-                chunkFileNames: `ui/[name].${env.VITE_BOX_VERSION}.js`,
-                assetFileNames: `ui/[name].${env.VITE_BOX_VERSION}.[ext]`,
+                entryFileNames: `ui/[name].${APP_VERSION}.js`,
+                chunkFileNames: `ui/[name].${APP_VERSION}.js`,
+                assetFileNames: `ui/[name].${APP_VERSION}.[ext]`,
             },
         },
     },
