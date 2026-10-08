@@ -47,6 +47,18 @@ jobs:
           cd client
           npm install
           cd ..
+      - name: Import TS Types
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+        run: |
+          sbt client/generateScalaTypes
+      - name: Build bundle
+        env:
+          SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+        run: |
+          cd client
+          npm run build
+          cd ..
       - name: Version info
         run: |
           sbt server/version
