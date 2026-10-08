@@ -2,6 +2,8 @@ import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 import org.scalablytyped.converter.internal.Json
 import org.scalablytyped.converter.internal.ts.PackageJson
 import sbt.Keys.cleanFiles
+
+import scala.sys.process.Process
 //import xerial.sbt.Sonatype.sonatypeCentralHost
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
@@ -166,8 +168,9 @@ lazy val client: Project = (project in file("client"))
     localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
     publishTo := sonatypeCentralPublishToBundle.value,
     Compile / doc / sources := Seq(),
-    cleanFiles += new File("./client/dist")
-  )
+    cleanFiles += baseDirectory.value / "dist",
+
+)
   .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
@@ -281,11 +284,18 @@ lazy val box = (project in file("."))
     dropBox := dropBoxTask.value
   ).settings(publishSettings)
 
-
+lazy val npmBuildTask = taskKey[Unit]("Execute the npm build command to build the ui")
+npmBuildTask := {
+  val base = (ThisBuild / baseDirectory).value
+  Process(Seq("npm", "run", "build"), base / "client").!
+}
 
 lazy val publishAll = taskKey[Unit]("Publish all modules")
 lazy val publishAllTask = {
   Def.sequential(
+    (client / clean),
+    (client / generateScalaTypes),
+    npmBuildTask,
     (server / clean),
     (serverCacheRedis / clean),
     (serverServices / clean),
@@ -306,6 +316,9 @@ lazy val publishAllTask = {
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {
   Def.sequential(
+    (client / clean),
+    (client / generateScalaTypes),
+    npmBuildTask,
     (sharedJVM / publishLocal),
     (codegen / publishLocal),
     (server / publishLocal),
