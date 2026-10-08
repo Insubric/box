@@ -477,6 +477,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     model.subProp(_.query).set(Some(qOrig))
 
     val q = qOrig.copy(
+      filter = qOrig.filter.filter(f => f.fieldValue.exists(_.nonEmpty) || f.value.exists(_.nonEmpty) || Seq(Filter.IS_NOT_NULL,Filter.IS_NULL).contains(f.operator.getOrElse(""))), //fix empty filters
       paging = Some(JSONQueryPaging(ClientConf.pageLength, page)),
     )
 

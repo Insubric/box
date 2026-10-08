@@ -1,6 +1,9 @@
 import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 import org.scalablytyped.converter.internal.Json
 import org.scalablytyped.converter.internal.ts.PackageJson
+import sbt.Keys.cleanFiles
+
+import scala.sys.process.Process
 //import xerial.sbt.Sonatype.sonatypeCentralHost
 import locales.LocalesFilter
 import org.scalajs.jsenv.Input.Script
@@ -164,9 +167,10 @@ lazy val client: Project = (project in file("client"))
     ),
     localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
     publishTo := sonatypeCentralPublishToBundle.value,
-    Compile / doc / sources := Seq()
+    Compile / doc / sources := Seq(),
+    cleanFiles += baseDirectory.value / "dist",
 
-  )
+)
   .settings(publishSettings)
   .enablePlugins(
     ScalaJSPlugin,
@@ -175,7 +179,24 @@ lazy val client: Project = (project in file("client"))
   .dependsOn(sharedJS)
 
 
+lazy val clientPackage = project.in(file("./clientPackage")).settings(
+  scalaVersion := "2.13.18",
+  name := "box-client-default",
+  Compile / resourceDirectory := baseDirectory.value / "../client/dist",
+  buildInfoKeys := Seq[BuildInfoKey](version,name),
+  buildInfoPackage := "boxClientAppInfo",
+  buildInfoObject := "BoxClientAppInfo",
 
+  git.gitTagToVersionNumber := { tag:String =>
+    Some(tag)
+  },
+
+  publishTo := sonatypeCentralPublishToBundle.value,
+
+).enablePlugins(
+  GitVersioning,
+  BuildInfoPlugin
+)
 
 
 //CrossProject is a Project compiled with both java and javascript
@@ -263,11 +284,18 @@ lazy val box = (project in file("."))
     dropBox := dropBoxTask.value
   ).settings(publishSettings)
 
-
+lazy val npmBuildTask = taskKey[Unit]("Execute the npm build command to build the ui")
+npmBuildTask := {
+  val base = (ThisBuild / baseDirectory).value
+  Process(Seq("npm", "run", "build"), base / "client").!
+}
 
 lazy val publishAll = taskKey[Unit]("Publish all modules")
 lazy val publishAllTask = {
   Def.sequential(
+    (client / clean),
+    (client / generateScalaTypes),
+    npmBuildTask,
     (server / clean),
     (serverCacheRedis / clean),
     (serverServices / clean),
@@ -279,7 +307,8 @@ lazy val publishAllTask = {
     (codegen / publishSigned),
     (server / publishSigned),
     (serverCacheRedis / publishSigned),
-    (serverServices / publishSigned)
+    (serverServices / publishSigned),
+    (clientPackage / publishSigned)
   )
 }
 
@@ -287,11 +316,17 @@ lazy val publishAllTask = {
 lazy val publishAllLocal = taskKey[Unit]("Publish all modules")
 lazy val publishAllLocalTask = {
   Def.sequential(
+    (client / clean),
+    (client / generateScalaTypes),
+    npmBuildTask,
     (sharedJVM / publishLocal),
     (codegen / publishLocal),
     (server / publishLocal),
     (serverCacheRedis / publishLocal),
     (serverServices / publishLocal),
+    (sharedJS / publishLocal),
+    (client / publishLocal),
+    (clientPackage / publishLocal),
   )
 }
 
