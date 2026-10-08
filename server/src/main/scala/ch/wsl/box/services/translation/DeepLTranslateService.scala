@@ -65,8 +65,6 @@ class DeepLTranslateService(conf: DeepLConfig)(implicit ex:ExecutionContext) ext
           .body(asJson(DeepLAPIRequest(texts,to.toUpperCase,from.toUpperCase,Some("Text is used in a web application that expose database tables on the web."))))
           .response(asJson[DeepLAPIResponse])
 
-        print(r.toCurl)
-
         r.send(backend).map(_.body match {
           case Right(value) => value.translations.map(_.text)
           case Left(value) => throw value
