@@ -293,9 +293,6 @@ npmBuildTask := {
 lazy val publishAll = taskKey[Unit]("Publish all modules")
 lazy val publishAllTask = {
   Def.sequential(
-    (client / clean),
-    (client / generateScalaTypes),
-    npmBuildTask,
     (server / clean),
     (serverCacheRedis / clean),
     (serverServices / clean),
