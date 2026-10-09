@@ -4,7 +4,7 @@ import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels, PDF}
 import ch.wsl.box.model.shared.ExportTableFormat.GeoPackage
-import ch.wsl.box.model.shared.{EntityKind, ExportMode, ExportTableFormat, GeometryTableFormat, JSONField, JSONFieldTypes, JSONMetadata, JSONQuery}
+import ch.wsl.box.model.shared.{EntityKind, ExportMode, ExportTableFormat, Filter, GeometryTableFormat, JSONField, JSONFieldTypes, JSONMetadata, JSONQuery, JSONQueryPaging}
 import io.circe.syntax.EncoderOps
 import io.udash._
 import io.udash.bindings.modifiers.Binding
@@ -79,7 +79,9 @@ class ExportTableDialog extends Logging {
       Seq(ExportTableFormat.fkParamName -> ExportMode.RESOLVE_FK)
     } else Seq()
 
-    val queryNoLimits = query.copy(paging = None)
+    val queryNoLimits = query.nonEmptyFilters.copy(
+      paging = None
+    )
 
     val exportGeomFormatParam = metadata.geomFields.exists(f => fields.contains(f.name)) && format != ExportTableFormat.GeoPackage match {
       case true => Seq("exportGeomFormat" -> exportGeomFormat.get.toString)
@@ -90,7 +92,7 @@ class ExportTableDialog extends Logging {
 
 
     if(format == ExportTableFormat.PDF) {
-      PDF.table(kind,modelName,fields,queryNoLimits)
+      PDF.table(kind,modelName,fields,queryNoLimits,resolveFK ++ exportGeomFormatParam)
     } else {
 
       if(kind != EntityKind.FORM.kind) {

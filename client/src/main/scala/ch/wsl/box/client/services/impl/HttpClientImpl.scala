@@ -11,6 +11,12 @@ import scribe.Logging
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
 import scala.scalajs.js
 
+sealed trait ContentType
+case object JsonBody extends ContentType
+case object RawBody extends ContentType
+case object FormDataBody extends ContentType
+case object MultipartBody extends ContentType
+
 class HttpClientImpl extends HttpClient with Logging {
 
   import io.circe.parser.decode
@@ -31,7 +37,7 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  private def httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit)(implicit ec:ExecutionContext):Future[Response[Option[T]]] = {
+  private def httpCall[T](method:String, url:String, body:ContentType = JsonBody, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit)(implicit ec:ExecutionContext):Future[Response[Option[T]]] = {
 
 
     val promise = Promise[Response[Option[T]]]()
@@ -46,12 +52,13 @@ class HttpClientImpl extends HttpClient with Logging {
       xhr.open(method, url, async)
       //xhr.withCredentials = true
       xhr.setRequestHeader("Cache-Control","no-store")
-      if (json) {
-        xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8")
+
+      body match {
+        case JsonBody => xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8")
+        case RawBody => xhr.setRequestHeader("Content-Type", "application/octet-stream")
+        case _ => ()
       }
-      if (file) {
-        xhr.setRequestHeader("Content-Type", "application/octet-stream")
-      }
+
 
       def defaultHandler() = decoder match {
         case Some(value) => decode[T](xhr.responseText)(value) match {
@@ -135,7 +142,7 @@ class HttpClientImpl extends HttpClient with Logging {
     }
   }
 
-  private def httpCallWithNoticeInterceptor[T](method:String, url:String, json:Boolean=true, file:Boolean=false)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T],ec:ExecutionContext):Future[Option[T]] = httpCall(method,url,json,file,Some(decoder))(send).map{
+  private def httpCallWithNoticeInterceptor[T](method:String, url:String, body:ContentType = JsonBody)(send:XMLHttpRequest => Unit)(implicit decoder:io.circe.Decoder[T],ec:ExecutionContext):Future[Option[T]] = httpCall(method,url,body,Some(decoder))(send).map{
     case Right(result) => result
     case Left(error) => {
       Notification.add(error.humanReadable(Labels.all))
@@ -145,8 +152,8 @@ class HttpClientImpl extends HttpClient with Logging {
 
   private def request[T](method:String,url:String)(implicit decoder:io.circe.Decoder[T],ex:ExecutionContext):Future[Option[T]] = httpCallWithNoticeInterceptor[T](method,url)( xhr => xhr.send())
 
-  private def send[D,R](method:String,url:String,obj:D,json:Boolean = true)(implicit decoder:io.circe.Decoder[R],encoder: io.circe.Encoder[D],ex:ExecutionContext):Future[Option[R]] = {
-    httpCallWithNoticeInterceptor[R](method,url,json){ xhr =>
+  private def send[D,R](method:String,url:String,obj:D,body:ContentType = JsonBody)(implicit decoder:io.circe.Decoder[R],encoder: io.circe.Encoder[D],ex:ExecutionContext):Future[Option[R]] = {
+    httpCallWithNoticeInterceptor[R](method,url,body){ xhr =>
       xhr.send(obj.asJson.toString())
     }
   }
@@ -173,19 +180,25 @@ class HttpClientImpl extends HttpClient with Logging {
 
   def delete[T](url: String)(implicit decoder: io.circe.Decoder[T],ex:ExecutionContext): Future[T] = request("DELETE", url).map(handle404)
 
+  def sendFormData[T](url: String, formData: FormData)(implicit decoder: io.circe.Decoder[T],executionContext: ExecutionContext): Future[T] = {
+    httpCallWithNoticeInterceptor[T]("POST", url, MultipartBody) { xhr =>
+      xhr.send(formData)
+    }
+  }.map(handle404)
+
   def sendFile[T](url: String, file: File)(implicit decoder: io.circe.Decoder[T],executionContext: ExecutionContext): Future[T] = {
 
     val formData = new FormData();
     formData.append("file", file)
 
-    httpCallWithNoticeInterceptor[T]("POST", url, false) { xhr =>
+    httpCallWithNoticeInterceptor[T]("POST", url, MultipartBody) { xhr =>
       xhr.send(formData)
     }
 
   }.map(handle404)
 
   override def sendRaw[T](url: String, data: js.Any)(implicit decoder: Decoder[T], ex: ExecutionContext): Future[T] =  {
-    httpCallWithNoticeInterceptor[T]("POST", url, file = true) { xhr =>
+    httpCallWithNoticeInterceptor[T]("POST", url, RawBody) { xhr =>
       xhr.send(data)
     }
 

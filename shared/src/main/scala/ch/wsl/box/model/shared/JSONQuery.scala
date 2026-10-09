@@ -41,6 +41,8 @@ case class JSONQuery(
     }
   )
 
+  def nonEmptyFilters:JSONQuery = this.copy( filter = filter.filter(f => f.fieldValue.exists(_.nonEmpty) || f.value.exists(_.nonEmpty) || Seq(Filter.IS_NOT_NULL,Filter.IS_NULL).contains(f.operator.getOrElse(""))))
+
   def withExtent(metadata:JSONMetadata,extent:Polygon):JSONQuery = {
 
     val newFilters = metadata.fields.filter(_.`type` == JSONFieldTypes.GEOMETRY).foldRight(filter) { (field, filters) =>
