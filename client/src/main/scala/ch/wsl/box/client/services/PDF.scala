@@ -2,7 +2,7 @@ package ch.wsl.box.client.services
 
 import ch.wsl.box.client.Context.services
 import ch.wsl.box.client.routes.Routes
-import ch.wsl.box.model.shared.{ExportMode, JSONQuery}
+import ch.wsl.box.model.shared.{ExportMode, ExportTableFormat, JSONQuery}
 import io.circe.syntax.EncoderOps
 import io.circe.generic.auto._
 
@@ -20,6 +20,7 @@ import scala.scalajs.js
 import scalatags.JsDom.all._
 import ch.wsl.typings.jspdf.mod.jsPDF
 import com.avsystem.commons.Future
+import org.scalajs.dom.FormData
 
 object PDF {
 
@@ -81,11 +82,22 @@ object PDF {
     }
   }
 
-  def table(kind:String,modelName:String,fields:Seq[String],query:JSONQuery)(implicit ec:ExecutionContext) = {
-    val csv = Routes.apiV1(
-      s"/$kind/${services.clientSession.lang()}/$modelName/csv?fk=${ExportMode.RESOLVE_FK}&fields=${fields.mkString(",")}&q=${URIUtils.encodeURI(query.asJson.noSpaces)}".replaceAll("\n","")
+  def table(kind:String,modelName:String,fields:Seq[String],query:JSONQuery,extraParams:Seq[(String,String)])(implicit ec:ExecutionContext) = {
+
+    val params = Seq(
+      ExportTableFormat.fieldsParamName -> fields.mkString(","),
+      ExportTableFormat.queryParamName -> query.asJson.noSpaces
+    ) ++ extraParams
+    val url = Routes.apiV1(
+      s"/$kind/${services.clientSession.lang()}/$modelName/csv/export"
     )
-    services.httpClient.get[String](csv).map{ result =>
+
+    val formData = new FormData()
+    params.foreach { case (k, v) =>
+      formData.append(k,v)
+    }
+
+    services.httpClient.sendFormData[String](url,formData).map{ result =>
       result.asUnsafeCsvReader[Seq[String]](rfc).toList match {
         case header :: body => renderTable(modelName,header,body)
       }

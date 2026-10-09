@@ -2,7 +2,7 @@ package ch.wsl.box.client.mocks
 
 import ch.wsl.box.client.services.HttpClient
 import io.circe.{Decoder, Encoder}
-import org.scalajs.dom.{Blob, File}
+import org.scalajs.dom.{Blob, File, FormData}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -23,6 +23,8 @@ class HttpClientMock extends HttpClient {
   override def sendFile[T](url: String, file: File)(implicit decoder: Decoder[T], ec:ExecutionContext): Future[T] = throw new Exception("sendFile not implemented")
 
   override def sendRaw[T](url: String, data: js.Any)(implicit decoder: Decoder[T], ex: ExecutionContext): Future[T] = ???
+
+  override def sendFormData[T](url: String, formData: FormData)(implicit decoder: Decoder[T], executionContext: ExecutionContext): Future[T] = ???
 
   override def setHandleAuthFailure(f: () => Unit): Unit = {}
 

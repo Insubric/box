@@ -27,6 +27,7 @@ trait HttpClient{
   def delete[T](url: String)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext): Future[T]
   def sendFile[T](url: String, file: File)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext):Future[T]
   def sendRaw[T](url: String, data: js.Any)(implicit decoder: io.circe.Decoder[T], ex:ExecutionContext):Future[T]
+  def sendFormData[T](url: String, formData: FormData)(implicit decoder: io.circe.Decoder[T],executionContext: ExecutionContext): Future[T]
   def setHandleAuthFailure(f:() => Unit)
   def getBlob(url:String)(implicit ex:ExecutionContext):Future[Blob]
 }
