@@ -3,9 +3,11 @@ package ch.wsl.box.client.views.components
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.utils.StripHtml
+import ch.wsl.box.client.views.components.widget.DateTimeWidget
 import ch.wsl.box.client.{EntityFormState, EntityTableState}
 import ch.wsl.box.model.shared.GeoJson.Geometry
 import ch.wsl.box.model.shared.{JSONField, JSONFieldTypes, JSONID, JSONLookup, JSONLookups, PgRange, WidgetsNames, `(_,_)`, `(_,_]`, `[_,_)`, `[_,_]`, `empty`}
+import ch.wsl.box.shared.utils.DateTimeFormatters
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
 import io.circe.parser
@@ -64,6 +66,18 @@ object TableFieldsRenderer extends Logging{
       case (None,Some(WidgetsNames.map)) => {
         val cell:String = parser.parse(value).flatMap(_.as[Geometry]).map(_.toString(0)).getOrElse(value)
         p(ClientConf.style.preformatted,cell)
+      }
+      case (None,Some(WidgetsNames.datepicker)) => {
+        val date = DateTimeFormatters.date.parse(value).map(x => DateTimeFormatters.date.format(x,DateTimeWidget.format(field))).getOrElse(value)
+        p(date)
+      }
+      case (None,Some(WidgetsNames.datetimePicker)) => {
+        val date = DateTimeFormatters.timestamp.parse(value).map(x => DateTimeFormatters.timestamp.format(x,DateTimeWidget.format(field))).getOrElse(value)
+        p(date)
+      }
+      case (None,Some(WidgetsNames.datetimetzPicker)) => {
+        val date = DateTimeFormatters.timestamptz.parse(value).map(x => DateTimeFormatters.timestamptz.format(x,DateTimeWidget.format(field))).getOrElse(value)
+        p(date)
       }
       case (None,_) => p(ClientConf.style.preformatted,value)
     }
