@@ -50,6 +50,7 @@ trait BoxStyle {
   val mediumBottomMargin: StyleA
   val subBlock: StyleA
   val block: StyleA
+  val blockTitle: StyleA
   val innerBlock: StyleA
   val withBorder: StyleA
   val removeFlexChild: StyleA

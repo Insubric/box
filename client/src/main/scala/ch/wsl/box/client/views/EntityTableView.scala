@@ -9,7 +9,7 @@ import ch.wsl.box.client.{Context, EntityFormState, EntityTableState, FormPageSt
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, Navigation, Notification, PDF, TablePreference, UI}
 import ch.wsl.box.client.styles.Icons.Icon
 import ch.wsl.box.client.styles.{BootstrapCol, Icons}
-import ch.wsl.box.client.utils.{ElementId, ListenerManager, TestHooks, URLQuery}
+import ch.wsl.box.client.utils.{Device, ElementId, ListenerManager, TestHooks, URLQuery}
 import ch.wsl.box.client.viewmodel.{Row, RowDb, RowDbJson}
 import ch.wsl.box.client.views.components.table.{BoxTable, ExportParams, ExportTableDialog, FilterBarDyn, FilterEveryField}
 import ch.wsl.box.client.views.components.ui.TwoPanelResize
@@ -582,7 +582,20 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
     e.preventDefault()
   }
 
-  def toggleSelection(row: => Row) = (e:Event) => {
+  def rowClick(row: => Row) = (e:Event) => {
+    if(Device.isMobile) {
+      for {
+        a <- actions(false).headOption
+        id <- row.id
+      } yield a.action(id)
+
+    } else {
+      toggleSelection(row)
+    }
+    e.preventDefault()
+  }
+
+  def toggleSelection(row: => Row) =  {
     row.id.foreach { id =>
       val currentSel = model.subProp(_.selectedRow).get
       if (currentSel.contains(id)) {
@@ -593,7 +606,7 @@ case class EntityTablePresenter(model:ModelProperty[EntityTableModel], onSelect:
         model.subProp(_.selectedRow).set(currentSel ++ Seq(id))
       }
     }
-    e.preventDefault()
+
   }
 
   val importXLS = (e:Event) => {
@@ -908,9 +921,11 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
             headerFactory = Some(nested => {
               frag(
                 tr(
-                  th(ClientConf.style.smallCells, verticalAlign.middle, colspan := 2)(
-                    mainActions(metadata,nested)
-                  ),
+                  if(!Device.isMobile) {
+                    th(ClientConf.style.smallCells, verticalAlign.middle, colspan := 2)(
+                      mainActions(metadata, nested)
+                    )
+                  } else th(),
                   columns.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map { field =>
 
                     val sort: ReadableProperty[String] = model.subProp(_.fieldSort).transform(_.find(_.column == field.name).map(_.order).getOrElse(""))
@@ -942,9 +957,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
                 td(ClientConf.style.smallCells)(
                   Offline(el.transform(_.isLocal)),
                 ),
-                td(ClientConf.style.smallCells)(
+                if(!Device.isMobile) {td(ClientConf.style.smallCells)(
                   rowActions(el)
-                ),
+                )} else frag(),
                 for {col <- columns} yield {
 
                   val value = el.get.field(col.name)
@@ -961,7 +976,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
               ).render
                 .listen("mouseover",presenter.hoverRow(el.get))
                 .listen("mouseout",presenter.exitRow(el.get))
-                .listen("click",presenter.toggleSelection(el.get))
+                .listen("click",presenter.rowClick(el.get))
 
               presenter.listeners.addOne {
                 selected.listen({

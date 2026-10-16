@@ -685,6 +685,10 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     )
   )
 
+  override val blockTitle = style(
+    marginLeft(15 px)
+  )
+
   override val innerBlock = style(
     margin.`0`
   )
