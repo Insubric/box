@@ -26,7 +26,7 @@ import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.UdashIcons
 import scalacss.ScalatagsCss._
 import io.udash.css.CssView._
-import org.scalajs.dom.{Event, window}
+import org.scalajs.dom.{Event, document, window}
 /**
   * Created by andre on 4/25/2017.
   */
@@ -163,20 +163,24 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
         case _ => Seq[Modifier](BootstrapCol.md(block.width),ClientConf.style.block)
       }
 
+      val title:Option[String] = block.title.orElse(block.tab.map(Left(_))).flatMap( x => Internationalization.either(services.clientSession.lang())(x))
+
       div(gridSystem)(
         div(
-          block.title.flatMap(Internationalization.either(services.clientSession.lang())) match {
-            case Some(value) => h3(marginLeft := 15, Labels(value))
+          title match {
+            case Some(value) => h3(Labels(value))
             case None => frag()
           }, //renders title in blocks
           widget.render(write, nested)
-
         )
       )
     }
 
 
-    val (tabsBlocks,regularBlocks) = blocks.flatMap(x => x.layoutBlock.map(lb => WidgetBlock(lb,x.widget))).partition(_.block.tabGroup.isDefined)
+    def isMobile = window.innerWidth < 800
+
+    val (tabsBlocks,regularBlocks) = blocks.flatMap(x => x.layoutBlock.map(lb => WidgetBlock(lb,x.widget))).partition(_.block.tabGroup.isDefined && !isMobile)
+
 
     def renderTabs() = tabsBlocks.groupBy(_.block.tabGroup).toSeq.map{ case (tabGroup,blks) =>
       val tabs = blks.map(_.block.tab).distinct

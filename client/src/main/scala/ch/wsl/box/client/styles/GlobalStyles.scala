@@ -678,7 +678,11 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
   override val block = style(
     paddingTop.`0`,
     paddingBottom.`0`,
-    minHeight.`0`
+    minHeight.`0`,
+    media.maxWidth(600 px)(
+      marginBottom(30 px),
+      overflowY.auto
+    )
   )
 
   override val innerBlock = style(
