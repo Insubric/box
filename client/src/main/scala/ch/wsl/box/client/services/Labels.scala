@@ -1,6 +1,7 @@
 package ch.wsl.box.client.services
 
 import ch.wsl.box.model.shared.SharedLabels
+import scalatags.JsDom
 
 /**
   * Created by andre on 6/8/2017.
@@ -66,6 +67,7 @@ object Labels {
   }
 
   object filter {
+    def title = get(SharedLabels.filter.title)
     def not = get(SharedLabels.filter.not)
     def equals = get(SharedLabels.filter.equals)
     def contains = get(SharedLabels.filter.contains)
@@ -81,6 +83,7 @@ object Labels {
   }
 
   object sort{
+    def title = get(SharedLabels.sort.title)
     def asc = get(SharedLabels.sort.asc)
     def desc = get(SharedLabels.sort.desc)
   }
@@ -124,6 +127,13 @@ object Labels {
     def pdf = get(SharedLabels.exports.pdf)
     def html = get(SharedLabels.exports.html)
     def geopackage = get(SharedLabels.exports.geopackage)
+    def geometry_fields: String = get(SharedLabels.exports.geometry_fields)
+    def select_fields: String = get(SharedLabels.exports.select_fields)
+    def unselect_all: String = get(SharedLabels.exports.unselect_all)
+    def select_all: String = get(SharedLabels.exports.select_all)
+    def options: String = get(SharedLabels.exports.options)
+    def format: String = get(SharedLabels.exports.format)
+    def fk_resolve: String = get(SharedLabels.exports.fk_resolve)
   }
 
   object table{
