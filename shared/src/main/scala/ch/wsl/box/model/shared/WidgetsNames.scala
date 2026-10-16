@@ -14,6 +14,7 @@ object WidgetsNames {
   val datetimePicker = "datetimePicker"
   val datetimetzPicker = "datetimetzPicker"
   val select = "selectWidget"
+  val buttonSelect = "buttonSelect"
   val checkbox = "checkbox"
   val selectBoolean = "selectBoolean"
   val tristateCheckbox = "tristateCheckbox"
@@ -69,6 +70,7 @@ object WidgetsNames {
     NUMBER -> Seq(
       input,
       select,
+      buttonSelect,
       slider,
       radio,
       popup,
@@ -84,6 +86,7 @@ object WidgetsNames {
       slider,
       radio,
       select,
+      buttonSelect,
       popup,
       checkbox,
       inputDisabled,
@@ -102,6 +105,7 @@ object WidgetsNames {
       code,
       radio,
       select,
+      buttonSelect,
       popup,
       hidden,
       dynamicWidget,

@@ -7,7 +7,7 @@ import ch.wsl.box.client.views.components.widget.child.{EditableTable, ExportWid
 import ch.wsl.box.client.views.components.widget.geo.{MapChild, MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.geo.{MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.labels.{HtmlWidget, LinkedFormWidget, LookupLabelWidget, StaticTextWidget, TitleWidget}
-import ch.wsl.box.client.views.components.widget.lookup.{MultipleLookupWidget, PopupSelectWidget, SelectWidgetFactory}
+import ch.wsl.box.client.views.components.widget.lookup.{ButtonSelectFactory, MultipleLookupWidget, PopupSelectWidget, SelectWidgetFactory}
 import ch.wsl.box.client.views.components.widget.range.IntRangeWidget
 import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget, UUIDWidget}
 import ch.wsl.box.model.shared.WidgetsNames
@@ -31,6 +31,7 @@ object WidgetRegistry extends Logging {
 
     PopupSelectWidget,
     SelectWidgetFactory,
+    ButtonSelectFactory,
 
     LookupLabelWidget,
 

@@ -498,10 +498,16 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     backgroundColor(Color("#eee")),
     borderRadius(20 px),
     &.hover(
-      color(conf.colors.main).important,
+      color(conf.colors.main),
       backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4))
     )
   )
+
+  override val chipLinkSelected = style(
+    color.white.important,
+    backgroundColor(conf.colors.main).important
+  )
+
 
   override val chip = style(
     color(conf.colors.main).important,
