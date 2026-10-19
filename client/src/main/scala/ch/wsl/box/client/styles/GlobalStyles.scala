@@ -500,6 +500,9 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     &.hover(
       color(conf.colors.main),
       backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4))
+    ),
+    media.maxWidth(600 px)(
+      fontSize(15 px)
     )
   )
 
