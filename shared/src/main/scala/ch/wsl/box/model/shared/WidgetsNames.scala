@@ -15,6 +15,7 @@ object WidgetsNames {
   val datetimetzPicker = "datetimetzPicker"
   val select = "selectWidget"
   val buttonSelect = "buttonSelect"
+  val buttonBoolean = "buttonBoolean"
   val checkbox = "checkbox"
   val selectBoolean = "selectBoolean"
   val tristateCheckbox = "tristateCheckbox"
@@ -170,6 +171,7 @@ object WidgetsNames {
       tristateCheckbox,
       selectBoolean,
       radio,
+      buttonBoolean,
       hidden,
       dynamicWidget,
       popupWidget

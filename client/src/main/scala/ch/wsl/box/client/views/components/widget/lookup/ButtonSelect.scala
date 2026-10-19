@@ -75,10 +75,10 @@ class ButtonSelect(val field:JSONField, val data: Property[Json], val allData:Re
       lkup.map{ l =>
 
         a(
-          cls.bind(model.transform(m => m.contains(l) match {
+          nested(cls.bind(model.transform(m => m.contains(l) match {
             case true => ClientConf.style.chipLink.className.value + " " + ClientConf.style.chipLinkSelected.className.value
             case false => ClientConf.style.chipLink.className.value
-          })),
+          }))),
           l.value
         ).render.listen(Event.click, e => {
           if (model.get.contains(l)) model.set(None)
