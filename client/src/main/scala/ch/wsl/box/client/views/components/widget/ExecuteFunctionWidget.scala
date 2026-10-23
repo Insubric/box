@@ -61,11 +61,7 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
         }
       }
       def action() = saveBefore match {
-
-        case true => params.actions.save{ (id,data) =>
-          logger.debug(s"Action id $id")
-          exec(Some(id),data)
-        }
+        case true => params.actions.save(true)
         case false => exec(params.id.get.flatMap(id => JSONID.fromString(id,params.metadata)),params.allData.get)
       }
 

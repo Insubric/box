@@ -11,7 +11,7 @@ import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, ModalStack}
 import ch.wsl.box.client.views.elements.Offline
-import ch.wsl.box.client.views.helpers.{PopupFrame, VoiceHelper}
+import ch.wsl.box.client.views.helpers.{ActionRenderer, ActionRigths, FormActionHandler, PopupFrame, VoiceHelper}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils
@@ -62,19 +62,31 @@ object EntityFormModel extends HasModelPropertyCreator[EntityFormModel] {
   implicit val blank: Blank[EntityFormModel] = Blank.Simple(empty)
 }
 
-object EntityFormViewPresenter extends ViewFactory[FormState] {
+class EntityFormViewPresenter extends ViewFactory[FormState] {
+  val model = ModelProperty.blank[EntityFormModel]
+  val presenter = EntityFormPresenter(model)
 
   override def create(): (View, Presenter[FormState]) = {
-    val model = ModelProperty.blank[EntityFormModel]
-    val presenter = EntityFormPresenter(model)
     (EntityFormView(model,presenter),presenter)
   }
+}
+
+object EntityFormCostants {
+  val HIDE_HEADER: String = "hideHeader"
+  val HIDE_FOOTER: String = "hideFooter"
+  val HIDE_ID: String     = "hideID"
+
+  val MAX_WIDTH: String = "maxWidth"
+  val STEPPER: String   = "stepper"
 }
 
 case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Presenter[FormState] with Logging {
   import ch.wsl.box.shared.utils.JSONUtils._
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
+
+
+  import EntityFormCostants._
 
   TestHooks.setData(model.subProp(_.data))
 
@@ -97,7 +109,17 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
 
     {for{
-      metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public)
+      metadata <- services.rest.metadata(state.kind, services.clientSession.lang(), state.entity,state.public).map{ m =>
+        if(state.popup) {
+          val p = m.params.getOrElse(Json.obj()).deepMerge(Json.obj(
+            HIDE_FOOTER -> Json.True,
+            HIDE_HEADER -> Json.True
+          ))
+          m.copy(params = Some(p))
+        } else {
+          m
+        }
+      }
       rowAccess <- state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
         case Some(id) => services.rest.rowAccess(metadata.entity,state.kind,id.query)
         case None => Future.successful(true)
@@ -201,7 +223,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     // Check for Ctrl+S
     if (event.ctrlKey && event.key == "s") {
       event.preventDefault()
-      save().map{ case (id,d) => afterSave(id,d)}
+      actionHandler.save()
     }
 
     if (event.ctrlKey && event.key == "c") {
@@ -267,6 +289,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       ch.wsl.typings.hotkeysJs.mod.default.unbind()
       document.removeEventListener("keydown",keyListeners)
       mainBinding.foreach(_.kill())
+      listenerManager.clearAll()
     }
 
   }
@@ -276,49 +299,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def setForm(form:HTMLFormElement)= { _form = form }
 
 
-  def saveToDb(data:Json):Future[(JSONID,Record)] = {
 
-    val m = model.get
-    val metadata = m.metadata.get
-    val originalId = JSONID.fromData(m.originalData,metadata)
-
-    logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
-    for {
-      result <- JSONID.fromString(m.id.getOrElse(""),metadata) match {
-        case Some(id) if !model.subProp(_.insert).get => services.data.update (m.kind, services.clientSession.lang(), m.name, originalId.getOrElse(id), data,m.public)
-        case _ => services.data.insert (m.kind, services.clientSession.lang (), m.name, data,m.public)
-      }
-    } yield {
-      logger.debug(s"saveAction::Result")
-      (JSONID.fromData(result,metadata,false).getOrElse(JSONID.empty),Record(result,false))
-    }
-  }
-
-  def saveLocally(data:Json):Future[(JSONID,Record)] = {
-
-    val m = model.get
-    val metadata = m.metadata.get
-    val originalId = JSONID.fromData(m.originalData,metadata)
-
-
-    val id:JSONID = JSONID.fromString(m.id.getOrElse(""), metadata) match {
-      case Some(value) => value
-      case None => JSONID.newLocal()
-    }
-
-    val record = LocalRecord(id.asString,m.kind,m.name,data,Some(m.originalData))
-
-    logger.info(s"saveAction id:$originalId ${JSONID.fromString(m.id.getOrElse(""),metadata)}")
-    for {
-      result <- DB.localRecord.save(record)
-    } yield {
-      logger.debug(s"saveAction::Result")
-      (JSONID.fromString(result.pk.jsonid,metadata).get,Record(result.data,true))
-    }
-  }
-
-
-  def save(check:Boolean = true,saveAction: Json => Future[(JSONID,Record)] = saveToDb):Future[(JSONID,Record)]  = {
+  def beforeSave(check:Boolean = true):Future[Json]  = {
 
     services.clientSession.loading.set(true)
 
@@ -359,7 +341,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
     {for{
       updatedData <- widget.beforeSave(data,metadata)
-      (newId,resultAfterAction) <- saveAction(updatedData.removeNonDataFields(metadata,m.children))
+      updatedDataNoNoData= updatedData.removeNonDataFields(metadata,m.children)
 
     } yield {
       logger.debug(s"""outcome
@@ -368,21 +350,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
                  original: $data
 
-                 afterBeforeSave: $updatedData
-
-                 afterSave: $resultAfterAction
-
+                 afterBeforeSave: $updatedDataNoNoData
 
                  """)
 
-      enableGoAway("save")
-      val currentState = model.get
-
-      val newData = currentState.data.deepMerge(resultAfterAction.data)
 
 
-
-      (newId,Record(newData,resultAfterAction.local_version))
+      updatedDataNoNoData
 
 
     }}.recover{ case e =>
@@ -396,13 +370,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   def afterSave(id:JSONID,data:Record) = {
     val currentState = model.get
+    val newData = currentState.data.deepMerge(data.data)
+
     if(!model.get.id.contains(id.asString)) {
         val state = currentState.asInstanceOf[EntityFormState]
         Navigate.to(state.copy(_id = Some(id.asString)))
     } else {
       model.set(currentState.copy(
-        data = data.data,
-        originalData = data.data,
+        data = newData,
+        originalData = newData,
         id = Some(id.asString),
         insert = false,
         changed = false,
@@ -411,6 +387,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
       childChanged.set(false)
       resetChanges()
     }
+    enableGoAway("afterSave")
 
     services.clientSession.loading.set(false)
   }
@@ -452,10 +429,13 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     } yield result
   }
 
-  def reload():Unit = {
+  def reload():Future[Json] = {
     model.subProp(_.id).get.flatMap(x => JSONID.fromString(x,model.get.metadata.get)) match {
       case Some(id) => reload(id)
-      case None => logger.warn("Cannot revert with no ID")
+      case None => {
+        logger.warn("Cannot revert with no ID")
+        Future.successful(Json.Null)
+      }
     }
   }
 
@@ -520,7 +500,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def autoSave = model.get.metadata.flatMap(_.params).exists(_.js("autoSave") == Json.True)
 
   val debounceSave = Debounce(2000.millis) { (_:Unit) =>
-    save().map { case (id, d) => afterSave(id, d) }
+    actionHandler.save()
   }
 
   val changesListener = childChanged.listen { hasChanges =>
@@ -537,11 +517,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    val actions = WidgetCallbackActions((f:(JSONID,Json) => Future[Unit]) => save().foreach{ case (id,data) =>
-      f(id,data.data).foreach{ _ =>
-        afterSave(id,data)
-      }
-    },reload,() => {
+    val actions = WidgetCallbackActions(actionHandler.save,reload,() => {
       logger.debug(s"SetChanged callback")
       childChanged.set(true,true)
     })
@@ -613,103 +589,25 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }(_ && _)
 
 
-  def actionClick(_id:Option[String],action:FormAction):Event => Any  = {
+  def actionHandler = new FormActionHandler(
+    model.get.metadata.get,
+    model.subProp(_.data),
+    model.get.originalData,
+    model.get.public,
+    model.get.insert,
+    () => model.subProp(_.showActionPanelMobile).set(false),
+    {
+      case Some(id) => reload(id)
+      case None => reload()
+    },
+    this.beforeSave,
+    this.afterSave,
+    Unit => this.duplicate()
+  )
 
-    def afterGoto(url:String) = {
-      action.target match {
-        case Self => Navigate.toUrl(url)
-        case NewWindow => {
-          window.open(url)
-        }
-        case Popup => PopupFrame.open(url).foreach{ _ =>
-          logger.info("Popup closed, reloading data")
-          reload()
-        }
-      }
-    }
+  val listenerManager = new ListenerManager()
 
-    def executeFunction():Future[Option[Boolean]] = action.executeFunction match {
-      case Some(value) => services.rest.execute(value,services.clientSession.lang(),model.get.data).map{ result =>
-        result.errorMessage match {
-          case Some(value) => {
-            Notification.add(value)
-            services.clientSession.loading.set(false)
-            Some(false)
-          }
-          case None => Some(true)
-        }
-      }
-      case None => Future.successful(None)
-    }
-
-    def afterSaveAction(combined:(JSONID,Record)):Future[Unit] = {
-
-      val (id,data) = combined
-
-      def onSuccess = Routes.getUrl(action, model.get.data, model.get.kind, model.get.name, Some(id.asString), model.get.write) match {
-        case Some(url) => {
-          logger.warn(s"Navigating to $url")
-          //reset()
-          afterGoto(url)
-        }
-        case None => afterSave(id,data)
-      }
-
-      executeFunction().map {
-        case Some(true) => {
-          if (action.reload) {
-            reload(id)
-          }
-          onSuccess
-        }
-        case None => onSuccess
-        case Some(false) => afterSave(id,data)
-
-      }
-    }
-
-    def callBack() = action.action match {
-      case SaveAction =>  save(action.html5check,saveToDb).map(afterSaveAction)
-      case SaveLocalAction =>  save(action.html5check,saveLocally).map(afterSaveAction)
-      case SaveAndClosePopup =>  save(action.html5check,saveToDb).map{ _ => ModalStack.mainStack.removeLast() }
-      case NoAction => Routes.getUrl(action,model.get.data,model.get.kind,model.get.name,_id,model.get.write).foreach{ url =>
-        executeFunction().map {
-          case Some(true) => {
-            if (Navigate.canGoAway)
-              reset()
-            afterGoto(url)
-          }
-          case None => afterGoto(url)
-          case Some(false) => ()
-
-        }
-      }
-      case CopyAction => duplicate()
-      case DeleteAction => delete(action)
-      case RevertAction => reload()
-      case BackAction => Navigate.back()
-
-    }
-
-    def confirm(cb: () => Any) =  action.confirmText match {
-      case Some(ct) => {
-        val confim = window.confirm(Labels(ct))
-        if(confim) {
-          cb()
-        }
-      }
-      case None => cb()
-    }
-
-
-
-    (ev: Event) => {
-      logger.info(s"Execution action $action")
-      model.subProp(_.showActionPanelMobile).set(false)
-      confirm(callBack)
-      ev.preventDefault()
-    }
-  }
+  def rights = ActionRigths(model.get.insert,model.get.updateRight,model.get.write)
 
   def roles() = services.clientSession.getRoles()
 
@@ -722,6 +620,8 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
   import io.circe.generic.auto._
   import io.udash.css.CssView._
   import Context.Implicits._
+
+  import EntityFormCostants._
 
 
   def labelTitle = produceWithNested(model.subProp(_.metadata)) { (m,nested) =>
@@ -739,33 +639,6 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
     span(nested(bind(nameProp))).render
   }
 
-  def actionRenderer(_id:Option[String])(action:FormAction):Modifier = {
-
-      val importance:StyleA = action.importance match {
-        case Primary => ClientConf.style.boxButtonImportant
-        case Danger => ClientConf.style.boxButtonDanger
-        case Std => ClientConf.style.boxButton
-      }
-
-
-    if(
-      (!action.needUpdateRight || model.subProp(_.updateRight).get) &&
-      ((action.updateOnly && _id.isDefined && !model.subProp(_.insert).get) || (action.insertOnly && model.subProp(_.insert).get) || (!action.insertOnly && !action.updateOnly))
-    ) {
-      val actionButton = button(
-        id := TestHooks.actionButton(action.label),
-        importance,
-        onclick :+= presenter.actionClick(_id,action)
-      )(Labels(action.label)).render
-      action.condition match {
-        case Some(conditions) => {
-          showIf(model.subProp(_.data).transform{ js => conditions.check(js) })( actionButton )
-        }
-        case None => actionButton
-      }
-    } else frag()
-
-  }
 
   case class StepperOption(steps:Seq[String],current:String)
 
@@ -814,8 +687,12 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
             ).render
     }
 
-    def actions(nested:Binding.NestedInterceptor,selector:FormActionsMetadata => Seq[FormAction]) = div(
+    def actions(metadata:JSONMetadata,nested:Binding.NestedInterceptor,selector:FormActionsMetadata => Seq[FormAction]) = {
 
+      val actionRenderer = new ActionRenderer(presenter.actionHandler,presenter.listenerManager,metadata,presenter.rights,Unit => presenter.reset())
+
+
+      div(
         div(
           nested(produceWithNested(model.subProp(_.metadata)) { (form,realeser2) =>
             div(
@@ -823,7 +700,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 div(ClientConf.style.spaceBetween,
                   releaser3(produce(model.subProp(_.insert)) { _ =>
                     div(
-                      form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer(_id))
+                      form.toSeq.flatMap(f => selector(f.action)).map(actionRenderer.render(_id))
                     ).render
                   })
                 ).render
@@ -831,8 +708,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
             ).render
           })
         ),
-      div(BootstrapStyles.Visibility.clearfix)
-    )
+        div(BootstrapStyles.Visibility.clearfix)
+      )
+    }
 
     def formHeader(nested:Binding.NestedInterceptor,showId:Boolean,metadata:JSONMetadata) = div(ClientConf.style.formHeader,
       div( ClientConf.style.spaceBetween, marginBottom := 10.px,
@@ -874,10 +752,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         model.subProp(_.data).set(model.subProp(_.data).get.deepMerge(Json.obj(x.field.name -> x.value)))
       })) else Seq[Modifier](),
       div(ClientConf.style.spaceBetween,ClientConf.style.noMobile,
-        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
+        actions(metadata,nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         div(ClientConf.style.spaceAfter)(
           nested(showIf(presenter.showNavigation) {
-            div(actions(nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
+            div(actions(metadata,nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
           }),
           nested(showIf(model.transform(_.navigation.count > 1)) {
               div(recordNavigation(nested)).render
@@ -892,9 +770,9 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
         div(ClientConf.style.mobileOnly,
           Fade(model.subProp(_.showActionPanelMobile),ClientConf.style.mobileBoxActionPanel){
             div(
-              actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
+              actions(metadata,nested,_.actions(model.subProp(_.write).get,presenter.roles())),
               nested(showIf(presenter.showNavigation) {
-                div(actions(nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
+                div(actions(metadata,nested,_.navigation(model.subProp(_.write).get,presenter.roles()))).render
               }),
               button(ClientConf.style.boxIconButton, width := 100.pct, i(UdashIcons.FontAwesome.Solid.angleDown), onclick :+= ((e:Event) => model.subProp(_.showActionPanelMobile).set(false)))
             ).render
@@ -914,10 +792,10 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       hr(ClientConf.style.hrThin)
     )
 
-    def formFooter(nested:Binding.NestedInterceptor,_maxWidth:Option[Int]):Modifier = Seq(
+    def formFooter(metadata:JSONMetadata,nested:Binding.NestedInterceptor,_maxWidth:Option[Int]):Modifier = Seq(
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.noMobile,id := "footerActions",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
+        actions(metadata,nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         ul(
          nested(produce(Notification.list){ notices =>
             notices.map { notice =>
@@ -928,7 +806,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
       ),
       div(BootstrapCol.md(12),paddingTop := 10.px,ClientConf.style.margin0Auto,ClientConf.style.mobileOnly,ClientConf.style.mobileFooter,id := "footerActionsMobile",
         _maxWidth.map(mw => maxWidth := mw),
-        actions(nested,_.actions(model.subProp(_.write).get,presenter.roles())),
+        actions(metadata,nested,_.actions(model.subProp(_.write).get,presenter.roles())),
         ul(
           nested(produce(Notification.list){ notices =>
             notices.map { notice =>
@@ -941,14 +819,16 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
     presenter.mainBinding = Some{produceWithNested(model.subProp(_.metadata)){ (_form,nested) =>
 
+
+
       div(nested(produceWithNested(model.subProp(_.write)){ (_,nested) => {
 
-        val showHeader = _form.flatMap(_.params).forall(_.js("hideHeader") != Json.True)
-        val showFooter = _form.flatMap(_.params).forall(_.js("hideFooter") != Json.True)
-        val showId = _form.flatMap(_.params).forall(_.js("hideID") != Json.True)
-        val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js("maxWidth").as[Int].toOption))
+        val showHeader = _form.flatMap(_.params).forall(_.js(HIDE_HEADER) != Json.True)
+        val showFooter = _form.flatMap(_.params).forall(_.js(HIDE_FOOTER) != Json.True)
+        val showId = _form.flatMap(_.params).forall(_.js(HIDE_ID) != Json.True)
+        val _maxWidth:Option[Int] = _form.flatMap(_.params.flatMap(_.js(MAX_WIDTH).as[Int].toOption))
 
-        val stepperOptions = _form.flatMap(_.params).flatMap(_.js("stepper").as[StepperOption].toOption)
+        val stepperOptions = _form.flatMap(_.params).flatMap(_.js(STEPPER).as[StepperOption].toOption)
 
         div(
           if(showHeader && _form.isDefined) {
@@ -959,7 +839,6 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
             _form match {
               case None => div()
               case Some(f) => {
-
                 val mainForm = form(
                   ClientConf.style.margin0Auto,
                   stepperOptions.map(stepper),
@@ -971,8 +850,8 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
                 mainForm
               }
             },
-            if(showFooter) {
-              formFooter(nested,_maxWidth)
+            if(showFooter  && _form.isDefined) {
+              formFooter(_form.get,nested,_maxWidth)
             }
           ).render,
           Debug(model.subProp(_.metadata),b => b, "metadata")

@@ -10,6 +10,7 @@ import io.udash.bootstrap.utils.BootstrapStyles
 import io.udash.bootstrap.utils.BootstrapStyles.Size
 import org.scalajs.dom.{Element, window}
 import scalatags.JsDom.all._
+import scribe.Logging
 
 import java.util.UUID
 import scala.util.Try
@@ -30,7 +31,7 @@ class ModalStack(
                   backdrop: ReadableProperty[UdashModal.BackdropType] = BackdropType.None.toProperty,
                   keyboard: ReadableProperty[Boolean] = UdashBootstrap.True,
                   componentId: ComponentId = ComponentId.generate()
-                )  {
+                ) extends Logging {
 
 
   val size:Property[Option[BootstrapStyles.Size]] = Property(None)
@@ -71,6 +72,7 @@ class ModalStack(
   }
 
   def push(modalDef:ModalDef): Unit = {
+    logger.debug(s"Push new modal $modalDef")
     stack.addOne(modalDef)
     setModelDef(modalDef)
     if(stack.length == 1) {

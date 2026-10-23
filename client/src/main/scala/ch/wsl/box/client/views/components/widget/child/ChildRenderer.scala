@@ -174,12 +174,7 @@ trait ChildRendererFactory extends ComponentWidgetFactory {
       val changed = Property(false)
         logger.info(s"Setting new action with entityId = $id on field ${field.name}")
 
-      def save(f:(JSONID,Json) => Future[Unit]) = widgetParam.actions.save{ (parentId,parentData) =>
-        val data = parentData.seq(field.name).lift(entity.get.indexOf(id)).getOrElse(Json.Null)
-        f(parentId,data)
-      }
-
-      val actions = widgetParam.actions.copy(save = save)
+      val actions = widgetParam.actions
 
       val childMetadata = metadata.get.copy(layout = layoutForChild(metadata.get))
 
