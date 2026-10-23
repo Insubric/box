@@ -142,7 +142,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
     private def _renderOnTable(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = popup(nested,write,(modal,modalStatus) => {
       div(
-        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(ClientConf.style.validationInput,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
@@ -161,7 +161,7 @@ object PopupWidget extends ComponentWidgetFactory  {
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,ClientConf.style.fieldContainerWrite)(
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
-        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(ClientConf.style.validationInput,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         tooltip(button(ClientConf.style.popupButton,BootstrapStyles.Float.right(), onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()

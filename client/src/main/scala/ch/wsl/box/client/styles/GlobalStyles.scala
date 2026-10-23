@@ -1074,6 +1074,16 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     )
   )
 
+  override val validationInput = style(
+    margin.`0`,
+    padding.`0`,
+    border.`0`,
+    float.left,
+    minHeight.`0`,
+    minWidth.`0`,
+    width(1 px),
+    height(1 px),
+  )
 
 
   override val boxButtonImportant = style(

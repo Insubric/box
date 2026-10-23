@@ -256,7 +256,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
     override def editOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = popupEdit(nested)((modalStatus) => {
       div(
-        TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+        TextInput(data.bitransform(_.string)(x => data.get))(ClientConf.style.validationInput,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         button(ClientConf.style.popupButton, width := 100.pct, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
@@ -271,7 +271,7 @@ object PopupSelectWidget extends ComponentWidgetFactory  {
 
       div(ClientConf.style.fieldContainerWrite)(
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
-        TextInput(data.bitransform(_.string)(x => data.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+        TextInput(data.bitransform(_.string)(x => data.get))(ClientConf.style.validationInput,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         tooltip(button(ClientConf.style.popupButton, onclick :+= ((e:Event) => {
           modalStatus.set(Status.Open)
           e.preventDefault()
