@@ -14,6 +14,8 @@ object WidgetsNames {
   val datetimePicker = "datetimePicker"
   val datetimetzPicker = "datetimetzPicker"
   val select = "selectWidget"
+  val buttonSelect = "buttonSelect"
+  val buttonBoolean = "buttonBoolean"
   val checkbox = "checkbox"
   val selectBoolean = "selectBoolean"
   val tristateCheckbox = "tristateCheckbox"
@@ -60,6 +62,7 @@ object WidgetsNames {
   val uuid = "uuid"
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
+  val functionLink = "functionLink"
   val adminLayoutWidget = "adminLayoutWidget"
   val adminQueryBuilder = "adminQueryBuilder"
   val adminConditionBuilder = "adminConditionBuilder"
@@ -69,6 +72,7 @@ object WidgetsNames {
     NUMBER -> Seq(
       input,
       select,
+      buttonSelect,
       slider,
       radio,
       popup,
@@ -84,6 +88,7 @@ object WidgetsNames {
       slider,
       radio,
       select,
+      buttonSelect,
       popup,
       checkbox,
       inputDisabled,
@@ -102,6 +107,7 @@ object WidgetsNames {
       code,
       radio,
       select,
+      buttonSelect,
       popup,
       hidden,
       dynamicWidget,
@@ -166,6 +172,7 @@ object WidgetsNames {
       tristateCheckbox,
       selectBoolean,
       radio,
+      buttonBoolean,
       hidden,
       dynamicWidget,
       popupWidget
@@ -214,6 +221,7 @@ object WidgetsNames {
       html,
       dynamicWidget,
       executeFunction,
+      functionLink,
       popupWidget
     ),
     RANGE_INT -> Seq(

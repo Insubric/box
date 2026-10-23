@@ -40,12 +40,14 @@ object FieldTypes {
   case object Time extends FieldType
 }
 
+
 trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
   import scalatags.JsDom.all._
   import io.udash.css.CssView._
   import scalacss.ScalatagsCss._
 
+  def toJs(obj:T):js.Date
 
   val fieldType:FieldTypes.FieldType
   val dateTimeFormatters:DateTimeFormatters[T]
@@ -65,7 +67,8 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
    dateTimeFormatters.parse(str).map(x => dateTimeFormatters.format(x).asJson).getOrElse(Json.Null)
   }
 
-  val format = field.params.flatMap(_.getOpt("format"))
+  val format = DateTimeWidget.format(field)
+  val formatFlatpicker = field.params.flatMap(_.getOpt("formatFlatpicker"))
 
   val defaultFrom = field.params.flatMap(_.getOpt("defaultFrom"))
 
@@ -87,7 +90,16 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = showMe(field.title,nested)
 
   val formatted:ReadableProperty[String] = data.transform{ js =>
-    dateTimeFormatters.parse(js.string).map(v => dateTimeFormatters.format(v,format) ).getOrElse("")
+
+    val locale = Context.services.clientSession.lang() match {
+      case "it" => java.util.Locale.ITALIAN
+      case "de" => java.util.Locale.GERMAN
+      case "fr" => java.util.Locale.FRENCH
+      case _ => java.util.Locale.ENGLISH
+    }
+
+
+    dateTimeFormatters.parse(js.string).map(v => dateTimeFormatters.format(v,format,Some(locale)) ).getOrElse("")
   }
 
   private def tzFromCurrent():Option[ZoneOffset] = {
@@ -100,32 +112,31 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
     }
   }
 
-  private def strToTime(s:String,r:Boolean): Array[String] = {
+  private def strToTime(s:String,r:Boolean): Array[js.Date] = {
 
     logger.debug(s"strToTime $s range: $r, parsed: ${dateTimeFormatters.parse(s,tzFromCurrent())} widget field $fieldType")
     dateTimeFormatters.parse(s,tzFromCurrent()).toSeq.flatMap{ parsed =>
       val timestamp = dateTimeFormatters.format(parsed)
       logger.debug(s"Parsed timestamp $parsed")
       (r,s.length,fieldType) match {
-        case (_,_,FieldTypes.Time) => Array(timestamp)
-        case (false, x,_) if x > 16 => Array(timestamp.take(16))
-        case (false, _,_) => Array(timestamp)
-        case (true, x,_) if x > 7 => Array(timestamp)
+        case (_,_,FieldTypes.Time) => Array(toJs(parsed))
+        case (false, _,_) => Array(toJs(parsed))
+        case (true, x,_) if x > 7 => Array(toJs(parsed))
         case (true, x,_) if x > 4 => { //month interval
           logger.info(s"Expand month")
-          val nextMonth = dateTimeFormatters.format(dateTimeFormatters.nextMonth(parsed))
-          Array(timestamp,nextMonth)
+          val nextMonth = toJs(dateTimeFormatters.nextMonth(parsed))
+          Array(toJs(parsed),nextMonth)
         }
         case (true, x,_) => { //year interval
           logger.info(s"Expand year")
-          val nextYear = dateTimeFormatters.format(dateTimeFormatters.nextYear(parsed))
-          Array(timestamp,nextYear)
+          val nextYear = toJs(dateTimeFormatters.nextYear(parsed))
+          Array(toJs(parsed),nextYear)
         }
       }
     }
   }.toArray //cannot do toArray directly because array need the typetag to be constructed
 
-  def toDateOption(d:String):DateOption = d
+  def toDateOption(d:js.Date):DateOption = d.asInstanceOf[DateOption]
 
   protected def toDate(jsonDate:Json,range:Boolean):Array[DateOption] = {
     logger.info(s"toDate $jsonDate")
@@ -153,24 +164,7 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
   }
 
 
-  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
-    format match {
-      case Some(formatter) => nested(bind(data.transform{js =>
-
-        val locale = Context.services.clientSession.lang() match {
-          case "it" => java.util.Locale.ITALIAN
-          case "de" => java.util.Locale.GERMAN
-          case "fr" => java.util.Locale.FRENCH
-          case _ => java.util.Locale.ENGLISH
-        }
-
-        dateTimeFormatters.parse(js.string)
-          .map{x => dateTimeFormatters.format(x,Some(formatter),Some(locale))}
-          .getOrElse(js.string)
-      }))
-      case None => nested(bind(data.transform(_.string)))
-    }
-  }
+  override def showOnTable(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(bind(formatted))
 
   protected def showMe(modelLabel:String,nested:Binding.NestedInterceptor):Modifier = autoRelease(WidgetUtils.showNotNull(data,nested){ p =>
     div(ClientConf.style.fieldContainerRead,
@@ -295,6 +289,12 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
       .setLocale(locale)
       .setOnChange(onChange)
 
+    formatFlatpicker.foreach{ f =>
+      options.setDateFormat(f)
+    }
+
+
+
     if(range) {
       options.setMode(ch.wsl.typings.flatpickr.flatpickrStrings.range)
     }
@@ -319,10 +319,13 @@ trait DateTimeWidget[T] extends Widget with HasData with Logging{
 
 object DateTimeWidget {
 
+  def format(f:JSONField) = f.params.flatMap(_.getOpt("format"))
 
   case class Date(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDate] {
     override val fieldType = FieldTypes.Date
     override val dateTimeFormatters: DateTimeFormatters[LocalDate] = DateTimeFormatters.date
+
+    override def toJs(obj: LocalDate): js.Date = new js.Date(obj.toString())
   }
 
   object Date extends ComponentWidgetFactory {
@@ -334,6 +337,9 @@ object DateTimeWidget {
   case class DateTimeTZ(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[OffsetDateTime] {
     override val fieldType = FieldTypes.DateTimeTZ
     override val dateTimeFormatters: DateTimeFormatters[OffsetDateTime] = DateTimeFormatters.timestamptz
+
+    override def toJs(obj: OffsetDateTime): js.Date = new js.Date(obj.toString())
+
   }
 
   object DateTimeTZ extends ComponentWidgetFactory {
@@ -345,6 +351,8 @@ object DateTimeWidget {
   case class DateTime(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalDateTime] {
     override val fieldType = FieldTypes.DateTime
     override val dateTimeFormatters: DateTimeFormatters[LocalDateTime] = DateTimeFormatters.timestamp
+
+    override def toJs(obj: LocalDateTime): js.Date = new js.Date(obj.toString())
   }
 
   object DateTime extends ComponentWidgetFactory {
@@ -361,6 +369,10 @@ object DateTimeWidget {
   case class Time(id: ReadableProperty[Option[String]], field: JSONField, data: Property[Json], allData: ReadableProperty[Json], range:Boolean = false) extends DateTimeWidget[LocalTime] {
     override val fieldType = FieldTypes.Time
     override val dateTimeFormatters: DateTimeFormatters[LocalTime] = DateTimeFormatters.time
+
+
+    override def toJs(obj: LocalTime): js.Date = new js.Date(obj.toString())
+
   }
 
 

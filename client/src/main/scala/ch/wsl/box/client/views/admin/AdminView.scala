@@ -3,6 +3,7 @@ package ch.wsl.box.client.views.admin
 import ch.wsl.box.client._
 import ch.wsl.box.client.services.{ClientConf, Navigate, Notification}
 import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.utils.ListenerManager
 import ch.wsl.box.model.shared._
 import io.udash._
 import io.udash.bootstrap.BootstrapStyles
@@ -29,6 +30,14 @@ class AdminPresenter(viewModel:ModelProperty[AdminViewModel]) extends Presenter[
 
   import Context._
   import ch.wsl.box.client.Context.Implicits._
+
+
+  val lm = new ListenerManager()
+
+  override def onClose(): Unit = {
+    super.onClose()
+    lm.clearAll()
+  }
 
   override def handleState(state: AdminState.type): Unit = {
     for{
@@ -57,6 +66,7 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
   import scalatags.JsDom.all._
 
   private val entityForStub = Property("")
+  import presenter.lm._
 
   private val sourceLang = Property(ClientConf.langs.headOption.getOrElse(""))
   private val destLang = Property(ClientConf.langs.lift(1).getOrElse(""))
@@ -67,26 +77,26 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("Box Set-up"),
       ul(ClientConf.style.spacedList,
         li(
-          a("Create form", Navigate.click(AdminCreateFormState)),
+          a("Create form").render.click(Navigate.event(AdminCreateFormState)),
         ),
         li(
-          a("Forms", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"form",None,false))),
+          a("Forms").render.click(Navigate.event(EntityTableState(EntityKind.BOX_FORM.kind,"form",None,false))),
         ),
         li(
           div(
             p("Generate Form template for"),
             Select(entityForStub, viewModel.subSeq(_.entities))(Select.defaultLabel).render, " ",
-            button(ClientConf.style.boxButtonImportant, "Generate", onclick :+= presenter.generateStub(entityForStub.get))
+            button(ClientConf.style.boxButtonImportant, "Generate").render.click(presenter.generateStub(entityForStub.get))
           )
         ),
         li(
-          a("Pages", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"page",None,false))),
+          a("Pages").render.click(Navigate.event(EntityTableState(EntityKind.BOX_FORM.kind,"page",None,false))),
         ),
         li(
-          a("Function builder", Navigate.click(EntityTableState(EntityKind.BOX_FORM.kind,"function",None,false)))
+          a("Function builder").render.click(Navigate.event(EntityTableState(EntityKind.BOX_FORM.kind,"function",None,false)))
         ),
         li(
-          a("PgLite REPL", Navigate.click(AdminDBReplState))
+          a("PgLite REPL").render.click(Navigate.event(AdminDBReplState))
         ),
       )
     ),
@@ -100,16 +110,16 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
     div(BootstrapCol.md(3),h3("Configuration"),
       ul(ClientConf.style.spacedList,
         li(
-          a("System", Navigate.click(AdminConfState))
+          a("System").render.click(Navigate.event(AdminConfState))
         ),
         li(
-          a("Access Level UI", Navigate.click(AdminUiConfState))
+          a("Access Level UI").render.click(Navigate.event(AdminUiConfState))
         ),
         li(
-          a("Import/Export Form Definitions", Navigate.click(AdminBoxDefinitionState))
+          a("Import/Export Form Definitions").render.click(Navigate.event(AdminBoxDefinitionState))
         ),
         li(
-          a("Labels", Navigate.click(FormPageState(EntityKind.BOX_FORM.kind,"labels","true",false)))
+          a("Labels").render.click(Navigate.event(FormPageState(EntityKind.BOX_FORM.kind,"labels","true",false)))
         ),
         li(
           "Translations",br,
@@ -117,7 +127,7 @@ class AdminView(viewModel:ModelProperty[AdminViewModel], presenter:AdminPresente
           Select( sourceLang, langs)(Select.defaultLabel,width := 50.px).render,
           " to: ",
           Select( destLang, langs)(Select.defaultLabel,width := 50.px).render," ",
-          button(ClientConf.style.boxButtonImportant,"Edit", Navigate.click(AdminTranslationsState(sourceLang.get,destLang.get)))
+          button(ClientConf.style.boxButtonImportant,"Edit").render.click(Navigate.event(AdminTranslationsState(sourceLang.get,destLang.get)))
         )
       )
     )

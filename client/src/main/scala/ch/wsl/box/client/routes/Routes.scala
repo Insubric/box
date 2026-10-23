@@ -13,6 +13,8 @@ import scala.scalajs.js
 import scala.scalajs.js.URIUtils
 import ch.wsl.box.client.utils.Base64._
 
+import java.net.URLEncoder
+
 /**
   * Created by andre on 6/6/2017.
   */
@@ -76,7 +78,13 @@ object Routes extends Logging {
 
     MustacheUtils.render(urlInternalSubstitutions,data)
 
-
+  }
+  import ch.wsl.box.client.Context._
+  def function(function:String,params:Option[Json]) = {
+    val p = params.map{ p =>
+      s"?q=${URLEncoder.encode(p.noSpaces,"UTF-8")}"
+    }.getOrElse("")
+    apiV1(s"/function/${services.clientSession.lang()}/$function$p")
   }
 
 }

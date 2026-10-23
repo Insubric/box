@@ -2,6 +2,7 @@ package ch.wsl.box.client.views.components.widget
 
 import java.util.UUID
 import ch.wsl.box.client.services.{Labels, REST}
+import ch.wsl.box.client.utils.ListenerManager
 import ch.wsl.box.model.shared.{JSONField, JSONFieldLookup, JSONFieldTypes, JSONID, JSONLookup, JSONMetadata}
 import io.circe._
 import io.circe.syntax._
@@ -147,11 +148,15 @@ trait Widget extends Logging {
 
   def reload() = {} //recover autoreleased resources
 
+
+  protected val listenerManager = new ListenerManager()
+
   def killWidget() = {
     bindings.foreach(_.kill())
     registrations.foreach(_.cancel())
     bindings = List()
     registrations = List()
+    listenerManager.clearAll()
   }
   private var bindings:List[Binding] = List()
   private var registrations:List[Registration] = List()
@@ -227,10 +232,10 @@ trait IsCheckBoxWithData extends Widget with HasData {
 
 
 
-case class WidgetCallbackActions(save: (((JSONID,Json) => Future[Unit]) => Unit), reload: JSONID => Future[Json], setChanged: () => Unit)
+case class WidgetCallbackActions(save: Boolean => Future[Boolean], reload: JSONID => Future[Json], setChanged: () => Unit)
 
 object WidgetCallbackActions{
-  def noAction = new WidgetCallbackActions(_ => (), _ => Future.successful(Json.Null), () => {})
+  def noAction = new WidgetCallbackActions(_ => Future.successful(true), _ => Future.successful(Json.Null), () => {})
 }
 
 case class WidgetParams(

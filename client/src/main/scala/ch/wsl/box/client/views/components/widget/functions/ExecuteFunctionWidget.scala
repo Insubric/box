@@ -1,18 +1,17 @@
-package ch.wsl.box.client.views.components.widget
+package ch.wsl.box.client.views.components.widget.functions
 
-import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Notification}
+import ch.wsl.box.client.services.{ClientConf, Notification}
+import ch.wsl.box.client.views.components.widget.{ComponentWidgetFactory, Widget, WidgetParams}
 import ch.wsl.box.model.shared.Internationalization.I18n
 import ch.wsl.box.model.shared.{JSONField, JSONID, WidgetsNames}
 import ch.wsl.box.shared.utils.JSONUtils.EnhancedJson
 import io.circe.Json
-import org.scalajs.dom.{Event, window}
-import scalatags.JsDom
-import scalatags.JsDom.all._
-import io.udash.css.CssView._
 import io.udash._
 import io.udash.bindings.modifiers.Binding
-import io.udash.css._
+import org.scalajs.dom.{Event, window}
 import scalacss.ScalatagsCss._
+import scalatags.JsDom
+import scalatags.JsDom.all._
 
 
 object ExecuteFunctionWidget extends ComponentWidgetFactory {
@@ -23,8 +22,8 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
 
   case class ExecuteFunctionWidgetImpl(params: WidgetParams) extends Widget {
 
-    import ch.wsl.box.client.Context._
     import ch.wsl.box.client.Context.Implicits._
+    import ch.wsl.box.client.Context._
 
     override def field: JSONField = params.field
 
@@ -50,10 +49,12 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
 
     val clickHandler = { (e: Event) =>
 
-      def exec(id:Option[JSONID],allData:Json) = {
+      def exec() = {
+        val allData = params.allData.get
+        val id = params.id.get.flatMap(id => JSONID.fromString(id,params.metadata))
         services.clientSession.loading.set(true)
         logger.info(s"Exec with params $allData")
-        services.rest.execute(field.function.get, services.clientSession.lang(), allData).map { result =>
+        services.rest.execute(field.function.get.name, services.clientSession.lang(), allData).map { result =>
           services.clientSession.loading.set(false)
           result.errorMessage.foreach(Notification.add)
           if(!noReload)
@@ -61,12 +62,8 @@ object ExecuteFunctionWidget extends ComponentWidgetFactory {
         }
       }
       def action() = saveBefore match {
-
-        case true => params.actions.save{ (id,data) =>
-          logger.debug(s"Action id $id")
-          exec(Some(id),data)
-        }
-        case false => exec(params.id.get.flatMap(id => JSONID.fromString(id,params.metadata)),params.allData.get)
+        case true => params.actions.save(true).map(_ => exec())
+        case false => exec()
       }
 
       confirmText match {

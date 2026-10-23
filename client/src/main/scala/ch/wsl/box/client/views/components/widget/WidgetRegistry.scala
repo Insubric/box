@@ -2,12 +2,13 @@ package ch.wsl.box.client.views.components.widget
 
 import ch.wsl.box.client.views.components.widget.admin.{AdminConditionWidget, FormParamLayoutWidget, LayoutWidget, QueryBuilderWidget}
 import ch.wsl.box.client.views.components.widget.array.{ChoicesWidget, MultiWidget, TwoListWidget}
-import ch.wsl.box.client.views.components.widget.boolean.SelectBooleanWidget
+import ch.wsl.box.client.views.components.widget.boolean.{ButtonBooleanFactory, SelectBooleanWidget}
 import ch.wsl.box.client.views.components.widget.child.{EditableTable, ExportWidget, LookupFormWidget, SimpleChildFactory, Spreadsheet, TableChildFactory, TrasparentChild, ViewTable}
+import ch.wsl.box.client.views.components.widget.functions.{ExecuteFunctionWidget, FunctionLinkWidget}
 import ch.wsl.box.client.views.components.widget.geo.{MapChild, MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.geo.{MapPointWidget, OlMapListWidget, OlMapWidget}
 import ch.wsl.box.client.views.components.widget.labels.{HtmlWidget, LinkedFormWidget, LookupLabelWidget, StaticTextWidget, TitleWidget}
-import ch.wsl.box.client.views.components.widget.lookup.{MultipleLookupWidget, PopupSelectWidget, SelectWidgetFactory}
+import ch.wsl.box.client.views.components.widget.lookup.{ButtonSelectFactory, MultipleLookupWidget, PopupSelectWidget, SelectWidgetFactory}
 import ch.wsl.box.client.views.components.widget.range.IntRangeWidget
 import ch.wsl.box.client.views.components.widget.utility.{DropdownLangWidget, LangWidget, UUIDWidget}
 import ch.wsl.box.model.shared.WidgetsNames
@@ -31,6 +32,7 @@ object WidgetRegistry extends Logging {
 
     PopupSelectWidget,
     SelectWidgetFactory,
+    ButtonSelectFactory,
 
     LookupLabelWidget,
 
@@ -43,6 +45,7 @@ object WidgetRegistry extends Logging {
     CheckboxWidget,
     TristateWidget,
     SelectBooleanWidget,
+    ButtonBooleanFactory,
 
     DateTimeWidget.Time,
     DateTimeWidget.Date,
@@ -75,6 +78,7 @@ object WidgetRegistry extends Logging {
     DynamicWidget,
 
     ExecuteFunctionWidget,
+    FunctionLinkWidget,
 
     SliderWidget,
 

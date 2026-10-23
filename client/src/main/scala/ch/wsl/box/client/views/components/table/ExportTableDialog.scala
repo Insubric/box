@@ -152,24 +152,24 @@ class ExportTableDialog extends Logging {
 
 
     div(maxWidth := 800.px,padding := 10.px,
-      h3("Export - " + params.metadata.label),
-      h5(marginTop := 15.px, "Format"),
+      h3(Labels.exports.title +  " - " + params.metadata.label),
+      h5(marginTop := 15.px, Labels.exports.format),
       Select(
         exportType.bitransform(_.toString)(ExportTableFormat.fromString), ExportTableFormat.allSupported(params.metadata).map(_.toString).toSeqProperty
       )(Select.defaultLabel).render,
-      h5(marginTop := 15.px,"Options"),
+      h5(marginTop := 15.px,Labels.exports.options),
       div(
-        div(width := 230.px, padding := 10.px, input(id := resolveFKId, `type` := "checkbox", checked)," Resolve Foreign Keys")
+        div(width := 230.px, padding := 10.px, input(id := resolveFKId, `type` := "checkbox", checked)," " + Labels.exports.fk_resolve)
       ),
       div(float.right,marginTop := 10.px)(
-        button("Select All", onclick :+= {(e:Event) =>
+        button(Labels.exports.select_all, onclick :+= {(e:Event) =>
           fieldSelectors.foreach(_.checked = true)
         },ClientConf.style.boxButton),
-        button("Unselect All", onclick :+= {(e:Event) =>
+        button(Labels.exports.unselect_all, onclick :+= {(e:Event) =>
           fieldSelectors.foreach(_.checked = false)
         },ClientConf.style.boxButton)
       ),
-      h5(marginTop := 15.px,"Select fields"),
+      h5(marginTop := 15.px,Labels.exports.select_fields),
       div(clear.both),
       div( display.flex, flexWrap.wrap,
         params.metadata.nativeFields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).sortBy(_.title).map{ f =>
@@ -180,7 +180,7 @@ class ExportTableDialog extends Logging {
       if(params.metadata.geomFields.nonEmpty) {
 
           div(
-            h5(marginTop := 15.px,"Geometry fields"),
+            h5(marginTop := 15.px,Labels.exports.geometry_fields),
             showIf(exportType.transform(_ != GeoPackage)) {
               div(
                 p("Mode"),
@@ -210,7 +210,7 @@ class ExportTableDialog extends Logging {
     var modal:UdashModal = null
 
     val header = (x:NestedInterceptor) => div(
-      b("Export"),
+      b(Labels.exports.title),
       UdashButton()( _ => Seq[Modifier](
         onclick :+= {(e:Event) => modal.hide(); e.preventDefault()},
         BootstrapStyles.close, "×"
@@ -230,7 +230,7 @@ class ExportTableDialog extends Logging {
         download(exportType.get)
         modal.hide()
         e.preventDefault()
-      }), "Export",ClientConf.style.boxButtonImportant)
+      }), Labels.exports.title,ClientConf.style.boxButtonImportant)
     ).render
 
     modal = nested(UdashModal(modalSize = Some(Size.Small).toProperty)(

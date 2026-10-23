@@ -16,11 +16,11 @@ object BoxField {
 
   private val schema = Some(Registry.box().schema)
 
-  case class BoxField_row(`type`: String, name: String, widget: Option[String] = None, foreign_entity: Option[String] = None, foreign_value_field: Option[String] = None, local_key_columns: Option[List[String]] = None, foreign_key_columns: Option[List[String]] = None, childQuery: Option[Json] = None, default: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, condition: Option[Json] = None, lookupQuery: Option[Json] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None)
+  case class BoxField_row(`type`: String, name: String, widget: Option[String] = None, foreign_entity: Option[String] = None, foreign_value_field: Option[String] = None, local_key_columns: Option[List[String]] = None, foreign_key_columns: Option[List[String]] = None, childQuery: Option[Json] = None, default: Option[String] = None, min: Option[Double] = None, max: Option[Double] = None, condition: Option[Json] = None, lookupQuery: Option[Json] = None, params: Option[io.circe.Json] = None, read_only: Boolean = false, required: Option[Boolean] = None, field_uuid: Option[java.util.UUID] = None, form_uuid: java.util.UUID, child_form_uuid: Option[java.util.UUID] = None, function: Option[String] = None, roles: Option[List[String]] = None, map_uuid: Option[java.util.UUID] = None, icon:Option[String] = None)
 
 
   class BoxField(_tableTag: Tag) extends Table[BoxField_row](_tableTag,schema, "field") {
-    def * = (`type` :: name :: widget :: foreign_entity :: foreign_value_field :: local_key_columns :: foreign_key_columns :: childQuery :: default :: min :: max :: condition :: lookupQuery :: params :: read_only :: required :: Rep.Some(field_uuid) :: form_uuid :: child_form_uuid :: function :: roles :: map_uuid :: HNil).mapTo[BoxField_row]
+    def * = (`type` :: name :: widget :: foreign_entity :: foreign_value_field :: local_key_columns :: foreign_key_columns :: childQuery :: default :: min :: max :: condition :: lookupQuery :: params :: read_only :: required :: Rep.Some(field_uuid) :: form_uuid :: child_form_uuid :: function :: roles :: map_uuid :: icon :: HNil).mapTo[BoxField_row]
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val field_uuid: Rep[java.util.UUID] = column[java.util.UUID]("field_uuid", O.AutoInc, O.PrimaryKey)
@@ -53,6 +53,7 @@ object BoxField {
     val min: Rep[Option[Double]] = column[Option[Double]]("min")
     val max: Rep[Option[Double]] = column[Option[Double]]("max")
     val roles: Rep[Option[List[String]]] = column[Option[List[String]]]("roles")
+    val icon: Rep[Option[String]] = column[Option[String]]("icon")
 
     /** Foreign key referencing Form (database name fkey_form) */
     lazy val formFk = foreignKey("fkey_form", form_uuid, BoxForm.BoxFormTable)(r => r.form_uuid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)

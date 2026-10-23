@@ -47,7 +47,7 @@ class TranslatorView(presenter:TranslatorPresenter) extends View {
           Select( sourceLang, langs)(Select.defaultLabel,width := 50.px).render,
           " to: ",
           Select( destLang, langs)(Select.defaultLabel,width := 50.px).render," ",
-          button(ClientConf.style.boxButtonImportant,"Edit", Navigate.click(AdminTranslationsState(sourceLang.get,destLang.get)))
+          button(ClientConf.style.boxButtonImportant,"Edit", onclick :+= Navigate.event(AdminTranslationsState(sourceLang.get,destLang.get)))
 
 
     )

@@ -220,7 +220,7 @@ class FilterBarDyn(val filters:Property[Seq[JSONQueryFilter]],sorts:Property[Seq
       //div(pre(bind(fieldQueries.transform(_.map(x => s"Field: ${x.field.name}, ${x.filterValue} , Sort: ${x.sort} ${x.sortOrder}").mkString("\n"))))),
       div(ClientConf.style.flexDyn,
         div(display.flex,alignItems.center,
-          div(ClientConf.style.filterBlockTitle,Icons.filter,"Filters"),
+          div(ClientConf.style.filterBlockTitle,Icons.filter,Labels.filter.title),
           button(Icons.plus,ClientConf.style.boxButton,onclick :+= ((e:Event) => {
             ModalStack.mainStack.push(filterPopup(columns,None))
           }))
@@ -234,7 +234,7 @@ class FilterBarDyn(val filters:Property[Seq[JSONQueryFilter]],sorts:Property[Seq
 
       div(ClientConf.style.flexDyn,
         div(display.flex,alignItems.center,
-          div(Icons.asc,"Sort",ClientConf.style.filterBlockTitle),
+          div(Icons.asc,Labels.sort.title,ClientConf.style.filterBlockTitle),
           button(Icons.plus,ClientConf.style.boxButton,onclick :+= ((e:Event) => {
             ModalStack.mainStack.push(sortPopup(columns))
           }))

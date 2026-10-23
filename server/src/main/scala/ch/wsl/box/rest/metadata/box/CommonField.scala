@@ -13,6 +13,7 @@ object CommonField {
   }
 
   val name = JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.input))
+  val icon = JSONField(JSONFieldTypes.STRING,"icon",true,widget = Some(WidgetsNames.input))
 
   val widget = JSONField(JSONFieldTypes.STRING,"widget",false,
     widget = Some(WidgetsNames.select),
@@ -37,7 +38,7 @@ object CommonField {
     lookup = Some(JSONFieldLookup.prefilled(
       tables.map(x => JSONLookup(x.asJson,Seq(x)))
     )),
-    condition = Some(Condition.inStr("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget)))
+    condition = Some(Condition.inStr("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.buttonSelect,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget)))
   )
 
   def foreignEntity(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"foreign_entity",false,
@@ -45,7 +46,7 @@ object CommonField {
     lookup = Some(JSONFieldLookup.prefilled(
       tables.map(x => JSONLookup(x.asJson,Seq(x)))
     )),
-    condition = Some(Condition.inStr("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget)))
+    condition = Some(Condition.inStr("widget",Seq(WidgetsNames.select,WidgetsNames.popup,WidgetsNames.buttonSelect,WidgetsNames.lookupLabel,WidgetsNames.multipleLookup, WidgetsNames.multi, WidgetsNames.popupWidget)))
   )
 
   def lookupValueField(tables:Seq[String]) =  JSONField(JSONFieldTypes.STRING,"lookupValueField",false,

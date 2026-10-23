@@ -29,6 +29,7 @@ trait BoxStyle {
   val formTitle: StyleA
   val formTitleLight: StyleA
   val chipLink: StyleA
+  val chipLinkSelected: StyleA
   val chip: StyleA
   val checkboxWidget: StyleA
   val jsonMetadataRendered: StyleA
@@ -50,6 +51,7 @@ trait BoxStyle {
   val mediumBottomMargin: StyleA
   val subBlock: StyleA
   val block: StyleA
+  val blockTitle: StyleA
   val innerBlock: StyleA
   val withBorder: StyleA
   val removeFlexChild: StyleA

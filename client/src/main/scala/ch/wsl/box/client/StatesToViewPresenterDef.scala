@@ -8,11 +8,20 @@ import ch.wsl.box.client.views.admin.{AdminFormCreateViewPresenter, AdminViewPre
 import ch.wsl.box.model.shared.EntityKind
 
 class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
+
+  val formViewPresenter:Property[Option[EntityFormViewPresenter]] = Property(None)
+
+  private def newFormViewPresenter = {
+    val obj = new EntityFormViewPresenter
+    formViewPresenter.set(Some(obj))
+    obj
+  }
+
   def matchStateToResolver(state: RoutingState): ViewFactory[_ <: RoutingState] = state match {
     case RootState(layout) => RootViewPresenter
     case IndexState => {
       UI.indexPage match {
-        case Some(value) => EntityFormViewPresenter
+        case Some(value) => newFormViewPresenter
         case None => IndexViewPresenter
       }
     }
@@ -20,8 +29,8 @@ class StatesToViewPresenterDef extends ViewFactoryRegistry[RoutingState] {
     case AuthenticateState(provider_id) => AuthenticateView
     case EntitiesState(kind,currentEntity,public,layout) => EntitiesViewPresenter(kind,currentEntity)
     case EntityTableState(kind,entity,query,public) => EntityTableViewPresenter(Routes(kind,entity,public))
-    case EntityFormState(kind,entity,write,id,public,layout,_,_) => EntityFormViewPresenter
-    case FormPageState(kind,entity,write,public,layout,_,_) => EntityFormViewPresenter
+    case EntityFormState(kind,entity,write,id,public,layout,_,_) => newFormViewPresenter
+    case FormPageState(kind,entity,write,public,layout,_,_) => newFormViewPresenter
     //case MasterChildState(_,master,child) => MasterChildViewPresenter(master,child)
     case DataState(_,_) => DataViewPresenter
     case DataListState(_,_) => DataListViewPresenter

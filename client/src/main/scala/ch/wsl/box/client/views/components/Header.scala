@@ -44,7 +44,7 @@ object Header {
 
 
   private def linkFactory(l: MenuLink) =
-    a(Navigate.click(l.state))(span(l.name)).render
+    a(onclick :+= Navigate.event(l.state))(span(l.name)).render
 
 
   def toHtml(link:MenuLink):generic.Frag[Element, Node] = {
@@ -83,7 +83,7 @@ object Header {
   def navbar(title:Option[String]) = produce(services.clientSession.logged) { logged =>
     header(
       showIf(services.clientSession.logged) { div(id := TestHooks.logged ,visibility.hidden).render },
-      div(BootstrapStyles.Float.left())(a(Navigate.click(IndexState),b(id := "headerTitle",ClientConf.style.headerTitle, title))),
+      div(BootstrapStyles.Float.left())(a(onclick :+= Navigate.event(IndexState),b(id := "headerTitle",ClientConf.style.headerTitle, title))),
 
       div(BootstrapStyles.Float.right())(
         a(ClientConf.style.linkHeaderFooter,

@@ -498,10 +498,19 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
     backgroundColor(Color("#eee")),
     borderRadius(20 px),
     &.hover(
-      color(conf.colors.main).important,
+      color(conf.colors.main),
       backgroundColor(ColorUtils.RGB.fromHex(conf.colors.mainColor).withTrasparency(0.4))
+    ),
+    media.maxWidth(600 px)(
+      fontSize(15 px)
     )
   )
+
+  override val chipLinkSelected = style(
+    color.white.important,
+    backgroundColor(conf.colors.main).important
+  )
+
 
   override val chip = style(
     color(conf.colors.main).important,
@@ -678,7 +687,15 @@ class GlobalStyles(settings:Settings,conf:StyleConf,font:BoxFont ) extends Style
   override val block = style(
     paddingTop.`0`,
     paddingBottom.`0`,
-    minHeight.`0`
+    minHeight.`0`,
+    media.maxWidth(600 px)(
+      marginBottom(30 px),
+      overflowY.auto
+    )
+  )
+
+  override val blockTitle = style(
+    marginLeft(15 px)
   )
 
   override val innerBlock = style(

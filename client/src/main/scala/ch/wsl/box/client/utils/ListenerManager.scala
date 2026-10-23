@@ -33,5 +33,6 @@ class ListenerManager {
 
   implicit class EnEl[T <: dom.EventTarget](target: T) {
     def listen(eventType: String, handler: Event => Unit):T = add(target,eventType,handler)
+    def click(handler: Event => Unit) = listen(Event.click,handler)
   }
 }

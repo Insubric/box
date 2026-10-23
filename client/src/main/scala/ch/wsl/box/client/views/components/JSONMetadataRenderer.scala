@@ -5,6 +5,7 @@ import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.ClientSession.SelectedTabKey
 import ch.wsl.box.client.services.{ClientConf, Labels}
 import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.utils.Device
 import ch.wsl.box.client.views.components
 import ch.wsl.box.client.views.components.widget._
 import ch.wsl.box.client.views.components.widget.child.ChildRenderer
@@ -26,7 +27,7 @@ import io.udash.bindings.modifiers.Binding
 import io.udash.bootstrap.utils.UdashIcons
 import scalacss.ScalatagsCss._
 import io.udash.css.CssView._
-import org.scalajs.dom.{Event, window}
+import org.scalajs.dom.{Event, document, window}
 /**
   * Created by andre on 4/25/2017.
   */
@@ -153,7 +154,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
 
   private def renderJsonMetadata(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = {
 
-    def renderBlocks(b:Seq[WidgetBlock]) = b.map{ case WidgetBlock(block,widget) =>
+    def renderBlocks(b:Seq[WidgetBlock],noTitle:Boolean = false) = b.map{ case WidgetBlock(block,widget) =>
 
       val gridSystem:Modifier = (block.height,block.x,block.y) match {
         case (Some(h),Some(x),Some(y)) => style := s"""
@@ -163,20 +164,23 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
         case _ => Seq[Modifier](BootstrapCol.md(block.width),ClientConf.style.block)
       }
 
+      val title:Option[String] = block.title.orElse(block.tab.map(Left(_))).flatMap( x => Internationalization.either(services.clientSession.lang())(x))
+
       div(gridSystem)(
         div(
-          block.title.flatMap(Internationalization.either(services.clientSession.lang())) match {
-            case Some(value) => h3(marginLeft := 15, Labels(value))
-            case None => frag()
+          title match {
+            case Some(value) if !noTitle => h3(ClientConf.style.blockTitle,Labels(value))
+            case _ => frag()
           }, //renders title in blocks
           widget.render(write, nested)
-
         )
       )
     }
 
 
-    val (tabsBlocks,regularBlocks) = blocks.flatMap(x => x.layoutBlock.map(lb => WidgetBlock(lb,x.widget))).partition(_.block.tabGroup.isDefined)
+
+    val (tabsBlocks,regularBlocks) = blocks.flatMap(x => x.layoutBlock.map(lb => WidgetBlock(lb,x.widget))).partition(_.block.tabGroup.isDefined && !Device.isMobile)
+
 
     def renderTabs() = tabsBlocks.groupBy(_.block.tabGroup).toSeq.map{ case (tabGroup,blks) =>
       val tabs = blks.map(_.block.tab).distinct
@@ -221,7 +225,7 @@ case class JSONMetadataRenderer(metadata: JSONMetadata, data: Property[Json], ch
             case true => window.setTimeout(() => block.map(x => x.widget.afterRender()),0)
             case _ => ()
           },true)
-          div(id := s"box-panel-${tabName.getOrElse("")}",`class` := "box-tab",attr("data-box-tab") := tabName.getOrElse("noname"), role := "tabpanel", (style := "display: none;").attrIfNot(isSelected), renderBlocks(fullwidth)).render
+          div(id := s"box-panel-${tabName.getOrElse("")}",`class` := "box-tab",attr("data-box-tab") := tabName.getOrElse("noname"), role := "tabpanel", (style := "display: none;").attrIfNot(isSelected), renderBlocks(fullwidth,noTitle = true)).render
         }
       )
     }

@@ -98,6 +98,7 @@ object SharedLabels extends LabelsCollection {
   }
 
   object filter  extends LabelsCollection{
+    def title = "table.filter.title"
     def not = "table.filter.not"
     def equals = "table.filter.equals"
     def contains = "table.filter.contains"
@@ -111,6 +112,7 @@ object SharedLabels extends LabelsCollection {
     def none = "table.filter.none"
     def notin = "table.filter.notin"
     def all = Seq(
+      title,
       not,
       equals,
       contains,
@@ -127,10 +129,11 @@ object SharedLabels extends LabelsCollection {
   }
 
   object sort extends LabelsCollection{
+    def title = "sort.title"
     def asc = "sort.asc"
     def desc = "sort.desc"
     def all = Seq(
-      asc,desc
+      title,asc,desc
     )
   }
 
@@ -201,6 +204,14 @@ object SharedLabels extends LabelsCollection {
     def pdf = "exports.pdf"
     def html = "exports.html"
     def geopackage = "exports.geopackage"
+    def geometry_fields = "exports.geometry_fields"
+    def select_fields = "exports.select_fields"
+    def unselect_all = "exports.unselect_all"
+    def select_all = "exports.select_all"
+    def options = "exports.options"
+    def format = "exports.format"
+    def fk_resolve = "exports.fk_resolve"
+
     def all = Seq(
       search,
       title,
@@ -210,7 +221,14 @@ object SharedLabels extends LabelsCollection {
       xls,
       pdf,
       html,
-      geopackage
+      geopackage,
+      geometry_fields,
+      select_fields,
+      unselect_all,
+      select_all,
+      options,
+      format,
+      fk_resolve
     )
   }
 

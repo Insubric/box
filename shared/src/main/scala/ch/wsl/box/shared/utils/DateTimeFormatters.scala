@@ -177,7 +177,8 @@ object DateTimeFormatters extends Logging {
       "yyyy-MM-dd",
       "yyyy-MM",
       "yyyy",
-      "dd.MM.yyyy"
+      "dd.MM.yyyy",
+      "d.M.yyyy"
     )
 
 
