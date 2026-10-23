@@ -65,11 +65,11 @@ object LookupFormWidget extends ComponentWidgetFactory {
     import ch.wsl.box.client.Context._
 
     def navigate(goTo: Routes => RoutingState) = (e: Event) => {
-      val blank = params.field.params.exists(_.get("target") == "new_window")
+      val target = if(params.field.params.exists(_.get("target") == "new_window")) NewWindow else Self
 
       val state = goTo(Routes(linked.kind.kind, linked.name,params.public,params.popup,props))
 
-      Navigate.to(state,blank)
+      Navigate.to(state,target)
       e.preventDefault()
     }
 

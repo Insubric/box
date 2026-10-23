@@ -833,7 +833,9 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
       div(
         releaser(produce(model.subProp(_.name)) { m =>
 
-          button(id := TestHooks.mobileTableAdd, ClientConf.style.mobileBoxAction, Navigate.click(Routes(model.subProp(_.kind).get, m,model.subProp(_.public).get).add()))(i(UdashIcons.FontAwesome.Solid.plus)).render
+          import presenter.listenerManager._
+
+          button(id := TestHooks.mobileTableAdd, ClientConf.style.mobileBoxAction)(i(UdashIcons.FontAwesome.Solid.plus)).render.click(Navigate.event(Routes(model.subProp(_.kind).get, m,model.subProp(_.public).get).add()))
         })
       ),
     ).render

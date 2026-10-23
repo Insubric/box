@@ -1,6 +1,8 @@
 package ch.wsl.box.client.services
 
+import ch.wsl.box.client.views.helpers.PopupFrame
 import ch.wsl.box.client.{ContainerRoutingState, Context, EntityFormState, FinalRoutingState, RoutingState}
+import ch.wsl.box.model.shared.{NewWindow, Popup, Self, Target}
 import io.udash.{State, Url}
 import org.scalajs.dom.{BeforeUnloadEvent, window}
 import scribe.Logging
@@ -18,20 +20,23 @@ object Navigate extends Logging {
   }
   def enable() = {enabled = true }
 
-  def to(state:RoutingState, blank:Boolean = false) = toAction{ () =>
+  def to(state:RoutingState, target:Target = Self) = {
     logger.debug(s"navigate to $state")
-    if(blank) {
-       toUrl(state.url(Context.applicationInstance),true)
-    } else {
-      Context.applicationInstance.goTo(state)
+    target match {
+      case Self => toAction( () => Context.applicationInstance.goTo(state) )
+      case NewWindow => toUrl(state.url(Context.applicationInstance),NewWindow)
+      case Popup => toUrl(state.url(Context.applicationInstance),Popup)
     }
   }
 
-  def toUrl(url:String, blank:Boolean = false) = toAction{ () =>
+  def toUrl(url:String, target:Target = Self):Unit = {
+
     logger.debug(s"navigate to $url")
-    url match {
-      case "back" => Navigate.back()
-      case url:String if !blank => {
+
+    if(url == "back") return Navigate.back()
+
+    target match {
+      case Self => toAction { () =>
         val state = Context.routingRegistry.matchUrl(Url(url))
         logger.debug(s"Matched state from url: $state")
         if(Context.applicationInstance.currentState == state) {
@@ -40,10 +45,10 @@ object Navigate extends Logging {
           Context.applicationInstance.goTo(state)
         }
       }
-      case url:String if blank => {
-        window.open(url,"_blank")
-      }
+      case NewWindow => window.open(url,"_blank")
+      case Popup => PopupFrame.open(url)
     }
+
 
   }
 
@@ -72,7 +77,5 @@ object Navigate extends Logging {
     to(state)
     e.preventDefault()
   }
-
-  def click(state: => RoutingState) = onclick :+= event(state)
 
 }

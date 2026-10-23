@@ -34,10 +34,11 @@ case class JSONField(
                       linked: Option[LinkedForm] = None,
                       lookupLabel: Option[LookupLabel] = None,
                       query: Option[JSONQuery] = None,
-                      function:Option[String] = None,
+                      function:Option[FunctionMetadata] = None,
                       minMax:Option[MinMax] = None,
                       roles:Seq[String] = Seq(),
-                      map:Option[MapMetadata] = None
+                      map:Option[MapMetadata] = None,
+                      icon: Option[String] = None
                     ) {
   def title = label.getOrElse(name)
 
@@ -103,6 +104,9 @@ object JSONField{
 }
 
 case class MinMax(min:Option[Double],max:Option[Double])
+
+
+case class FunctionMetadata(name:String,local_fields:Seq[String],function_fields:Seq[String])
 
 
 sealed trait ParentField

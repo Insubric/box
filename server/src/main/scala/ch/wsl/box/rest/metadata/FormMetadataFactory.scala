@@ -432,6 +432,12 @@ object FormMetadataFactory extends Logging with MetadataFactory{
     case None => None
   }
 
+  private def functionMetadata(field:BoxField_row):Option[FunctionMetadata] = field.function.map( f => FunctionMetadata(
+    f,
+    field.local_key_columns.getOrElse(Seq()),
+    field.foreign_key_columns.getOrElse(Seq())
+  ))
+
   private def fieldsToJsonFields(fields:Seq[((BoxField_row,Option[BoxField_i18n_row]),ColType)], lang:String)(implicit ec:ExecutionContext,services:Services): DBIO[Seq[JSONField]] = {
 
     val jsonFields = fields.map{ case ((field,fieldI18n),colType) =>
@@ -469,10 +475,11 @@ object FormMetadataFactory extends Logging with MetadataFactory{
             q <- field.childQuery.orElse(field.lookupQuery)
             query <- q.as[JSONQuery].toOption
           } yield query,
-          function = field.function,
+          function = functionMetadata(field),
           minMax = Some(MinMax(min = field.min, max = field.max)),
           roles = field.roles.getOrElse(Seq()),
-          map = mapMetadata
+          map = mapMetadata,
+          icon = field.icon
         )
       }
 

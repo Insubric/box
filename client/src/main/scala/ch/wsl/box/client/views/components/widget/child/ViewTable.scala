@@ -24,12 +24,8 @@ object ViewTable extends ChildRendererFactory {
 
   case class ViewTableImpl(widgetParam: WidgetParams) extends ChildRenderer {
 
-    val listenerManager = new ListenerManager()
 
-    override def killWidget(): Unit = {
-      super.killWidget()
-      listenerManager.clearAll()
-    }
+
 
 
     override protected def renderChild(write: Boolean, nested: Binding.NestedInterceptor): JsDom.all.Modifier = {

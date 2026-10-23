@@ -11,7 +11,7 @@ import ch.wsl.box.client.views.components.ui.Stepper
 import ch.wsl.box.client.views.components.widget.{Widget, WidgetCallbackActions}
 import ch.wsl.box.client.views.components.{Debug, JSONMetadataRenderer, ModalStack}
 import ch.wsl.box.client.views.elements.Offline
-import ch.wsl.box.client.views.helpers.{ActionRenderer, ActionRigths, FormActionHandler, PopupFrame, VoiceHelper}
+import ch.wsl.box.client.views.helpers.{ActionIntent, ActionRenderer, FormActionHandler, PopupFrame, VoiceHelper}
 import ch.wsl.box.model.shared._
 import ch.wsl.box.model.shared.errors.SQLExceptionReport
 import ch.wsl.box.shared.utils.JSONUtils
@@ -223,7 +223,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     // Check for Ctrl+S
     if (event.ctrlKey && event.key == "s") {
       event.preventDefault()
-      actionHandler.save()
+      actionHandler(model.get.metadata.get).save()
     }
 
     if (event.ctrlKey && event.key == "c") {
@@ -373,6 +373,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     val newData = currentState.data.deepMerge(data.data)
 
     if(!model.get.id.contains(id.asString)) {
+        enableGoAway("afterSaveIdChanged")
         val state = currentState.asInstanceOf[EntityFormState]
         Navigate.to(state.copy(_id = Some(id.asString)))
     } else {
@@ -500,7 +501,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   def autoSave = model.get.metadata.flatMap(_.params).exists(_.js("autoSave") == Json.True)
 
   val debounceSave = Debounce(2000.millis) { (_:Unit) =>
-    actionHandler.save()
+    actionHandler(model.get.metadata.get).save()
   }
 
   val changesListener = childChanged.listen { hasChanges =>
@@ -517,7 +518,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def loadWidgets(f:JSONMetadata) = {
-    val actions = WidgetCallbackActions(actionHandler.save,reload,() => {
+    val actions = WidgetCallbackActions(actionHandler(f).save,reload,() => {
       logger.debug(s"SetChanged callback")
       childChanged.set(true,true)
     })
@@ -589,8 +590,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
     }(_ && _)
 
 
-  def actionHandler = new FormActionHandler(
-    model.get.metadata.get,
+  def actionHandler(metadata:JSONMetadata) = new FormActionHandler(
+    metadata,
     model.subProp(_.data),
     model.get.originalData,
     model.get.public,
@@ -607,7 +608,7 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
 
   val listenerManager = new ListenerManager()
 
-  def rights = ActionRigths(model.get.insert,model.get.updateRight,model.get.write)
+  def intent = ActionIntent(model.get.insert,model.get.updateRight,model.get.write)
 
   def roles() = services.clientSession.getRoles()
 
@@ -689,7 +690,7 @@ case class EntityFormView(model:ModelProperty[EntityFormModel], presenter:Entity
 
     def actions(metadata:JSONMetadata,nested:Binding.NestedInterceptor,selector:FormActionsMetadata => Seq[FormAction]) = {
 
-      val actionRenderer = new ActionRenderer(presenter.actionHandler,presenter.listenerManager,metadata,presenter.rights,Unit => presenter.reset())
+      val actionRenderer = new ActionRenderer(presenter.actionHandler(metadata),presenter.listenerManager,metadata,presenter.intent,Unit => presenter.reset())
 
 
       div(

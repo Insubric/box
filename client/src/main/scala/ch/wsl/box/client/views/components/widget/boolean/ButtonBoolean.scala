@@ -49,16 +49,11 @@ class ButtonBoolean(val field:JSONField, val data: Property[Json], val allData:R
     x.map(_.id).getOrElse(Json.Null)
   }
 
-  val listenerManager = new ListenerManager()
   import listenerManager._
 
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
 
-  override def killWidget(): Unit = {
-    super.killWidget()
-    listenerManager.clearAll()
-  }
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showIf(model.transform(_.isDefined)){
     div(ClientConf.style.fieldContainerRead)(

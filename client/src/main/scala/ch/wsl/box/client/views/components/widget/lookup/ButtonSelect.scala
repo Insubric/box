@@ -35,16 +35,10 @@ class ButtonSelect(val field:JSONField, val data: Property[Json], val allData:Re
 
   val modifiers:Seq[Modifier] = if(fullWidth) Seq(width := 100.pct) else Seq()
 
-  val listenerManager = new ListenerManager()
   import listenerManager._
 
   import ch.wsl.box.shared.utils.JSONUtils._
   import io.circe.syntax._
-
-  override def killWidget(): Unit = {
-    super.killWidget()
-    listenerManager.clearAll()
-  }
 
   override protected def show(nested:Binding.NestedInterceptor): JsDom.all.Modifier = nested(showIf(model.transform(_.isDefined)){
     div(ClientConf.style.fieldContainerRead)(

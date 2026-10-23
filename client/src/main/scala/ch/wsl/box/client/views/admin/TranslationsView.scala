@@ -5,6 +5,7 @@ import ch.wsl.box.client._
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Navigate, Notification}
 import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.utils.ListenerManager
 import ch.wsl.box.client.viewmodel.BoxDef.BoxDefinitionMerge
 import ch.wsl.box.client.viewmodel.{BoxDef, BoxDefinition, MergeElement}
 import ch.wsl.box.model.shared._
@@ -47,6 +48,15 @@ class TranslationsPresenter(viewModel:ModelProperty[TranslationsViewModel]) exte
 
   import Context._
   import ch.wsl.box.client.Context.Implicits._
+
+
+  val lm = new ListenerManager()
+
+  override def onClose(): Unit = {
+    super.onClose()
+    lm.clearAll()
+  }
+
   override def handleState(state: AdminTranslationsState): Unit = {
     for{
       source <- services.rest.translationsFields(state.from)
@@ -81,6 +91,7 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
   import io.udash.css.CssView._
   import scalatags.JsDom.all._
 
+  import presenter.lm._
 
   def viewField(source:Field) = {
 
@@ -98,8 +109,8 @@ class TranslationsView(viewModel:ModelProperty[TranslationsViewModel], presenter
     div(BootstrapStyles.Grid.row, paddingTop := 15.px, paddingBottom := 15.px, borderBottomStyle.solid, borderBottomWidth := 1.px)(
       div(BootstrapCol.md(2),fontSize := 10.px, {
         source.source match {
-          case "field_i18n" => div(a(Navigate.click(Routes("form",source.name.split("\\.").headOption.getOrElse(""),false).add()),source.name))
-          case "form_i18n" => div(a(Navigate.click(Routes("form",source.name,false).add()),source.name))
+          case "field_i18n" => div(a(source.name).render.click(Navigate.event(Routes("form",source.name.split("\\.").headOption.getOrElse(""),false).add())))
+          case "form_i18n" => div(a(source.name).render.click(Navigate.event(Routes("form",source.name,false).add())))
           case _ => div(source.name)
         }
       }),

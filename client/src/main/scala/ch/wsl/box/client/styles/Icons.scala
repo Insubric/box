@@ -4,11 +4,19 @@ import ch.wsl.box.shared.utils.SVG
 import scalacss.ScalatagsCss._
 import scalatags.JsDom
 import scalatags.JsDom.all._
+import org.scalajs.dom.Node
 
 
 object Icons {
 
   type Icon = JsDom.RawFrag
+
+  def apply(icon:String):Modifier = icon match {
+    case "document" => pencil
+    case _ => {
+      Seq[Node]()
+    }
+  }
 
   //https://icons.getbootstrap.com/icons/pencil/
   val pencil: Icon = raw(s"""

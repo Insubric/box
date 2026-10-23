@@ -40,13 +40,17 @@ object PopupFrame extends Logging {
 
     val footer = (x: NestedInterceptor) => {
       div(
-        x(produce(presenter){ _.map{ vp =>
-          val actionRenderer = new ActionRenderer(handler = vp.presenter.actionHandler, listenerManager = listenerManager, metadata = metadata.get, rights = vp.presenter.rights, reset =  Unit => ())
-          val buttons:Seq[Node] = metadata.toList.flatMap(_.action.actions(write,services.clientSession.getRoles()).flatMap{ a =>
-            actionRenderer.render(vp.model.subProp(_.id).get)(a)
+        metadata.map { m =>
+          x(produce(presenter) {
+            _.map { vp =>
+              val actionRenderer = new ActionRenderer(handler = vp.presenter.actionHandler(m), listenerManager = listenerManager, metadata = metadata.get, intent = vp.presenter.intent, reset = Unit => ())
+              val buttons: Seq[Node] = m.action.actions(write, services.clientSession.getRoles()).flatMap { a =>
+                actionRenderer.render(vp.model.subProp(_.id).get)(a)
+              }
+              buttons
+            }.getOrElse(Seq[Node]())
           })
-          buttons
-        }.getOrElse(Seq[Node]())}),
+        },
         button(Labels.popup.close, ClientConf.style.boxButton).render.listen("click", _ => ModalStack.mainStack.pop(modalId))
       ).render
     }

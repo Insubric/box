@@ -62,6 +62,7 @@ object WidgetsNames {
   val uuid = "uuid"
   val dropdownLangWidget = "dropdownLangWidget"
   val executeFunction = "executeFunction"
+  val functionLink = "functionLink"
   val adminLayoutWidget = "adminLayoutWidget"
   val adminQueryBuilder = "adminQueryBuilder"
   val adminConditionBuilder = "adminConditionBuilder"
@@ -220,6 +221,7 @@ object WidgetsNames {
       html,
       dynamicWidget,
       executeFunction,
+      functionLink,
       popupWidget
     ),
     RANGE_INT -> Seq(

@@ -13,6 +13,7 @@ object CommonField {
   }
 
   val name = JSONField(JSONFieldTypes.STRING,"name",false,widget = Some(WidgetsNames.input))
+  val icon = JSONField(JSONFieldTypes.STRING,"icon",true,widget = Some(WidgetsNames.input))
 
   val widget = JSONField(JSONFieldTypes.STRING,"widget",false,
     widget = Some(WidgetsNames.select),

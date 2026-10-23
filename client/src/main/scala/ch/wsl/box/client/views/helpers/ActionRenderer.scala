@@ -17,13 +17,13 @@ import scribe.Logging
 
 import scala.concurrent.Future
 
-case class ActionRigths(insert:Boolean,updateRight:Boolean,write:Boolean)
+case class ActionIntent(insert:Boolean,updateRight:Boolean,write:Boolean)
 
 class ActionRenderer(
                       handler: => ActionHandler,
                       listenerManager: ListenerManager,
                       metadata:JSONMetadata,
-                      rights:ActionRigths,
+                      intent:ActionIntent,
                       reset:Unit => Unit
 
                     ) extends Logging {
@@ -40,10 +40,11 @@ class ActionRenderer(
       case Std => ClientConf.style.boxButton
     }
 
+    logger.debug(s"Render action $action for ${_id} with intent $intent")
 
     if(
-      (!action.needUpdateRight || rights.updateRight) &&
-        ((action.updateOnly && _id.isDefined && rights.insert) || (action.insertOnly && rights.insert) || (!action.insertOnly && !action.updateOnly))
+      (!action.needUpdateRight || intent.updateRight) &&
+        ((action.updateOnly && _id.isDefined && intent.updateRight) || (action.insertOnly && intent.insert) || (!action.insertOnly && !action.updateOnly))
     ) {
       val actionButton = button(
         id := TestHooks.actionButton(action.label),
@@ -65,19 +66,6 @@ class ActionRenderer(
 
     logger.debug(s"Action $action clicked")
 
-    def afterGoto(url:String) = {
-      action.target match {
-        case Self => Navigate.toUrl(url)
-        case NewWindow => {
-          window.open(url)
-        }
-        case Popup => PopupFrame.open(url).foreach{ _ =>
-          logger.info("Popup closed, reloading data")
-          handler.reload()
-        }
-      }
-    }
-
     def executeFunction():Future[Option[Boolean]] = action.executeFunction match {
       case Some(value) => services.rest.execute(value,services.clientSession.lang(),handler.data.get).map{ result =>
         result.errorMessage match {
@@ -96,13 +84,15 @@ class ActionRenderer(
 
       val (id,record) = combined
 
-      def onSuccess = Routes.getUrl(action, handler.data.get, metadata.kind, metadata.name, Some(id.asString), rights.write) match {
+      handler.afterSave(id,record)
+
+      def onSuccess = Routes.getUrl(action, handler.data.get, metadata.kind, metadata.name, Some(id.asString), intent.write) match {
         case Some(url) => {
           logger.warn(s"Navigating to $url")
           //reset()
-          afterGoto(url)
+          Navigate.toUrl(url,action.target)
         }
-        case None => handler.afterSave(id,record)
+        case None => ()
       }
 
       executeFunction().map {
@@ -113,7 +103,7 @@ class ActionRenderer(
           onSuccess
         }
         case None => onSuccess
-        case Some(false) => handler.afterSave(id,record)
+        case Some(false) => ()
 
       }
     }
@@ -122,20 +112,20 @@ class ActionRenderer(
       case SaveAction =>  handler.beforeSave(action.html5check).flatMap(handler.saveToDb).map(afterSaveAction)
       case SaveLocalAction =>  handler.beforeSave(action.html5check).flatMap(handler.saveLocally).map(afterSaveAction)
       case SaveAndClosePopup =>  handler.beforeSave(action.html5check).flatMap(handler.saveToDb).map{ _ => ModalStack.mainStack.removeLast() }
-      case NoAction => Routes.getUrl(action,handler.data.get,metadata.kind,metadata.name,_id,rights.write).foreach{ url =>
+      case NoAction => Routes.getUrl(action,handler.data.get,metadata.kind,metadata.name,_id,intent.write).foreach{ url =>
         executeFunction().map {
           case Some(true) => {
             if (Navigate.canGoAway)
               reset()
-            afterGoto(url)
+            Navigate.toUrl(url,action.target)
           }
-          case None => afterGoto(url)
+          case None => Navigate.toUrl(url,action.target)
           case Some(false) => ()
 
         }
       }
       case CopyAction => handler.duplicate()
-      case DeleteAction => handler.delete(_id.flatMap(JSONID.fromString(_,metadata)),handler.data.get,rights.write,action)
+      case DeleteAction => handler.delete(_id.flatMap(JSONID.fromString(_,metadata)),handler.data.get,intent.write,action)
       case RevertAction => handler.reload()
       case BackAction => Navigate.back()
 

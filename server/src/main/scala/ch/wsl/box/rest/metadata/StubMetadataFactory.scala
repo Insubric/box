@@ -66,6 +66,7 @@ object StubMetadataFactory {
             local_key_columns = field.remoteLookup.map(_.map.localKeysColumn.toList),
             foreign_key_columns = field.remoteLookup.map(_.map.foreign.keyColumns.toList),
             default = field.default,
+            icon = None
           )
 
 

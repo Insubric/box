@@ -475,6 +475,7 @@ object FormUIDef {
       JSONField(JSONFieldTypes.STRING,"field_uuid",false,widget = Some(WidgetsNames.hidden)),
       JSONField(JSONFieldTypes.STRING,"form_uuid",false,widget = Some(WidgetsNames.hidden)),
       CommonField.name,
+      CommonField.icon,
       JSONField(JSONFieldTypes.STRING,"widget",false,
         widget = Some(WidgetsNames.select),
         lookup = Some(JSONFieldLookup.prefilled(
@@ -488,15 +489,27 @@ object FormUIDef {
       CommonField.fieldi18n,
       CommonField.foreignEntity(tables),
       CommonField.foreignValueField(tables,fields),
-      JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",false,label=Some("Parent field"),
+      JSONField(JSONFieldTypes.ARRAY_STRING,"local_key_columns",true,label=Some("Parent field"),
         widget = Some(WidgetsNames.inputMultipleText),
-        condition = Some(Condition.inStr("widget",Seq(WidgetsNames.lookupLabel)))
+        condition = Some(Condition.inStr("widget",Seq(
+          WidgetsNames.lookupLabel,
+          WidgetsNames.functionLink,
+        )))
+      ),
+      JSONField(JSONFieldTypes.ARRAY_STRING,"foreign_key_columns",true,label=Some("Export field"),
+        widget = Some(WidgetsNames.inputMultipleText),
+        condition = Some(Condition.inStr("widget",Seq(
+          WidgetsNames.functionLink,
+        )))
       ),
       CommonField.condition,
       JSONField(JSONFieldTypes.JSON,"params",true,widget = Some(WidgetsNames.code)),
       JSONField(JSONFieldTypes.STRING,"function",false,label=Some("Function"),
         widget = Some(WidgetsNames.select),
-        condition = Some(Condition.inStr("widget",Seq(WidgetsNames.executeFunction))),
+        condition = Some(Condition.inStr("widget",Seq(
+          WidgetsNames.executeFunction,
+          WidgetsNames.functionLink,
+        ))),
         lookup = Some(JSONFieldLookup.prefilled(
           functions.sorted.map(x => JSONLookup(x.asJson,Seq(x)))
         ))
@@ -508,11 +521,14 @@ object FormUIDef {
       blocks = Seq(
         LayoutBlock.simple(6,Seq(
           "name",
+          "icon",
           "type",
           "widget",
           "foreign_entity",
-          "local_key_columns",
           "function",
+          "local_key_columns",
+          "foreign_key_columns",
+
           "foreign_value_field",
           "lookupQuery",
           "condition",

@@ -29,6 +29,9 @@ trait ActionHandler {
 
   def delete(id:Option[JSONID],data:Json,write:Boolean,action: FormAction)
 
-  def save(check:Boolean = true)(implicit ex:ExecutionContext):Unit = beforeSave(check).flatMap(saveToDb).foreach( x=> afterSave(x._1,x._2))
+  def save(check:Boolean = true)(implicit ex:ExecutionContext):Future[Boolean] = beforeSave(check).flatMap(saveToDb).map{ x=>
+    afterSave(x._1,x._2)
+    true
+  }
 
 }

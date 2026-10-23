@@ -7,6 +7,7 @@ package ch.wsl.box.client.views
 import ch.wsl.box.client.routes.Routes
 import ch.wsl.box.client.services.{BrowserConsole, ClientConf, Labels, Navigate, REST, UI}
 import ch.wsl.box.client.styles.BootstrapCol
+import ch.wsl.box.client.utils.ListenerManager
 import ch.wsl.box.client.{EntitiesState, EntityFormState, EntityTableState}
 import ch.wsl.box.model.shared.EntityKind
 import io.udash._
@@ -41,6 +42,13 @@ class EntitiesPresenter(model:ModelProperty[Entities]) extends Presenter[Entitie
 
   import ch.wsl.box.client.Context._
   import ch.wsl.box.client.Context.Implicits._
+
+
+  val lm = new ListenerManager()
+
+  override def onClose(): Unit = {
+    lm.clearAll()
+  }
 
   override def handleState(state: EntitiesState): Unit = {
     model.subProp(_.public).set(state.public)
@@ -87,6 +95,7 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
 
   private val sidebarShow = Property(false)
 
+  import presenter.lm._
   private val sidebar:HTMLDivElement =
     div(ClientConf.style.sidebar)(
       showIf(model.subProp(_.currentEntity).transform(_.isDefined)) {
@@ -95,7 +104,7 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
           TextInput(model.subProp(_.search))(),
           ul(ClientConf.style.noBullet,
             repeat(model.subSeq(_.filteredList)) { m =>
-              li(a(Navigate.click(routes.entity(m.get)), m.get)).render
+              li(a(m.get)).render.click(Navigate.event(routes.entity(m.get)))
             }
           )
 
@@ -113,7 +122,7 @@ class EntitiesView(model:ModelProperty[Entities], presenter: EntitiesPresenter, 
           TextInput(model.subProp(_.search))(),
           ul(ClientConf.style.noBullet,
             repeat(model.subSeq(_.filteredList)){m =>
-              li(a(Navigate.click(routes.entity(m.get)),m.get)).render
+              li(a(m.get)).render.click(Navigate.event(routes.entity(m.get)))
             }
           )
 
