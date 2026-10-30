@@ -1041,7 +1041,7 @@ case class EntityTableView(model:ModelProperty[EntityTableModel], presenter:Enti
         headerFactory = Some(_ => div(Labels.table.column_selection).render),
         bodyFactory = Some { nested =>
           div(
-            metadata.nativeFields.filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
+            metadata.nativeFields.sortBy(_.title).filterNot(_.`type` == JSONFieldTypes.GEOMETRY).map{ c =>
               div(
                 Checkbox(localModel.bitransform(_.contains(c)){
                   case true => localModel.get ++ Seq(c)
