@@ -7,6 +7,8 @@ import io.udash.{State, Url}
 import org.scalajs.dom.{BeforeUnloadEvent, window}
 import scribe.Logging
 
+import scala.concurrent.Future
+
 
 object Navigate extends Logging {
   private var enabled:Boolean = true
@@ -29,7 +31,7 @@ object Navigate extends Logging {
     }
   }
 
-  def toUrl(url:String, target:Target = Self):Unit = {
+  def toUrl(url:String, target:Target = Self):Future[Boolean] = {
 
     logger.debug(s"navigate to $url")
 
@@ -44,8 +46,12 @@ object Navigate extends Logging {
         } else {
           Context.applicationInstance.goTo(state)
         }
+
       }
-      case NewWindow => window.open(url,"_blank")
+      case NewWindow => {
+        window.open(url,"_blank")
+        Future.successful(true)
+      }
       case Popup => PopupFrame.open(url)
     }
 
@@ -64,6 +70,7 @@ object Navigate extends Logging {
       window.onbeforeunload = { (e:BeforeUnloadEvent) => } //is a new page i don't want to block the user anymore
       action()
     }
+    Future.successful(true)
   }
 
 
