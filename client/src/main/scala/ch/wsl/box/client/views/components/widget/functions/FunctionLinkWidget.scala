@@ -55,8 +55,6 @@ object FunctionLinkWidget extends ComponentWidgetFactory {
 
     val clickHandler = { (e: Event) =>
 
-      logger.warn("HELLO")
-
       val function = field.function.get
 
       val functionParams = function.local_fields.zip(function.function_fields).map{ case (l,f) =>

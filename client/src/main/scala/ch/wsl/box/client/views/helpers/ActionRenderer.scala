@@ -113,15 +113,18 @@ class ActionRenderer(
       case SaveLocalAction =>  handler.beforeSave(action.html5check).flatMap(handler.saveLocally).map(afterSaveAction)
       case SaveAndClosePopup =>  handler.beforeSave(action.html5check).flatMap(handler.saveToDb).map{ _ => ModalStack.mainStack.removeLast() }
       case NoAction => Routes.getUrl(action,handler.data.get,metadata.kind,metadata.name,_id,intent.write).foreach{ url =>
-        executeFunction().map {
+        executeFunction().flatMap {
           case Some(true) => {
             if (Navigate.canGoAway)
               reset()
             Navigate.toUrl(url,action.target)
           }
           case None => Navigate.toUrl(url,action.target)
-          case Some(false) => ()
+          case Some(false) => Future.successful()
 
+        }.foreach{ _ =>
+          if(action.reload) handler.reload()
+          else services.clientSession.loading.set(false)
         }
       }
       case CopyAction => handler.duplicate()
