@@ -92,6 +92,7 @@ trait BoxStyle {
   val boxButtonIconMini: StyleA
   val boxNavigationLabel: StyleA
   val spacedList: StyleA
+  val validationInput:StyleA
   val boxButtonImportant: StyleA
   val boxButtonDanger: StyleA
   val popupButton: StyleA

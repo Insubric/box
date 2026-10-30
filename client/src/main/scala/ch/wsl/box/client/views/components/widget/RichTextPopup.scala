@@ -111,7 +111,7 @@ object RichTextPopup extends ComponentWidgetFactory  {
 
     private def _renderOnTable(write:Boolean,nested:Binding.NestedInterceptor): JsDom.all.Modifier = popup(nested,write,(modal,modalStatus) => {
       div(
-        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(ClientConf.style.validationInput,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         produceLabel(modalStatus),
         modal.render
       )
@@ -124,7 +124,7 @@ object RichTextPopup extends ComponentWidgetFactory  {
 
       div(BootstrapCol.md(12),ClientConf.style.noPadding, ClientConf.style.smallBottomMargin,
         WidgetUtils.toLabel(field,WidgetUtils.LabelRight),
-        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(width := 1.px, height := 1.px, padding := 0, border := 0, float.left,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
+        TextInput(params.prop.bitransform(_.string)(x => params.prop.get))(ClientConf.style.validationInput,WidgetUtils.toNullable(field.nullable)), //in order to use HTML5 validation we insert an hidden field
         produceLabel(modalStatus),
         modal.render
 
