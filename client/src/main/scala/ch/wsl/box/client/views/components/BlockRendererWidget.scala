@@ -21,7 +21,11 @@ import scala.concurrent.Future
 
 class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String, SubLayoutBlock]], layoutType:LayoutType, widths: Option[Stream[Int]] = None, titleSub:Option[String] = None, margin: Boolean = true) extends Widget with HasData {
 
-  private case class WidgetVisibility(widget: Widget, visibility: ReadableProperty[Boolean])
+  private case class WidgetVisibility(widget: Widget, visibility: ReadableProperty[Boolean]) {
+    autoRelease(visibility.listen( visible => {
+      if(visible) widget.afterRender()
+    },initUpdate = false))
+  }
 
   private object WidgetVisibility {
     def apply(widget: Widget): WidgetVisibility = WidgetVisibility(widget, Property(true))
@@ -179,7 +183,9 @@ class BlockRendererWidget(widgetParams: WidgetParams, fields: Seq[Either[String,
   override def killWidget(): Unit = widgets.foreach(_.widget.killWidget())
 
 
-  override def afterRender() = Future.sequence(widgets.map(_.widget.afterRender())).map(_.forall(x => x))
+  override def afterRender() = {
+    Future.sequence(widgets.filter(_.visibility.get).map(_.widget.afterRender())).map(_.forall(x => x))
+  }
 
   override def field: JSONField = JSONField("fieldsRenderer","fieldsRenderer",false)
 
