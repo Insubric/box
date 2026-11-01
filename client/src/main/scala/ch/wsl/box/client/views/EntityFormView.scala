@@ -121,8 +121,8 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
         }
       }
       rowAccess <- state.id.flatMap(x => JSONID.fromString(x,metadata)) match {
-        case Some(id) => services.rest.rowAccess(metadata.entity,state.kind,id.query)
-        case None => Future.successful(true)
+        case Some(id) if !state.public => services.rest.rowAccess(metadata.entity,state.kind,id.query)
+        case _ => Future.successful(true)
       }
       children <- if(Seq(EntityKind.FORM,EntityKind.BOX_FORM).map(_.kind).contains(state.kind)) services.rest.children(state.kind,state.entity,services.clientSession.lang(),state.public) else Future.successful(Seq())
       record <- state.id match {
@@ -369,15 +369,15 @@ case class EntityFormPresenter(model:ModelProperty[EntityFormModel]) extends Pre
   }
 
   def afterSave(id:JSONID,data:Record) = {
-    val currentState = model.get
-    val newData = currentState.data.deepMerge(data.data)
+    val currentModel = model.get
+    val newData = currentModel.data.deepMerge(data.data)
 
     if(!model.get.id.contains(id.asString)) {
         enableGoAway("afterSaveIdChanged")
         val state = currentState.asInstanceOf[EntityFormState]
         Navigate.to(state.copy(_id = Some(id.asString)))
     } else {
-      model.set(currentState.copy(
+      model.set(currentModel.copy(
         data = newData,
         originalData = newData,
         id = Some(id.asString),

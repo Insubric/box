@@ -47,7 +47,9 @@ object WidgetUtils extends Logging{
 
   def labelAlignment(labelAlign: LabelAlign):Modifier =  if(labelAlign == LabelRight && ClientConf.labelAlign == "right") ClientConf.style.inputRightLabel else frag()
 
-  def toLabel(field:JSONField,labelAlign: LabelAlign, skipRequiredInfo:Boolean=false) = {
+  def toLabel(field:JSONField,labelAlign: LabelAlign, skipRequiredInfo:Boolean=false):Modifier = if(field.title.trim.isEmpty) {
+    Seq[Modifier]()
+  } else {
 
     val labelStyle = field.nullable match {
       case true => ClientConf.style.labelNonRequred

@@ -78,7 +78,7 @@ object InputWidget extends Logging {
 
 
     div(ClientConf.style.fieldContainerRead,
-      if(reallyWithLabel) label(WidgetUtils.labelAlignment(labelAlign),field.title) else {},
+      if(reallyWithLabel && field.title.trim.nonEmpty) label(WidgetUtils.labelAlignment(labelAlign),field.title) else {},
       div(`class` := TestHooks.readOnlyField(field.name) ,modifiers, bind(prop.transform(_.string))),
 
     ).render
