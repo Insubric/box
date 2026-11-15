@@ -50,6 +50,7 @@ class DummyFullConfig extends DummyConfigImpl with FullConfig {
   override def initials: String = "B"
 
   override def matomo: Option[MatomoConfig] = None
+  override def bugsink: Option[String] = None
 
   override def openid: Seq[OIDCConf] = Seq()
 

@@ -39,6 +39,7 @@ trait FullConfig extends Config with DeepLConfig {
 
 
   def matomo:Option[MatomoConfig]
+  def bugsink:Option[String]
 
   def openid:Seq[OIDCConf]
 

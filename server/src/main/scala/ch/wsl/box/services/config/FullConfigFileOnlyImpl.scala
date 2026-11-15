@@ -51,6 +51,7 @@ class FullConfigFileOnlyImpl extends ConfigFileImpl with FullConfig {
   override def initials: String = throw new ConfigNotAvailableException
 
   override def matomo: Option[MatomoConfig] = throw new ConfigNotAvailableException
+  override def bugsink: Option[String] = throw new ConfigNotAvailableException
 
   override def openid: Seq[OIDCConf] = throw new ConfigNotAvailableException
 

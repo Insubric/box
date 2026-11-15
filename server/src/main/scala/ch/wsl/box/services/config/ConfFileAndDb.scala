@@ -134,6 +134,8 @@ class ConfFileAndDb(connection:Connection)(implicit ec:ExecutionContext) extends
     tracker_url <- _conf.get("matomo.tracker_url")
   } yield MatomoConfig(site_id, tracker_url)
 
+  override def bugsink: Option[String] = _conf.get("bugsink")
+
   val devServer: Boolean = sys.env.contains("DEV_SERVER") || ConfigFactory.load().as[Option[Boolean]]("devServer").getOrElse(false)
 
   import net.ceedubs.ficus.readers.ArbitraryTypeReader._
