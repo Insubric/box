@@ -9,7 +9,7 @@ addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.9.0")
 addSbtPlugin("com.typesafe.play" % "sbt-twirl" % "1.5.2")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject"  % "1.0.0")
 
-addSbtPlugin("com.gilcloud" % "sbt-gitlab" % "0.1.2")
+addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.3")
 addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
 
