@@ -45,6 +45,7 @@ jobs:
       - name: Install node dependencies
         env:
           SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd client
           npm install
@@ -52,22 +53,19 @@ jobs:
       - name: Import TS Types
         env:
           SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           sbt client/generateScalaTypes
       - name: Build bundle
         env:
           SBT_OPTS: -XX:+UseG1GC -Xmx4G -Xss10M -XX:MaxInlineLevel=20
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd client
           npm run build
           cd ..
-      - name: Version info
-        run: |
-          sbt server/version
-          git status
       - name: Publish to sonatype
         run: |
           sbt -J-Xmx4G -J-XX:MaxMetaspaceSize=1G  -J-Xss10m  publishAll
         env:
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
