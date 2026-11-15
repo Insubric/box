@@ -11,6 +11,9 @@ build:
     IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
     DOCKER_TLS_CERTDIR: "/certs"
     VITE_BOX_VERSION: $CI_COMMIT_TAG
+  before_script:
+    # Install Node.js and sbt if they are not in your base image
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   script:
     - echo $IMAGE_TAG
     - cd client
