@@ -1,4 +1,3 @@
-import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 import org.scalablytyped.converter.internal.Json
 import org.scalablytyped.converter.internal.ts.PackageJson
 //import xerial.sbt.Sonatype.sonatypeCentralHost
@@ -44,7 +43,6 @@ lazy val codegen  = (project in file("codegen")).settings(
   resolvers += Resolver.jcenterRepo,
   Compile / resourceDirectory := baseDirectory.value / "../resources",
   Compile / unmanagedResourceDirectories += baseDirectory.value / "../db",
-  publishTo := sonatypeCentralPublishToBundle.value
 ).settings(publishSettings).dependsOn(sharedJVM).dependsOn(serverServices)
 
 lazy val serverServices  = (project in file("server-services")).settings(
@@ -53,7 +51,6 @@ lazy val serverServices  = (project in file("server-services")).settings(
   scalaVersion := Settings.versions.scala213,
   libraryDependencies += "com.iheart" %% "ficus" % Settings.versions.ficus,
   resolvers += Resolver.jcenterRepo,
-  publishTo := sonatypeCentralPublishToBundle.value
 ).settings(publishSettings).dependsOn(sharedJVM)
 
 lazy val server: Project  = project
@@ -89,7 +86,6 @@ lazy val server: Project  = project
       Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports"),
       Tests.Argument(TestFrameworks.ScalaTest, "-oNDXEHLO")
     ),
-      publishTo := sonatypeCentralPublishToBundle.value
   ).settings(publishSettings)
   .enablePlugins(
     GitVersioning,
@@ -108,7 +104,6 @@ lazy val serverCacheRedis  = (project in file("server-cache-redis")).settings(
   scalaVersion := Settings.versions.scala213,
   libraryDependencies ++= Settings.serverCacheRedisDependecies.value,
   resolvers += Resolver.jcenterRepo,
-  publishTo := sonatypeCentralPublishToBundle.value
 ).settings(publishSettings).dependsOn(serverServices)
 
 lazy val client: Project = (project in file("client"))
@@ -164,7 +159,6 @@ lazy val client: Project = (project in file("client"))
       Tags.limit(Tags.Test,5) //browserstack limit
     ),
     localesFilter := LocalesFilter.Selection("en", "de", "fr", "it"),
-    publishTo := sonatypeCentralPublishToBundle.value,
     Compile / doc / sources := Seq()
 
   )
@@ -187,7 +181,6 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
     licenses += ("Apache-2.0", url("http://www.opensource.org/licenses/apache2.0.php")),
     libraryDependencies ++= Settings.sharedJVMJSDependencies.value,
     resolvers += Resolver.jcenterRepo,
-    publishTo := sonatypeCentralPublishToBundle.value
   )
   .settings(publishSettings)
   .jsSettings(
@@ -197,13 +190,11 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure
 lazy val sharedJVM: Project = shared.jvm.settings(
   name := "box-shared-jvm",
   scalaVersion := Settings.versions.scala213,
-  publishTo := sonatypeCentralPublishToBundle.value
 )
 
 lazy val sharedJS: Project = shared.js.settings(
   name := "box-shared-js",
   scalaVersion := Settings.versions.scala213,
-  publishTo := sonatypeCentralPublishToBundle.value
 )
 
 
@@ -274,13 +265,13 @@ lazy val publishAllTask = {
     (serverServices / clean),
     (codegen / clean),
     (codegen / Compile / compile),
-    (sharedJVM / publishSigned),
-    (sharedJS / publishSigned),
-    (client / publishSigned),
-    (codegen / publishSigned),
-    (server / publishSigned),
-    (serverCacheRedis / publishSigned),
-    (serverServices / publishSigned)
+    (sharedJVM / publish),
+    (sharedJS / publish),
+    (client / publish),
+    (codegen / publish),
+    (server / publish),
+    (serverCacheRedis / publish),
+    (serverServices / publish)
   )
 }
 

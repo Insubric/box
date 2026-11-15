@@ -1,0 +1,25 @@
+build:
+  image: registry-git.wsl.ch/minettia/sbt-scala-ci:17_1.12_2.13.18_29.2.1
+  stage: deploy
+  tags:
+    - docker-build
+  services:
+    - name: docker:20.10-dind
+  only:
+    - tags
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    DOCKER_TLS_CERTDIR: "/certs"
+    VITE_BOX_VERSION: $CI_COMMIT_TAG
+  script:
+    - echo $IMAGE_TAG
+    - cd client
+    - npm install
+    - cd ..
+    - sbt client/generateScalaTypes
+    - cd client
+    - npm run build
+    - cd ..
+    - sbt server/version
+    - git status
+    - sbt -J-Xmx4G -J-Xss10m publishAll
