@@ -25,7 +25,8 @@ val publishSettings = List(
   git.gitTagToVersionNumber := { tag:String =>
     Some(tag.stripPrefix("v"))
   },
-
+  githubOwner := "Insubric",
+  githubRepository := "box"
 )
 
 inThisBuild(publishSettings)
