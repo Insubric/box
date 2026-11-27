@@ -59,6 +59,26 @@ class ClientSession(rest:REST,httpClient: HttpClient, preferences:Preferences) e
   }
 
   val loading = Property(false)
+  val loadingTimedOut = Property(false)
+  private var loadingTimeout = 0
+  loading.listen{
+    case true =>
+      loadingTimedOut.set(false)
+      loadingTimeout = dom.window.setTimeout(() => {
+        ErrorReporting.message(s"Timeout reached")
+        loadingTimedOut.set(true)
+      },120000)
+    case false => {
+      dom.window.clearInterval(loadingTimeout)
+      loadingTimedOut.set(false)
+    }
+  }
+
+  def forceCloseLoading():Unit = {
+    ErrorReporting.message(s"Force closed loading on timeout")
+    loading.set(false)
+  }
+
   private var userInfo:Option[UserInfo] = None
 
   logger.info("Loading session")

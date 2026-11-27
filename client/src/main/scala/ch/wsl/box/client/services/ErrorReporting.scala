@@ -24,12 +24,18 @@ object ErrorReporting {
   def init(version:String) = {
 
     ClientConf.bugsink.foreach{ bs =>
+
+      println(bs)
+
       val config = js.Dynamic.literal(
         dsn = bs,
         releaseString = version,
         integrations = js.Array(),
         tracesSampleRate = 1.0
       )
+
+      BrowserConsole.log(Sentry)
+
       Sentry.init(config)
       initialized = true
     }
