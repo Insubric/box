@@ -87,6 +87,7 @@ object ClientConf {
   def childBackgroundColor: String = Try(conf("child.backgroundColor")).getOrElse(StyleConstants.Colors.GreyExtra.value)
 
   def paddingBlocks:Int = Try(conf("form.padding.blocks").toInt).getOrElse(5)
+  def bugsink:Option[String] = conf.get("bugsink")
 
   lazy val styleConf = StyleConf(
     colors = Colors(colorMain,colorMainText,colorMainLink,colorLink,colorDanger,colorWarning),

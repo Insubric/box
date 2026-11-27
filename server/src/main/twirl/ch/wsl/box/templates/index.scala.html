@@ -1,5 +1,5 @@
 @import ch.wsl.box.viewmodel.MatomoConfig
-@(version:String,uiModule:String,basePath:String,color:String,matomo:Option[MatomoConfig],bugsink:Option[String])
+@(version:String,uiModule:String,basePath:String,color:String,matomo:Option[MatomoConfig])
 <!DOCTYPE html>
 <html lang="en">
     <head lang="en">
@@ -53,22 +53,6 @@
                     })();
             </script>
             <!-- End Matomo Code -->
-        }
-
-        @bugsink.map{ bs =>
-          <script
-  src="https://browser.sentry-cdn.com/11.12.0/bundle.tracing.replay.feedback.logs.metrics.min.js"
-  integrity="sha384-rH+ziD2Ad/ohheBXTZFVAgwcyyAEEArmTOUvcNXTvIaMsFpM/ZHfyesPajQOVLqa"
-  crossorigin="anonymous"
-></script>
-<script>
-  Sentry.init({
-    dsn: "@bs",
-    release: "@version",
-    integrations: [],
-    tracesSampleRate: 1.0,
-  });
-</script>
         }
 
     </head>

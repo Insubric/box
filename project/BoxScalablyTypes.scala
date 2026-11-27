@@ -37,6 +37,7 @@ object BoxScalablyTypes {
       "@tailwindcss/vite",
       "string-strip-html",
       "autocompleter",
+      "@sentry/browser"
     ),
     versions                 = Versions(Versions.Scala213, Versions.ScalaJs1),
     organization             = "org.scalablytyped",

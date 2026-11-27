@@ -1,7 +1,7 @@
 package ch.wsl.box.client.services.impl
 
 import ch.wsl.box.client.services.HttpClient.Response
-import ch.wsl.box.client.services.{BrowserConsole, HttpClient, Labels, Notification, RunNowExecutionContext}
+import ch.wsl.box.client.services.{BrowserConsole, ErrorReporting, HttpClient, Labels, Notification, RunNowExecutionContext}
 import ch.wsl.box.model.shared.errors.{ExceptionReport, GenericExceptionReport, JsonDecoderExceptionReport, SQLExceptionReport}
 import io.circe.{Decoder, Json}
 import org.scalajs.dom
@@ -32,6 +32,17 @@ class HttpClientImpl extends HttpClient with Logging {
   }
 
   private def httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit)(implicit ec:ExecutionContext):Future[Response[Option[T]]] = {
+    _httpCall[T](method,url,json,file,decoder)(send).map {
+      case Left(value) => {
+        //Report error
+        ErrorReporting.report(value)
+        Left(value)
+      }
+      case Right(value) => Right(value)
+    }
+  }
+
+  private def _httpCall[T](method:String, url:String, json:Boolean=true, file:Boolean=false, decoder:Option[io.circe.Decoder[T]] = None)(send:XMLHttpRequest => Unit)(implicit ec:ExecutionContext):Future[Response[Option[T]]] = {
 
 
     val promise = Promise[Response[Option[T]]]()
