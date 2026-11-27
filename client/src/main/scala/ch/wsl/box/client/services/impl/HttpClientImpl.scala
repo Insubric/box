@@ -35,7 +35,7 @@ class HttpClientImpl extends HttpClient with Logging {
     _httpCall[T](method,url,json,file,decoder)(send).map {
       case Left(value) => {
         //Report error
-        ErrorReporting.report(value)
+        ErrorReporting.report(value,Some(s"$method $url"))
         Left(value)
       }
       case Right(value) => Right(value)

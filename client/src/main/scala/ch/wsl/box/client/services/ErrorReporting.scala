@@ -47,8 +47,11 @@ object ErrorReporting {
       Sentry.captureMessage(msg)
   }
 
-  def report(reporting: ExceptionReport) = if(initialized) {
-    val error = js.Error(s"${reporting.source}: ${reporting.humanReadable(Labels.all)}")
+  def report(reporting: ExceptionReport, additional_context:Option[String] = None) = if(initialized) {
+    import ch.wsl.box.client.Context._
+    val user = services.clientSession.getUserInfo().map(_.preferred_username).getOrElse("Non authenticated")
+    val currentState = applicationInstance.currentState.url(applicationInstance)
+    val error = js.Error(s"[$user] $currentState -  ${reporting.source}: ${reporting.humanReadable(Labels.all)} ${additional_context.map(x => s" - $x").getOrElse("")}")
     Sentry.captureException(error)
   }
 }
